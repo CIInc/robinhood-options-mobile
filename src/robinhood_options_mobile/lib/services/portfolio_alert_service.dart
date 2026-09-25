@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/custom_alert.dart';
+import 'package:robinhood_options_mobile/model/earnings_calendar_event.dart';
 import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
 import 'package:robinhood_options_mobile/model/volatility_cone_model.dart';
 import 'package:robinhood_options_mobile/model/iv_surface_model.dart';
@@ -54,6 +55,7 @@ class PortfolioAlertService {
     RiskCircuitBreakerConfig? riskCircuitBreakerConfig,
     AutomatedDripConfig? automatedDripConfig,
     List<ZeroDteSqueezeRadarResult>? squeezeRadarResults,
+    List<EarningsCalendarEvent>? earningsCalendarEvents,
     List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
     List<VolatilityConeAnalysis>? volatilityConeAnalyses,
     List<IvSurfaceAnalysis>? ivSurfaceAnalyses,
@@ -63,12 +65,19 @@ class PortfolioAlertService {
     DateTime? now,
   }) {
     final alerts = <PortfolioAlert>[];
+    final effectiveNow = now ?? DateTime.now();
 
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
-    alerts
-        .addAll(_optionExpirationAlerts(optionPositions, now ?? DateTime.now()));
+    alerts.addAll(_optionExpirationAlerts(optionPositions, effectiveNow));
+    alerts.addAll(_earningsCalendarAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+      earningsCalendarEvents: earningsCalendarEvents,
+      earningsCrushAnalyses: earningsCrushAnalyses,
+      now: effectiveNow,
+    ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
     alerts.addAll(_ivSurfaceAlerts(ivSurfaceAnalyses));
@@ -701,6 +710,234 @@ class PortfolioAlertService {
             rule.value;
       default:
         return analysis.summary.crushProbabilityScore >= rule.value;
+    }
+  }
+
+  /// Generates Action Center alerts for upcoming earnings dates across portfolio holdings.
+  static List<PortfolioAlert> _earningsCalendarAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    List<EarningsCalendarEvent>? earningsCalendarEvents,
+    List<EarningsIvCrushAnalysis>? earningsCrushAnalyses,
+    required DateTime now,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    final eventsBySymbol = <String, EarningsCalendarEvent>{};
+
+    // 1. Incorporate explicitly supplied earnings calendar events
+    if (earningsCalendarEvents != null) {
+      for (final event in earningsCalendarEvents) {
+        if (event.symbol.isNotEmpty) {
+          eventsBySymbol[event.symbol] = event;
+        }
+      }
+    }
+
+    // 2. Scan equity positions for attached earnings objects
+    for (final pos in instrumentPositions) {
+      final symbol = pos.instrumentObj?.symbol ?? '';
+      if (symbol.isEmpty) continue;
+      final shares = pos.quantity ?? 0.0;
+      if (shares <= 0) continue;
+
+      final earningsList = pos.instrumentObj?.earningsObj;
+      if (earningsList != null && earningsList.isNotEmpty) {
+        EarningsCalendarEvent? nextEvent;
+        for (final item in earningsList) {
+          if (item is Map) {
+            try {
+              final event = EarningsCalendarEvent.fromRobinhoodJson(
+                item,
+                defaultSymbol: symbol,
+                sharesHeld: shares,
+              );
+              final days = event.daysUntil(now);
+              if (days >= 0 && days <= 7) {
+                if (nextEvent == null || days < nextEvent.daysUntil(now)) {
+                  nextEvent = event;
+                }
+              }
+            } catch (_) {}
+          }
+        }
+        if (nextEvent != null) {
+          final existing = eventsBySymbol[symbol];
+          if (existing == null) {
+            eventsBySymbol[symbol] = nextEvent;
+          } else {
+            eventsBySymbol[symbol] = existing.copyWith(
+              sharesHeld: (existing.sharesHeld ?? 0.0) + shares,
+            );
+          }
+        } else if (eventsBySymbol.containsKey(symbol)) {
+          final existing = eventsBySymbol[symbol]!;
+          eventsBySymbol[symbol] = existing.copyWith(
+            sharesHeld: (existing.sharesHeld ?? 0.0) + shares,
+          );
+        }
+      } else if (eventsBySymbol.containsKey(symbol)) {
+        final existing = eventsBySymbol[symbol]!;
+        eventsBySymbol[symbol] = existing.copyWith(
+          sharesHeld: (existing.sharesHeld ?? 0.0) + shares,
+        );
+      }
+    }
+
+    // 3. Scan option positions for underlying earnings objects
+    for (final pos in optionPositions) {
+      final symbol = pos.symbol.isNotEmpty
+          ? pos.symbol
+          : (pos.optionInstrument?.chainSymbol ?? '');
+      if (symbol.isEmpty) continue;
+      final contracts = (pos.quantity ?? 0.0).round();
+      if (contracts <= 0) continue;
+
+      if (eventsBySymbol.containsKey(symbol)) {
+        final existing = eventsBySymbol[symbol]!;
+        eventsBySymbol[symbol] = existing.copyWith(
+          contractsHeld: (existing.contractsHeld ?? 0) + contracts,
+        );
+      } else {
+        final earningsList = pos.instrumentObj?.earningsObj;
+        if (earningsList != null && earningsList.isNotEmpty) {
+          EarningsCalendarEvent? nextEvent;
+          for (final item in earningsList) {
+            if (item is Map) {
+              try {
+                final event = EarningsCalendarEvent.fromRobinhoodJson(
+                  item,
+                  defaultSymbol: symbol,
+                  contractsHeld: contracts,
+                );
+                final days = event.daysUntil(now);
+                if (days >= 0 && days <= 7) {
+                  if (nextEvent == null || days < nextEvent.daysUntil(now)) {
+                    nextEvent = event;
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+          if (nextEvent != null) {
+            eventsBySymbol[symbol] = nextEvent;
+          }
+        }
+      }
+    }
+
+    // 4. Fallback to next earnings dates from EarningsIvCrushAnalysis if not already populated
+    if (earningsCrushAnalyses != null) {
+      for (final analysis in earningsCrushAnalyses) {
+        if (!eventsBySymbol.containsKey(analysis.symbol)) {
+          final days = analysis.daysToEarnings;
+          if (days != null && days >= 0 && days <= 7) {
+            eventsBySymbol[analysis.symbol] = EarningsCalendarEvent(
+              symbol: analysis.symbol,
+              date: analysis.nextEarningsDate ?? now.add(Duration(days: days)),
+              epsEstimate: analysis.quarters.isNotEmpty
+                  ? analysis.quarters.first.epsEstimate
+                  : null,
+            );
+          }
+        }
+      }
+    }
+
+    // 5. Generate action center alerts for upcoming reports
+    for (final event in eventsBySymbol.values) {
+      final days = event.daysUntil(now);
+      if (days < 0 || days > 7) continue;
+
+      final symbol = event.symbol;
+      final timingDesc =
+          event.timingDisplay.isNotEmpty ? ' (${event.timingDisplay})' : '';
+      final timingDetail = event.timingDisplay.isNotEmpty
+          ? ' ${event.timingDisplay.toLowerCase()}'
+          : '';
+
+      final List<String> holdings = [];
+      if (event.sharesHeld != null && event.sharesHeld! > 0) {
+        final sharesStr = event.sharesHeld!.toStringAsFixed(
+            event.sharesHeld!.truncateToDouble() == event.sharesHeld ? 0 : 2);
+        holdings.add('$sharesStr shares');
+      }
+      if (event.contractsHeld != null && event.contractsHeld! > 0) {
+        holdings.add(
+            '${event.contractsHeld} option contract${event.contractsHeld! > 1 ? 's' : ''}');
+      }
+      final holdingStr =
+          holdings.isNotEmpty ? 'You hold ${holdings.join(' and ')}. ' : '';
+      final estimateStr = event.epsEstimate != null
+          ? ' (Consensus EPS: ${event.formattedEstimate})'
+          : '';
+
+      if (days == 0) {
+        // 0 DTE: Reports Today
+        alerts.add(PortfolioAlert(
+          id: 'earnings-today-$symbol',
+          severity: PortfolioAlertSeverity.critical,
+          icon: Icons.campaign_rounded,
+          title: '$symbol Reports Earnings Today$timingDesc',
+          detail:
+              '${holdingStr}Scheduled to announce earnings today$timingDetail$estimateStr. High binary risk of price gap and IV crush at the release.',
+          metric: 'Today',
+          target: PortfolioAlertTarget.earningsIvCrush,
+        ));
+      } else if (days == 1) {
+        // 1 DTE: Reports Tomorrow
+        alerts.add(PortfolioAlert(
+          id: 'earnings-tomorrow-$symbol',
+          severity: PortfolioAlertSeverity.warning,
+          icon: Icons.event_note_rounded,
+          title: '$symbol Reports Earnings Tomorrow$timingDesc',
+          detail:
+              '${holdingStr}Scheduled to report earnings tomorrow$timingDetail$estimateStr. Review unhedged exposure or consider delta-neutral and IV crush strategies.',
+          metric: '1d',
+          target: PortfolioAlertTarget.earningsIvCrush,
+        ));
+      } else {
+        // 2 to 7 Days: Reporting Soon
+        final dateStr = DateFormat.MMMd().format(event.date);
+        alerts.add(PortfolioAlert(
+          id: 'earnings-upcoming-$symbol-$days',
+          severity: PortfolioAlertSeverity.info,
+          icon: Icons.event_outlined,
+          title: '$symbol Earnings in $days Days ($dateStr)',
+          detail:
+              '${holdingStr}Scheduled announcement on $dateStr$timingDetail$estimateStr. Volatility and options extrinsic value typically expand ahead of earnings.',
+          metric: '${days}d',
+          target: PortfolioAlertTarget.earningsIvCrush,
+        ));
+      }
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against an EarningsCalendarEvent or days-to-earnings.
+  static bool evaluateEarningsCalendarAlert({
+    required SmartAlertRule rule,
+    required EarningsCalendarEvent event,
+    DateTime? now,
+  }) {
+    if (rule.type != AlertType.earnings_calendar) return false;
+    final current = now ?? DateTime.now();
+    final days = event.daysUntil(current);
+
+    switch (rule.condition) {
+      case AlertCondition.earnings_today:
+        return days == 0;
+      case AlertCondition.earnings_tomorrow:
+        return days == 1;
+      case AlertCondition.earnings_imminent:
+        return days >= 0 && days <= (rule.value > 0 ? rule.value.round() : 3);
+      case AlertCondition.days_until_earnings:
+      case AlertCondition.below:
+        return days >= 0 && days <= rule.value;
+      case AlertCondition.above:
+        return days >= rule.value;
+      default:
+        return days >= 0 && days <= rule.value;
     }
   }
 

@@ -13,6 +13,7 @@ enum AlertType {
   iv_surface,
   delta_neutral,
   dynamic_threshold,
+  earnings_calendar,
   custom
 }
 
@@ -37,7 +38,11 @@ enum AlertCondition {
   delta_drift_exceeded,
   delta_rebalance_required,
   above_band,
-  below_band
+  below_band,
+  earnings_today,
+  earnings_tomorrow,
+  earnings_imminent,
+  days_until_earnings
 }
 
 enum AlertLogic { all, any }
