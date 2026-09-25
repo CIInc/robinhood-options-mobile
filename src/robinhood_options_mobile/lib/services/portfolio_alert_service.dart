@@ -1081,8 +1081,8 @@ class PortfolioAlertService {
             detailParts.add('Rate: ${event.formattedRate}.');
           }
           if (payoutAmount != null) {
-            detailParts.add(
-                'Estimated payout: \$${payoutAmount.toStringAsFixed(2)}.');
+            detailParts
+                .add('Estimated payout: \$${payoutAmount.toStringAsFixed(2)}.');
           }
 
           alerts.add(PortfolioAlert(
@@ -1154,8 +1154,7 @@ class PortfolioAlertService {
             id: 'dividend_payable_upcoming_${sym}_$payDays',
             severity: PortfolioAlertSeverity.info,
             icon: Icons.schedule_outlined,
-            title:
-                '$sym Dividend in $payDays ${payDays == 1 ? 'day' : 'days'}',
+            title: '$sym Dividend in $payDays ${payDays == 1 ? 'day' : 'days'}',
             detail:
                 'Scheduled payout of $payoutStr on $dateStr${sharesStr != null ? ' for $sharesStr' : ''}.',
             metric: payoutStr,
@@ -1565,7 +1564,8 @@ class PortfolioAlertService {
             id: 'unusual-activity-$sym',
             severity: PortfolioAlertSeverity.critical,
             icon: Icons.warning_amber_rounded,
-            title: '$sym: Sharp intraday drop (-${_percent.format(gainLossPct.abs())})',
+            title:
+                '$sym: Sharp intraday drop (-${_percent.format(gainLossPct.abs())})',
             detail:
                 'Held in portfolio ($sharesStr). Price fell sharply today with ${_currency.format(gainLossToday.abs())} unrealized decline. Review position stop-losses.',
             metric: '-${_percent.format(gainLossPct.abs())}',
@@ -1576,7 +1576,8 @@ class PortfolioAlertService {
             id: 'unusual-activity-$sym',
             severity: PortfolioAlertSeverity.positive,
             icon: Icons.arrow_upward,
-            title: '$sym: Sharp intraday rally (+${_percent.format(gainLossPct)})',
+            title:
+                '$sym: Sharp intraday rally (+${_percent.format(gainLossPct)})',
             detail:
                 'Held in portfolio ($sharesStr). Price rallied significantly today with +${_currency.format(gainLossToday.abs())} unrealized gain.',
             metric: '+${_percent.format(gainLossPct)}',
@@ -1600,7 +1601,10 @@ class PortfolioAlertService {
         final optVol = mkt?.volume;
         final oi = mkt?.openInterest;
 
-        if (optVol != null && oi != null && oi > 0 && optVol >= _minOptionVolumeThreshold) {
+        if (optVol != null &&
+            oi != null &&
+            oi > 0 &&
+            optVol >= _minOptionVolumeThreshold) {
           final ratio = optVol / oi;
           if (ratio >= 2.0) {
             final sym = pos.symbol.isNotEmpty
@@ -1608,11 +1612,14 @@ class PortfolioAlertService {
                 : (pos.optionInstrument?.chainSymbol ?? 'Option');
 
             final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
-            final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+            final strike =
+                firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
             final strikeStr = strike != null
                 ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
                 : '';
-            final optType = (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '').toUpperCase();
+            final optType =
+                (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+                    .toUpperCase();
             final contractsStr =
                 '${qty.toStringAsFixed(qty.truncateToDouble() == qty ? 0 : 1)} contract${qty == 1 ? '' : 's'}';
 
@@ -1696,7 +1703,8 @@ class PortfolioAlertService {
         return volMatch || priceMatch;
       case AlertCondition.drop:
         final priceThreshold = rule.value > 0 ? -rule.value : -5.0;
-        return priceChangePercent != null && priceChangePercent <= priceThreshold;
+        return priceChangePercent != null &&
+            priceChangePercent <= priceThreshold;
       case AlertCondition.percent_change:
         final threshold = rule.value > 0 ? rule.value : 5.0;
         return priceChangePercent != null &&
@@ -1968,10 +1976,9 @@ class PortfolioAlertService {
       final strikeStr = strike != null
           ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
           : '';
-      final optionType = (firstLeg?.optionType ??
-              pos.optionInstrument?.type ??
-              '')
-          .toUpperCase();
+      final optionType =
+          (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+              .toUpperCase();
       final isShort = pos.direction == 'credit' ||
           pos.strategy.startsWith('short') ||
           pos.legs.any((l) => l.positionType == 'short');
@@ -2026,9 +2033,8 @@ class PortfolioAlertService {
           PortfolioAlert(
             id: id,
             severity: PortfolioAlertSeverity.critical,
-            icon: isShort
-                ? Icons.assignment_late_outlined
-                : Icons.timer_outlined,
+            icon:
+                isShort ? Icons.assignment_late_outlined : Icons.timer_outlined,
             title: '$contractDesc expires today',
             detail: detail,
             metric: '0 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
