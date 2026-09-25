@@ -23,6 +23,7 @@ The Custom Alerts feature allows users to set up personalized notifications for 
 #### Portfolio Alerts
 - **Position Size Changes**: Alert on significant changes in position values
 - **P&L Thresholds**: Notify when unrealized P&L reaches specified levels
+- **Options Expiration Alerts**: Action Center alerts for active option contracts approaching expiration (0 DTE, 1 DTE, 2–3 DTE), tracking moneyness (ITM automatic exercise risk vs. OTM worthless expiration) and short-leg assignment exposure with 1-tap navigation to Positions and the Options Roll Assistant.
 
 #### Options Flow Alerts
 - **Flow Criteria**: Trigger on sweeps, blocks, or smart flags (Whale, Golden Sweep, Steamroller).
@@ -92,5 +93,4 @@ Custom alerts for an instrument are integrated directly into the instrument's de
 - News-based alerts
 - Earnings calendar alerts
 - Custom indicator alerts
-- Alert templates and presets</content>
-<parameter name="filePath">/Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/docs/custom-alerts.md
+- Alert templates and presets

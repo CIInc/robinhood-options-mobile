@@ -60,12 +60,15 @@ class PortfolioAlertService {
     List<DeltaNeutralAnalysis>? deltaNeutralAnalyses,
     double? dayPnL,
     double? dayPnLPercent,
+    DateTime? now,
   }) {
     final alerts = <PortfolioAlert>[];
 
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
+    alerts
+        .addAll(_optionExpirationAlerts(optionPositions, now ?? DateTime.now()));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
     alerts.addAll(_ivSurfaceAlerts(ivSurfaceAnalyses));
@@ -891,6 +894,166 @@ class PortfolioAlertService {
         );
       }
     }
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _optionExpirationAlerts(
+    List<OptionAggregatePosition> optionPositions,
+    DateTime now,
+  ) {
+    final alerts = <PortfolioAlert>[];
+    final today = DateTime(now.year, now.month, now.day);
+
+    for (final pos in optionPositions) {
+      final qty = pos.quantity ?? 0.0;
+      if (qty <= 0) continue;
+
+      final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
+      final expDate =
+          pos.optionInstrument?.expirationDate ?? firstLeg?.expirationDate;
+      if (expDate == null) continue;
+
+      final expDay = DateTime(expDate.year, expDate.month, expDate.day);
+      final daysToExpiration = expDay.difference(today).inDays;
+
+      // Ignore already past/expired contracts (> 0 days in the past)
+      if (daysToExpiration < 0) continue;
+
+      // Only alert within the immediate expiration window (<= 3 calendar days)
+      if (daysToExpiration > 3) continue;
+
+      final symbol = pos.symbol.isNotEmpty
+          ? pos.symbol
+          : (pos.optionInstrument?.chainSymbol ?? 'Option');
+      final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+      final strikeStr = strike != null
+          ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
+          : '';
+      final optionType = (firstLeg?.optionType ??
+              pos.optionInstrument?.type ??
+              '')
+          .toUpperCase();
+      final isShort = pos.direction == 'credit' ||
+          pos.strategy.startsWith('short') ||
+          pos.legs.any((l) => l.positionType == 'short');
+
+      // Determine spot price and moneyness if available
+      final spotPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+          pos.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice ??
+          pos.instrumentObj?.quoteObj?.previousClose;
+
+      bool? isItm;
+      if (spotPrice != null && strike != null) {
+        if (optionType == 'CALL') {
+          isItm = spotPrice >= strike;
+        } else if (optionType == 'PUT') {
+          isItm = spotPrice <= strike;
+        }
+      }
+
+      final moneynessStr = isItm == null
+          ? ''
+          : isItm
+              ? 'ITM'
+              : 'OTM';
+
+      final contractDesc = [
+        symbol,
+        if (strikeStr.isNotEmpty) strikeStr,
+        if (optionType.isNotEmpty) optionType,
+      ].join(' ');
+
+      final id =
+          'opt-exp-${pos.id.isNotEmpty ? pos.id : symbol}-$daysToExpiration';
+
+      if (daysToExpiration == 0) {
+        // 0 DTE: Expiring Today
+        final String detail;
+        if (isShort) {
+          detail =
+              '$contractDesc expires today. High risk of assignment or delivery obligation at 4:00 PM ET.';
+        } else if (isItm == true) {
+          detail =
+              '$contractDesc is In-The-Money ($moneynessStr) and expires today. Will be automatically exercised unless closed before market close.';
+        } else if (isItm == false) {
+          detail =
+              '$contractDesc is Out-of-The-Money ($moneynessStr) and expires today. Will expire worthless at market close unless underlying moves.';
+        } else {
+          detail =
+              '$contractDesc expires today. Review to close, exercise, or roll before market close.';
+        }
+
+        alerts.add(
+          PortfolioAlert(
+            id: id,
+            severity: PortfolioAlertSeverity.critical,
+            icon: isShort
+                ? Icons.assignment_late_outlined
+                : Icons.timer_outlined,
+            title: '$contractDesc expires today',
+            detail: detail,
+            metric: '0 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
+            target: isShort
+                ? PortfolioAlertTarget.strategies
+                : PortfolioAlertTarget.positions,
+          ),
+        );
+      } else if (daysToExpiration == 1) {
+        // 1 DTE: Expiring Tomorrow
+        final String detail;
+        if (isShort) {
+          detail =
+              '$contractDesc expires tomorrow. Consider rolling or closing to manage assignment exposure.';
+        } else if (isItm == true) {
+          detail =
+              '$contractDesc is ITM and expires tomorrow. Plan for exercise, rolling, or taking profit.';
+        } else if (isItm == false) {
+          detail =
+              '$contractDesc is OTM and expires tomorrow. Rapid theta decay in effect; assess rolling or exit.';
+        } else {
+          detail =
+              '$contractDesc expires tomorrow. Review positions before final trading session.';
+        }
+
+        alerts.add(
+          PortfolioAlert(
+            id: id,
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.alarm_on_outlined,
+            title: '$contractDesc expires tomorrow',
+            detail: detail,
+            metric: '1 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
+            target: isShort
+                ? PortfolioAlertTarget.strategies
+                : PortfolioAlertTarget.positions,
+          ),
+        );
+      } else {
+        // 2-3 DTE: Expiring Soon
+        final severity = (isShort || isItm == true)
+            ? PortfolioAlertSeverity.warning
+            : PortfolioAlertSeverity.info;
+        final detail = isShort
+            ? '$contractDesc expires in $daysToExpiration days. Monitor underlying price for assignment buffer.'
+            : '$contractDesc expires in $daysToExpiration days. Evaluate options strategy roll or profit targets as theta decay accelerates.';
+
+        alerts.add(
+          PortfolioAlert(
+            id: id,
+            severity: severity,
+            icon: Icons.event_available_outlined,
+            title: '$contractDesc expires in $daysToExpiration days',
+            detail: detail,
+            metric:
+                '${daysToExpiration}d DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
+            target: isShort
+                ? PortfolioAlertTarget.strategies
+                : PortfolioAlertTarget.positions,
+          ),
+        );
+      }
+    }
+
     return alerts;
   }
 

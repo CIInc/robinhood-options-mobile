@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
@@ -94,6 +96,59 @@ Account buildAccount({double? cash, double? buyingPower}) => Account(
       0,
       0,
     );
+
+OptionAggregatePosition buildOptionPosition({
+  required String symbol,
+  required double strikePrice,
+  required String optionType,
+  required DateTime expirationDate,
+  double quantity = 1.0,
+  String direction = 'debit',
+  String positionType = 'long',
+  String strategy = 'call',
+  double? underlyingPrice,
+}) {
+  final leg = OptionLeg(
+    'leg-$symbol-$strikePrice-$optionType',
+    null,
+    positionType,
+    'option-1',
+    'open',
+    1,
+    'buy',
+    expirationDate,
+    strikePrice,
+    optionType,
+    [],
+  );
+
+  final pos = OptionAggregatePosition(
+    'pos-$symbol-$strikePrice-$optionType',
+    'chain-1',
+    '1AB23456',
+    symbol,
+    strategy,
+    2.5,
+    [leg],
+    quantity,
+    null,
+    null,
+    direction,
+    direction,
+    100.0,
+    DateTime(2026, 1, 1),
+    DateTime(2026, 1, 1),
+    strategy,
+  );
+
+  if (underlyingPrice != null) {
+    pos.instrumentObj =
+        buildPosition(symbol: symbol, price: underlyingPrice, quantity: 0)
+            .instrumentObj;
+  }
+
+  return pos;
+}
 
 void main() {
   group('PortfolioAlertService concentration', () {
@@ -272,5 +327,176 @@ void main() {
     final severities = alerts.map((alert) => alert.severity.index).toList();
     expect(severities, orderedEquals(List.of(severities)..sort()));
     expect(alerts.first.severity, PortfolioAlertSeverity.critical);
+  });
+
+  group('PortfolioAlertService option expiration', () {
+    final fixedNow = DateTime(2026, 9, 24, 10, 0, 0);
+
+    test('flags 0 DTE ITM long call as critical with exercise warning', () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'AAPL',
+            strikePrice: 150,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 9, 24),
+            underlyingPrice: 160,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      final expAlerts =
+          alerts.where((a) => a.id.startsWith('opt-exp-')).toList();
+      expect(expAlerts, hasLength(1));
+      final alert = expAlerts.first;
+      expect(alert.severity, PortfolioAlertSeverity.critical);
+      expect(alert.title, contains('AAPL \$150 CALL expires today'));
+      expect(alert.detail, contains('In-The-Money (ITM)'));
+      expect(alert.detail, contains('automatically exercised'));
+      expect(alert.metric, '0 DTE • ITM');
+      expect(alert.target, PortfolioAlertTarget.positions);
+      expect(alert.icon, Icons.timer_outlined);
+    });
+
+    test(
+        'flags 0 DTE OTM long put as critical with worthless expiration notice',
+        () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'TSLA',
+            strikePrice: 200,
+            optionType: 'put',
+            expirationDate: DateTime(2026, 9, 24),
+            underlyingPrice: 220,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      final alert = alerts.firstWhere((a) => a.id.startsWith('opt-exp-'));
+      expect(alert.severity, PortfolioAlertSeverity.critical);
+      expect(alert.title, contains('TSLA \$200 PUT expires today'));
+      expect(alert.detail, contains('Out-of-The-Money (OTM)'));
+      expect(alert.detail, contains('expire worthless'));
+      expect(alert.metric, '0 DTE • OTM');
+    });
+
+    test(
+        'flags 0 DTE short call as critical assignment risk targeting strategies',
+        () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'NVDA',
+            strikePrice: 120,
+            optionType: 'call',
+            direction: 'credit',
+            positionType: 'short',
+            strategy: 'short_call',
+            expirationDate: DateTime(2026, 9, 24),
+            underlyingPrice: 125,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      final alert = alerts.firstWhere((a) => a.id.startsWith('opt-exp-'));
+      expect(alert.severity, PortfolioAlertSeverity.critical);
+      expect(alert.title, contains('NVDA \$120 CALL expires today'));
+      expect(alert.detail, contains('assignment'));
+      expect(alert.target, PortfolioAlertTarget.strategies);
+      expect(alert.icon, Icons.assignment_late_outlined);
+    });
+
+    test('flags 1 DTE contracts as warning', () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'SPY',
+            strikePrice: 550,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 9, 25),
+            underlyingPrice: 555,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      final alert = alerts.firstWhere((a) => a.id.startsWith('opt-exp-'));
+      expect(alert.severity, PortfolioAlertSeverity.warning);
+      expect(alert.title, contains('SPY \$550 CALL expires tomorrow'));
+      expect(alert.metric, contains('1 DTE'));
+      expect(alert.icon, Icons.alarm_on_outlined);
+    });
+
+    test('flags 2-3 DTE contracts with countdown notice', () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'AMD',
+            strikePrice: 170,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 9, 27),
+            underlyingPrice: 165,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      final alert = alerts.firstWhere((a) => a.id.startsWith('opt-exp-'));
+      expect(alert.severity, PortfolioAlertSeverity.info);
+      expect(alert.title, contains('AMD \$170 CALL expires in 3 days'));
+      expect(alert.metric, contains('3d DTE'));
+      expect(alert.icon, Icons.event_available_outlined);
+    });
+
+    test('ignores contracts expiring past 3 days or already expired in the past',
+        () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'MSFT',
+            strikePrice: 400,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 10, 15),
+          ),
+          buildOptionPosition(
+            symbol: 'GOOG',
+            strikePrice: 180,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 9, 20),
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      expect(alerts.where((a) => a.id.startsWith('opt-exp-')), isEmpty);
+    });
+
+    test('ignores option positions with zero quantity', () {
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [
+          buildOptionPosition(
+            symbol: 'AAPL',
+            strikePrice: 150,
+            optionType: 'call',
+            expirationDate: DateTime(2026, 9, 24),
+            quantity: 0,
+          ),
+        ],
+        now: fixedNow,
+      );
+
+      expect(alerts.where((a) => a.id.startsWith('opt-exp-')), isEmpty);
+    });
   });
 }
