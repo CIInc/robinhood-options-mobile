@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/model/custom_alert.dart';
+import 'package:robinhood_options_mobile/model/dividend_payment_event.dart';
 import 'package:robinhood_options_mobile/model/earnings_calendar_event.dart';
 import 'package:robinhood_options_mobile/model/earnings_iv_crush_model.dart';
 import 'package:robinhood_options_mobile/model/volatility_cone_model.dart';
@@ -60,6 +61,8 @@ class PortfolioAlertService {
     List<VolatilityConeAnalysis>? volatilityConeAnalyses,
     List<IvSurfaceAnalysis>? ivSurfaceAnalyses,
     List<DeltaNeutralAnalysis>? deltaNeutralAnalyses,
+    List<dynamic>? dividendItems,
+    List<DividendPaymentEvent>? dividendEvents,
     double? dayPnL,
     double? dayPnLPercent,
     DateTime? now,
@@ -76,6 +79,12 @@ class PortfolioAlertService {
       optionPositions: optionPositions,
       earningsCalendarEvents: earningsCalendarEvents,
       earningsCrushAnalyses: earningsCrushAnalyses,
+      now: effectiveNow,
+    ));
+    alerts.addAll(_dividendAlerts(
+      instrumentPositions: instrumentPositions,
+      dividendItems: dividendItems,
+      dividendEvents: dividendEvents,
       now: effectiveNow,
     ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
@@ -938,6 +947,257 @@ class PortfolioAlertService {
         return days >= rule.value;
       default:
         return days >= 0 && days <= rule.value;
+    }
+  }
+
+  /// Generates Action Center alerts for upcoming ex-dividend dates and dividend payments.
+  static List<PortfolioAlert> _dividendAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    List<dynamic>? dividendItems,
+    List<DividendPaymentEvent>? dividendEvents,
+    required DateTime now,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    final eventsBySymbol = <String, DividendPaymentEvent>{};
+
+    // 1. Build map of held equity quantities by symbol
+    final sharesBySymbol = <String, double>{};
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol ?? '';
+      final shares = pos.quantity ?? 0.0;
+      if (sym.isNotEmpty && shares > 0) {
+        sharesBySymbol[sym] = (sharesBySymbol[sym] ?? 0.0) + shares;
+      }
+    }
+
+    // 2. Ingest explicitly passed dividendEvents
+    if (dividendEvents != null) {
+      for (final event in dividendEvents) {
+        if (event.symbol.isNotEmpty) {
+          final heldShares = sharesBySymbol[event.symbol] ?? event.sharesHeld;
+          eventsBySymbol[event.symbol] = event.copyWith(sharesHeld: heldShares);
+        }
+      }
+    }
+
+    // 3. Parse dividend items (from DividendStore / transactions)
+    if (dividendItems != null) {
+      for (final item in dividendItems) {
+        if (item is Map) {
+          try {
+            final parsed = DividendPaymentEvent.fromDividendMap(item);
+            final sym = parsed.symbol;
+            if (sym.isEmpty) continue;
+
+            final heldShares = sharesBySymbol[sym] ?? parsed.sharesHeld;
+            final updated = parsed.copyWith(sharesHeld: heldShares);
+
+            if (!eventsBySymbol.containsKey(sym)) {
+              eventsBySymbol[sym] = updated;
+            } else {
+              final existing = eventsBySymbol[sym]!;
+              final existingPayDays = existing.daysUntilPayable(now);
+              final updatedPayDays = updated.daysUntilPayable(now);
+              final existingExDays = existing.daysUntilExDividend(now);
+              final updatedExDays = updated.daysUntilExDividend(now);
+
+              bool shouldReplace = false;
+              if (existingPayDays == null && updatedPayDays != null) {
+                shouldReplace = true;
+              } else if (updatedPayDays != null && existingPayDays != null) {
+                if (updatedPayDays >= 0 &&
+                    (existingPayDays < 0 || updatedPayDays < existingPayDays)) {
+                  shouldReplace = true;
+                }
+              } else if (existingExDays == null && updatedExDays != null) {
+                shouldReplace = true;
+              } else if (updatedExDays != null && existingExDays != null) {
+                if (updatedExDays >= 0 &&
+                    (existingExDays < 0 || updatedExDays < existingExDays)) {
+                  shouldReplace = true;
+                }
+              }
+
+              if (shouldReplace) {
+                eventsBySymbol[sym] = updated;
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    }
+
+    // 4. Generate Action Center alerts
+    for (final entry in eventsBySymbol.entries) {
+      final sym = entry.key;
+      final event = entry.value;
+
+      final shares = event.sharesHeld ?? sharesBySymbol[sym];
+      final sharesStr = shares != null && shares > 0
+          ? '${shares % 1 == 0 ? shares.toInt() : shares.toStringAsFixed(2)} shares'
+          : null;
+
+      final payoutAmount = event.amount ??
+          (event.rate != null && shares != null && shares > 0
+              ? event.rate! * shares
+              : null);
+      final payoutStr = payoutAmount != null
+          ? '\$${payoutAmount.toStringAsFixed(2)}'
+          : (event.formattedRate ?? '');
+
+      // Ex-Dividend Date Reminders
+      final exDays = event.daysUntilExDividend(now);
+      if (exDays != null) {
+        if (exDays == 0) {
+          // 0 DTE: Ex-Dividend Today (Warning: Last chance to be eligible)
+          final detailParts = <String>[];
+          if (sharesStr != null) {
+            detailParts.add(
+                'Must hold $sharesStr before market close to receive upcoming dividend.');
+          } else {
+            detailParts.add('Must hold shares before market close to qualify.');
+          }
+          if (event.rate != null) {
+            detailParts.add('Rate: ${event.formattedRate}.');
+          }
+          if (payoutAmount != null) {
+            detailParts.add(
+                'Estimated payout: \$${payoutAmount.toStringAsFixed(2)}.');
+          }
+
+          alerts.add(PortfolioAlert(
+            id: 'dividend_ex_date_today_$sym',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.event_available_outlined,
+            title: '$sym Ex-Dividend Date Today',
+            detail: detailParts.join(' '),
+            metric: payoutAmount != null
+                ? '\$${payoutAmount.toStringAsFixed(2)}'
+                : 'Ex-Div Today',
+            target: PortfolioAlertTarget.performance,
+          ));
+        } else if (exDays == 1) {
+          // 1 DTE: Ex-Dividend Tomorrow
+          alerts.add(PortfolioAlert(
+            id: 'dividend_ex_date_tomorrow_$sym',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.event_outlined,
+            title: '$sym Ex-Dividend Tomorrow',
+            detail:
+                'Ex-dividend date is tomorrow. Hold through today\'s close to qualify for the ${event.formattedRate ?? 'upcoming'} dividend.',
+            metric: 'Tomorrow',
+            target: PortfolioAlertTarget.performance,
+          ));
+        } else if (exDays >= 2 && exDays <= 7) {
+          // 2-7 DTE: Upcoming Ex-Dividend
+          final dateStr = DateFormat.MMMd().format(event.exDividendDate!);
+          alerts.add(PortfolioAlert(
+            id: 'dividend_ex_date_upcoming_${sym}_$exDays',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.date_range_outlined,
+            title: '$sym Ex-Dividend in $exDays days',
+            detail:
+                'Ex-dividend date on $dateStr${event.formattedRate != null ? ' (${event.formattedRate})' : ''}. Hold shares to ensure dividend eligibility.',
+            metric: '${exDays}d',
+            target: PortfolioAlertTarget.performance,
+          ));
+        }
+      }
+
+      // Dividend Payment Date Reminders
+      final payDays = event.daysUntilPayable(now);
+      if (payDays != null) {
+        if (payDays == 0) {
+          // 0 DTE: Payable Today
+          final isPaid = event.isPaid;
+          final title = isPaid
+              ? '$sym Dividend Paid ($payoutStr)'
+              : '$sym Dividend Payable Today';
+          final actionWord = isPaid ? 'credited' : 'payable today';
+          final reinvestStr = event.isReinvested ? ' (DRIP enabled)' : '';
+
+          alerts.add(PortfolioAlert(
+            id: 'dividend_payable_today_$sym',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.payments_outlined,
+            title: title,
+            detail: sharesStr != null
+                ? '$payoutStr $actionWord for your $sharesStr$reinvestStr.'
+                : '$payoutStr $actionWord$reinvestStr.',
+            metric: payoutStr,
+            target: PortfolioAlertTarget.performance,
+          ));
+        } else if (payDays >= 1 && payDays <= 7) {
+          // 1-7 DTE: Upcoming Scheduled Payment
+          final dateStr = DateFormat.MMMd().format(event.payableDate!);
+          alerts.add(PortfolioAlert(
+            id: 'dividend_payable_upcoming_${sym}_$payDays',
+            severity: PortfolioAlertSeverity.info,
+            icon: Icons.schedule_outlined,
+            title:
+                '$sym Dividend in $payDays ${payDays == 1 ? 'day' : 'days'}',
+            detail:
+                'Scheduled payout of $payoutStr on $dateStr${sharesStr != null ? ' for $sharesStr' : ''}.',
+            metric: payoutStr,
+            target: PortfolioAlertTarget.performance,
+          ));
+        } else if (payDays >= -2 && payDays < 0 && event.isPaid) {
+          // Paid within last 48 hours
+          alerts.add(PortfolioAlert(
+            id: 'dividend_recently_paid_$sym',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.check_circle_outline,
+            title: '$sym Dividend Paid ($payoutStr)',
+            detail:
+                '$payoutStr paid${sharesStr != null ? ' for your $sharesStr' : ''}${event.isReinvested ? ' (DRIP reinvested)' : ''}.',
+            metric: payoutStr,
+            target: PortfolioAlertTarget.performance,
+          ));
+        }
+      }
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a DividendPaymentEvent.
+  static bool evaluateDividendAlert({
+    required SmartAlertRule rule,
+    required DividendPaymentEvent event,
+    DateTime? now,
+  }) {
+    if (rule.type != AlertType.dividend_payment) return false;
+    final effectiveNow = now ?? DateTime.now();
+
+    switch (rule.condition) {
+      case AlertCondition.ex_dividend_today:
+        return event.daysUntilExDividend(effectiveNow) == 0;
+      case AlertCondition.ex_dividend_tomorrow:
+        return event.daysUntilExDividend(effectiveNow) == 1;
+      case AlertCondition.ex_dividend_imminent:
+        final days = event.daysUntilExDividend(effectiveNow);
+        return days != null &&
+            days >= 0 &&
+            days <= (rule.value > 0 ? rule.value.round() : 3);
+      case AlertCondition.days_until_ex_dividend:
+        final days = event.daysUntilExDividend(effectiveNow);
+        return days != null && days <= rule.value;
+      case AlertCondition.dividend_payable_today:
+        return event.daysUntilPayable(effectiveNow) == 0;
+      case AlertCondition.dividend_payable_upcoming:
+        final days = event.daysUntilPayable(effectiveNow);
+        return days != null &&
+            days >= 0 &&
+            days <= (rule.value > 0 ? rule.value.round() : 7);
+      case AlertCondition.days_until_dividend_payable:
+        final days = event.daysUntilPayable(effectiveNow);
+        return days != null && days <= rule.value;
+      case AlertCondition.above:
+        return (event.amount ?? 0) >= rule.value;
+      case AlertCondition.below:
+        return (event.amount ?? 0) <= rule.value;
+      default:
+        return (event.amount ?? 0) >= rule.value;
     }
   }
 

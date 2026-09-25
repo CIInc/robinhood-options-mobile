@@ -25,6 +25,7 @@ The Custom Alerts feature allows users to set up personalized notifications for 
 - **P&L Thresholds**: Notify when unrealized P&L reaches specified levels
 - **Options Expiration Alerts**: Action Center alerts for active option contracts approaching expiration (0 DTE, 1 DTE, 2–3 DTE), tracking moneyness (ITM automatic exercise risk vs. OTM worthless expiration) and short-leg assignment exposure with 1-tap navigation to Positions and the Options Roll Assistant.
 - **Earnings Calendar Alerts**: Action Center alerts for portfolio holdings approaching quarterly earnings announcements (0 DTE Reports Today, 1 DTE Reports Tomorrow, 2–7 DTE Countdown), detailing announcement timing (Before Market Open vs. After Market Close), consensus EPS estimates, and consolidated multi-asset exposure (held shares and option contracts) with 1-tap navigation to the Earnings IV Crush and Straddle Pricing Analyzer.
+- **Dividend Payment Reminders**: Action Center alerts for upcoming ex-dividend dates (0 DTE Ex-Div Today, 1 DTE Ex-Div Tomorrow, 2–7 DTE Countdown) to ensure payout eligibility, and scheduled/completed dividend payment notifications (0 DTE Payable Today, 1–7 DTE Upcoming Payout, Paid with DRIP status) with 1-tap navigation to the Performance and Income portfolio dashboard.
 
 #### Options Flow Alerts
 - **Flow Criteria**: Trigger on sweeps, blocks, or smart flags (Whale, Golden Sweep, Steamroller).

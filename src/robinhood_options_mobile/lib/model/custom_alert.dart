@@ -14,6 +14,7 @@ enum AlertType {
   delta_neutral,
   dynamic_threshold,
   earnings_calendar,
+  dividend_payment,
   custom
 }
 
@@ -42,7 +43,14 @@ enum AlertCondition {
   earnings_today,
   earnings_tomorrow,
   earnings_imminent,
-  days_until_earnings
+  days_until_earnings,
+  ex_dividend_today,
+  ex_dividend_tomorrow,
+  ex_dividend_imminent,
+  dividend_payable_today,
+  dividend_payable_upcoming,
+  days_until_ex_dividend,
+  days_until_dividend_payable
 }
 
 enum AlertLogic { all, any }
