@@ -111,6 +111,12 @@ void main() {
     // Now uses CircularProgressIndicator instead of Icon
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.byIcon(Icons.schedule), findsNothing);
+
+    // Verify Semantics for standalone badge
+    expect(
+      find.bySemanticsLabel('Auto-trade status: Auto On, 2:05'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('renders "Trading" state correctly', (tester) async {
@@ -230,6 +236,13 @@ void main() {
       expect(find.text('2:05'), findsOneWidget);
       // Circular progress indicator around avatar
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Verify Semantics for combined avatar and status badge
+      expect(find.bySemanticsLabel('User profile'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Auto-trade status: Auto On, 2:05'),
+        findsOneWidget,
+      );
 
       // Tapping avatar invokes profile callback
       await tester.tap(find.byKey(testAvatarKey));
