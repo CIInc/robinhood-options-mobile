@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum AlertType {
@@ -15,6 +17,7 @@ enum AlertType {
   dynamic_threshold,
   earnings_calendar,
   dividend_payment,
+  news,
   custom
 }
 
@@ -50,7 +53,12 @@ enum AlertCondition {
   dividend_payable_today,
   dividend_payable_upcoming,
   days_until_ex_dividend,
-  days_until_dividend_payable
+  days_until_dividend_payable,
+  high_impact_news,
+  sentiment_bearish,
+  sentiment_bullish,
+  sentiment_drop_24h,
+  sentiment_surge_24h
 }
 
 enum AlertLogic { all, any }

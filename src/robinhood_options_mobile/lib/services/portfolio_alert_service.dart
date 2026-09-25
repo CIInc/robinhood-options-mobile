@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/model/delta_neutral_model.dart';
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
+import 'package:robinhood_options_mobile/model/news_intelligence.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -63,6 +64,8 @@ class PortfolioAlertService {
     List<DeltaNeutralAnalysis>? deltaNeutralAnalyses,
     List<dynamic>? dividendItems,
     List<DividendPaymentEvent>? dividendEvents,
+    List<NewsIntelligence>? newsIntelligence,
+    Map<String, NewsIntelligence>? newsIntelligenceBySymbol,
     double? dayPnL,
     double? dayPnLPercent,
     DateTime? now,
@@ -86,6 +89,12 @@ class PortfolioAlertService {
       dividendItems: dividendItems,
       dividendEvents: dividendEvents,
       now: effectiveNow,
+    ));
+    alerts.addAll(_newsAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+      newsIntelligence: newsIntelligence,
+      newsIntelligenceBySymbol: newsIntelligenceBySymbol,
     ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
@@ -1198,6 +1207,266 @@ class PortfolioAlertService {
         return (event.amount ?? 0) <= rule.value;
       default:
         return (event.amount ?? 0) >= rule.value;
+    }
+  }
+
+  /// Builds news alerts for held equity and option positions.
+  static List<PortfolioAlert> _newsAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    List<NewsIntelligence>? newsIntelligence,
+    Map<String, NewsIntelligence>? newsIntelligenceBySymbol,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    if (newsIntelligence == null && newsIntelligenceBySymbol == null) {
+      return alerts;
+    }
+
+    // 1. Gather held positions by symbol (stocks + options)
+    final sharesBySymbol = <String, double>{};
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol ?? '';
+      final shares = pos.quantity ?? 0.0;
+      if (sym.isNotEmpty && shares > 0) {
+        sharesBySymbol[sym] = (sharesBySymbol[sym] ?? 0.0) + shares;
+      }
+    }
+
+    final optionsBySymbol = <String, int>{};
+    for (final op in optionPositions) {
+      final sym = op.symbol.isNotEmpty
+          ? op.symbol
+          : (op.optionInstrument?.chainSymbol ?? '');
+      final contracts = (op.quantity ?? 0.0).round();
+      if (sym.isNotEmpty && contracts > 0) {
+        optionsBySymbol[sym] = (optionsBySymbol[sym] ?? 0) + contracts;
+      }
+    }
+
+    // Combined held symbols
+    final heldSymbols = {...sharesBySymbol.keys, ...optionsBySymbol.keys};
+    if (heldSymbols.isEmpty) return alerts;
+
+    // 2. Consolidate news items by symbol
+    final itemsBySymbol = <String, NewsIntelligence>{};
+    if (newsIntelligenceBySymbol != null) {
+      for (final entry in newsIntelligenceBySymbol.entries) {
+        final sym = entry.key.toUpperCase();
+        if (heldSymbols.contains(sym)) {
+          itemsBySymbol[sym] = entry.value;
+        }
+      }
+    }
+    if (newsIntelligence != null) {
+      for (final item in newsIntelligence) {
+        final sym = item.symbol.toUpperCase();
+        if (heldSymbols.contains(sym)) {
+          if (!itemsBySymbol.containsKey(sym) ||
+              item.updatedAt.isAfter(itemsBySymbol[sym]!.updatedAt)) {
+            itemsBySymbol[sym] = item;
+          }
+        }
+      }
+    }
+
+    // 3. Generate alerts for held symbols
+    for (final entry in itemsBySymbol.entries) {
+      final sym = entry.key;
+      final intel = entry.value;
+
+      final shares = sharesBySymbol[sym];
+      final contracts = optionsBySymbol[sym];
+      final holdingParts = <String>[];
+      if (shares != null && shares > 0) {
+        holdingParts.add(
+            '${shares % 1 == 0 ? shares.toInt() : shares.toStringAsFixed(2)} shares');
+      }
+      if (contracts != null && contracts > 0) {
+        holdingParts.add(
+            '$contracts ${contracts == 1 ? 'option contract' : 'option contracts'}');
+      }
+      final holdingStr = holdingParts.join(', ');
+
+      PortfolioAlert? candidate;
+
+      // Check 1: High-impact news catalyst
+      if (intel.impactRating == NewsImpact.high) {
+        final isBearish = intel.sentimentLabel == NewsSentimentLabel.bearish ||
+            intel.sentimentLabel == NewsSentimentLabel.veryBearish ||
+            intel.overallSentiment < 45.0 ||
+            intel.sentimentScoreChange24h <= -10.0;
+        final isBullish = intel.sentimentLabel == NewsSentimentLabel.bullish ||
+            intel.sentimentLabel == NewsSentimentLabel.veryBullish ||
+            intel.overallSentiment > 55.0 ||
+            intel.sentimentScoreChange24h >= 10.0;
+
+        final severity = isBearish
+            ? (intel.sentimentLabel == NewsSentimentLabel.veryBearish ||
+                    intel.overallSentiment < 30.0
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning)
+            : (isBullish
+                ? PortfolioAlertSeverity.positive
+                : PortfolioAlertSeverity.info);
+
+        final icon = isBearish
+            ? Icons.announcement
+            : (isBullish ? Icons.campaign : Icons.article);
+
+        final catalyst = intel.bearishCatalysts.isNotEmpty
+            ? intel.bearishCatalysts.first
+            : (intel.bullishCatalysts.isNotEmpty
+                ? intel.bullishCatalysts.first
+                : (intel.articles.isNotEmpty
+                    ? intel.articles.first.title
+                    : intel.headlineSummary));
+
+        final title = isBearish
+            ? '$sym: High-impact negative news catalyst'
+            : (isBullish
+                ? '$sym: High-impact bullish news catalyst'
+                : '$sym: High-impact breaking news');
+
+        final detail = holdingStr.isNotEmpty
+            ? 'Held in portfolio ($holdingStr). $catalyst'
+            : catalyst;
+
+        candidate = PortfolioAlert(
+          id: 'news-impact-$sym',
+          severity: severity,
+          icon: icon,
+          title: title,
+          detail: detail,
+          metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
+          target: PortfolioAlertTarget.insights,
+        );
+      }
+
+      // Check 2: Rapid 24h sentiment shift
+      if (candidate == null && intel.sentimentScoreChange24h.abs() >= 15.0) {
+        final isDrop = intel.sentimentScoreChange24h < 0;
+        final changeStr =
+            '${isDrop ? '' : '+'}${intel.sentimentScoreChange24h.toStringAsFixed(1)} pts';
+
+        final severity = isDrop
+            ? (intel.sentimentScoreChange24h <= -25.0
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning)
+            : PortfolioAlertSeverity.positive;
+
+        final title = isDrop
+            ? '$sym: News sentiment dropped $changeStr in 24h'
+            : '$sym: News sentiment surged $changeStr in 24h';
+
+        final topHeadline = intel.articles.isNotEmpty
+            ? intel.articles.first.title
+            : intel.headlineSummary;
+        final detail = holdingStr.isNotEmpty
+            ? 'Holding $holdingStr. $topHeadline'
+            : topHeadline;
+
+        candidate = PortfolioAlert(
+          id: 'news-shift-$sym',
+          severity: severity,
+          icon: isDrop ? Icons.trending_down : Icons.trending_up,
+          title: title,
+          detail: detail,
+          metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
+          target: PortfolioAlertTarget.insights,
+        );
+      }
+
+      // Check 3: Extreme sentiment regime
+      if (candidate == null) {
+        if (intel.sentimentLabel == NewsSentimentLabel.veryBearish ||
+            intel.overallSentiment < 30.0) {
+          final topHeadline = intel.bearishCatalysts.isNotEmpty
+              ? intel.bearishCatalysts.first
+              : (intel.articles.isNotEmpty
+                  ? intel.articles.first.title
+                  : intel.headlineSummary);
+          final detail = holdingStr.isNotEmpty
+              ? 'Held in portfolio ($holdingStr). $topHeadline'
+              : topHeadline;
+
+          candidate = PortfolioAlert(
+            id: 'news-regime-bearish-$sym',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.mood_bad,
+            title: '$sym: Very bearish news sentiment',
+            detail: detail,
+            metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
+            target: PortfolioAlertTarget.insights,
+          );
+        } else if (intel.sentimentLabel == NewsSentimentLabel.veryBullish ||
+            intel.overallSentiment > 80.0) {
+          final topHeadline = intel.bullishCatalysts.isNotEmpty
+              ? intel.bullishCatalysts.first
+              : (intel.articles.isNotEmpty
+                  ? intel.articles.first.title
+                  : intel.headlineSummary);
+          final detail = holdingStr.isNotEmpty
+              ? 'Held in portfolio ($holdingStr). $topHeadline'
+              : topHeadline;
+
+          candidate = PortfolioAlert(
+            id: 'news-regime-bullish-$sym',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.sentiment_very_satisfied,
+            title: '$sym: Very bullish news sentiment',
+            detail: detail,
+            metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
+            target: PortfolioAlertTarget.insights,
+          );
+        }
+      }
+
+      if (candidate != null) {
+        alerts.add(candidate);
+      }
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a NewsIntelligence object.
+  static bool evaluateNewsAlert({
+    required SmartAlertRule rule,
+    required NewsIntelligence intelligence,
+  }) {
+    if (rule.type != AlertType.news) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.high_impact_news:
+        return intelligence.impactRating == NewsImpact.high;
+      case AlertCondition.sentiment_bearish:
+        if (rule.value > 0) {
+          return intelligence.overallSentiment <= rule.value;
+        }
+        return intelligence.overallSentiment <= 40.0 ||
+            intelligence.sentimentLabel == NewsSentimentLabel.bearish ||
+            intelligence.sentimentLabel == NewsSentimentLabel.veryBearish;
+      case AlertCondition.sentiment_bullish:
+        if (rule.value > 0) {
+          return intelligence.overallSentiment >= rule.value;
+        }
+        return intelligence.overallSentiment >= 60.0 ||
+            intelligence.sentimentLabel == NewsSentimentLabel.bullish ||
+            intelligence.sentimentLabel == NewsSentimentLabel.veryBullish;
+      case AlertCondition.sentiment_drop_24h:
+        final threshold = rule.value > 0
+            ? -rule.value
+            : (rule.value != 0 ? rule.value : -15.0);
+        return intelligence.sentimentScoreChange24h <= threshold;
+      case AlertCondition.sentiment_surge_24h:
+        final threshold = rule.value > 0 ? rule.value : 15.0;
+        return intelligence.sentimentScoreChange24h >= threshold;
+      case AlertCondition.above:
+        return intelligence.overallSentiment >= rule.value;
+      case AlertCondition.below:
+        return intelligence.overallSentiment <= rule.value;
+      default:
+        return intelligence.overallSentiment >= rule.value;
     }
   }
 

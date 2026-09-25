@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 24, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 375
-- **Planned checklist items:** 71
+- **Completed checklist items:** 376
+- **Planned checklist items:** 70
 - **Open GitHub issues:** 36 (as of September 24, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
@@ -919,7 +919,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Earnings Calendar Notifications** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Earnings date alerts
 - [x] **Options Expiration Alerts** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Contract expiration reminders
 - [x] **Dividend Payment Reminders** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Ex-dividend and payment date reminders for held positions
-- [ ] **News Alerts**: News notifications for holdings
+- [x] **News Alerts** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): News notifications and high-impact catalyst alerts for holdings
 - [ ] **Unusual Activity Alerts**: Unusual volume/price movement detection
 - [ ] **Group Activity Notifications**: Investor group trade updates
 - [x] **Multi-Condition Alert Builder** (v0.38.0): Combine multiple conditions (price + volume + RSI + GEX) - **Medium** (3-4 weeks)
