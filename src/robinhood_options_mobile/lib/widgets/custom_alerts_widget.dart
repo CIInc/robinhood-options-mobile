@@ -263,6 +263,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
         return const Icon(Icons.radar_rounded);
       case AlertType.dynamic_threshold:
         return const Icon(Icons.auto_graph);
+      case AlertType.unusual_activity:
+        return const Icon(Icons.flash_on);
       default:
         return const Icon(Icons.notifications);
     }
@@ -483,10 +485,18 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
           AlertCondition.percent_change,
         ];
       case AlertType.volume:
+      case AlertType.unusual_activity:
         return [
           AlertCondition.above,
           AlertCondition.below,
           AlertCondition.spike,
+          AlertCondition.drop,
+          AlertCondition.percent_change,
+          AlertCondition.unusual_volume,
+          AlertCondition.volume_spike,
+          AlertCondition.unusual_options_volume,
+          AlertCondition.price_spike,
+          AlertCondition.price_drop,
         ];
       case AlertType.volatility:
         return [

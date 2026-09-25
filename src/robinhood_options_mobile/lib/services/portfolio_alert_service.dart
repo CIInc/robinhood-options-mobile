@@ -32,6 +32,10 @@ class PortfolioAlertService {
   static final _currency = NumberFormat.simpleCurrency(decimalDigits: 0);
   static final _percent = NumberFormat.percentPattern()
     ..maximumFractionDigits = 1;
+  static final _compact = NumberFormat.compact();
+
+  /// Formats a number with compact notation (e.g., 1.2M, 500K).
+  static String _compactNumber(double val) => _compact.format(val);
 
   /// Weight above which a single holding is called out as concentrated.
   static const _concentrationWarning = 0.20;
@@ -42,6 +46,9 @@ class PortfolioAlertService {
 
   /// Daily move that makes a position worth surfacing on its own.
   static const _notableDailyMove = 0.05;
+
+  /// Minimum contract volume required for options unusual volume evaluation.
+  static const _minOptionVolumeThreshold = 500;
 
   static List<PortfolioAlert> buildAlerts({
     required List<InstrumentPosition> instrumentPositions,
@@ -107,6 +114,10 @@ class PortfolioAlertService {
     alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_cashAlerts(account, totalEquity));
+    alerts.addAll(_unusualActivityAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+    ));
     alerts.addAll(_moverAlerts(instrumentPositions));
     if (analytics != null && analytics.isNotEmpty) {
       alerts.addAll(_analyticsAlerts(analytics, benchmarkSymbol));
@@ -1469,6 +1480,268 @@ class PortfolioAlertService {
         return intelligence.overallSentiment >= rule.value;
     }
   }
+
+  /// Generates Action Center alerts for unusual volume surges and abnormal price movements
+  /// across held equity and option positions.
+  static List<PortfolioAlert> _unusualActivityAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    List<OptionAggregatePosition>? optionPositions,
+  }) {
+    final alerts = <PortfolioAlert>[];
+
+    // 1. Scan equity positions for unusual volume and abnormal price action
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol;
+      if (sym == null || sym.isEmpty) continue;
+      final qty = pos.quantity ?? 0.0;
+      if (qty <= 0 || pos.marketValue <= 0) continue;
+
+      final fundamentals = pos.instrumentObj?.fundamentalsObj;
+      final currentVol = fundamentals?.volume;
+      final avgVol = fundamentals?.averageVolume30Days ??
+          fundamentals?.averageVolume ??
+          fundamentals?.averageVolume2Weeks;
+      final gainLossPct = pos.gainLossPercentToday;
+      final gainLossToday = pos.gainLossToday;
+      final sharesStr =
+          '${qty.toStringAsFixed(qty.truncateToDouble() == qty ? 0 : 2)} shares';
+
+      PortfolioAlert? candidate;
+
+      if (currentVol != null && avgVol != null && avgVol > 0) {
+        final volMultiple = currentVol / avgVol;
+
+        // Confluence: Heavy-volume selloff
+        if (volMultiple >= 2.0 && gainLossPct <= -0.04) {
+          final isCritical = volMultiple >= 3.0 || gainLossPct <= -0.07;
+          candidate = PortfolioAlert(
+            id: 'unusual-activity-$sym',
+            severity: isCritical
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning,
+            icon: Icons.trending_down,
+            title:
+                '$sym: Heavy-volume selloff (${_percent.format(gainLossPct.abs())} on ${volMultiple.toStringAsFixed(1)}x vol)',
+            detail:
+                'Held in portfolio ($sharesStr). Elevated trading volume combined with a sharp decline signals strong institutional distribution.',
+            metric: '${volMultiple.toStringAsFixed(1)}x vol',
+            target: PortfolioAlertTarget.positions,
+          );
+        }
+        // Confluence: High-volume breakout
+        else if (volMultiple >= 2.0 && gainLossPct >= 0.04) {
+          candidate = PortfolioAlert(
+            id: 'unusual-activity-$sym',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.trending_up,
+            title:
+                '$sym: High-volume breakout (+${_percent.format(gainLossPct)} on ${volMultiple.toStringAsFixed(1)}x vol)',
+            detail:
+                'Held in portfolio ($sharesStr). Strong volume expansion validates upward price momentum.',
+            metric: '${volMultiple.toStringAsFixed(1)}x vol',
+            target: PortfolioAlertTarget.positions,
+          );
+        }
+        // Extreme Unusual Volume (standalone volume multiple >= 2.5x without heavy directional move)
+        else if (volMultiple >= 2.5) {
+          candidate = PortfolioAlert(
+            id: 'unusual-activity-$sym',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.flash_on,
+            title:
+                '$sym: Extreme unusual volume (${volMultiple.toStringAsFixed(1)}x 30d avg)',
+            detail:
+                'Held in portfolio ($sharesStr). Trading volume of ${_compactNumber(currentVol)} is ${volMultiple.toStringAsFixed(1)}x typical daily volume (${_compactNumber(avgVol)}), signaling upcoming catalyst or heavy repositioning.',
+            metric: '${volMultiple.toStringAsFixed(1)}x vol',
+            target: PortfolioAlertTarget.positions,
+          );
+        }
+      }
+
+      // Standalone sharp price movement (if not already captured by volume confluence)
+      if (candidate == null) {
+        if (gainLossPct <= -0.06) {
+          candidate = PortfolioAlert(
+            id: 'unusual-activity-$sym',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.warning_amber_rounded,
+            title: '$sym: Sharp intraday drop (-${_percent.format(gainLossPct.abs())})',
+            detail:
+                'Held in portfolio ($sharesStr). Price fell sharply today with ${_currency.format(gainLossToday.abs())} unrealized decline. Review position stop-losses.',
+            metric: '-${_percent.format(gainLossPct.abs())}',
+            target: PortfolioAlertTarget.positions,
+          );
+        } else if (gainLossPct >= 0.06) {
+          candidate = PortfolioAlert(
+            id: 'unusual-activity-$sym',
+            severity: PortfolioAlertSeverity.positive,
+            icon: Icons.arrow_upward,
+            title: '$sym: Sharp intraday rally (+${_percent.format(gainLossPct)})',
+            detail:
+                'Held in portfolio ($sharesStr). Price rallied significantly today with +${_currency.format(gainLossToday.abs())} unrealized gain.',
+            metric: '+${_percent.format(gainLossPct)}',
+            target: PortfolioAlertTarget.positions,
+          );
+        }
+      }
+
+      if (candidate != null) {
+        alerts.add(candidate);
+      }
+    }
+
+    // 2. Scan options positions for unusual option contract activity (Volume / Open Interest spike)
+    if (optionPositions != null) {
+      for (final pos in optionPositions) {
+        final qty = (pos.quantity ?? 0.0).abs();
+        if (qty <= 0) continue;
+
+        final mkt = pos.optionInstrument?.optionMarketData;
+        final optVol = mkt?.volume;
+        final oi = mkt?.openInterest;
+
+        if (optVol != null && oi != null && oi > 0 && optVol >= _minOptionVolumeThreshold) {
+          final ratio = optVol / oi;
+          if (ratio >= 2.0) {
+            final sym = pos.symbol.isNotEmpty
+                ? pos.symbol
+                : (pos.optionInstrument?.chainSymbol ?? 'Option');
+
+            final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
+            final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+            final strikeStr = strike != null
+                ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
+                : '';
+            final optType = (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '').toUpperCase();
+            final contractsStr =
+                '${qty.toStringAsFixed(qty.truncateToDouble() == qty ? 0 : 1)} contract${qty == 1 ? '' : 's'}';
+
+            final isCritical = ratio >= 3.0;
+            alerts.add(
+              PortfolioAlert(
+                id: 'unusual-option-${pos.id.isNotEmpty ? pos.id : sym}',
+                severity: isCritical
+                    ? PortfolioAlertSeverity.critical
+                    : PortfolioAlertSeverity.warning,
+                icon: Icons.show_chart,
+                title:
+                    '$sym: Unusual option volume (${ratio.toStringAsFixed(1)}x OI on $strikeStr $optType)',
+                detail:
+                    'Held in portfolio ($contractsStr). Today\'s contract volume of ${_compactNumber(optVol.toDouble())} exceeds open interest of ${_compactNumber(oi.toDouble())} (${ratio.toStringAsFixed(1)}x), signaling heavy institutional positioning.',
+                metric: '${ratio.toStringAsFixed(1)}x OI',
+                target: PortfolioAlertTarget.positions,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against volume and price activity metrics.
+  static bool evaluateUnusualActivityAlert({
+    required SmartAlertRule rule,
+    double? volume,
+    double? averageVolume,
+    double? priceChangePercent,
+    int? optionVolume,
+    int? optionOpenInterest,
+  }) {
+    if (rule.type != AlertType.volume &&
+        rule.type != AlertType.unusual_activity &&
+        rule.type != AlertType.price) {
+      return false;
+    }
+
+    final volMultiple =
+        (volume != null && averageVolume != null && averageVolume > 0)
+            ? volume / averageVolume
+            : null;
+
+    final volOiRatio = (optionVolume != null &&
+            optionOpenInterest != null &&
+            optionOpenInterest > 0)
+        ? optionVolume / optionOpenInterest
+        : null;
+
+    switch (rule.condition) {
+      case AlertCondition.unusual_volume:
+        final threshold = rule.value > 0 ? rule.value : 2.0;
+        return volMultiple != null && volMultiple >= threshold;
+      case AlertCondition.volume_spike:
+        if (rule.value > 100) {
+          return volume != null && volume >= rule.value;
+        }
+        final threshold = rule.value > 0 ? rule.value : 2.0;
+        return volMultiple != null && volMultiple >= threshold;
+      case AlertCondition.unusual_options_volume:
+        final threshold = rule.value > 0 ? rule.value : 2.0;
+        return volOiRatio != null && volOiRatio >= threshold;
+      case AlertCondition.price_spike:
+        final threshold = rule.value > 0 ? rule.value : 5.0;
+        return priceChangePercent != null && priceChangePercent >= threshold;
+      case AlertCondition.price_drop:
+        final threshold = rule.value > 0
+            ? -rule.value
+            : (rule.value != 0 ? rule.value : -5.0);
+        return priceChangePercent != null && priceChangePercent <= threshold;
+      case AlertCondition.spike:
+        final volThreshold = rule.value > 0 ? rule.value : 2.0;
+        final priceThreshold = rule.value > 0 ? rule.value : 5.0;
+        final volMatch = volMultiple != null && volMultiple >= volThreshold;
+        final priceMatch =
+            priceChangePercent != null && priceChangePercent >= priceThreshold;
+        return volMatch || priceMatch;
+      case AlertCondition.drop:
+        final priceThreshold = rule.value > 0 ? -rule.value : -5.0;
+        return priceChangePercent != null && priceChangePercent <= priceThreshold;
+      case AlertCondition.percent_change:
+        final threshold = rule.value > 0 ? rule.value : 5.0;
+        return priceChangePercent != null &&
+            priceChangePercent.abs() >= threshold;
+      case AlertCondition.above:
+        if (rule.value > 100 && volume != null) {
+          return volume >= rule.value;
+        }
+        if (volMultiple != null) {
+          return volMultiple >= rule.value;
+        }
+        if (priceChangePercent != null) {
+          return priceChangePercent >= rule.value;
+        }
+        return false;
+      case AlertCondition.below:
+        if (rule.value > 100 && volume != null) {
+          return volume <= rule.value;
+        }
+        if (priceChangePercent != null) {
+          return priceChangePercent <= rule.value;
+        }
+        return false;
+      default:
+        return false;
+    }
+  }
+
+  /// Alias for evaluateUnusualActivityAlert for volume-specific rule evaluations.
+  static bool evaluateVolumeAlert({
+    required SmartAlertRule rule,
+    double? volume,
+    double? averageVolume,
+    double? priceChangePercent,
+    int? optionVolume,
+    int? optionOpenInterest,
+  }) =>
+      evaluateUnusualActivityAlert(
+        rule: rule,
+        volume: volume,
+        averageVolume: averageVolume,
+        priceChangePercent: priceChangePercent,
+        optionVolume: optionVolume,
+        optionOpenInterest: optionOpenInterest,
+      );
 
   static List<PortfolioAlert> _volatilityConeAlerts(
       List<VolatilityConeAnalysis>? analyses) {

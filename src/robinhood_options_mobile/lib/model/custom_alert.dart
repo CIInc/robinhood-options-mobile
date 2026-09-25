@@ -18,6 +18,7 @@ enum AlertType {
   earnings_calendar,
   dividend_payment,
   news,
+  unusual_activity,
   custom
 }
 
@@ -58,7 +59,12 @@ enum AlertCondition {
   sentiment_bearish,
   sentiment_bullish,
   sentiment_drop_24h,
-  sentiment_surge_24h
+  sentiment_surge_24h,
+  unusual_volume,
+  unusual_options_volume,
+  price_spike,
+  price_drop,
+  volume_spike
 }
 
 enum AlertLogic { all, any }
