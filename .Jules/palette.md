@@ -13,3 +13,7 @@
 ## 2026-04-05 - Semantics for Dual-Action AppBar Status Badges
 **Learning:** Composite status badges embedded in AppBars (`AutoTradeStatusBadgeWidget`) that respond to both single taps (opening settings) and long presses (emergency stop menu) are read as disjointed strings (e.g., "AUTO ON", "2:05") by screen readers unless explicitly wrapped in `Semantics(button: true, label: ..., hint: ..., excludeSemantics: true)`. Explicating the status label and gesture hints ensures screen reader users understand both tap and long-press capabilities.
 **Action:** Wrap dual-action AppBar badges in `Semantics(button: true, label: ..., hint: ..., excludeSemantics: true)` to announce the badge status clearly and explain available gestures.
+
+## 2026-04-06 - Accessibility for Interactive Poll Widgets and Segmented Distribution Bars
+**Learning:** Visual-only segmented distribution bars (e.g., sentiment polls) and custom option button tiles in community widgets lack screen reader context unless explicitly wrapped in `Semantics`. Providing a summary label on the segmented bar (`Sentiment poll breakdown: ...`) and setting `button: true`, `selected: isSelected`, `enabled`, and explicit `hint`s on option tiles allows screen reader users to understand both poll results and voting capabilities.
+**Action:** Wrap segmented progress/distribution bars in `Semantics(container: true, excludeSemantics: true, label: ...)` with percentage breakdowns, and wrap option tiles with `Semantics(button: true, selected: ..., hint: ...)`."
