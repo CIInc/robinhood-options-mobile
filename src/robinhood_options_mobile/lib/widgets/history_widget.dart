@@ -2013,7 +2013,6 @@ class _HistoryPageState extends State<HistoryPage>
                       height: 25.0,
                     ))
                   ],
-
                   if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(
@@ -2366,7 +2365,6 @@ class _HistoryPageState extends State<HistoryPage>
                         ),
                       ),
                   ],
-
                   if (kIsWeb) const WebPromotionBannerSliver(),
                   if (!kIsWeb) ...[
                     const SliverToBoxAdapter(

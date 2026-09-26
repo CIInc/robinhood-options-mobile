@@ -115,7 +115,9 @@ NewsIntelligence buildTestNews({
 
 void main() {
   group('PortfolioAlertService News Alerts', () {
-    test('raises critical alert for high-impact negative catalyst with severe bearish sentiment', () {
+    test(
+        'raises critical alert for high-impact negative catalyst with severe bearish sentiment',
+        () {
       final stocks = [buildStockPosition(symbol: 'TSLA', quantity: 50.0)];
       final news = [
         buildTestNews(
@@ -135,8 +137,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-impact-TSLA');
@@ -148,15 +149,20 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.insights);
     });
 
-    test('raises warning alert for high-impact negative catalyst with moderate bearish sentiment', () {
+    test(
+        'raises warning alert for high-impact negative catalyst with moderate bearish sentiment',
+        () {
       final stocks = [buildStockPosition(symbol: 'AAPL', quantity: 100.0)];
       final news = [
         buildTestNews(
           symbol: 'AAPL',
           overallSentiment: 42.0,
           sentimentLabel: NewsSentimentLabel.bearish,
-          headlineSummary: 'Supply chain headwinds reported in smartphone division.',
-          bearishCatalysts: ['Quarterly shipment forecast trimmed by analysts.'],
+          headlineSummary:
+              'Supply chain headwinds reported in smartphone division.',
+          bearishCatalysts: [
+            'Quarterly shipment forecast trimmed by analysts.'
+          ],
           impactRating: NewsImpact.high,
           sentimentScoreChange24h: -6.0,
         ),
@@ -168,8 +174,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-impact-AAPL');
@@ -189,7 +194,9 @@ void main() {
           overallSentiment: 88.0,
           sentimentLabel: NewsSentimentLabel.veryBullish,
           headlineSummary: 'Major data center partnership announced.',
-          bullishCatalysts: ['New multi-billion dollar enterprise chip deal signed.'],
+          bullishCatalysts: [
+            'New multi-billion dollar enterprise chip deal signed.'
+          ],
           impactRating: NewsImpact.high,
           sentimentScoreChange24h: 14.0,
         ),
@@ -201,8 +208,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-impact-NVDA');
@@ -246,8 +252,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-shift-AMZN');
@@ -259,14 +264,16 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.insights);
     });
 
-    test('raises critical alert for severe 24h sentiment collapse (<= -25 pts)', () {
+    test('raises critical alert for severe 24h sentiment collapse (<= -25 pts)',
+        () {
       final stocks = [buildStockPosition(symbol: 'META', quantity: 15.0)];
       final news = [
         buildTestNews(
           symbol: 'META',
           overallSentiment: 35.0,
           sentimentLabel: NewsSentimentLabel.bearish,
-          headlineSummary: 'Major regulatory scrutiny triggers sentiment plunge.',
+          headlineSummary:
+              'Major regulatory scrutiny triggers sentiment plunge.',
           impactRating: NewsImpact.medium,
           sentimentScoreChange24h: -28.0,
         ),
@@ -278,8 +285,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-shift-META');
@@ -306,8 +312,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-shift-MSFT');
@@ -317,7 +322,9 @@ void main() {
       expect(alert.metric, '74/100');
     });
 
-    test('raises warning alert for extreme very bearish sentiment regime without high-impact flag', () {
+    test(
+        'raises warning alert for extreme very bearish sentiment regime without high-impact flag',
+        () {
       final stocks = [buildStockPosition(symbol: 'INTC', quantity: 200.0)];
       final news = [
         buildTestNews(
@@ -337,8 +344,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-regime-bearish-INTC');
@@ -356,7 +362,9 @@ void main() {
           overallSentiment: 84.0,
           sentimentLabel: NewsSentimentLabel.veryBullish,
           headlineSummary: 'Server chip adoption continues to expand.',
-          bullishCatalysts: ['Enterprise AI deployment roadmap ahead of target.'],
+          bullishCatalysts: [
+            'Enterprise AI deployment roadmap ahead of target.'
+          ],
           impactRating: NewsImpact.low,
           sentimentScoreChange24h: 3.0,
         ),
@@ -368,8 +376,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-regime-bullish-AMD');
@@ -397,8 +404,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, isEmpty);
     });
 
@@ -419,19 +425,21 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, isEmpty);
     });
 
-    test('surfaces news alerts for held option contracts even without stock shares', () {
+    test(
+        'surfaces news alerts for held option contracts even without stock shares',
+        () {
       final options = [buildOptionPosition(symbol: 'SPY', quantity: 5.0)];
       final news = [
         buildTestNews(
           symbol: 'SPY',
           overallSentiment: 32.0,
           sentimentLabel: NewsSentimentLabel.bearish,
-          headlineSummary: 'Macro volatility spikes ahead of policy announcement.',
+          headlineSummary:
+              'Macro volatility spikes ahead of policy announcement.',
           impactRating: NewsImpact.high,
           sentimentScoreChange24h: -12.0,
         ),
@@ -443,15 +451,16 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.id, 'news-impact-SPY');
       expect(alert.detail, contains('Held in portfolio (5 option contracts)'));
     });
 
-    test('consolidates stock shares and option contracts held in identical symbol', () {
+    test(
+        'consolidates stock shares and option contracts held in identical symbol',
+        () {
       final stocks = [buildStockPosition(symbol: 'QQQ', quantity: 100.0)];
       final options = [buildOptionPosition(symbol: 'QQQ', quantity: 3.0)];
       final news = [
@@ -471,8 +480,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       final alert = newsAlerts.first;
       expect(alert.detail,
@@ -497,8 +505,7 @@ void main() {
         newsIntelligenceBySymbol: newsMap,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       expect(newsAlerts.first.id, 'news-impact-COIN');
     });
@@ -521,8 +528,7 @@ void main() {
         newsIntelligence: news,
       );
 
-      final newsAlerts =
-          alerts.where((a) => a.id.startsWith('news-')).toList();
+      final newsAlerts = alerts.where((a) => a.id.startsWith('news-')).toList();
       expect(newsAlerts, hasLength(1));
       expect(newsAlerts.first.id, 'news-impact-NVDA');
     });
@@ -536,14 +542,24 @@ void main() {
         value: 0,
       );
 
-      final highNews = buildTestNews(symbol: 'AAPL', impactRating: NewsImpact.high);
-      final lowNews = buildTestNews(symbol: 'AAPL', impactRating: NewsImpact.low);
+      final highNews =
+          buildTestNews(symbol: 'AAPL', impactRating: NewsImpact.high);
+      final lowNews =
+          buildTestNews(symbol: 'AAPL', impactRating: NewsImpact.low);
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: highNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: lowNews), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: highNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: lowNews),
+          isFalse);
     });
 
-    test('evaluates sentiment_bearish condition with default and custom threshold', () {
+    test(
+        'evaluates sentiment_bearish condition with default and custom threshold',
+        () {
       const defaultRule = SmartAlertRule(
         type: AlertType.news,
         condition: AlertCondition.sentiment_bearish,
@@ -561,11 +577,19 @@ void main() {
         sentimentLabel: NewsSentimentLabel.neutral,
       );
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: defaultRule, intelligence: bearishNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: customRule, intelligence: bearishNews), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: defaultRule, intelligence: bearishNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: customRule, intelligence: bearishNews),
+          isFalse);
     });
 
-    test('evaluates sentiment_bullish condition with default and custom threshold', () {
+    test(
+        'evaluates sentiment_bullish condition with default and custom threshold',
+        () {
       const defaultRule = SmartAlertRule(
         type: AlertType.news,
         condition: AlertCondition.sentiment_bullish,
@@ -583,8 +607,14 @@ void main() {
         sentimentLabel: NewsSentimentLabel.bullish,
       );
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: defaultRule, intelligence: bullishNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: customRule, intelligence: bullishNews), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: defaultRule, intelligence: bullishNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: customRule, intelligence: bullishNews),
+          isFalse);
     });
 
     test('evaluates sentiment_drop_24h condition', () {
@@ -594,11 +624,19 @@ void main() {
         value: 15, // Drop >= 15 pts
       );
 
-      final droppedNews = buildTestNews(symbol: 'AAPL', sentimentScoreChange24h: -18.0);
-      final slightDrop = buildTestNews(symbol: 'AAPL', sentimentScoreChange24h: -8.0);
+      final droppedNews =
+          buildTestNews(symbol: 'AAPL', sentimentScoreChange24h: -18.0);
+      final slightDrop =
+          buildTestNews(symbol: 'AAPL', sentimentScoreChange24h: -8.0);
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: droppedNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: slightDrop), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: droppedNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: slightDrop),
+          isFalse);
     });
 
     test('evaluates sentiment_surge_24h condition', () {
@@ -608,11 +646,19 @@ void main() {
         value: 12, // Surge >= 12 pts
       );
 
-      final surgedNews = buildTestNews(symbol: 'MSFT', sentimentScoreChange24h: 15.0);
-      final slightSurge = buildTestNews(symbol: 'MSFT', sentimentScoreChange24h: 5.0);
+      final surgedNews =
+          buildTestNews(symbol: 'MSFT', sentimentScoreChange24h: 15.0);
+      final slightSurge =
+          buildTestNews(symbol: 'MSFT', sentimentScoreChange24h: 5.0);
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: surgedNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: rule, intelligence: slightSurge), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: surgedNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: rule, intelligence: slightSurge),
+          isFalse);
     });
 
     test('evaluates above and below sentiment score conditions', () {
@@ -630,10 +676,22 @@ void main() {
       final highNews = buildTestNews(symbol: 'NVDA', overallSentiment: 82.0);
       final lowNews = buildTestNews(symbol: 'INTC', overallSentiment: 24.0);
 
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: aboveRule, intelligence: highNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: aboveRule, intelligence: lowNews), isFalse);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: belowRule, intelligence: lowNews), isTrue);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: belowRule, intelligence: highNews), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: aboveRule, intelligence: highNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: aboveRule, intelligence: lowNews),
+          isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: belowRule, intelligence: lowNews),
+          isTrue);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: belowRule, intelligence: highNews),
+          isFalse);
     });
 
     test('returns false when rule type is not news', () {
@@ -644,7 +702,10 @@ void main() {
       );
 
       final news = buildTestNews(symbol: 'AAPL', overallSentiment: 80.0);
-      expect(PortfolioAlertService.evaluateNewsAlert(rule: priceRule, intelligence: news), isFalse);
+      expect(
+          PortfolioAlertService.evaluateNewsAlert(
+              rule: priceRule, intelligence: news),
+          isFalse);
     });
   });
 }

@@ -1986,10 +1986,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       final alerts = PortfolioAlertService.buildAlerts(
                         instrumentPositions: filteredStocks,
                         optionPositions: filteredOptions,
-                        dividendItems: Provider.of<DividendStore>(context,
-                                listen: false)
-                            .items
-                            .toList(),
+                        dividendItems:
+                            Provider.of<DividendStore>(context, listen: false)
+                                .items
+                                .toList(),
                         account: account,
                         totalEquity: _totalEquity(context, account: account),
                         // The full metrics suite only runs once the user opens
@@ -2302,9 +2302,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     final alerts = PortfolioAlertService.buildAlerts(
       instrumentPositions: filteredStocks,
       optionPositions: filteredOptions,
-      dividendItems: Provider.of<DividendStore>(context, listen: false)
-          .items
-          .toList(),
+      dividendItems:
+          Provider.of<DividendStore>(context, listen: false).items.toList(),
       account: account,
       totalEquity: _totalEquity(context, account: account),
     );
@@ -2325,6 +2324,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         case PortfolioAlertTarget.deltaNeutral:
           flagged.add(PortfolioSection.risk);
         case PortfolioAlertTarget.insights:
+        case PortfolioAlertTarget.congressionalTrading:
           flagged.add(PortfolioSection.insights);
         case PortfolioAlertTarget.taxes:
           flagged.add(PortfolioSection.taxes);

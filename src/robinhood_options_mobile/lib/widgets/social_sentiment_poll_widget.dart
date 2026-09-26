@@ -92,31 +92,39 @@ class SocialSentimentPollWidget extends StatelessWidget {
           ],
 
           // Multi-color segmented percentage bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: SizedBox(
-              height: 8,
-              child: totalVotes == 0
-                  ? Container(color: theme.colorScheme.surfaceContainerHighest)
-                  : Row(
-                      children: [
-                        if (bullishPct > 0)
-                          Expanded(
-                            flex: (bullishPct * 10).round(),
-                            child: Container(color: Colors.green),
-                          ),
-                        if (neutralPct > 0)
-                          Expanded(
-                            flex: (neutralPct * 10).round(),
-                            child: Container(color: Colors.grey),
-                          ),
-                        if (bearishPct > 0)
-                          Expanded(
-                            flex: (bearishPct * 10).round(),
-                            child: Container(color: Colors.red),
-                          ),
-                      ],
-                    ),
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label: totalVotes == 0
+                ? 'No votes cast yet'
+                : 'Sentiment poll breakdown: ${bullishPct.toStringAsFixed(0)}% Bullish, ${neutralPct.toStringAsFixed(0)}% Neutral, ${bearishPct.toStringAsFixed(0)}% Bearish',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: SizedBox(
+                height: 8,
+                child: totalVotes == 0
+                    ? Container(
+                        color: theme.colorScheme.surfaceContainerHighest)
+                    : Row(
+                        children: [
+                          if (bullishPct > 0)
+                            Expanded(
+                              flex: (bullishPct * 10).round(),
+                              child: Container(color: Colors.green),
+                            ),
+                          if (neutralPct > 0)
+                            Expanded(
+                              flex: (neutralPct * 10).round(),
+                              child: Container(color: Colors.grey),
+                            ),
+                          if (bearishPct > 0)
+                            Expanded(
+                              flex: (bearishPct * 10).round(),
+                              child: Container(color: Colors.red),
+                            ),
+                        ],
+                      ),
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -170,53 +178,69 @@ class SocialSentimentPollWidget extends StatelessWidget {
     required IconData icon,
   }) {
     final theme = Theme.of(context);
+    final isInteractive = onVote != null;
+    final semanticLabel =
+        '${sentiment.label} vote, ${pct.toStringAsFixed(0)}%, $count ${count == 1 ? 'vote' : 'votes'}';
+    final semanticHint = isInteractive
+        ? (isSelected ? 'Your current vote' : 'Tap to vote ${sentiment.label}')
+        : null;
 
     return Expanded(
-      child: InkWell(
-        onTap: onVote != null ? () => onVote!(sentiment) : null,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? color.withValues(alpha: 0.15)
-                : theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? color : theme.colorScheme.outlineVariant,
-              width: isSelected ? 1.5 : 1,
+      child: Semantics(
+        container: true,
+        button: true,
+        selected: isSelected,
+        enabled: isInteractive,
+        label: semanticLabel,
+        hint: semanticHint,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: isInteractive ? () => onVote!(sentiment) : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? color.withValues(alpha: 0.15)
+                  : theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? color : theme.colorScheme.outlineVariant,
+                width: isSelected ? 1.5 : 1,
+              ),
             ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 14, color: color),
-                  const SizedBox(width: 4),
-                  Text(
-                    sentiment.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w500,
-                      color: isSelected ? color : theme.colorScheme.onSurface,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 14, color: color),
+                    const SizedBox(width: 4),
+                    Text(
+                      sentiment.label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? color : theme.colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${pct.toStringAsFixed(0)}% ($count)',
-                style: TextStyle(
-                  fontSize: 10,
-                  color:
-                      isSelected ? color : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  '${pct.toStringAsFixed(0)}% ($count)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color:
+                        isSelected ? color : theme.colorScheme.onSurfaceVariant,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

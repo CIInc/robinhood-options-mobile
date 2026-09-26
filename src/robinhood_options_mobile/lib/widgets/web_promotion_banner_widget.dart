@@ -30,7 +30,9 @@ class WebPromotionBannerSliver extends StatelessWidget {
                         children: [
                           Text(
                             'Take RealizeAlpha with you',
-                            style: Theme.of(context).textTheme.titleSmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleSmall
                                 ?.copyWith(
                                   color: colorScheme.onSecondaryContainer,
                                   fontWeight: FontWeight.bold,
@@ -40,10 +42,10 @@ class WebPromotionBannerSliver extends StatelessWidget {
                           Text(
                             'Explore the mobile app for a focused, on-the-go '
                             'portfolio and market research experience.',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colorScheme.onSecondaryContainer,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSecondaryContainer,
+                                    ),
                           ),
                         ],
                       ),

@@ -457,7 +457,8 @@ void main() {
       expect(alert.icon, Icons.event_available_outlined);
     });
 
-    test('ignores contracts expiring past 3 days or already expired in the past',
+    test(
+        'ignores contracts expiring past 3 days or already expired in the past',
         () {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: const [],

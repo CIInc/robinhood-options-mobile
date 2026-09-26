@@ -19,6 +19,7 @@ enum AlertType {
   dividend_payment,
   news,
   unusual_activity,
+  congress_trading,
   custom
 }
 
@@ -64,7 +65,10 @@ enum AlertCondition {
   unusual_options_volume,
   price_spike,
   price_drop,
-  volume_spike
+  volume_spike,
+  congress_trade_purchase,
+  congress_trade_sale,
+  congress_trade_any,
 }
 
 enum AlertLogic { all, any }
