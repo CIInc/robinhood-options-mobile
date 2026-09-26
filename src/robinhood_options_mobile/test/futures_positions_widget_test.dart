@@ -60,6 +60,33 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('builds offscreen futures positions lazily', (tester) async {
+    _setViewport(tester);
+    final positions = List.generate(
+      40,
+      (index) => _position(
+        'ES${index}Z26',
+        'ES$index',
+        'E-mini contract $index',
+        1,
+        5100,
+        20,
+        5,
+        10,
+      ),
+    );
+
+    await tester.pumpWidget(_app(positions, chartRowLimit: 1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ES39Z26 +1'), findsNothing);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -10000));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ES39Z26 +1'), findsOneWidget);
+  });
 }
 
 void _setViewport(WidgetTester tester) {

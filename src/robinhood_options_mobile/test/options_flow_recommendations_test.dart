@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
@@ -62,5 +63,33 @@ void main() {
     expect(find.text('Why it was detected'), findsOneWidget);
     expect(find.text('Recommendation'), findsOneWidget);
     expect(find.text('Trade executed above the ask.'), findsOneWidget);
+  });
+
+  testWidgets('flag guidance exposes an accessible button action',
+      (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: OptionFlowFlagBadge(
+              flag: 'Golden Sweep',
+              reason: 'Trade executed above the ask.',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final guidanceFinder =
+        find.bySemanticsLabel(RegExp('Golden Sweep guidance'));
+    expect(guidanceFinder, findsOneWidget);
+
+    final semantics = tester.getSemantics(guidanceFinder).getSemanticsData();
+    expect(semantics.flagsCollection.isButton, isTrue);
+    expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+
+    semanticsHandle.dispose();
   });
 }

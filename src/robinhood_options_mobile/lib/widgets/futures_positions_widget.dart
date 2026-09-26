@@ -380,194 +380,208 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
             });
           }
 
-          return SliverToBoxAdapter(
-            child: Column(
-              children: [
-                if (widget.showGroupHeader)
-                  InkWell(
-                    onTap: !widget.showList ? openFuturesPage : null,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.candlestick_chart,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Futures',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.bold),
+          return SliverMainAxisGroup(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    if (widget.showGroupHeader)
+                      InkWell(
+                        onTap: !widget.showList ? openFuturesPage : null,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                Text(
-                                  '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                child: Icon(
+                                  Icons.candlestick_chart,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
-                              ],
-                            ),
-                          ),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _chartMeasure = _FuturesChartMeasure.openPnl;
-                              });
-                            },
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                              child: AnimatedPriceText(
-                                price: localStore.totalOpenPnl,
-                                format: formatCurrency,
-                                style: const TextStyle(
-                                    fontSize: assetValueFontSize),
-                                textAlign: TextAlign.right,
                               ),
-                            ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Futures',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                              fontSize: 19,
+                                              fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      '${formatCompactNumber.format(items.length)} positions, ${formatCompactNumber.format(contracts)} contracts${chartRowsOmitted > 0 ? ', charting top ${chartEntries.length}' : ''}',
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _chartMeasure =
+                                        _FuturesChartMeasure.openPnl;
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      8.0, 8.0, 0.0, 8.0),
+                                  child: AnimatedPriceText(
+                                    price: localStore.totalOpenPnl,
+                                    format: formatCurrency,
+                                    style: const TextStyle(
+                                        fontSize: assetValueFontSize),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                              ),
+                              if (!widget.showList)
+                                IconButton(
+                                  icon: const Icon(Icons.chevron_right),
+                                  tooltip: 'View futures details',
+                                  onPressed: openFuturesPage,
+                                ),
+                            ],
                           ),
-                          if (!widget.showList)
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right),
-                              tooltip: 'View futures details',
-                              onPressed: openFuturesPage,
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                Card(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  elevation: 0,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surfaceContainerHighest
-                      .withValues(alpha: 0.25),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
+                    Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      elevation: 0,
                       color: Theme.of(context)
                           .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: SynchronizedDetailScrollRow(
-                    scrollGroup: _scrollGroup,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 5, vertical: 12.0),
-                    child: Row(
-                      children: [
-                        _buildSummaryMetric(
-                          'Day P&L',
-                          localStore.totalDayPnl,
-                          measure: _FuturesChartMeasure.dayPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Open P&L',
-                          localStore.totalOpenPnl,
-                          measure: _FuturesChartMeasure.openPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Realized',
-                          localStore.totalRealizedPnl,
-                          measure: _FuturesChartMeasure.realizedPnl,
-                        ),
-                        _buildSummaryMetric(
-                          'Notional',
-                          grossNotional,
-                          measure: _FuturesChartMeasure.notional,
-                          neutral: true,
-                        ),
-                        _buildSummaryMetric(
-                          'Margin',
-                          localStore.totalMarginRequirement,
-                          measure: _FuturesChartMeasure.marginRequirement,
-                          neutral: true,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (chartData.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      SizedBox(
-                        height: chartData.length * 26 + 80,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: openPnlChart,
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.25),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.4),
                         ),
                       ),
-                      _buildChartControls(context),
-                    ],
-                  ),
-                if (localStore.notionalDistribution.isNotEmpty &&
-                    widget.showList) ...[
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Risk Distribution (Notional)',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                      child: SynchronizedDetailScrollRow(
+                        scrollGroup: _scrollGroup,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 12.0),
+                        child: Row(
+                          children: [
+                            _buildSummaryMetric(
+                              'Day P&L',
+                              localStore.totalDayPnl,
+                              measure: _FuturesChartMeasure.dayPnl,
+                            ),
+                            _buildSummaryMetric(
+                              'Open P&L',
+                              localStore.totalOpenPnl,
+                              measure: _FuturesChartMeasure.openPnl,
+                            ),
+                            _buildSummaryMetric(
+                              'Realized',
+                              localStore.totalRealizedPnl,
+                              measure: _FuturesChartMeasure.realizedPnl,
+                            ),
+                            _buildSummaryMetric(
+                              'Notional',
+                              grossNotional,
+                              measure: _FuturesChartMeasure.notional,
+                              neutral: true,
+                            ),
+                            _buildSummaryMetric(
+                              'Margin',
+                              localStore.totalMarginRequirement,
+                              measure: _FuturesChartMeasure.marginRequirement,
+                              neutral: true,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(
-                    height: 200,
-                    child: pie.PieChart(
-                      [
-                        charts.Series<pie.PieChartData, String>(
-                          id: 'Notional',
-                          domainFn: (pie.PieChartData sales, _) => sales.label,
-                          measureFn: (pie.PieChartData sales, _) => sales.value,
-                          data: localStore.notionalDistribution.entries
-                              .map((e) => pie.PieChartData(e.key, e.value))
-                              .toList(),
-                          labelAccessorFn: (pie.PieChartData row, _) =>
-                              '${row.label}: ${formatCompactNumber.format(row.value)}',
-                          colorFn: (_, index) => pie.PieChart.makeShades(
-                              charts.MaterialPalette.blue.shadeDefault,
-                              localStore.notionalDistribution.length)[index!],
-                        )
-                      ],
-                      renderer: charts.ArcRendererConfig(
-                        arcWidth: 60,
-                        arcRendererDecorators: [
-                          charts.ArcLabelDecorator(
-                              labelPosition: charts.ArcLabelPosition.outside)
+                    if (chartData.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          SizedBox(
+                            height: chartData.length * 26 + 80,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                              child: openPnlChart,
+                            ),
+                          ),
+                          _buildChartControls(context),
                         ],
                       ),
-                      onSelected: (p0) {},
-                    ),
-                  ),
-                ],
-                if (items.isNotEmpty && widget.showList)
-                  Column(
-                    children: items.map((pos) {
+                    if (localStore.notionalDistribution.isNotEmpty &&
+                        widget.showList) ...[
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Risk Distribution (Notional)',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 200,
+                        child: pie.PieChart(
+                          [
+                            charts.Series<pie.PieChartData, String>(
+                              id: 'Notional',
+                              domainFn: (pie.PieChartData sales, _) =>
+                                  sales.label,
+                              measureFn: (pie.PieChartData sales, _) =>
+                                  sales.value,
+                              data: localStore.notionalDistribution.entries
+                                  .map((e) => pie.PieChartData(e.key, e.value))
+                                  .toList(),
+                              labelAccessorFn: (pie.PieChartData row, _) =>
+                                  '${row.label}: ${formatCompactNumber.format(row.value)}',
+                              colorFn: (_, index) => pie.PieChart.makeShades(
+                                  charts.MaterialPalette.blue.shadeDefault,
+                                  localStore
+                                      .notionalDistribution.length)[index!],
+                            )
+                          ],
+                          renderer: charts.ArcRendererConfig(
+                            arcWidth: 60,
+                            arcRendererDecorators: [
+                              charts.ArcLabelDecorator(
+                                  labelPosition:
+                                      charts.ArcLabelPosition.outside)
+                            ],
+                          ),
+                          onSelected: (p0) {},
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (items.isNotEmpty && widget.showList)
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final pos = items[index];
                       String displaySymbol = '—';
                       String description = '';
                       String contractSymbol = '';
@@ -895,10 +909,11 @@ class _FuturesPositionsWidgetState extends State<FuturesPositionsWidget> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    },
+                    childCount: items.length,
                   ),
-              ],
-            ),
+                ),
+            ],
           );
         }));
   }

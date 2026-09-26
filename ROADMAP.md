@@ -1027,12 +1027,14 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [x] **Instrument Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for equity position counts, share holdings, market values, display value switching, and bounded chart row modes
 - [x] **Futures Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped contract counts, P&L summaries, bounded chart rows, and aggregate-view navigation blocking
 - [x] **Forex Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for forex, crypto, mixed, and empty holdings; currency units and labels
+- [x] **Options Flow Guidance Accessibility Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Verify flag guidance badges expose a screen-reader label, button role, and tap action
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
   - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Forex positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Futures positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Use all plotted income dates when selecting automatic chart viewport behavior ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Deduplicate cached symbols and fetch Robinhood quote batches with bounded concurrency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Build futures position cards lazily while scrolling ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
