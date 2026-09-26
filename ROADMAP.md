@@ -43,12 +43,12 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 24, 2026 · **Current app version:** 0.52.0 (development version)
+**Last reviewed:** September 25, 2026 · **Current app version:** 0.52.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 377
-- **Planned checklist items:** 69
-- **Open GitHub issues:** 36 (as of September 24, 2026)
+- **Completed checklist items:** 382
+- **Planned checklist items:** 70
+- **Open GitHub issues:** 36 (as of September 25, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
@@ -1022,6 +1022,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [ ] **End-to-End Encryption**: Sensitive data encryption
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
 - [x] **Option Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped underlying summaries and individual contract list mode
+- [x] **Instrument Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for equity position counts, share holdings, market values, display value switching, and bounded chart row modes
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
   - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Forex positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
