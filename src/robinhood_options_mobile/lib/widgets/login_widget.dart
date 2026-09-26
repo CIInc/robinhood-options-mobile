@@ -274,7 +274,6 @@ class _LoginWidgetState extends State<LoginWidget> {
                 if (authenticationSnapshot.data != null) {
                   var authenticationResponse =
                       jsonDecode(authenticationSnapshot.data!.body);
-                  debugPrint(jsonEncode(authenticationResponse));
                   if (authenticationResponse['challenge'] != null) {
                     challengeRequestId =
                         authenticationResponse['challenge']['id'];
@@ -312,6 +311,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         : source == BrokerageSource.schwab
                             ? SchwabService()
                             : DemoService();
+                    BrokerageUser? authenticatedUser;
                     client = generateClient(
                         authenticationSnapshot.data!,
                         source == BrokerageSource.robinhood
@@ -321,11 +321,13 @@ class _LoginWidgetState extends State<LoginWidget> {
                         ' ',
                         service.clientId,
                         null,
-                        null,
-                        null);
+                        null, (credentials) {
+                      authenticatedUser?.updateCredentials(credentials);
+                    });
                     // debugPrint(jsonEncode(client));
                     var user = BrokerageUser(source, userCtl.text,
                         client!.credentials.toJson(), client);
+                    authenticatedUser = user;
                     WidgetsBinding.instance.addPostFrameCallback((_) async {
                       var userStore = Provider.of<BrokerageUserStore>(context,
                           listen: false);
@@ -1125,17 +1127,14 @@ class _LoginWidgetState extends State<LoginWidget> {
               : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
           challengeType: challengeType,
           challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
-      debugPrint(response.body);
       var authResult = jsonDecode(response.body);
       if (authResult['verification_workflow'] != null) {
         var workflowId = authResult['verification_workflow']['id'];
         var userMachineResponse =
             await service.userMachine(deviceToken!, workflowId);
-        debugPrint(userMachineResponse.body);
         var userMachine = jsonDecode(userMachineResponse.body);
         computerId = userMachine['id'];
         var userViewResponse = await service.userView(computerId!);
-        debugPrint(userViewResponse.body);
         var userView = jsonDecode(userViewResponse.body);
         if (userView['context'] != null &&
             userView['context']['sheriff_challenge'] != null) {
@@ -1196,12 +1195,10 @@ class _LoginWidgetState extends State<LoginWidget> {
       var service = RobinhoodService();
       var challengeResponse = await service.respondChallenge(
           challengeRequestId!, smsCtl.text.isEmpty ? mfaCtl.text : smsCtl.text);
-      debugPrint(challengeResponse.body);
       this.challengeResponse = Future.value(challengeResponse);
       var responseJson = jsonDecode(challengeResponse.body);
       challengeResponseId = responseJson['id'];
-      var postResponse = await service.postUserView(computerId!);
-      debugPrint(jsonEncode(postResponse.body));
+      await service.postUserView(computerId!);
       _login();
     }
   }

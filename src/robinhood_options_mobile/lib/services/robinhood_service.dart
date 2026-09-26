@@ -194,8 +194,6 @@ class RobinhoodService implements IBrokerageService {
     }
 
     debugPrint('POST $authorizationEndpoint');
-    // debugPrint(jsonEncode(headers));
-    debugPrint(jsonEncode(body));
     httpClient ??= Client();
     var response = await httpClient.post(authorizationEndpoint,
         headers: headers, body: body);
@@ -230,7 +228,6 @@ class RobinhoodService implements IBrokerageService {
     var httpClient = Client();
     var url = 'https://api.robinhood.com/challenge/$id/respond/';
     debugPrint('POST $url');
-    debugPrint(jsonEncode(body));
     var response = httpClient.post(Uri.parse(url), body: body);
     return response;
   }
@@ -4741,7 +4738,10 @@ WATCHLIST
           "content-type": "application/json",
           "accept": "application/json"
         });
-    debugPrint(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      debugPrint(
+          'Robinhood list addition failed with status ${response.statusCode}.');
+    }
   }
 
   @override
@@ -4763,7 +4763,10 @@ WATCHLIST
           "content-type": "application/json",
           "accept": "application/json"
         });
-    debugPrint(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      debugPrint(
+          'Robinhood list removal failed with status ${response.statusCode}.');
+    }
   }
 
   // TODO: Implement screener lists, separate from watchlists (currently being created)
@@ -4782,7 +4785,10 @@ WATCHLIST
           "content-type": "application/json",
           "accept": "application/json"
         });
-    debugPrint(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      debugPrint(
+          'Robinhood list creation failed with status ${response.statusCode}.');
+    }
   }
 
   @override
@@ -4792,7 +4798,10 @@ WATCHLIST
       "content-type": "application/json",
       "accept": "application/json"
     });
-    debugPrint(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      debugPrint(
+          'Robinhood list deletion failed with status ${response.statusCode}.');
+    }
   }
 
   /*
@@ -6101,6 +6110,7 @@ WATCHLIST
       try {
         user.oauth2Client = await user.oauth2Client!.refreshCredentials();
         user.credentials = user.oauth2Client!.credentials.toJson();
+        await user.persistCredentials();
       } catch (e) {
         throw Exception('Authorization expired. Please log back in.');
       }

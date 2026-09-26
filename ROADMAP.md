@@ -47,8 +47,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ### Quick Stats
 - **Completed checklist items:** 384
-- **Planned checklist items:** 69
-- **GitHub issues:** 120 total — 36 open and 84 closed (as of September 25, 2026)
+- **Planned checklist items:** 68
+- **GitHub issues:** 120 total — 34 open and 86 closed (as of September 25, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
@@ -798,7 +798,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### Infrastructure & Security
 - [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system
 - [x] **OAuth2 Refresh** ([#14](https://github.com/CIInc/robinhood-options-mobile/issues/14)): Handle token refresh seamlessly
-- [x] **Secure Storage** ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88)): Secure storage for OAuth tokens
+- [x] **Platform-Secure OAuth Storage** ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88)): Broker and MCP OAuth tokens use `flutter_secure_storage`, legacy plaintext values migrate before local/cloud serialization, and sign-out/unlink/disconnect deletes stored tokens. Hardware-backed key enforcement is not guaranteed across devices; see [secure token storage](docs/secure-token-storage.md) and the still-open #88.
 - [x] **Apple Silicon Support** ([#11](https://github.com/CIInc/robinhood-options-mobile/issues/11)): Fix ITMS-90899 for Macs with Apple silicon
 - [x] **iOS Entitlements** ([#10](https://github.com/CIInc/robinhood-options-mobile/issues/10)): Fix ITMS-90078 missing potentially required entitlement
 - [x] **In-App Purchases**: Subscription infrastructure for premium features (Trade Signals)
@@ -1038,7 +1038,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
 
 #### Data & Integration
-- [ ] **Schwab Integration Expansion & Real-Time Streaming** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
+- [x] **Schwab Integration Expansion & Real-Time Streaming** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):
     - [x] Schwab Auth & Portfolio Sync (Phase 1)
     - [x] Schwab Options Order Placement (Phase 2, v0.37.5) - [Tracking: #138](https://github.com/CIInc/robinhood-options-mobile/issues/138)
     - [x] Schwab Multi-Account Support (Phase 3): Preserve Schwab account hash IDs and route orders to the selected account

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -122,10 +123,14 @@ class SchwabService implements IBrokerageService {
     //     .getAccessTokenFromLink(Uri.parse(result).queryParameters);
     // return user;
 
+    BrokerageUser? authenticatedUser;
     var codeGrant = AuthorizationCodeGrant(
         clientId, authEndpoint, tokenEndpoint, secret: sc,
         onCredentialsRefreshed: (creds) {
-      debugPrint('Credentials refreshed ${creds.toJson()}');
+      final user = authenticatedUser;
+      if (user != null) {
+        user.updateCredentials(creds);
+      }
     });
     Uri authUri = codeGrant
         .getAuthorizationUrl(Uri.parse(redirectUrl), scopes: ['internal']);
@@ -140,13 +145,13 @@ class SchwabService implements IBrokerageService {
       //     httpsPath: '')
     );
 
-    debugPrint('OAuth2 authorizationUrl created $authUri');
+    debugPrint('OAuth2 authorization URL created.');
     final client = await codeGrant
         .handleAuthorizationResponse(Uri.parse(result).queryParameters);
     debugPrint('OAuth2 client created');
-    debugPrint(jsonEncode(client.credentials));
-    var user = BrokerageUser(
+    final user = BrokerageUser(
         BrokerageSource.schwab, '', client.credentials.toJson(), client);
+    authenticatedUser = user;
     //user.save(userStore).then((value) {});
     return user;
 
@@ -170,7 +175,6 @@ class SchwabService implements IBrokerageService {
   //   debugPrint('OAuth2 authorizationUrl created $authUri');
   //   final client = await codeGrant.handleAuthorizationResponse(parameters);
   //   debugPrint('OAuth2 client created');
-  //   debugPrint(jsonEncode(client.credentials));
   //   var user = BrokerageUser(
   //       BrokerageSource.schwab, '', client.credentials.toJson(), client);
   //   //user.save(userStore).then((value) {});
@@ -216,8 +220,6 @@ class SchwabService implements IBrokerageService {
           "accept": "application/json"
         });
         */
-    debugPrint(response.body);
-
     final responseJson = jsonDecode(response.body);
     if (responseJson['error'] != null) {
       throw Exception(responseJson['error']);
@@ -228,6 +230,7 @@ class SchwabService implements IBrokerageService {
     return accessToken;
     */
 
+    BrokerageUser? authenticatedUser;
     final client = generateClient(
         response,
         tokenEndpoint, // .scAuthEndpoint
@@ -236,12 +239,12 @@ class SchwabService implements IBrokerageService {
         clientId,
         sc,
         null, (creds) {
-      debugPrint('Credentials refreshed ${creds.toJson()}');
+      authenticatedUser?.updateCredentials(creds);
     });
     debugPrint('OAuth2 client created');
-    debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
         BrokerageSource.schwab, '', client.credentials.toJson(), client);
+    authenticatedUser = user;
     //user.save(userStore).then((value) {});
     return user;
   }

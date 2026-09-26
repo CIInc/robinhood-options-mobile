@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
+import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
+import 'package:uuid/uuid.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -19,6 +22,10 @@ class BrokerageUser {
   final BrokerageSource source;
   late String? userName;
   String? credentials;
+  String secureCredentialsKey;
+  final SecureTokenStorage _secureTokenStorage;
+  Future<void> _pendingCredentialWrite = Future<void>.value();
+  bool _credentialsDeleted = false;
   oauth2.Client? oauth2Client;
   // bool defaultUser = true;
   bool refreshEnabled = false;
@@ -31,12 +38,22 @@ class BrokerageUser {
   List<Account> accounts = [];
 
   BrokerageUser(this.source, this.userName, this.credentials, this.oauth2Client,
-      {this.accounts = const []});
+      {this.accounts = const [],
+      String? secureCredentialsKey,
+      SecureTokenStorage? secureTokenStorage})
+      : secureCredentialsKey = secureCredentialsKey ?? const Uuid().v4(),
+        _secureTokenStorage =
+            secureTokenStorage ?? PlatformSecureTokenStorage();
 
-  BrokerageUser.fromJson(Map<String, dynamic> json)
+  BrokerageUser.fromJson(Map<String, dynamic> json,
+      {SecureTokenStorage? secureTokenStorage})
       : source = _parseSource(json['source']),
         userName = json['userName'],
         credentials = json['credentials'],
+        secureCredentialsKey =
+            json['secureCredentialsKey'] as String? ?? const Uuid().v4(),
+        _secureTokenStorage =
+            secureTokenStorage ?? PlatformSecureTokenStorage(),
         refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
@@ -95,7 +112,8 @@ class BrokerageUser {
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
         'userName': userName,
-        'credentials': credentials,
+        if (credentials != null && credentials!.isNotEmpty)
+          'secureCredentialsKey': secureCredentialsKey,
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
         'sortOptions': sortOptions.toString(),
@@ -105,6 +123,54 @@ class BrokerageUser {
         'userInfo': userInfo?.toJson(),
         'accounts': accounts.map((e) => e.toJson()).toList(),
       };
+
+  Map<String, dynamic> toFirestoreJson() {
+    final json = toJson()..remove('secureCredentialsKey');
+    return json;
+  }
+
+  Future<void> persistCredentials() {
+    final value = credentials;
+    if (value == null || value.isEmpty || _credentialsDeleted) {
+      return Future<void>.value();
+    }
+    final write =
+        _pendingCredentialWrite.catchError((Object _) {}).then((_) async {
+      if (!_credentialsDeleted) {
+        await _secureTokenStorage.write(
+          key: secureCredentialsKey,
+          value: value,
+        );
+      }
+    });
+    _pendingCredentialWrite = write;
+    return write;
+  }
+
+  Future<void> deleteCredentials() async {
+    _credentialsDeleted = true;
+    try {
+      await _pendingCredentialWrite;
+    } catch (_) {
+      debugPrint(
+          'A pending brokerage credential write failed before deletion.');
+    }
+    await _secureTokenStorage.delete(key: secureCredentialsKey);
+    credentials = null;
+    oauth2Client?.close();
+    oauth2Client = null;
+  }
+
+  void _handleCredentialsRefreshed(oauth2.Credentials refreshedCredentials) {
+    if (_credentialsDeleted) return;
+    credentials = refreshedCredentials.toJson();
+    unawaited(persistCredentials().catchError((Object _) {
+      debugPrint('Failed to persist refreshed brokerage credentials securely.');
+    }));
+  }
+
+  void updateCredentials(oauth2.Credentials refreshedCredentials) =>
+      _handleCredentialsRefreshed(refreshedCredentials);
 
   void ensureOAuth2Client() {
     if (oauth2Client != null || credentials == null) {
@@ -126,21 +192,25 @@ class BrokerageUser {
       }
 
       oauth2Client = Client(creds, identifier: service.clientId, secret: secret,
-          onCredentialsRefreshed: (c) {
-        credentials = c.toJson();
+          onCredentialsRefreshed: (refreshedCredentials) {
+        _handleCredentialsRefreshed(refreshedCredentials);
       });
     } catch (e) {
       debugPrint('Error creating oauth2 client for $userName: $e');
     }
   }
 
-  static List<BrokerageUser> fromJsonArray(dynamic json) {
+  static List<BrokerageUser> fromJsonArray(dynamic json,
+      {SecureTokenStorage? secureTokenStorage}) {
     List<BrokerageUser> list = [];
     if (json == null) {
       return list;
     }
     for (int i = 0; i < json.length; i++) {
-      var user = BrokerageUser.fromJson(json[i]);
+      var user = BrokerageUser.fromJson(
+        json[i],
+        secureTokenStorage: secureTokenStorage,
+      );
       user.ensureOAuth2Client();
       list.add(user);
     }

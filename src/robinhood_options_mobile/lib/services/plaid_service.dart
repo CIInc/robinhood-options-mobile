@@ -98,6 +98,7 @@ class PlaidService implements IBrokerageService {
     // if (responseJson['error'] != null) {
     //   throw Exception(responseJson['error']);
     // }
+    BrokerageUser? authenticatedUser;
     final client = generateClient(
         Response('', 200),
         tokenEndpoint, // .scAuthEndpoint
@@ -105,12 +106,13 @@ class PlaidService implements IBrokerageService {
         ' ',
         clientId,
         null,
-        null,
-        null);
+        null, (credentials) {
+      authenticatedUser?.updateCredentials(credentials);
+    });
     debugPrint('OAuth2 client created');
-    debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
         BrokerageSource.plaid, '', client.credentials.toJson(), client);
+    authenticatedUser = user;
     //user.save(userStore).then((value) {});
     return user;
   }

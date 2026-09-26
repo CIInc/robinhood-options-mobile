@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/gamma_exposure_model.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
+import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
 
 class Prompt {
   final String key;
@@ -42,6 +43,7 @@ class Prompt {
 
 class GenerativeService {
   final GenerativeModel model;
+  final SecureTokenStorage _secureTokenStorage;
 
   static Content buildSystemInstruction({List<String>? mcpToolNames}) {
     String instruction =
@@ -361,8 +363,10 @@ Follow the table with a strategic breakdown:
   // final String _baseUrl;
 
   // GenerativeService(this._apiKey, {String baseUrl = 'https://vertexai.googleapis.com/v1'}) : _baseUrl = baseUrl;
-  GenerativeService()
-      : // Initialize the Vertex AI service and the generative model
+  GenerativeService({SecureTokenStorage? secureTokenStorage})
+      : _secureTokenStorage =
+            secureTokenStorage ?? PlatformSecureTokenStorage(),
+        // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
@@ -1410,8 +1414,18 @@ Follow the table with a strategic breakdown:
 
   Future<String?> getMcpAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('mcp_access_token');
-    final refreshToken = prefs.getString('mcp_refresh_token');
+    final accessToken = await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_access_token',
+      secureKey: 'mcp.access_token',
+    );
+    final refreshToken = await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_refresh_token',
+      secureKey: 'mcp.refresh_token',
+    );
     final expiryTimeMs = prefs.getInt('mcp_token_expiry_ms');
 
     if (accessToken == null || refreshToken == null) {
@@ -1424,7 +1438,7 @@ Follow the table with a strategic breakdown:
       try {
         final success = await refreshMcpToken(refreshToken);
         if (success) {
-          return prefs.getString('mcp_access_token');
+          return await _secureTokenStorage.read(key: 'mcp.access_token');
         }
       } catch (e) {
         debugPrint("Error refreshing MCP token: $e");
@@ -1437,6 +1451,18 @@ Follow the table with a strategic breakdown:
 
   Future<bool> refreshMcpToken(String refreshToken) async {
     final prefs = await SharedPreferences.getInstance();
+    await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_access_token',
+      secureKey: 'mcp.access_token',
+    );
+    await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_refresh_token',
+      secureKey: 'mcp.refresh_token',
+    );
     final clientId = prefs.getString('mcp_client_id');
     if (clientId == null || clientId.isEmpty) {
       return false;
@@ -1463,9 +1489,15 @@ Follow the table with a strategic breakdown:
         final expiresIn = data['expires_in'] as int? ?? 86400;
 
         if (newAccessToken != null && newAccessToken.isNotEmpty) {
-          await prefs.setString('mcp_access_token', newAccessToken);
+          await _secureTokenStorage.write(
+            key: 'mcp.access_token',
+            value: newAccessToken,
+          );
           if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-            await prefs.setString('mcp_refresh_token', newRefreshToken);
+            await _secureTokenStorage.write(
+              key: 'mcp.refresh_token',
+              value: newRefreshToken,
+            );
           }
           final expiryMs =
               DateTime.now().millisecondsSinceEpoch + (expiresIn * 1000);
@@ -1481,6 +1513,18 @@ Follow the table with a strategic breakdown:
 
   Future<bool> authorizeMcp([BuildContext? context]) async {
     final prefs = await SharedPreferences.getInstance();
+    await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_access_token',
+      secureKey: 'mcp.access_token',
+    );
+    await migratePreferenceToSecureStorage(
+      preferences: prefs,
+      secureStorage: _secureTokenStorage,
+      preferenceKey: 'mcp_refresh_token',
+      secureKey: 'mcp.refresh_token',
+    );
 
     final endpoints = await _discoverEndpoints();
     final authorizationEndpoint = endpoints['authorization_endpoint']!;
@@ -1513,7 +1557,7 @@ Follow the table with a strategic breakdown:
     ).toString();
 
     try {
-      debugPrint("Launching MCP Authorization URL: $authUrl");
+      debugPrint('Launching MCP authorization.');
       debugPrint(
           "Expected redirect URI: $redirectUri, Callback scheme: ${Uri.parse(redirectUri).scheme}");
 
@@ -1543,16 +1587,14 @@ Follow the table with a strategic breakdown:
         return false;
       }
 
-      debugPrint("OAuth callback received. Result URL: $resultUrl");
+      debugPrint('MCP OAuth callback received.');
 
       final returnedUri = Uri.parse(resultUrl);
 
       // Check for OAuth error parameters
       final error = returnedUri.queryParameters['error'];
-      final errorDescription = returnedUri.queryParameters['error_description'];
       if (error != null && error.isNotEmpty) {
-        debugPrint(
-            "Authorization failed with error: $error, description: $errorDescription");
+        debugPrint('MCP authorization failed with error: $error.');
         return false;
       }
 
@@ -1563,13 +1605,11 @@ Follow the table with a strategic breakdown:
           "Code present: ${code != null && code.isNotEmpty}, State match: ${returnedState == state}");
 
       if (code == null || code.isEmpty) {
-        debugPrint(
-            "Authorization failed: No authorization code returned. Query parameters: ${returnedUri.queryParameters}");
+        debugPrint('Authorization failed: no authorization code returned.');
         return false;
       }
       if (returnedState != state) {
-        debugPrint(
-            "Authorization failed: State mismatch. Expected: $state, Got: $returnedState");
+        debugPrint("Authorization failed: OAuth state mismatch.");
         return false;
       }
 
@@ -1596,9 +1636,15 @@ Follow the table with a strategic breakdown:
         final expiresIn = data['expires_in'] as int? ?? 86400;
 
         if (accessToken != null && accessToken.isNotEmpty) {
-          await prefs.setString('mcp_access_token', accessToken);
+          await _secureTokenStorage.write(
+            key: 'mcp.access_token',
+            value: accessToken,
+          );
           if (refreshToken != null && refreshToken.isNotEmpty) {
-            await prefs.setString('mcp_refresh_token', refreshToken);
+            await _secureTokenStorage.write(
+              key: 'mcp.refresh_token',
+              value: refreshToken,
+            );
           }
           final expiryMs =
               DateTime.now().millisecondsSinceEpoch + (expiresIn * 1000);
@@ -1609,7 +1655,7 @@ Follow the table with a strategic breakdown:
         }
       } else {
         debugPrint(
-            "Failed to exchange code for token: ${tokenResponse.statusCode} - ${tokenResponse.body}");
+            'MCP token exchange failed with status ${tokenResponse.statusCode}.');
       }
     } catch (e) {
       debugPrint("Authorization flow failed: $e");
@@ -1619,15 +1665,7 @@ Follow the table with a strategic breakdown:
   }
 
   Future<void> disconnectMcp() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('mcp_access_token');
-    await prefs.remove('mcp_refresh_token');
-    await prefs.remove('mcp_token_expiry_ms');
-    await prefs.remove('mcp_client_id');
-    await prefs.remove('mcp_redirect_uri');
-    await prefs.remove('mcp_registration_endpoint');
-    await prefs.remove('mcp_authorization_endpoint');
-    await prefs.remove('mcp_token_endpoint');
+    await deleteMcpTokens(secureStorage: _secureTokenStorage);
   }
 
   String _generateState() {

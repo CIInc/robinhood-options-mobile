@@ -610,6 +610,7 @@ flutter test test/user_model_test.dart
 
 ## Infrastructure & CI/CD
 
+- **[Secure OAuth Token Storage](secure-token-storage.md):** Broker and MCP OAuth credentials use platform secure storage, with legacy migration, cloud-document redaction, and explicit sign-out/unlink/disconnect cleanup.
 - **[Mobile CI/CD Setup](mobile-ci-setup.md):** Guide for configuring GitHub Actions secrets for iOS and Android builds.
 
 ## Future Enhancements

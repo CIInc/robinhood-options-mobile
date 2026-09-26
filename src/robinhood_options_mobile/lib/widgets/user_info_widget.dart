@@ -342,7 +342,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               onPressed: () async {
                 var userStore =
                     Provider.of<BrokerageUserStore>(context, listen: false);
-                userStore.remove(widget.brokerageUser);
+                await userStore.remove(widget.brokerageUser);
                 await userStore.save();
                 userStore.setCurrentUserIndex(0);
 
@@ -1360,11 +1360,10 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
 
   Future<void> refreshToken(BuildContext context, BrokerageUser user) async {
     try {
-      debugPrint(user.oauth2Client!.identifier);
-      debugPrint(user.oauth2Client!.secret);
-      debugPrint(user.oauth2Client!.credentials.toJson());
       final newClient = await user.oauth2Client!.refreshCredentials();
       user.oauth2Client = newClient;
+      user.credentials = newClient.credentials.toJson();
+      await user.persistCredentials();
       if (mounted) {
         _startTokenExpirationTimer();
         setState(() {});

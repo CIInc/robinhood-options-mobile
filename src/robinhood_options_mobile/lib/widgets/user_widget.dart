@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/biometric_service.dart';
+import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
@@ -1289,7 +1290,7 @@ class _UserWidgetState extends State<UserWidget> {
                                             });
                                             widget.brokerageUser!
                                                 .refreshEnabled = value;
-                                            saveBrokerageUser(context);
+                                            await saveBrokerageUser(context);
                                             _onSettingsChanged(user: user);
                                           },
                                           secondary: CircleAvatar(
@@ -2738,11 +2739,11 @@ class _UserWidgetState extends State<UserWidget> {
     );
   }
 
-  void saveBrokerageUser(BuildContext context) {
+  Future<void> saveBrokerageUser(BuildContext context) async {
     if (widget.brokerageUser == null) return;
     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
     userStore.addOrUpdate(widget.brokerageUser!);
-    userStore.save();
+    await userStore.save();
   }
 
   Widget _buildFeatureCategoryHeader(
@@ -3042,6 +3043,27 @@ class _UserWidgetState extends State<UserWidget> {
     setState(() {
       _isLoading = true;
     });
+    try {
+      final brokerageUserStore =
+          Provider.of<BrokerageUserStore>(context, listen: false);
+      await brokerageUserStore.removeAll();
+      await brokerageUserStore.save();
+      await deleteMcpTokens(secureStorage: PlatformSecureTokenStorage());
+    } catch (_) {
+      debugPrint('Could not securely clear brokerage credentials.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not securely clear brokerage credentials.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
     await widget.auth.signOut();
     try {
       // await GoogleSignIn().signOut();
@@ -3049,9 +3071,11 @@ class _UserWidgetState extends State<UserWidget> {
     } catch (e) {
       debugPrint('Google sign-out failed: $e');
     }
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
     if (widget.onSignout != null) {
       widget.onSignout!();
     }

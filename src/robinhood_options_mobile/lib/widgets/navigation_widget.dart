@@ -189,7 +189,35 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       }
     }
 
-    return Future.wait(futureArr);
+    final snapshots = await Future.wait(futureArr);
+    final loadedUserSnapshot =
+        snapshots.whereType<DocumentSnapshot<User>>().firstOrNull;
+    final loadedUser = loadedUserSnapshot?.data();
+    if (loadedUser != null) {
+      var addedCloudMetadata = false;
+      if (userStore.items.isEmpty && loadedUser.brokerageUsers.isNotEmpty) {
+        for (final brokerageUser in loadedUser.brokerageUsers) {
+          userStore.addOrUpdate(brokerageUser);
+        }
+        addedCloudMetadata = true;
+      }
+
+      final hasLegacyCloudCredentials =
+          await userStore.migrateLegacyCloudCredentials(
+        loadedUser.brokerageUsers,
+      );
+      if (addedCloudMetadata && !hasLegacyCloudCredentials) {
+        await userStore.save();
+      }
+      if (hasLegacyCloudCredentials) {
+        loadedUser.brokerageUsers = userStore.items.toList();
+        await _firestoreService.updateUser(
+          loadedUserSnapshot!.reference,
+          loadedUser,
+        );
+      }
+    }
+    return snapshots;
   }
 
   Future<void> setupInteractedMessage() async {
@@ -730,19 +758,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 userStore.currentUser!.userInfo == null &&
                 userInfo != null) {
               userStore.currentUser!.userInfo = userInfo;
-              userStore.save();
+              unawaited(userStore.save().catchError((Object error) {
+                debugPrint('Failed to persist brokerage account cache: $error');
+              }));
             }
             if (userSnapshot != null) {
               user = userSnapshot.data();
               _syncMacroSubscription();
               if (user != null) {
-                if (userStore.items.isEmpty &&
-                    user!.brokerageUsers.isNotEmpty) {
-                  for (var bu in user!.brokerageUsers) {
-                    userStore.addOrUpdate(bu);
-                  }
-                  userStore.save();
-                } else if (userStore.items.isNotEmpty &&
+                if (userStore.items.isNotEmpty &&
                     userStore.items.length != user!.brokerageUsers.length) {
                   user!.brokerageUsers = userStore.items.toList();
                   if (userDoc != null) {

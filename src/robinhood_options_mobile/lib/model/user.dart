@@ -187,7 +187,7 @@ class User {
       'dateCreated': dateCreated,
       'dateUpdated': dateUpdated,
       'lastVisited': lastVisited,
-      'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
+      'brokerageUsers': brokerageUsers.map((e) => e.toFirestoreJson()).toList(),
       'refreshQuotes': refreshQuotes,
       'investmentProfile': investmentProfile?.toJson(),
       'subscriptionStatus': subscriptionStatus,
