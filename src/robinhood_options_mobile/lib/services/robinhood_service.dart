@@ -884,6 +884,31 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
   }
 
   @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) async {
+    final url =
+        "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractId)}";
+    final response = await getJson(user, url);
+    final quoteWrappers = response['data'];
+    if (quoteWrappers is! List) {
+      throw const FormatException('Unexpected futures quote response.');
+    }
+
+    for (final quoteWrapper in quoteWrappers) {
+      if (quoteWrapper is! Map || quoteWrapper['data'] is! Map) {
+        continue;
+      }
+      final quote = quoteWrapper['data'] as Map;
+      if (quote['instrument_id']?.toString() != contractId) {
+        continue;
+      }
+      final price =
+          double.tryParse(quote['last_trade_price']?.toString() ?? '');
+      return price != null && price.isFinite && price > 0 ? price : null;
+    }
+    return null;
+  }
+
+  @override
   Future<dynamic> getFuturesContractBySymbol(
       BrokerageUser user, String symbol) async {
     var url = "$endpoint/arsenal/v1/futures/contracts/symbol/$symbol";
@@ -1535,6 +1560,11 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
         'accept': 'application/json',
       },
     );
+
+    if (result.statusCode < 200 || result.statusCode >= 300) {
+      throw StateError(
+          'Futures order rejected by Robinhood (${result.statusCode}).');
+    }
 
     _futuresOrdersCache.remove('${user.userName}:$accountId');
 

@@ -3558,6 +3558,10 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
   }
 
   @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) =>
+      Future.error(UnsupportedError('Live futures quotes are not supported.'));
+
+  @override
   Future<dynamic> placeFuturesOrder(
     BrokerageUser user,
     String accountId,

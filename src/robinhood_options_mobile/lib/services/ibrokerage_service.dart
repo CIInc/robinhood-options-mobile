@@ -360,6 +360,7 @@ abstract class IBrokerageService {
       BrokerageUser user, List<String> symbols);
   Future<List<dynamic>> getFuturesClosesByIds(
       BrokerageUser user, List<String> contractIds);
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId);
   Future<dynamic> placeFuturesOrder(
     BrokerageUser user,
     String accountId,

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/futures_order_entry_sheet.dart';
 
 class FutureInstrumentWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
@@ -298,6 +300,45 @@ class _FutureInstrumentWidgetState extends State<FutureInstrumentWidget> {
                 ],
               ),
             ),
+            if (widget.brokerageUser.source == BrokerageSource.robinhood &&
+                (pos['accountId']?.toString().isNotEmpty ?? false) &&
+                (pos['contractId']?.toString().isNotEmpty ?? false))
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: const ValueKey('trade-futures'),
+                    icon: const Icon(Icons.swap_vert),
+                    label: const Text('Trade Futures'),
+                    onPressed: () async {
+                      final orderSubmitted = await showModalBottomSheet<bool>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (context) => FuturesOrderEntrySheet(
+                          service: widget.service,
+                          brokerageUser: widget.brokerageUser,
+                          accountId: pos['accountId'].toString(),
+                          contractId: pos['contractId'].toString(),
+                          symbol: contractSymbol.isNotEmpty
+                              ? contractSymbol
+                              : displaySymbol,
+                          positionQuantity: double.tryParse(
+                              pos['quantity']?.toString() ?? ''),
+                        ),
+                      );
+                      if (orderSubmitted == true && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Futures order submitted.'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
           ],
         ),
       ),

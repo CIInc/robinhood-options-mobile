@@ -1092,6 +1092,7 @@ Staying ahead of the curve requires exploring frontier technologies. Decentraliz
 
 #### Advanced Derivatives
 - [ ] **Futures Trading**: Full lifecycle management, SPAN margin, and roll automation ([#67](https://github.com/CIInc/robinhood-options-mobile/issues/67), [#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104))
+  - [x] Robinhood futures market/limit order entry with live quote review and explicit confirmation ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72))
 - [ ] **Risk Analytics**: Greeks, volatility surfaces, VaR adjustments, and seasonality analysis ([#105](https://github.com/CIInc/robinhood-options-mobile/issues/105), [#106](https://github.com/CIInc/robinhood-options-mobile/issues/106), [#111](https://github.com/CIInc/robinhood-options-mobile/issues/111))
 - [x] **Forex Integration**: Multi-currency account support, FX trading, and Carry Trade Optimizer ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116))
 

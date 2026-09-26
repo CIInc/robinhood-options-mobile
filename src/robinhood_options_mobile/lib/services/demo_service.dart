@@ -2312,6 +2312,10 @@ class DemoService implements IBrokerageService {
   }
 
   @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) =>
+      Future.error(UnsupportedError('Live futures quotes are not supported.'));
+
+  @override
   Future<dynamic> placeFuturesOrder(
     BrokerageUser user,
     String accountId,
