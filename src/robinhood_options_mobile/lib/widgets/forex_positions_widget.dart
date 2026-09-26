@@ -79,6 +79,15 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedFilteredHoldings = sortedFilteredHoldings.reversed.toList();
     }
+    final assetTypeLabels =
+        sortedFilteredHoldings.map((holding) => holding.assetTypeLabel).toSet();
+    final assetTypeLabel =
+        assetTypeLabels.length == 1 ? assetTypeLabels.single : 'Currencies';
+    final holdingCount = sortedFilteredHoldings.length;
+    final holdingCountLabel = assetTypeLabels.length == 1
+        ? '$holdingCount ${assetTypeLabel.toLowerCase()} '
+            '${holdingCount == 1 ? 'position' : 'positions'}'
+        : '$holdingCount positions';
 
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
@@ -280,7 +289,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    Icons.currency_bitcoin,
+                    assetTypeLabel == 'Crypto'
+                        ? Icons.currency_bitcoin
+                        : Icons.currency_exchange,
                     size: 18,
                     color: Theme.of(context).colorScheme.primary,
                   ),
@@ -295,7 +306,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            "Crypto",
+                            assetTypeLabel,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
@@ -314,7 +325,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                         ],
                       ),
                       Text(
-                        "${formatCompactNumber.format(sortedFilteredHoldings.length)} cryptos",
+                        holdingCountLabel,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -612,7 +623,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildCryptoRow(context, sortedFilteredHoldings, index);
+              return _buildCurrencyRow(context, sortedFilteredHoldings, index);
             },
             // Or, uncomment the following line:
             childCount: sortedFilteredHoldings.length,
@@ -664,7 +675,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 )));
   }
 
-  Widget _buildCryptoRow(
+  Widget _buildCurrencyRow(
       BuildContext context, List<ForexHolding> holdings, int index) {
     double value =
         widget.brokerageUser.getDisplayValueForexHolding(holdings[index]);
@@ -684,7 +695,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
           ListTile(
             leading: Hero(
-                tag: 'logo_crypto_${holdings[index].currencyCode}',
+                tag:
+                    'logo_${holdings[index].assetTypeLabel.toLowerCase()}_${holdings[index].currencyCode}',
                 child: CircleAvatar(
                     radius: 25,
                     // foregroundColor: Theme.of(context).colorScheme.primary,
@@ -707,7 +719,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 size: 36.0)),
                 */
             title: Text(holdings[index].currencyName),
-            subtitle: Text("${holdings[index].quantity} shares"),
+            subtitle: Text("${holdings[index].quantity} units"),
             //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             /*
         subtitle: Text(
