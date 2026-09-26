@@ -15,7 +15,7 @@ void main() {
       ),
       const InstrumentCategory(
         key: 'Signals',
-        label: 'Signals & Tech',
+        label: 'Signals',
         icon: Icons.bolt_outlined,
         selectedIcon: Icons.bolt,
       ),
@@ -78,7 +78,7 @@ void main() {
 
       // Verify Overview is present and selected
       expect(find.text('Overview'), findsOneWidget);
-      expect(find.text('Signals & Tech'), findsOneWidget);
+      expect(find.text('Signals'), findsOneWidget);
       expect(find.text('Financials'), findsOneWidget);
 
       final overviewChip = tester.widget<FilterChip>(
@@ -91,7 +91,7 @@ void main() {
 
       final signalsChip = tester.widget<FilterChip>(
         find.ancestor(
-          of: find.text('Signals & Tech'),
+          of: find.text('Signals'),
           matching: find.byType(FilterChip),
         ),
       );
@@ -129,15 +129,15 @@ void main() {
         ),
       );
 
-      // Tap on Signals & Tech
-      await tester.tap(find.text('Signals & Tech'));
+      // Tap on Signals
+      await tester.tap(find.text('Signals'));
       await tester.pumpAndSettle();
 
       expect(selected, equals('Signals'));
 
       final signalsChip = tester.widget<FilterChip>(
         find.ancestor(
-          of: find.text('Signals & Tech'),
+          of: find.text('Signals'),
           matching: find.byType(FilterChip),
         ),
       );
@@ -409,7 +409,7 @@ void main() {
         ),
         const InstrumentCategory(
           key: 'Signals',
-          label: 'Signals & Tech',
+          label: 'Signals',
           icon: Icons.bolt_outlined,
           selectedIcon: Icons.bolt,
           badge: 'BUY',
@@ -459,21 +459,21 @@ void main() {
     test('InstrumentCategory equality and hashCode work as expected', () {
       const cat1 = InstrumentCategory(
         key: 'Signals',
-        label: 'Signals & Tech',
+        label: 'Signals',
         icon: Icons.bolt_outlined,
         selectedIcon: Icons.bolt,
         badge: 'BUY',
       );
       const cat2 = InstrumentCategory(
         key: 'Signals',
-        label: 'Signals & Tech',
+        label: 'Signals',
         icon: Icons.bolt_outlined,
         selectedIcon: Icons.bolt,
         badge: 'BUY',
       );
       const cat3 = InstrumentCategory(
         key: 'Signals',
-        label: 'Signals & Tech',
+        label: 'Signals',
         icon: Icons.bolt_outlined,
         selectedIcon: Icons.bolt,
         badge: 'SELL',
@@ -541,8 +541,7 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     });
 
-    testWidgets(
-        'Signals & Tech chip shows signal badge and allows category switching',
+    testWidgets('Signals chip shows signal badge and allows category switching',
         (WidgetTester tester) async {
       String selected = 'Overview';
       final categoriesWithSignalsBadge = [
@@ -554,7 +553,7 @@ void main() {
         ),
         const InstrumentCategory(
           key: 'Signals',
-          label: 'Signals & Tech',
+          label: 'Signals',
           icon: Icons.bolt_outlined,
           selectedIcon: Icons.bolt,
           badge: 'BUY',
@@ -599,14 +598,14 @@ void main() {
       );
       expect(overviewChip.selected, isTrue);
 
-      // Tap Signals & Tech chip
-      await tester.tap(find.text('Signals & Tech'));
+      // Tap Signals chip
+      await tester.tap(find.text('Signals'));
       await tester.pumpAndSettle();
 
       expect(selected, equals('Signals'));
       final signalsChip = tester.widget<FilterChip>(
         find.ancestor(
-          of: find.text('Signals & Tech'),
+          of: find.text('Signals'),
           matching: find.byType(FilterChip),
         ),
       );

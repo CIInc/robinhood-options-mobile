@@ -402,19 +402,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
     }
 
-    // 2. Activity badge (Position/Holding or order count)
+    // 2. Overview and Activity badges (holding and order counts)
+    String? overviewBadge;
     String? activityBadge;
-    Color? activityBadgeColor;
-    Color? activityBadgeTextColor;
+    Color? overviewBadgeColor;
+    Color? overviewBadgeTextColor;
     final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
-    bool hasPosition = false;
+    var holdingsCount = 0;
     int orderCount = 0;
 
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
-      hasPosition = paperStore.positions
-              .any((e) => e.instrument == instrument.url) ||
-          paperStore.optionPositions.any((e) => e.symbol == instrument.symbol);
+      holdingsCount = paperStore.positions
+              .where((e) => e.instrument == instrument.url)
+              .length +
+          paperStore.optionPositions
+              .where((e) => e.symbol == instrument.symbol)
+              .length;
       orderCount = paperStore.history
           .where((h) => h['symbol'] == instrument.symbol)
           .length;
@@ -423,9 +427,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Provider.of<InstrumentPositionStore>(context, listen: false);
       final optStore = Provider.of<OptionPositionStore>(context, listen: false);
       final comboStore = Provider.of<ComboOrderStore>(context, listen: false);
-      hasPosition =
-          stockStore.items.any((e) => e.instrument == instrument.url) ||
-              optStore.items.any((e) => e.symbol == instrument.symbol);
+      holdingsCount =
+          stockStore.items.where((e) => e.instrument == instrument.url).length +
+              optStore.items.where((e) => e.symbol == instrument.symbol).length;
       final comboCount = comboStore.items
           .where((order) =>
               order.primarySymbol.toUpperCase() ==
@@ -439,12 +443,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           comboCount;
     }
 
-    if (hasPosition) {
-      activityBadge = 'Holding';
-      activityBadgeColor =
+    if (holdingsCount > 0) {
+      overviewBadge = '$holdingsCount';
+      overviewBadgeColor =
           Theme.of(context).colorScheme.primary.withValues(alpha: 0.18);
-      activityBadgeTextColor = Theme.of(context).colorScheme.primary;
-    } else if (orderCount > 0) {
+      overviewBadgeTextColor = Theme.of(context).colorScheme.primary;
+    }
+    if (orderCount > 0) {
       activityBadge = '$orderCount';
     }
 
@@ -455,24 +460,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     return [
-      const InstrumentCategory(
+      InstrumentCategory(
         key: 'Overview',
         label: 'Overview',
         icon: Icons.dashboard_outlined,
         selectedIcon: Icons.dashboard,
-      ),
-      InstrumentCategory(
-        key: 'Activity',
-        label: 'Activity',
-        icon: Icons.receipt_long_outlined,
-        selectedIcon: Icons.receipt_long,
-        badge: activityBadge,
-        badgeColor: activityBadgeColor,
-        badgeTextColor: activityBadgeTextColor,
+        badge: overviewBadge,
+        badgeColor: overviewBadgeColor,
+        badgeTextColor: overviewBadgeTextColor,
       ),
       InstrumentCategory(
         key: 'Signals',
-        label: 'Signals & Tech',
+        label: 'Signals',
         icon: Icons.bolt_outlined,
         selectedIcon: Icons.bolt,
         badge: signalBadge,
@@ -490,6 +489,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         label: 'Research',
         icon: Icons.psychology_outlined,
         selectedIcon: Icons.psychology,
+      ),
+      InstrumentCategory(
+        key: 'Activity',
+        label: 'Activity',
+        icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long,
+        badge: activityBadge,
       ),
       InstrumentCategory(
         key: 'News',
@@ -1936,8 +1942,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       case 'Overview':
       default:
         return [
-          // Market Quote
+          // Lead with the live market context before the user's holdings.
           _buildMarketQuoteSliver(instrument),
+          // Current holdings belong on the initial Overview, not Activity.
+          _buildPositionSliver(instrument),
+          _buildOptionPositionsSliver(instrument),
           // Explore other sections shortcut card
           _buildExploreSectionsCard(instrument),
         ];
@@ -1950,7 +1959,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     final sections = [
       (
-        'Signals & Tech',
+        'Signals',
         'Trade signals, 19 indicators, GEX & flow',
         Icons.bolt_outlined,
         Colors.amber.shade700,
@@ -1972,7 +1981,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ),
       (
         'Trading Activity',
-        'Holdings, executions & order history',
+        'Executions, fills & order history',
         Icons.receipt_long_outlined,
         Colors.teal.shade700,
         'Activity',
@@ -2373,8 +2382,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   List<Widget> _buildActivitySlivers(Instrument instrument) {
     return [
-      _buildPositionSliver(instrument),
-      _buildOptionPositionsSliver(instrument),
       _buildHistoricalPositionsSliver(instrument),
       _buildStockOrdersSliver(instrument),
       _buildOptionOrdersSliver(instrument),
@@ -2385,30 +2392,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildActivityEmptyStateSliver(Instrument instrument) {
     final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
-    return Consumer5<InstrumentPositionStore, OptionPositionStore,
-        InstrumentOrderStore, PaperTradingStore, ComboOrderStore>(
-      builder: (context, stockStore, optionStore, orderStore, paperStore,
-          comboStore, child) {
-        bool hasStockPos = false;
-        bool hasOptPos = false;
+    return Consumer2<PaperTradingStore, ComboOrderStore>(
+      builder: (context, paperStore, comboStore, child) {
         bool hasStockOrders = false;
         bool hasOptOrders = false;
         bool hasComboOrders = false;
 
         if (isPaper) {
-          hasStockPos = paperStore.positions
-              .any((e) => e.instrument == widget.instrument.url);
-          hasOptPos = paperStore.optionPositions
-              .any((e) => e.symbol == widget.instrument.symbol);
           hasStockOrders = paperStore.history.any(
               (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK');
           hasOptOrders = paperStore.history.any(
               (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION');
         } else {
-          hasStockPos =
-              stockStore.items.any((e) => e.instrument == instrument.url);
-          hasOptPos = optionStore.items
-              .any((e) => e.symbol == widget.instrument.symbol);
           hasStockOrders = (instrument.positionOrders != null &&
               instrument.positionOrders!.isNotEmpty);
           hasOptOrders = (instrument.optionOrders != null &&
@@ -2421,11 +2416,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   l.symbol!.toUpperCase() == instrument.symbol.toUpperCase()));
         }
 
-        if (hasStockPos ||
-            hasOptPos ||
-            hasStockOrders ||
-            hasOptOrders ||
-            hasComboOrders) {
+        if (hasStockOrders || hasOptOrders || hasComboOrders) {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
 
@@ -2457,14 +2448,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No Positions or Orders',
+                    'No Trading Activity',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'You don\'t have any active positions or recent orders for ${instrument.symbol}.',
+                    'There are no recent executions or orders for ${instrument.symbol}.',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
