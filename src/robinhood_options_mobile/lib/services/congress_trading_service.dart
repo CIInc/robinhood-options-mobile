@@ -76,7 +76,10 @@ class CongressTradingService {
     }
     if (transactionType != null && transactionType.toLowerCase() != 'all') {
       final isBuy = transactionType.toLowerCase() == 'purchase';
-      trades = trades.where((t) => isBuy ? t.transactionType.isPurchase : t.transactionType.isSale).toList();
+      trades = trades
+          .where((t) =>
+              isBuy ? t.transactionType.isPurchase : t.transactionType.isSale)
+          .toList();
     }
     if (minAmount != null && minAmount > 0) {
       trades = trades.where((t) => t.amountMin >= minAmount).toList();

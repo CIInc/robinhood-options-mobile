@@ -7,9 +7,11 @@ class DividendPaymentEvent {
   final double? amount;
   final double? rate;
   final double? sharesHeld;
-  final String? state; // 'pending', 'paid', 'reinvested', 'projected', 'unconfirmed'
+  final String?
+      state; // 'pending', 'paid', 'reinvested', 'projected', 'unconfirmed'
   final bool isReinvested;
-  final String? frequency; // 'monthly', 'quarterly', 'semi-annually', 'annually'
+  final String?
+      frequency; // 'monthly', 'quarterly', 'semi-annually', 'annually'
   final double? dividendYield; // percentage e.g. 3.2 for 3.2%
 
   const DividendPaymentEvent({
@@ -40,8 +42,8 @@ class DividendPaymentEvent {
   /// Returns null if [exDividendDate] is not set.
   int? daysUntilExDividend(DateTime now) {
     if (exDividendDate == null) return null;
-    final exDay =
-        DateTime(exDividendDate!.year, exDividendDate!.month, exDividendDate!.day);
+    final exDay = DateTime(
+        exDividendDate!.year, exDividendDate!.month, exDividendDate!.day);
     final currentDay = DateTime(now.year, now.month, now.day);
     return exDay.difference(currentDay).inDays;
   }
@@ -152,8 +154,9 @@ class DividendPaymentEvent {
 
     var amount = parseNum(json['amount']);
     final rate = parseNum(json['rate']);
-    var shares = parseNum(json['position'] ?? json['shares'] ?? json['shares_held']) ??
-        fallbackShares;
+    var shares =
+        parseNum(json['position'] ?? json['shares'] ?? json['shares_held']) ??
+            fallbackShares;
 
     // If amount is not set but rate and shares are present, calculate amount
     if (amount == null && rate != null && shares != null && shares > 0) {

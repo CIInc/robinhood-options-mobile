@@ -43,18 +43,18 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 25, 2026 · **Current app version:** 0.53.0 (development version)
+**Last reviewed:** September 25, 2026 · **Current app version:** 0.53.0 (released September 25, 2026)
 
 ### Quick Stats
 - **Completed checklist items:** 383
 - **Planned checklist items:** 69
-- **Open GitHub issues:** 36 (as of September 25, 2026)
+- **GitHub issues:** 120 total — 36 open and 84 closed (as of September 25, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.53.0):** Beta-weighted portfolio Greeks, Delta-Neutral Strategy Builder, Copy-Trading Risk Guardian and Side-by-Side Comparison, Social Discussions, Schwab execution & strategy chains, Schwab account activity/cash transactions, SEC EDGAR Disclosures, and Congress & Political Trading Tracker. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.53.0 (target: Q1 2027; tentative)** — brokerage expansion and institutional data. Tournaments remain exploratory until separately defined.
-- **Later candidates (v0.53.0+):** SEC disclosures and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
+- ✅ **Recently Completed (v0.51.0-v0.53.0):** Beta-weighted portfolio Greeks, Delta-Neutral Strategy Builder, Copy-Trading Risk Guardian and Side-by-Side Comparison, Social Discussions, Schwab execution and account activity, SEC EDGAR filing research, Congress & Political Trading, and expanded portfolio event alerts. See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.54.0 (target: Q1 2027; tentative)** — multi-model AI research and trade-risk tooling. Tournaments remain exploratory until separately defined.
+- **Later candidates (v0.54.0+):** Remaining SEC EDGAR filing coverage and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
 ## Release Versions & Timeline
@@ -422,11 +422,13 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling (Bullish, Bearish, Neutral), comment upvoting, and moderation reporting controls ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - ✅ **Schwab Advanced Execution & Strategy Chains:** Pre-trade order previews with fee and margin validation, in-flight order replacement, and multi-leg strategy option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), v0.52.0).
 
-### v0.53.0 ✅ (2027 Q1 - January)
-**Institutional Multi-Brokerage, SEC Disclosures & Congress Trading Tracker**
+### v0.53.0 ✅ (Released Sep 25, 2026)
+**Institutional Research, Portfolio Alerts & Congress Trading Tracker**
 - ✅ **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) and user preferences synchronization (`GET /trader/v1/userPreference`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
-- ✅ **SEC EDGAR Disclosures:** Hourly refresh of recently researched symbols with 13F institutional holdings, 30-day Form 4 insider-buy clusters, 8-K material events, and portfolio-overlap notices ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143), v0.53.0).
-- ✅ **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching (v0.53.0).
+- ✅ **SEC EDGAR Disclosures:** Hourly refresh of recently researched symbols with 13F institutional holdings, 30-day Form 4 insider-buy clusters, 8-K material events, and portfolio-overlap notices ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143); see the remaining scope below).
+- ✅ **Congress & Political Trading Tracker:** House and Senate STOCK Act filings, disclosure-delay indicators, searchable research cards, and portfolio-overlap alerts ([docs](docs/congress-trading-tracker.md)).
+- ✅ **Expanded Portfolio Event Alerts:** Earnings, option expiration, dividends, news catalysts, unusual price/volume activity, and congressional disclosures ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
+- ✅ **Quality & Experience Updates:** Screen-reader semantics for selected widgets, more position and alert test coverage, lower-allocation technical-indicator calculations, authenticated futures-signal access, authorized messaging administration, income-chart viewport selection, and copy-trading CSV audit fields ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 
 ### v0.54.0 (2027 Q1 - February)
 **Multi-Model AI Consensus Engine, Devil's Advocate & Biometric Tilt**
@@ -876,7 +878,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Portfolio income visualization - **Small** (1 week)
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
 - [x] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Interest payment tracking - **Small** (1 week)
-- [ ] **SEC EDGAR Real-Time 13F & Form 4 Insider Whales Ingestion** (v0.53.0, [Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)): Automated streaming ingestion of Form 4 insider cluster purchases and 13F institutional disclosures with portfolio overlap alerts - **Large** (4-5 weeks)
+- [ ] **SEC EDGAR Filing Expansion** ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)): Extend the delivered 13F/Form 4/8-K research slice with real-time 13F/Form 4 ingestion, 8-K event alerts, 10-K/10-Q parsing, and an automated filing research assistant - **Large** (4-5 weeks)
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [x] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))

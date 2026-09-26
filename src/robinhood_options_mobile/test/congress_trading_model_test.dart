@@ -24,7 +24,8 @@ void main() {
       expect(CongressParty.fromString('D'), CongressParty.democrat);
       expect(CongressParty.fromString('Republican'), CongressParty.republican);
       expect(CongressParty.fromString('R'), CongressParty.republican);
-      expect(CongressParty.fromString('Independent'), CongressParty.independent);
+      expect(
+          CongressParty.fromString('Independent'), CongressParty.independent);
       expect(CongressParty.fromString('I'), CongressParty.independent);
       expect(CongressParty.fromString(null), CongressParty.other);
 

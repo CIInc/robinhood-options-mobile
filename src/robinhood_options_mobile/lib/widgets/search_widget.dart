@@ -843,8 +843,8 @@ class _SearchWidgetState extends State<SearchWidget>
               ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 8.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Card(
                   elevation: 0,
                   color: Theme.of(context)
@@ -864,8 +864,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              CongressTradingDashboardWidget(
+                          builder: (context) => CongressTradingDashboardWidget(
                             brokerageUser: widget.brokerageUser,
                           ),
                         ),

@@ -154,8 +154,7 @@ class _CongressTradingDashboardWidgetState
               final q = _searchQuery.toLowerCase();
               final matchesSymbol = t.symbol.toLowerCase().contains(q);
               final matchesName = t.politicianName.toLowerCase().contains(q);
-              final matchesDesc =
-                  t.assetDescription.toLowerCase().contains(q);
+              final matchesDesc = t.assetDescription.toLowerCase().contains(q);
               if (!matchesSymbol && !matchesName && !matchesDesc) {
                 return false;
               }
@@ -242,7 +241,8 @@ class _CongressTradingDashboardWidgetState
                         child: Row(
                           children: [
                             FilterChip(
-                              avatar: const Icon(Icons.pie_chart_outline, size: 16),
+                              avatar:
+                                  const Icon(Icons.pie_chart_outline, size: 16),
                               label: const Text('My Portfolio Overlap'),
                               selected: _portfolioOnly,
                               onSelected: (val) {
@@ -330,7 +330,10 @@ class _CongressTradingDashboardWidgetState
                           const SizedBox(height: 8),
                           Text(
                             'Try adjusting your search query or filters.',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
                                   color: Theme.of(context).colorScheme.outline,
                                 ),
                           ),
@@ -346,8 +349,7 @@ class _CongressTradingDashboardWidgetState
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
                         final trade = filteredTrades[index];
-                        final isHeld =
-                            upperUserSymbols.contains(trade.symbol);
+                        final isHeld = upperUserSymbols.contains(trade.symbol);
                         return _buildTradeCard(context, trade, isHeld);
                       },
                       childCount: filteredTrades.length,
@@ -535,8 +537,7 @@ class _CongressTradingDashboardWidgetState
             // Portfolio Overlap Tag
             if (isHeldInPortfolio) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(6),
@@ -547,8 +548,7 @@ class _CongressTradingDashboardWidgetState
                     Icon(
                       Icons.pie_chart_outline,
                       size: 14,
-                      color:
-                          Theme.of(context).colorScheme.onPrimaryContainer,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -556,9 +556,7 @@ class _CongressTradingDashboardWidgetState
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ],
@@ -638,9 +636,8 @@ class _CongressTradingDashboardWidgetState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

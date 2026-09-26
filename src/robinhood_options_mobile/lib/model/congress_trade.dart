@@ -210,8 +210,8 @@ class CongressTrade {
     final txDateStr = (json['transactionDate'] ?? '').toString();
     final discDateStr = (json['disclosureDate'] ?? '').toString();
 
-    final txDate = DateTime.tryParse(txDateStr) ??
-        DateTime.fromMillisecondsSinceEpoch(0);
+    final txDate =
+        DateTime.tryParse(txDateStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
     final discDate = DateTime.tryParse(discDateStr) ??
         DateTime.fromMillisecondsSinceEpoch(0);
 

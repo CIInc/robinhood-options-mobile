@@ -131,9 +131,10 @@ class _CongressTradingWidgetState extends State<CongressTradingWidget> {
                     Expanded(
                       child: Text(
                         'Congress Trading (STOCK Act)',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                     ),
                     IconButton(
@@ -162,9 +163,8 @@ class _CongressTradingWidgetState extends State<CongressTradingWidget> {
                         Icon(
                           Icons.pie_chart_outline,
                           size: 18,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onTertiaryContainer,
+                          color:
+                              Theme.of(context).colorScheme.onTertiaryContainer,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -195,7 +195,9 @@ class _CongressTradingWidgetState extends State<CongressTradingWidget> {
                     ),
                   )
                 else ...[
-                  ...trades.take(6).map((trade) => _buildTradeItem(context, trade)),
+                  ...trades
+                      .take(6)
+                      .map((trade) => _buildTradeItem(context, trade)),
                   const SizedBox(height: 8),
                   Center(
                     child: TextButton.icon(

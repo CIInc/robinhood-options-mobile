@@ -175,7 +175,9 @@ OptionAggregatePosition buildOptionPosition({
 
 void main() {
   group('PortfolioAlertService Unusual Activity Alerts', () {
-    test('surfaces critical alert for heavy-volume selloff confluence (>= 3.0x vol and <= -4% drop)', () {
+    test(
+        'surfaces critical alert for heavy-volume selloff confluence (>= 3.0x vol and <= -4% drop)',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'TSLA',
@@ -206,7 +208,9 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.positions);
     });
 
-    test('surfaces warning alert for heavy-volume selloff confluence (2.2x vol and -4.5% drop)', () {
+    test(
+        'surfaces warning alert for heavy-volume selloff confluence (2.2x vol and -4.5% drop)',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'GOOG',
@@ -233,7 +237,9 @@ void main() {
       expect(alert.detail, contains('Held in portfolio (50 shares)'));
     });
 
-    test('surfaces positive alert for high-volume breakout confluence (>= 2.0x vol and >= +4% gain)', () {
+    test(
+        'surfaces positive alert for high-volume breakout confluence (>= 2.0x vol and >= +4% gain)',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'NVDA',
@@ -263,7 +269,9 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.positions);
     });
 
-    test('surfaces warning alert for extreme unusual volume (>= 2.5x avg vol) without large price move', () {
+    test(
+        'surfaces warning alert for extreme unusual volume (>= 2.5x avg vol) without large price move',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'MSFT',
@@ -292,7 +300,9 @@ void main() {
       expect(alert.metric, '2.8x vol');
     });
 
-    test('surfaces critical alert for sharp intraday price drop (<= -6%) even without volume multiplier', () {
+    test(
+        'surfaces critical alert for sharp intraday price drop (<= -6%) even without volume multiplier',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'META',
@@ -319,7 +329,9 @@ void main() {
       expect(alert.target, PortfolioAlertTarget.positions);
     });
 
-    test('surfaces positive alert for sharp intraday rally (>= +6%) without 2.0x volume', () {
+    test(
+        'surfaces positive alert for sharp intraday rally (>= +6%) without 2.0x volume',
+        () {
       final stocks = [
         buildStockPosition(
           symbol: 'AMZN',
@@ -401,7 +413,8 @@ void main() {
       expect(alert.title, contains('2.2x OI on \$560 PUT'));
     });
 
-    test('ignores option volume below minimum threshold to avoid false alarms', () {
+    test('ignores option volume below minimum threshold to avoid false alarms',
+        () {
       final options = [
         buildOptionPosition(
           id: 'pos_illiquid',
@@ -460,7 +473,8 @@ void main() {
   });
 
   group('SmartAlertRule evaluateUnusualActivityAlert', () {
-    test('evaluates unusual_volume condition with default and custom threshold', () {
+    test('evaluates unusual_volume condition with default and custom threshold',
+        () {
       final defaultRule = const SmartAlertRule(
         type: AlertType.volume,
         condition: AlertCondition.unusual_volume,
@@ -609,7 +623,8 @@ void main() {
       );
     });
 
-    test('evaluates spike, drop, percent_change, above, and below conditions', () {
+    test('evaluates spike, drop, percent_change, above, and below conditions',
+        () {
       final spikeRule = const SmartAlertRule(
         type: AlertType.volume,
         condition: AlertCondition.spike,
@@ -663,7 +678,9 @@ void main() {
       );
     });
 
-    test('evaluateVolumeAlert alias works identically to evaluateUnusualActivityAlert', () {
+    test(
+        'evaluateVolumeAlert alias works identically to evaluateUnusualActivityAlert',
+        () {
       final rule = const SmartAlertRule(
         type: AlertType.volume,
         condition: AlertCondition.unusual_volume,

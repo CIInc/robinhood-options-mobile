@@ -27,7 +27,8 @@ void main() {
     filingLagDays: 6,
   );
 
-  testWidgets('renders CongressTradingWidget with trade and portfolio overlap banner',
+  testWidgets(
+      'renders CongressTradingWidget with trade and portfolio overlap banner',
       (WidgetTester tester) async {
     final snapshot = CongressTradingSnapshot(
       symbol: 'NVDA',
@@ -106,7 +107,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('renders CongressTradingDashboardWidget with search and filter controls',
+  testWidgets(
+      'renders CongressTradingDashboardWidget with search and filter controls',
       (WidgetTester tester) async {
     await tester.pumpWidget(
       const MaterialApp(

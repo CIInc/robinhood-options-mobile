@@ -148,12 +148,14 @@ void main() {
       filingLagDays: 19,
     );
 
-    test('generates portfolio alerts for overlapping stock and option holdings', () {
+    test('generates portfolio alerts for overlapping stock and option holdings',
+        () {
       final now = DateTime(2026, 9, 1);
 
       // User holds NVDA (stock) and CRWD (option)
       final heldNvda = _buildInstrumentPosition(symbol: 'NVDA', quantity: 10.0);
-      final heldCrwdOption = _buildOptionPosition(symbol: 'CRWD', quantity: 1.0);
+      final heldCrwdOption =
+          _buildOptionPosition(symbol: 'CRWD', quantity: 1.0);
 
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [heldNvda],
@@ -171,7 +173,8 @@ void main() {
 
       final nvdaAlert = congressAlerts.firstWhere((a) => a.id.contains('nvda'));
       expect(nvdaAlert.title, 'Congress Trade: Rep. Nancy Pelosi (NVDA)');
-      expect(nvdaAlert.severity, PortfolioAlertSeverity.positive); // Large purchase ($1M+)
+      expect(nvdaAlert.severity,
+          PortfolioAlertSeverity.positive); // Large purchase ($1M+)
       expect(nvdaAlert.target, PortfolioAlertTarget.congressionalTrading);
       expect(nvdaAlert.detail, contains('held in your portfolio'));
 
@@ -185,7 +188,8 @@ void main() {
       final now = DateTime(2026, 9, 1);
 
       // User holds 0 shares of NVDA
-      final zeroSharesNvda = _buildInstrumentPosition(symbol: 'NVDA', quantity: 0.0);
+      final zeroSharesNvda =
+          _buildInstrumentPosition(symbol: 'NVDA', quantity: 0.0);
 
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: [zeroSharesNvda],

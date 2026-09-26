@@ -157,7 +157,8 @@ void main() {
     expect(brokerageUser.displayValue, DisplayValue.totalReturn);
   });
 
-  testWidgets('tapping position with disableNavigation shows aggregate snackbar',
+  testWidgets(
+      'tapping position with disableNavigation shows aggregate snackbar',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1;

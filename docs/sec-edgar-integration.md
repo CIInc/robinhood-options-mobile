@@ -40,6 +40,8 @@ workflow after setting the parameter. No SEC API key is required.
 
 ## Scope
 
-This release slice covers 13F, Form 4, and 8-K filings. 10-K/10-Q statement
-parsing and an automated 10-K/Q research assistant remain outside this roadmap
-item and are still tracked in [issue #143](https://github.com/CIInc/robinhood-options-mobile/issues/143).
+This release slice provides research access to 13F, Form 4, and 8-K filings.
+Real-time 13F/Form 4 ingestion, automated 8-K event alerts, 10-K/10-Q statement
+parsing, and an automated 10-K/Q research assistant remain outside the
+delivered scope and are still tracked in
+[issue #143](https://github.com/CIInc/robinhood-options-mobile/issues/143).
