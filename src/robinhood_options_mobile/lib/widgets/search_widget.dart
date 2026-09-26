@@ -40,6 +40,7 @@ import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/presets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/congress_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/gamma_exposure_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -840,6 +841,86 @@ class _SearchWidgetState extends State<SearchWidget>
                   ),
                 ),
               ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              CongressTradingDashboardWidget(
+                            brokerageUser: widget.brokerageUser,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.account_balance,
+                                size: 24, color: Colors.indigo),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Congress Trading",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "STOCK Act filings & political transactions",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             if (widget.brokerageUser != null && widget.service != null)
               SliverToBoxAdapter(
                 child: Padding(

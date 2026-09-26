@@ -49,6 +49,7 @@ import * as eventStudy from "./event-study";
 import * as screenerUniverse from "./screener-universe";
 import * as newsIntelligence from "./news-intelligence";
 import * as secEdgar from "./sec-edgar";
+import * as congressTrading from "./congress-trading";
 import * as groupPerformanceAnalytics from "./group-performance-analytics";
 import * as instrumentOrderSync from "./instrument-order-sync";
 import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
@@ -159,3 +160,5 @@ export const getWatchlistNewsIntelligence =
   newsIntelligence.getWatchlistNewsIntelligence;
 export const getGroupPerformanceAnalytics =
   groupPerformanceAnalytics.getGroupPerformanceAnalytics;
+export const getCongressTrades = congressTrading.getCongressTrades;
+export const refreshCongressTrades = congressTrading.refreshCongressTrades;

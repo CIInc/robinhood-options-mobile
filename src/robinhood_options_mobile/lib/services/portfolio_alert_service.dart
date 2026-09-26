@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart'
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
 import 'package:robinhood_options_mobile/model/news_intelligence.dart';
+import 'package:robinhood_options_mobile/model/congress_trade.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -73,6 +74,7 @@ class PortfolioAlertService {
     List<DividendPaymentEvent>? dividendEvents,
     List<NewsIntelligence>? newsIntelligence,
     Map<String, NewsIntelligence>? newsIntelligenceBySymbol,
+    List<CongressTrade>? congressTrades,
     double? dayPnL,
     double? dayPnLPercent,
     DateTime? now,
@@ -102,6 +104,12 @@ class PortfolioAlertService {
       optionPositions: optionPositions,
       newsIntelligence: newsIntelligence,
       newsIntelligenceBySymbol: newsIntelligenceBySymbol,
+    ));
+    alerts.addAll(_congressTradingAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+      congressTrades: congressTrades,
+      now: effectiveNow,
     ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
@@ -1438,6 +1446,112 @@ class PortfolioAlertService {
     }
 
     return alerts;
+  }
+
+  /// Builds alerts for congressional stock disclosures that overlap with held positions.
+  static List<PortfolioAlert> _congressTradingAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    List<CongressTrade>? congressTrades,
+    DateTime? now,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    if (congressTrades == null || congressTrades.isEmpty) {
+      return alerts;
+    }
+
+    // 1. Gather held positions by symbol
+    final sharesBySymbol = <String, double>{};
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol ?? '';
+      final shares = pos.quantity ?? 0.0;
+      if (sym.isNotEmpty && shares > 0) {
+        sharesBySymbol[sym.toUpperCase()] =
+            (sharesBySymbol[sym.toUpperCase()] ?? 0.0) + shares;
+      }
+    }
+
+    final optionsBySymbol = <String, int>{};
+    for (final op in optionPositions) {
+      final sym = op.symbol.isNotEmpty
+          ? op.symbol
+          : (op.optionInstrument?.chainSymbol ?? '');
+      final contracts = (op.quantity ?? 0.0).round();
+      if (sym.isNotEmpty && contracts > 0) {
+        optionsBySymbol[sym.toUpperCase()] =
+            (optionsBySymbol[sym.toUpperCase()] ?? 0) + contracts;
+      }
+    }
+
+    final heldSymbols = {...sharesBySymbol.keys, ...optionsBySymbol.keys};
+    if (heldSymbols.isEmpty) return alerts;
+
+    final effectiveNow = now ?? DateTime.now();
+
+    for (final trade in congressTrades) {
+      final sym = trade.symbol.toUpperCase();
+      if (!heldSymbols.contains(sym)) continue;
+
+      // Alert on trades disclosed within 90 days
+      final ageDays = effectiveNow.difference(trade.disclosureDate).inDays;
+      if (ageDays > 90) continue;
+
+      final isBuy = trade.transactionType.isPurchase;
+      final isLarge = trade.amountMin >= 250000;
+
+      final PortfolioAlertSeverity severity;
+      if (trade.transactionType.isSale) {
+        severity = isLarge
+            ? PortfolioAlertSeverity.warning
+            : PortfolioAlertSeverity.info;
+      } else if (isBuy) {
+        severity = isLarge
+            ? PortfolioAlertSeverity.positive
+            : PortfolioAlertSeverity.info;
+      } else {
+        severity = PortfolioAlertSeverity.info;
+      }
+
+      final actionStr = trade.transactionType.displayName;
+      final politician = trade.politicianTitle;
+      final affiliation = trade.politicalAffiliation;
+
+      alerts.add(
+        PortfolioAlert(
+          id: 'congress-trade-${trade.id}',
+          severity: severity,
+          icon: Icons.account_balance,
+          title: 'Congress Trade: $politician ($sym)',
+          detail:
+              '$politician ($affiliation) disclosed a $actionStr (${trade.amount}) in $sym, which is held in your portfolio.',
+          metric: '$actionStr ${trade.amount}',
+          target: PortfolioAlertTarget.congressionalTrading,
+        ),
+      );
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a CongressTrade disclosure.
+  static bool evaluateCongressTradingAlert({
+    required SmartAlertRule rule,
+    required CongressTrade trade,
+  }) {
+    if (rule.type != AlertType.congress_trading) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.congress_trade_purchase:
+        if (!trade.transactionType.isPurchase) return false;
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      case AlertCondition.congress_trade_sale:
+        if (!trade.transactionType.isSale) return false;
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      case AlertCondition.congress_trade_any:
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      default:
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+    }
   }
 
   /// Evaluates a SmartAlertRule against a NewsIntelligence object.

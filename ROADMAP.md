@@ -43,16 +43,16 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 25, 2026 · **Current app version:** 0.52.0 (development version)
+**Last reviewed:** September 25, 2026 · **Current app version:** 0.53.0 (development version)
 
 ### Quick Stats
-- **Completed checklist items:** 382
-- **Planned checklist items:** 70
+- **Completed checklist items:** 383
+- **Planned checklist items:** 69
 - **Open GitHub issues:** 36 (as of September 25, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.51.0-v0.52.0):** Beta-weighted portfolio Greeks, automated DRIP thresholds, 0DTE gamma squeeze radar, earnings IV crush analysis, IV cone and surface, Delta-Neutral Strategy Builder, copy-trading analytics and safeguards, Side-by-Side Multi-Trader Portfolio Comparison, Social Discussion & Comment Threads, and Schwab order previews and strategy chains. See the release timeline for issue links and details.
+- ✅ **Recently Completed (v0.51.0-v0.53.0):** Beta-weighted portfolio Greeks, Delta-Neutral Strategy Builder, Copy-Trading Risk Guardian and Side-by-Side Comparison, Social Discussions, Schwab execution & strategy chains, Schwab account activity/cash transactions, SEC EDGAR Disclosures, and Congress & Political Trading Tracker. See the release timeline for issue links and details.
 - **Next proposed milestone:** **v0.53.0 (target: Q1 2027; tentative)** — brokerage expansion and institutional data. Tournaments remain exploratory until separately defined.
 - **Later candidates (v0.53.0+):** SEC disclosures and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
@@ -422,11 +422,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Social Discussion & Comment Threads:** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling (Bullish, Bearish, Neutral), comment upvoting, and moderation reporting controls ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113), v0.52.0).
 - ✅ **Schwab Advanced Execution & Strategy Chains:** Pre-trade order previews with fee and margin validation, in-flight order replacement, and multi-leg strategy option chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), v0.52.0).
 
-### v0.53.0 (2027 Q1 - January)
-**Institutional Multi-Brokerage & SEC Disclosures**
+### v0.53.0 ✅ (2027 Q1 - January)
+**Institutional Multi-Brokerage, SEC Disclosures & Congress Trading Tracker**
 - ✅ **Schwab Account Activity & Historical Cash Transactions:** Sync historical dividends, margin interest charges, and cash movements (`GET /trader/v1/accounts/{account}/transactions`) and user preferences synchronization (`GET /trader/v1/userPreference`) ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)).
 - ✅ **SEC EDGAR Disclosures:** Hourly refresh of recently researched symbols with 13F institutional holdings, 30-day Form 4 insider-buy clusters, 8-K material events, and portfolio-overlap notices ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143), v0.53.0).
-- **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching.
+- ✅ **Congress & Political Trading Tracker:** Automatic monitoring and alerts for congressional disclosures (STOCK Act filings) with portfolio overlap matching (v0.53.0).
 
 ### v0.54.0 (2027 Q1 - February)
 **Multi-Model AI Consensus Engine, Devil's Advocate & Biometric Tilt**
@@ -901,7 +901,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
         - [ ] **Freshness & Degradation Controls**: Expire stale scores, cap source influence, detect provider outages, and fall back to cached news or technical signals
         - [ ] **User Experience**: Add live sentiment timelines, source-level explanations, confidence bands, and opt-in alerts for holdings and watchlists
         - [ ] **Validation & Safety**: Backtest event reactions, measure precision/recall by source and regime, audit false positives, and prevent sentiment alone from authorizing trades
-- [ ] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts - **Medium** (3-4 weeks)
+- [x] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts (v0.53.0) - **Medium** (3-4 weeks)
 - [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 - [ ] **Multi-Model AI Consensus Engine** (v0.54.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Synthesize multiple AI models (Gemini 3.1 Flash-Lite, local factor engines, deep reasoning agents) to generate high-conviction trade consensus ratings - **Medium** (3-4 weeks)

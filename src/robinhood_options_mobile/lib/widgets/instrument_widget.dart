@@ -65,6 +65,7 @@ import 'package:robinhood_options_mobile/widgets/retail_order_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/hedge_fund_activity_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sec_disclosures_widget.dart';
+import 'package:robinhood_options_mobile/widgets/congress_trading_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
@@ -3348,6 +3349,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         SliverToBoxAdapter(
           child: SecDisclosuresWidget(symbol: instrument.symbol),
+        ),
+        SliverToBoxAdapter(
+          child: CongressTradingWidget(
+            symbol: instrument.symbol,
+            instrument: instrument,
+            brokerageUser: widget.brokerageUser,
+          ),
         ),
         SliverToBoxAdapter(
           child: HedgeFundActivityWidget(

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.53.0] - 2026-09-25
+**Institutional Multi-Brokerage, SEC Disclosures & Congress Trading Tracker ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#143](https://github.com/CIInc/robinhood-options-mobile/issues/143))**
+
+- **Congress & Political Trading Tracker (`CongressTrade`, `CongressTradingSnapshot`, `CongressTradingService`, `CongressTradingWidget`, `CongressTradingDashboardWidget`):**
+  - **STOCK Act Compliance & Monitoring Engine**:
+    - Automatic monitoring of Periodic Transaction Reports (PTR) filed by Members of the Senate and House of Representatives.
+    - Calculates filing lag ($\Delta t = t_{\text{disclosure}} - t_{\text{transaction}}$) in calendar days.
+    - Flags overdue disclosures violating the 45-day statutory limit of the Stop Trading on Congressional Knowledge (STOCK) Act of 2012.
+    - Captures trade amount brackets, party affiliation (Democrat, Republican, Independent), chamber, and direct links to public PTR filings.
+  - **Portfolio Overlap Matching & Smart Alerts (`PortfolioAlertService`, `CustomAlert`)**:
+    - Automatically matches recent political disclosures against the user's active equity holdings (`InstrumentPosition`) and option positions (`OptionAggregatePosition`).
+    - Smart alert rule evaluation supporting purchases, sales, and dollar value thresholds.
+    - Severity-graded notifications: positive severity for significant purchases ($\ge \$250,000$), warning for significant sales ($\ge \$250,000$), and informational for standard trades.
+    - Action Center alerts deep-link directly to the Insights view (`PortfolioAlertTarget.congressionalTrading`).
+  - **Interactive Research & Dashboard UI (`CongressTradingWidget`, `CongressTradingDashboardWidget`)**:
+    - Instrument-level research card embedded in stock and option detail slivers displaying recent political trades, party badges, filing lag, overdue warnings, and "Held in Portfolio" tags.
+    - Dedicated Congress Trading Dashboard accessible from the Search/Discovery screen with member/symbol search, metrics overview, and filter chips for Portfolio Overlap, Chamber, Party, and Transaction Type.
+  - **Backend Cloud Functions (`getCongressTrades`, `refreshCongressTrades`)**:
+    - Callable endpoint returning curated and cached PTR disclosures with server-side portfolio overlap detection.
+    - Scheduled sync job refreshing disclosure snapshots every 6 hours.
+  - **Comprehensive Test Suite**:
+    - Cloud Functions Jest tests in `functions/tests/congress-trading.test.ts`.
+    - Unit tests in `test/congress_trading_model_test.dart` and `test/congress_trading_alert_test.dart`.
+    - Widget tests in `test/congress_trading_widget_test.dart`.
+
+- **SEC EDGAR Disclosures ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)):** Form 4 insider transaction clusters, 13F institutional holdings, 8-K material events, and portfolio-overlap notices with hourly scheduled refresh.
+- **Schwab Account Activity & Historical Cash Transactions ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):** Historical cash transactions sync, dividend and interest tracking, and user preference profile sync.
+
 ## [0.52.0] - 2026-09-24
 **Copy-Trading Safeguards, Social Tools & Schwab Execution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [#113](https://github.com/CIInc/robinhood-options-mobile/issues/113), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))**
 
