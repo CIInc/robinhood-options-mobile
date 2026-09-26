@@ -2,6 +2,23 @@
 
 This document explains how to set up the necessary secrets for the GitHub Actions mobile build workflow (`.github/workflows/cd.yml`).
 
+## Firebase Deployment
+
+The CD workflow deploys all Firebase resources configured in
+`src/robinhood_options_mobile/firebase.json` to the `realizealpha` project after
+analysis and tests pass on `main` (including manual runs on `main`). It first
+builds the Flutter web app for Hosting, then deploys Hosting, Functions, and
+Firestore rules/indexes. Pull requests and manual runs on other branches do not
+deploy. Changes to app code, web assets, Functions, Firebase configuration,
+rules, or indexes trigger CD.
+
+Add a `FIREBASE_SERVICE_ACCOUNT_REALIZEALPHA` GitHub Actions secret containing
+the JSON key for a Google Cloud service account authorized to deploy Firebase
+resources to the `realizealpha` project. The account needs the Firebase
+deployment permissions required for Hosting, Functions, Firestore rules/indexes,
+and the functions' associated services. The workflow authenticates with
+Application Default Credentials and runs a full `firebase deploy`.
+
 ## iOS Setup
 
 ### Prerequisites

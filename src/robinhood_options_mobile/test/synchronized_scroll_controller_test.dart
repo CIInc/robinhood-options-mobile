@@ -199,7 +199,7 @@ void main() {
                         child: Row(
                           children: List.generate(
                             20,
-                            (i) => Container(
+                            (i) => SizedBox(
                               key: Key('first_row_$i'),
                               width: 100,
                               height: 50,
@@ -216,7 +216,7 @@ void main() {
                           child: Row(
                             children: List.generate(
                               20,
-                              (i) => Container(
+                              (i) => SizedBox(
                                 key: Key('second_row_$i'),
                                 width: 100,
                                 height: 50,
@@ -270,7 +270,7 @@ void main() {
                     child: Row(
                       children: List.generate(
                         20,
-                        (i) => Container(
+                        (i) => SizedBox(
                           key: Key('reset_item_$i'),
                           width: 100,
                           height: 50,

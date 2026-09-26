@@ -16,6 +16,12 @@ on:
       - "src/robinhood_options_mobile/android/**"
       - "src/robinhood_options_mobile/ios/**"
       - "src/robinhood_options_mobile/pubspec.yaml"
+      - "src/robinhood_options_mobile/assets/**"
+      - "src/robinhood_options_mobile/web/**"
+      - "src/robinhood_options_mobile/firebase.json"
+      - "src/robinhood_options_mobile/.firebaserc"
+      - "src/robinhood_options_mobile/firebase/**"
+      - "src/robinhood_options_mobile/functions/**"
   pull_request:
     # branches: [ main ]
 
@@ -401,6 +407,50 @@ jobs:
         run: |
           echo "Using Username/Password for authentication"
           xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
+
+  deploy_firebase:
+    name: Deploy Firebase
+    needs: [analyze_and_test]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build web app for Firebase Hosting
+        run: flutter build web --release
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_REALIZEALPHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/robinhood_options_mobile/functions/package-lock.json
+
+      - name: Install Firebase Functions dependencies
+        run: npm ci
+        working-directory: src/robinhood_options_mobile/functions
+
+      - name: Deploy Firebase resources
+        run: npx --yes firebase-tools deploy --project realizealpha
 
   create_release:
     name: Create GitHub Release
