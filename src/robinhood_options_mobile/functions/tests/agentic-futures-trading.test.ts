@@ -28,7 +28,7 @@ jest.mock("../src/market-data", () => ({
 import { getFuturesSignals } from "../src/agentic-futures-trading";
 
 describe("getFuturesSignals callable authentication", () => {
-  it("should throw unauthenticated error if request.auth is missing", async () => {
+  it("rejects when request.auth is missing", async () => {
     const unauthenticatedRequest = {
       data: { symbol: "ES=F", contractId: "ESM24" },
       auth: undefined,
@@ -44,7 +44,7 @@ describe("getFuturesSignals callable authentication", () => {
     );
   });
 
-  it("should throw unauthenticated error if request.auth.uid is missing", async () => {
+  it("rejects when request.auth.uid is missing", async () => {
     const invalidAuthRequest = {
       data: { symbol: "ES=F", contractId: "ESM24" },
       auth: { uid: "" } as any,
