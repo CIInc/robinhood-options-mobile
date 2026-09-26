@@ -841,7 +841,9 @@ export async function fetchGammaExposure(
         "Fetching live options."
       );
       // Triggers live API fetch & caching to firestore under the hood
-      await fetchOptionsFlowForSymbols([symbol], "all");
+      // The flow cache can be fresh while the options-chain cache is missing
+      // or expired. Bypass it here so the provider chain is refreshed for GEX.
+      await fetchOptionsFlowForSymbols([symbol], "all", true);
       // Retrieve again from cache
       optionsResult = await getYahooOptionsResult(symbol);
     }
@@ -1040,4 +1042,3 @@ export const getTopGammaExposure = onCall({
     data: sorted,
   };
 });
-

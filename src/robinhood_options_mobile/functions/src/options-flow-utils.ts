@@ -507,11 +507,14 @@ const fetchYahooQuoteSummary = async (symbol: string): Promise<any> => {
  * Fetches and analyzes options flow for a list of symbols.
  * @param {string[]} symbols List of stock symbols to fetch.
  * @param {string} [expirationFilter] Optional filter for expiration dates.
+ * @param {boolean} [refreshOptionsCache] Bypass cached flow results to refresh
+ * the underlying options-chain cache.
  * @return {Promise<OptionFlowItem[]>} A list of analyzed option flow items.
  */
 export const fetchOptionsFlowForSymbols = async (
   symbols: string[],
-  expirationFilter?: string
+  expirationFilter?: string,
+  refreshOptionsCache = false
 ): Promise<OptionFlowItem[]> => {
   const items: OptionFlowItem[] = [];
 
@@ -519,7 +522,7 @@ export const fetchOptionsFlowForSymbols = async (
   for (let i = 0; i < symbols.length; i += CONFIG.BATCH_SIZE) {
     const batch = symbols.slice(i, i + CONFIG.BATCH_SIZE);
     const batchResults = await Promise.allSettled(
-      batch.map((s) => fetchForSymbol(s, expirationFilter))
+      batch.map((s) => fetchForSymbol(s, expirationFilter, refreshOptionsCache))
     );
 
     batchResults.forEach((result) => {
@@ -585,13 +588,14 @@ const saveCachedOptionFlows = async (
 
 const fetchForSymbol = async (
   symbol: string,
-  expirationFilter?: string
+  expirationFilter?: string,
+  refreshOptionsCache = false
 ): Promise<OptionFlowItem[]> => {
   console.log(`Processing symbol: ${symbol}`);
 
   // Try Flow Cache FIRST
   const cachedFlows = await getCachedOptionFlows(symbol);
-  if (cachedFlows) {
+  if (cachedFlows && !refreshOptionsCache) {
     console.log(`Returning cached flow for ${symbol}`);
     if (expirationFilter) {
       const now = new Date();
