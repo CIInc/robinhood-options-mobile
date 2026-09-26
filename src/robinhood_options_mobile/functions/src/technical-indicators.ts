@@ -3630,11 +3630,18 @@ export function evaluateAllIndicators(
   // Optimization: Reduce logging spam in loops
   // logger.info("Evaluating all technical indicators", { ... });
 
+  // Optimization: Pre-build Set for O(1) indicator lookup
+  // instead of O(N) array scans
+  const enabledSet =
+    config.enabledIndicators && config.enabledIndicators.length > 0 ?
+      new Set(config.enabledIndicators) :
+      null;
+
   const isEnabled = (key: string) => {
-    if (!config.enabledIndicators || config.enabledIndicators.length === 0) {
+    if (!enabledSet) {
       return true;
     }
-    return config.enabledIndicators.includes(key);
+    return enabledSet.has(key);
   };
 
   const disabledResult: IndicatorResult = {
@@ -3885,17 +3892,9 @@ export function evaluateAllIndicators(
 
   let totalWeight = 0;
   let weightedScore = 0;
-  // Filter active valid values for calculation
-  const standardVals = Object.entries(indicators)
-    .filter(([k]) => isEnabled(k))
-    .map(([, v]) => v);
-
-  const customVals = Object.values(customResults);
-  const allVals = [...standardVals, ...customVals];
-
-  const buyCount = allVals.filter((i) => i.signal === "BUY").length;
-  const sellCount = allVals.filter((i) => i.signal === "SELL").length;
-  // Counts unused removed
+  let buyCount = 0;
+  let sellCount = 0;
+  let activeCount = 0;
 
   // Process standard indicators
   interface SignalInfo {
@@ -3906,12 +3905,17 @@ export function evaluateAllIndicators(
   }
   const activeSignals: SignalInfo[] = [];
 
+  // Optimization: Single-pass aggregation of weights, scores,
+  // buy/sell counts, and active indicators to avoid intermediate
+  // array allocations (standardVals, allVals, .filter()).
   for (const [key, indicator] of Object.entries(indicators)) {
     if (!isEnabled(key)) continue;
 
+    activeCount++;
     const weight = weights[key] || 1.0;
     totalWeight += weight;
     if (indicator.signal === "BUY") {
+      buyCount++;
       weightedScore += weight;
       activeSignals.push({
         name: key,
@@ -3920,6 +3924,7 @@ export function evaluateAllIndicators(
         weight,
       });
     } else if (indicator.signal === "SELL") {
+      sellCount++;
       weightedScore -= weight;
       activeSignals.push({
         name: key,
@@ -3933,8 +3938,10 @@ export function evaluateAllIndicators(
 
   // Process custom indicators (weight 1.0)
   for (const [key, indicator] of Object.entries(customResults)) {
+    activeCount++;
     totalWeight += 1.0;
     if (indicator.signal === "BUY") {
+      buyCount++;
       weightedScore += 1.0;
       activeSignals.push({
         name: key,
@@ -3943,6 +3950,7 @@ export function evaluateAllIndicators(
         weight: 1.0,
       });
     } else if (indicator.signal === "SELL") {
+      sellCount++;
       weightedScore -= 1.0;
       activeSignals.push({
         name: key,
@@ -3959,13 +3967,10 @@ export function evaluateAllIndicators(
     0.5;
   const signalStrength = Math.round(normalizedScore * 100);
 
-  // Check if all indicators are "green" (BUY signal)
-  const allGreen = allVals.length > 0 &&
-    allVals.every((ind) => ind.signal === "BUY");
-
-  // Check if all indicators are "red" (SELL signal)
-  const allRed = allVals.length > 0 &&
-    allVals.every((ind) => ind.signal === "SELL");
+  // Check if all active indicators are "green" (BUY signal)
+  // or "red" (SELL signal)
+  const allGreen = activeCount > 0 && buyCount === activeCount;
+  const allRed = activeCount > 0 && sellCount === activeCount;
 
   const macroAssessment = isEnabled("marketDirection") ?
     evaluateMacroAssessment(marketDirection) :
