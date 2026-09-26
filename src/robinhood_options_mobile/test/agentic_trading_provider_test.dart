@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
@@ -243,6 +244,108 @@ void main() {
       expect(result['tradesExecuted'], equals(0));
       expect(result['message'],
           contains('No BUY signals matching enabled indicators'));
+    });
+
+    test('systematic autoTrade rejects a non-BUY signal for a symbol filter',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.systematic;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        enabledIndicators: {'priceMovement': true},
+        symbolFilter: ['AAPL'],
+      );
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'AAPL',
+              'signal': 'SELL',
+              'currentPrice': 150.0,
+              'multiIndicatorResult': {
+                'signalStrength': 90,
+                'indicators': {
+                  'priceMovement': {'signal': 'BUY'},
+                },
+              },
+            },
+          ],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+
+        final processedSignals =
+            result['processedSignals'] as List<Map<String, dynamic>>;
+        expect(processedSignals, hasLength(1));
+        expect(processedSignals.single['processedStatus'], 'Rejected');
+        expect(processedSignals.single['rejectionReason'],
+            'Signal is SELL, not BUY');
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('strict entry accepts a custom-only strategy when all rules are green',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.requireApproval = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        requireAllIndicatorsGreen: true,
+        customIndicators: [
+          CustomIndicatorConfig(
+            id: 'custom-rsi',
+            name: 'Custom RSI',
+            type: IndicatorType.RSI,
+            parameters: {'period': 14},
+            condition: SignalCondition.LessThan,
+            threshold: 30,
+          ),
+        ],
+      );
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'AAPL',
+              'signal': 'BUY',
+              'currentPrice': 150.0,
+              'multiIndicatorResult': {
+                'signalStrength': 80,
+                'indicators': {
+                  'priceMovement': {'signal': 'HOLD'},
+                },
+                'customIndicators': {
+                  'custom-rsi': {'signal': 'BUY'},
+                },
+              },
+            },
+          ],
+          tradeSignalsProvider: ApprovingTradeSignalsProvider(),
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+
+        final processedSignals =
+            result['processedSignals'] as List<Map<String, dynamic>>;
+        expect(processedSignals.single['processedStatus'], 'Accepted');
+        expect(provider.pendingOrders, hasLength(1));
+      } finally {
+        MarketHours.testTime = null;
+      }
     });
 
     test('autoTrade logs a rejected trade proposal once', () async {

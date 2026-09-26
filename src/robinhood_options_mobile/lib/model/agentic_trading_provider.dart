@@ -446,8 +446,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
       if (symbols != null && symbols.isNotEmpty) {
         tradeSignals = await tradeSignalsProvider.fetchSignals(
-          // Used to sort by timestamp, consider the implications of such a decision, the latest signals may not get picked up
-          // sortBy: 'timestamp',
+          signalType: isReasoningMode ? null : 'BUY',
+          minSignalStrength: isReasoningMode ? 40 : minStrengthFilter,
           sortBy: 'signalStrength',
           startDate: startDate,
           symbols: symbols,
@@ -1201,9 +1201,6 @@ class AgenticTradingProvider with ChangeNotifier {
       final buySignals = <Map<String, dynamic>>[];
 
       for (final signal in tradeSignals) {
-        // final signalType = signal['signal'] as String?;
-        // if (signalType != 'BUY') continue;
-
         String? rejectionReason;
         bool isAccepted = false;
 
@@ -1211,6 +1208,9 @@ class AgenticTradingProvider with ChangeNotifier {
         // as long as the signal has basic technical merit (already filtered by fetchSignals)
         if (isReasoningMode) {
           isAccepted = true;
+        } else if (signal['signal']?.toString().toUpperCase() != 'BUY') {
+          rejectionReason =
+              'Signal is ${signal['signal'] ?? 'unknown'}, not BUY';
         } else {
           // Check if all enabled indicators agree with BUY signal
           final multiIndicatorResult =
@@ -1221,17 +1221,28 @@ class AgenticTradingProvider with ChangeNotifier {
           } else {
             final indicators =
                 multiIndicatorResult['indicators'] as Map<String, dynamic>?;
+            final indicatorResults = indicators ?? const <String, dynamic>{};
+            final customIndicatorsResult =
+                multiIndicatorResult['customIndicators']
+                    as Map<String, dynamic>?;
 
-            if (indicators == null || indicators.isEmpty) {
+            if (activeIndicators.isNotEmpty &&
+                (indicators == null || indicators.isEmpty)) {
               rejectionReason = 'No indicators data';
-            } else if (activeIndicators.isEmpty) {
+            } else if (indicatorResults.isEmpty &&
+                (customIndicatorsResult == null ||
+                    customIndicatorsResult.isEmpty)) {
+              rejectionReason = 'No indicators data';
+            } else if (activeIndicators.isEmpty &&
+                (customIndicatorsResult == null ||
+                    customIndicatorsResult.isEmpty)) {
               rejectionReason = 'No active indicators configured';
             } else {
               if (requireAllIndicatorsGreen) {
                 // Verify that all enabled indicators have BUY signals
                 for (final indicator in activeIndicators) {
                   final indicatorData =
-                      indicators[indicator] as Map<String, dynamic>?;
+                      indicatorResults[indicator] as Map<String, dynamic>?;
                   if (indicatorData == null) {
                     rejectionReason = 'Indicator $indicator missing';
                     break;
@@ -1241,6 +1252,21 @@ class AgenticTradingProvider with ChangeNotifier {
                     rejectionReason =
                         '$indicator is ${indicatorSignal ?? "Neutral"}';
                     break;
+                  }
+                }
+                if (rejectionReason == null && customIndicatorsResult != null) {
+                  for (final entry in customIndicatorsResult.entries) {
+                    final indicatorData = entry.value as Map<String, dynamic>?;
+                    if (indicatorData == null) {
+                      rejectionReason = 'Custom indicator ${entry.key} missing';
+                      break;
+                    }
+                    final indicatorSignal = indicatorData['signal'] as String?;
+                    if (indicatorSignal != 'BUY') {
+                      rejectionReason =
+                          'Custom indicator ${entry.key} is ${indicatorSignal ?? "Neutral"}';
+                      break;
+                    }
                   }
                 }
                 if (rejectionReason == null) {
@@ -1255,7 +1281,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 // Standard indicators
                 for (final indicator in activeIndicators) {
                   final indicatorData =
-                      indicators[indicator] as Map<String, dynamic>?;
+                      indicatorResults[indicator] as Map<String, dynamic>?;
                   if (indicatorData != null) {
                     totalEnabled++;
                     final signal = indicatorData['signal'] as String?;
@@ -1268,15 +1294,12 @@ class AgenticTradingProvider with ChangeNotifier {
                 }
 
                 // Custom indicators
-                final customIndicatorsResult =
-                    multiIndicatorResult['customIndicators']
-                        as Map<String, dynamic>?;
                 if (customIndicatorsResult != null) {
                   for (final key in customIndicatorsResult.keys) {
-                    totalEnabled++;
                     final indicatorData =
                         customIndicatorsResult[key] as Map<String, dynamic>?;
                     if (indicatorData != null) {
+                      totalEnabled++;
                       final signal = indicatorData['signal'] as String?;
                       if (signal == 'BUY') {
                         buyCount++;

@@ -143,6 +143,60 @@ void main() {
       // Verify widget renders without errors
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
     });
+
+    testWidgets('balanced setup activates core entry indicators only',
+        (WidgetTester tester) async {
+      testUser.agenticTradingConfig!.strategyConfig = TradeStrategyConfig();
+      final agenticTradingProvider = AgenticTradingProvider();
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AgenticTradingProvider>.value(
+                  value: agenticTradingProvider),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final setupButton = find.text('Apply balanced setup');
+      await tester.ensureVisible(setupButton);
+      await tester.tap(setupButton);
+      await tester.pumpAndSettle();
+
+      final strategy = agenticTradingProvider.config.strategyConfig;
+      expect(strategy.minSignalStrength, 50);
+      expect(strategy.requireAllIndicatorsGreen, isFalse);
+      expect(strategy.enabledIndicators['priceMovement'], isTrue);
+      expect(strategy.enabledIndicators['marketDirection'], isTrue);
+      expect(strategy.enabledIndicators['macd'], isTrue);
+      expect(
+        strategy.enabledIndicators.entries
+            .where((entry) => entry.value)
+            .map((entry) => entry.key)
+            .toSet(),
+        {'priceMovement', 'marketDirection', 'macd'},
+      );
+      expect(agenticTradingProvider.config.autoTradeEnabled, isFalse);
+    });
   });
 }
 

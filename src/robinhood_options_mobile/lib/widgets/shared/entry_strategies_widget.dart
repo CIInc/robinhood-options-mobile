@@ -302,7 +302,7 @@ class EntryStrategiesWidget extends StatelessWidget {
         else
           StatefulBuilder(builder: (context, setState) {
             final double currentValue =
-                double.tryParse(minSignalStrengthController.text) ?? 75.0;
+                double.tryParse(minSignalStrengthController.text) ?? 50.0;
             return Container(
               decoration: BoxDecoration(
                 color:
@@ -390,7 +390,7 @@ class EntryStrategiesWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Minimum confidence score required for entry',
+                    'Minimum confidence score for entry. Lower scores allow more signals; higher scores are more selective.',
                     style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant

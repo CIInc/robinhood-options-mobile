@@ -196,7 +196,7 @@ class _AgenticTradingSettingsWidgetState
             : drawdownPercent.toString());
 
     _minSignalStrengthController = TextEditingController(
-        text: strategy?.minSignalStrength.toString() ?? '75.0');
+        text: strategy?.minSignalStrength.toString() ?? '50.0');
     _rsiExitThresholdController = TextEditingController(
         text: strategy?.rsiExitThreshold.toString() ?? '80.0');
     _signalStrengthExitThresholdController = TextEditingController(
@@ -557,7 +557,7 @@ class _AgenticTradingSettingsWidgetState
       dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
       minSignalStrength: (strategySource.requireAllIndicatorsGreen)
           ? 100.0
-          : (double.tryParse(_minSignalStrengthController.text) ?? 75.0),
+          : (double.tryParse(_minSignalStrengthController.text) ?? 50.0),
       requireAllIndicatorsGreen: strategySource.requireAllIndicatorsGreen,
       timeBasedExitEnabled: strategySource.timeBasedExitEnabled,
       timeBasedExitMinutes:
@@ -1140,6 +1140,7 @@ class _AgenticTradingSettingsWidgetState
                 child: Column(
                   children: [
                     _buildStatusHeader(context, agenticTradingProvider),
+                    _buildEntryReadiness(context, agenticTradingProvider),
                     const SizedBox(height: 16),
                     // _buildSignalQueue(context, agenticTradingProvider),
                     _buildPendingOrders(context, agenticTradingProvider),
@@ -1159,6 +1160,103 @@ class _AgenticTradingSettingsWidgetState
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildEntryReadiness(
+    BuildContext context,
+    AgenticTradingProvider provider,
+  ) {
+    final config = provider.config;
+    final strategy = config.strategyConfig;
+    final activeIndicatorCount =
+        strategy.enabledIndicators.values.where((enabled) => enabled).length +
+            strategy.customIndicators.length;
+    if (config.tradingMode != TradingMode.systematic ||
+        activeIndicatorCount > 0) {
+      return const SizedBox.shrink();
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, color: colorScheme.tertiary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Entry rules need setup',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onTertiaryContainer,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Systematic mode has no active indicators, so signals cannot pass. Start with three core indicators and a 50% minimum. Auto-trading stays off.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onTertiaryContainer,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton.tonalIcon(
+            onPressed: () async {
+              const starterIndicators = {
+                'priceMovement',
+                'marketDirection',
+                'macd',
+              };
+              final enabledIndicators =
+                  Map<String, bool>.from(strategy.enabledIndicators);
+              for (final key in enabledIndicators.keys) {
+                enabledIndicators[key] = starterIndicators.contains(key);
+              }
+              _minSignalStrengthController.text = '50';
+              _selectedTemplateId = null;
+
+              final updatedStrategy = strategy.copyWith(
+                enabledIndicators: enabledIndicators,
+                minSignalStrength: 50,
+                requireAllIndicatorsGreen: false,
+              );
+              final updatedConfig = _createFullConfigFromSettings(
+                provider,
+                baseConfig: config.copyWith(strategyConfig: updatedStrategy),
+              );
+              await provider.updateConfig(updatedConfig, widget.userDocRef);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                      'Balanced entry rules applied. Auto-trading remains off.'),
+                ),
+              );
+            },
+            icon: const Icon(Icons.tune),
+            label: const Text('Apply balanced setup'),
+          ),
+        ],
       ),
     );
   }
