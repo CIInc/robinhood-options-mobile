@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart'
 import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
 import 'package:robinhood_options_mobile/model/news_intelligence.dart';
+import 'package:robinhood_options_mobile/model/congress_trade.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -73,6 +74,7 @@ class PortfolioAlertService {
     List<DividendPaymentEvent>? dividendEvents,
     List<NewsIntelligence>? newsIntelligence,
     Map<String, NewsIntelligence>? newsIntelligenceBySymbol,
+    List<CongressTrade>? congressTrades,
     double? dayPnL,
     double? dayPnLPercent,
     DateTime? now,
@@ -102,6 +104,12 @@ class PortfolioAlertService {
       optionPositions: optionPositions,
       newsIntelligence: newsIntelligence,
       newsIntelligenceBySymbol: newsIntelligenceBySymbol,
+    ));
+    alerts.addAll(_congressTradingAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+      congressTrades: congressTrades,
+      now: effectiveNow,
     ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
     alerts.addAll(_volatilityConeAlerts(volatilityConeAnalyses));
@@ -1081,8 +1089,8 @@ class PortfolioAlertService {
             detailParts.add('Rate: ${event.formattedRate}.');
           }
           if (payoutAmount != null) {
-            detailParts.add(
-                'Estimated payout: \$${payoutAmount.toStringAsFixed(2)}.');
+            detailParts
+                .add('Estimated payout: \$${payoutAmount.toStringAsFixed(2)}.');
           }
 
           alerts.add(PortfolioAlert(
@@ -1154,8 +1162,7 @@ class PortfolioAlertService {
             id: 'dividend_payable_upcoming_${sym}_$payDays',
             severity: PortfolioAlertSeverity.info,
             icon: Icons.schedule_outlined,
-            title:
-                '$sym Dividend in $payDays ${payDays == 1 ? 'day' : 'days'}',
+            title: '$sym Dividend in $payDays ${payDays == 1 ? 'day' : 'days'}',
             detail:
                 'Scheduled payout of $payoutStr on $dateStr${sharesStr != null ? ' for $sharesStr' : ''}.',
             metric: payoutStr,
@@ -1440,6 +1447,112 @@ class PortfolioAlertService {
     return alerts;
   }
 
+  /// Builds alerts for congressional stock disclosures that overlap with held positions.
+  static List<PortfolioAlert> _congressTradingAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    List<CongressTrade>? congressTrades,
+    DateTime? now,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    if (congressTrades == null || congressTrades.isEmpty) {
+      return alerts;
+    }
+
+    // 1. Gather held positions by symbol
+    final sharesBySymbol = <String, double>{};
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol ?? '';
+      final shares = pos.quantity ?? 0.0;
+      if (sym.isNotEmpty && shares > 0) {
+        sharesBySymbol[sym.toUpperCase()] =
+            (sharesBySymbol[sym.toUpperCase()] ?? 0.0) + shares;
+      }
+    }
+
+    final optionsBySymbol = <String, int>{};
+    for (final op in optionPositions) {
+      final sym = op.symbol.isNotEmpty
+          ? op.symbol
+          : (op.optionInstrument?.chainSymbol ?? '');
+      final contracts = (op.quantity ?? 0.0).round();
+      if (sym.isNotEmpty && contracts > 0) {
+        optionsBySymbol[sym.toUpperCase()] =
+            (optionsBySymbol[sym.toUpperCase()] ?? 0) + contracts;
+      }
+    }
+
+    final heldSymbols = {...sharesBySymbol.keys, ...optionsBySymbol.keys};
+    if (heldSymbols.isEmpty) return alerts;
+
+    final effectiveNow = now ?? DateTime.now();
+
+    for (final trade in congressTrades) {
+      final sym = trade.symbol.toUpperCase();
+      if (!heldSymbols.contains(sym)) continue;
+
+      // Alert on trades disclosed within 90 days
+      final ageDays = effectiveNow.difference(trade.disclosureDate).inDays;
+      if (ageDays > 90) continue;
+
+      final isBuy = trade.transactionType.isPurchase;
+      final isLarge = trade.amountMin >= 250000;
+
+      final PortfolioAlertSeverity severity;
+      if (trade.transactionType.isSale) {
+        severity = isLarge
+            ? PortfolioAlertSeverity.warning
+            : PortfolioAlertSeverity.info;
+      } else if (isBuy) {
+        severity = isLarge
+            ? PortfolioAlertSeverity.positive
+            : PortfolioAlertSeverity.info;
+      } else {
+        severity = PortfolioAlertSeverity.info;
+      }
+
+      final actionStr = trade.transactionType.displayName;
+      final politician = trade.politicianTitle;
+      final affiliation = trade.politicalAffiliation;
+
+      alerts.add(
+        PortfolioAlert(
+          id: 'congress-trade-${trade.id}',
+          severity: severity,
+          icon: Icons.account_balance,
+          title: 'Congress Trade: $politician ($sym)',
+          detail:
+              '$politician ($affiliation) disclosed a $actionStr (${trade.amount}) in $sym, which is held in your portfolio.',
+          metric: '$actionStr ${trade.amount}',
+          target: PortfolioAlertTarget.congressionalTrading,
+        ),
+      );
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against a CongressTrade disclosure.
+  static bool evaluateCongressTradingAlert({
+    required SmartAlertRule rule,
+    required CongressTrade trade,
+  }) {
+    if (rule.type != AlertType.congress_trading) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.congress_trade_purchase:
+        if (!trade.transactionType.isPurchase) return false;
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      case AlertCondition.congress_trade_sale:
+        if (!trade.transactionType.isSale) return false;
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      case AlertCondition.congress_trade_any:
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+      default:
+        return rule.value <= 0 || trade.amountMin >= rule.value;
+    }
+  }
+
   /// Evaluates a SmartAlertRule against a NewsIntelligence object.
   static bool evaluateNewsAlert({
     required SmartAlertRule rule,
@@ -1565,7 +1678,8 @@ class PortfolioAlertService {
             id: 'unusual-activity-$sym',
             severity: PortfolioAlertSeverity.critical,
             icon: Icons.warning_amber_rounded,
-            title: '$sym: Sharp intraday drop (-${_percent.format(gainLossPct.abs())})',
+            title:
+                '$sym: Sharp intraday drop (-${_percent.format(gainLossPct.abs())})',
             detail:
                 'Held in portfolio ($sharesStr). Price fell sharply today with ${_currency.format(gainLossToday.abs())} unrealized decline. Review position stop-losses.',
             metric: '-${_percent.format(gainLossPct.abs())}',
@@ -1576,7 +1690,8 @@ class PortfolioAlertService {
             id: 'unusual-activity-$sym',
             severity: PortfolioAlertSeverity.positive,
             icon: Icons.arrow_upward,
-            title: '$sym: Sharp intraday rally (+${_percent.format(gainLossPct)})',
+            title:
+                '$sym: Sharp intraday rally (+${_percent.format(gainLossPct)})',
             detail:
                 'Held in portfolio ($sharesStr). Price rallied significantly today with +${_currency.format(gainLossToday.abs())} unrealized gain.',
             metric: '+${_percent.format(gainLossPct)}',
@@ -1600,7 +1715,10 @@ class PortfolioAlertService {
         final optVol = mkt?.volume;
         final oi = mkt?.openInterest;
 
-        if (optVol != null && oi != null && oi > 0 && optVol >= _minOptionVolumeThreshold) {
+        if (optVol != null &&
+            oi != null &&
+            oi > 0 &&
+            optVol >= _minOptionVolumeThreshold) {
           final ratio = optVol / oi;
           if (ratio >= 2.0) {
             final sym = pos.symbol.isNotEmpty
@@ -1608,11 +1726,14 @@ class PortfolioAlertService {
                 : (pos.optionInstrument?.chainSymbol ?? 'Option');
 
             final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
-            final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+            final strike =
+                firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
             final strikeStr = strike != null
                 ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
                 : '';
-            final optType = (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '').toUpperCase();
+            final optType =
+                (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+                    .toUpperCase();
             final contractsStr =
                 '${qty.toStringAsFixed(qty.truncateToDouble() == qty ? 0 : 1)} contract${qty == 1 ? '' : 's'}';
 
@@ -1696,7 +1817,8 @@ class PortfolioAlertService {
         return volMatch || priceMatch;
       case AlertCondition.drop:
         final priceThreshold = rule.value > 0 ? -rule.value : -5.0;
-        return priceChangePercent != null && priceChangePercent <= priceThreshold;
+        return priceChangePercent != null &&
+            priceChangePercent <= priceThreshold;
       case AlertCondition.percent_change:
         final threshold = rule.value > 0 ? rule.value : 5.0;
         return priceChangePercent != null &&
@@ -1968,10 +2090,9 @@ class PortfolioAlertService {
       final strikeStr = strike != null
           ? '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}'
           : '';
-      final optionType = (firstLeg?.optionType ??
-              pos.optionInstrument?.type ??
-              '')
-          .toUpperCase();
+      final optionType =
+          (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+              .toUpperCase();
       final isShort = pos.direction == 'credit' ||
           pos.strategy.startsWith('short') ||
           pos.legs.any((l) => l.positionType == 'short');
@@ -2026,9 +2147,8 @@ class PortfolioAlertService {
           PortfolioAlert(
             id: id,
             severity: PortfolioAlertSeverity.critical,
-            icon: isShort
-                ? Icons.assignment_late_outlined
-                : Icons.timer_outlined,
+            icon:
+                isShort ? Icons.assignment_late_outlined : Icons.timer_outlined,
             title: '$contractDesc expires today',
             detail: detail,
             metric: '0 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',

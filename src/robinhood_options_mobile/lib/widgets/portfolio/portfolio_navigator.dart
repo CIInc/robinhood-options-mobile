@@ -58,6 +58,8 @@ class PortfolioNavigator {
       case PortfolioAlertTarget.ivSurface:
       case PortfolioAlertTarget.deltaNeutral:
         return openSection(context, PortfolioSection.risk, sectionContext);
+      case PortfolioAlertTarget.congressionalTrading:
+        return openSection(context, PortfolioSection.insights, sectionContext);
       case PortfolioAlertTarget.none:
         return Future.value();
     }

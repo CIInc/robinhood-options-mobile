@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import fetch from "node-fetch";
 import { getMarketData } from "./market-data";
@@ -403,6 +403,13 @@ export async function assessTrade(proposal: any,
  * @returns {Promise<object>} The risk assessment result.
  */
 export const riskguardTask = onCall(async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to run RiskGuard task."
+    );
+  }
   logger.info("RiskGuard task called via onCall", { data: request.data });
   const proposal = request.data.proposal || {};
   const portfolioState = request.data.portfolioState || {};
@@ -421,6 +428,13 @@ export const riskguardTask = onCall(async (request) => {
  * @returns {Promise<object>} The calculation result.
  */
 export const calculatePositionSize = onCall(async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to calculate position size."
+    );
+  }
   logger.info("Calculate Position Size called", { data: request.data });
   const symbol = request.data.symbol;
   const portfolioState = request.data.portfolioState || {};

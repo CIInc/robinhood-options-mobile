@@ -1,5 +1,5 @@
 import * as riskguard from "./riskguard-agent";
-import { onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
 import { optimizeSignal } from "./signal-optimizer";
@@ -799,6 +799,13 @@ export async function handleAlphaTask(marketData: any,
  * @returns {Promise<object>} The Alpha agent task result.
  */
 export const alphabotTask = onCall(async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to run Alpha agent task."
+    );
+  }
   logger.info("Alpha agent task called via onCall", { data: request.data });
   const marketData = request.data.marketData || {};
   const portfolioState = request.data.portfolioState || {};

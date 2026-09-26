@@ -64,13 +64,20 @@ export interface MultiIndicatorResult {
  * Compute Simple Moving Average (SMA)
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The period for the SMA.
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed SMA or null if not enough data.
  */
-export function computeSMA(prices: number[], period: number): number | null {
-  if (!prices || prices.length < period || period <= 0) return null;
+export function computeSMA(
+  prices: number[],
+  period: number,
+  endIndex = prices ? prices.length : 0
+): number | null {
+  if (!prices || endIndex < period || period <= 0 || prices.length < endIndex) {
+    return null;
+  }
 
   let sum = 0;
-  for (let i = prices.length - period; i < prices.length; i++) {
+  for (let i = endIndex - period; i < endIndex; i++) {
     sum += prices[i];
   }
   return sum / period;
@@ -80,14 +87,16 @@ export function computeSMA(prices: number[], period: number): number | null {
  * Compute array of SMA values
  * @param {number[]} prices - Array of prices
  * @param {number} period - SMA period
+ * @param {number} [endIndex] - Optional end index
  * @return {(number|null)[]} Array of SMA values
  */
 export function computeSMAArray(
   prices: number[],
-  period: number
+  period: number,
+  endIndex = prices ? prices.length : 0
 ): (number | null)[] {
-  if (!prices || prices.length < period || period <= 0) {
-    return Array(prices.length).fill(null);
+  if (!prices || endIndex < period || period <= 0 || prices.length < endIndex) {
+    return Array(endIndex).fill(null);
   }
 
   const result: (number | null)[] = Array(period - 1).fill(null);
@@ -100,7 +109,7 @@ export function computeSMAArray(
   result.push(sum / period);
 
   // Sliding window
-  for (let i = period; i < prices.length; i++) {
+  for (let i = period; i < endIndex; i++) {
     sum += prices[i] - prices[i - period];
     result.push(sum / period);
   }
@@ -112,10 +121,17 @@ export function computeSMAArray(
  * Compute Exponential Moving Average (EMA)
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The period for the EMA.
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed EMA or null if not enough data.
  */
-export function computeEMA(prices: number[], period: number): number | null {
-  if (!prices || prices.length < period || period <= 0) return null;
+export function computeEMA(
+  prices: number[],
+  period: number,
+  endIndex = prices ? prices.length : 0
+): number | null {
+  if (!prices || endIndex < period || period <= 0 || prices.length < endIndex) {
+    return null;
+  }
 
   const multiplier = 2 / (period + 1);
   let sum = 0;
@@ -124,7 +140,7 @@ export function computeEMA(prices: number[], period: number): number | null {
   }
   let ema = sum / period;
 
-  for (let i = period; i < prices.length; i++) {
+  for (let i = period; i < endIndex; i++) {
     ema = (prices[i] - ema) * multiplier + ema;
   }
 
@@ -135,14 +151,16 @@ export function computeEMA(prices: number[], period: number): number | null {
  * Compute array of EMA values
  * @param {number[]} prices - Array of prices
  * @param {number} period - EMA period
+ * @param {number} [endIndex] - Optional end index
  * @return {(number|null)[]} Array of smoothed EMA values
  */
 export function computeEMAArray(
   prices: number[],
-  period: number
+  period: number,
+  endIndex = prices ? prices.length : 0
 ): (number | null)[] {
-  if (!prices || prices.length < period || period <= 0) {
-    return Array(prices.length).fill(null);
+  if (!prices || endIndex < period || period <= 0 || prices.length < endIndex) {
+    return Array(endIndex).fill(null);
   }
 
   const result: (number | null)[] = Array(period - 1).fill(null);
@@ -156,7 +174,7 @@ export function computeEMAArray(
   let ema = sum / period;
   result.push(ema);
 
-  for (let i = period; i < prices.length; i++) {
+  for (let i = period; i < endIndex; i++) {
     ema = (prices[i] - ema) * multiplier + ema;
     result.push(ema);
   }
@@ -168,10 +186,15 @@ export function computeEMAArray(
  * Compute Relative Strength Index (RSI)
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The period for RSI calculation (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed RSI or null if not enough data.
  */
-export function computeRSI(prices: number[], period = 14): number | null {
-  const arr = computeRSIArray(prices, period);
+export function computeRSI(
+  prices: number[],
+  period = 14,
+  endIndex = prices ? prices.length : 0
+): number | null {
+  const arr = computeRSIArray(prices, period, endIndex);
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
 }
@@ -180,13 +203,18 @@ export function computeRSI(prices: number[], period = 14): number | null {
  * Compute array of RSI values
  * @param {number[]} prices - Array of prices
  * @param {number} period - RSI period
+ * @param {number} [endIndex] - Optional end index
  * @return {number[]} Array of RSI values corresponding to prices[period..end]
  */
-export function computeRSIArray(prices: number[], period = 14): number[] {
-  if (!prices || prices.length < period + 1) return [];
+export function computeRSIArray(
+  prices: number[],
+  period = 14,
+  endIndex = prices ? prices.length : 0
+): number[] {
+  if (!prices || endIndex < period + 1 || prices.length < endIndex) return [];
 
   const changes: number[] = [];
-  for (let i = 1; i < prices.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     changes.push(prices[i] - prices[i - 1]);
   }
 
@@ -243,24 +271,30 @@ export function computeRSIArray(prices: number[], period = 14): number[] {
  * @param {number} fastPeriod - Fast EMA period (default 12).
  * @param {number} slowPeriod - Slow EMA period (default 26).
  * @param {number} signalPeriod - Signal line EMA period (default 9).
+ * @param {number} [endIndex] - Optional end index.
  * @return {{macd: number, signal: number, histogram: number}|null}
  */
 export function computeMACD(
   prices: number[],
   fastPeriod = 12,
   slowPeriod = 26,
-  signalPeriod = 9
+  signalPeriod = 9,
+  endIndex = prices ? prices.length : 0
 ): {
   macd: number;
   signal: number;
   histogram: number;
   prevHistogram?: number | null;
 } | null {
-  if (!prices || prices.length < slowPeriod + signalPeriod) return null;
+  if (!prices ||
+    endIndex < slowPeriod + signalPeriod ||
+    prices.length < endIndex) {
+    return null;
+  }
 
   // Optimized computation using arrays O(N) instead of recurring O(N^2)
-  const fastEMAs = computeEMAArray(prices, fastPeriod);
-  const slowEMAs = computeEMAArray(prices, slowPeriod);
+  const fastEMAs = computeEMAArray(prices, fastPeriod, endIndex);
+  const slowEMAs = computeEMAArray(prices, slowPeriod, endIndex);
 
   // We need the sequence of MACD values to compute the Signal line
   // MACD line is valid where both EMAs are valid.
@@ -270,7 +304,7 @@ export function computeMACD(
   // We align with original prices to pick the last one correctly,
   // but for computeEMAArray(macdSeries) we need a clean array of numbers.
 
-  for (let i = 0; i < prices.length; i++) {
+  for (let i = 0; i < endIndex; i++) {
     const fast = fastEMAs[i];
     const slow = slowEMAs[i];
     if (fast !== null && slow !== null) {
@@ -312,22 +346,24 @@ export function computeMACD(
  * @param {number[]} prices - Array of prices.
  * @param {number} period - Period for SMA (default 20).
  * @param {number} stdDev - Number of standard deviations (default 2).
+ * @param {number} [endIndex] - Optional end index.
  * @return {{upper: number, middle: number, lower: number}|null}
  */
 export function computeBollingerBands(
   prices: number[],
   period = 20,
-  stdDev = 2
+  stdDev = 2,
+  endIndex = prices ? prices.length : 0
 ): { upper: number; middle: number; lower: number } | null {
-  if (!prices || prices.length < period) return null;
+  if (!prices || endIndex < period || prices.length < endIndex) return null;
 
-  const middle = computeSMA(prices, period);
+  const middle = computeSMA(prices, period, endIndex);
   if (!middle) return null;
 
   // Compute variance for Bollinger Bands without array allocation
   let sumSquaredDiffs = 0;
-  const start = prices.length - period;
-  for (let i = start; i < prices.length; i++) {
+  const start = endIndex - period;
+  for (let i = start; i < endIndex; i++) {
     const diff = prices[i] - middle;
     sumSquaredDiffs += diff * diff;
   }
@@ -399,6 +435,7 @@ export function computeBollingerBandsArray(
  * @param {number[]} closes - Array of close prices
  * @param {number} kPeriod - %K period
  * @param {number} dPeriod - %D period
+ * @param {number} [endIndex] - Optional end index
  * @return {Array<{k: number, d: number}|null>} Array of Stochastic values
  */
 export function computeStochasticArray(
@@ -406,13 +443,15 @@ export function computeStochasticArray(
   lows: number[],
   closes: number[],
   kPeriod = 14,
-  dPeriod = 3
+  dPeriod = 3,
+  endIndex = closes ? closes.length : 0
 ): ({ k: number; d: number } | null)[] {
   if (!highs || !lows || !closes ||
-    highs.length < kPeriod ||
-    lows.length < kPeriod ||
-    closes.length < kPeriod) {
-    return Array(closes.length).fill(null);
+    endIndex < kPeriod ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
+    return Array(endIndex).fill(null);
   }
 
   const result: ({ k: number; d: number } | null)[] =
@@ -421,7 +460,7 @@ export function computeStochasticArray(
   const kValues: number[] = [];
 
   // Calculate raw K values for the whole series starting from index kPeriod - 1
-  for (let i = kPeriod - 1; i < closes.length; i++) {
+  for (let i = kPeriod - 1; i < endIndex; i++) {
     let hh = Number.NEGATIVE_INFINITY;
     let ll = Number.POSITIVE_INFINITY;
     // Look back kPeriod bars including current
@@ -487,6 +526,7 @@ export function computeStochasticArray(
  * @param {number[]} closes - Array of close prices.
  * @param {number} kPeriod - %K period (default 14).
  * @param {number} dPeriod - %D period (default 3).
+ * @param {number} [endIndex] - Optional end index.
  * @return {{k: number, d: number}|null}
  */
 export function computeStochastic(
@@ -494,14 +534,16 @@ export function computeStochastic(
   lows: number[],
   closes: number[],
   kPeriod = 14,
-  dPeriod = 3
+  dPeriod = 3,
+  endIndex = closes ? closes.length : 0
 ): { k: number; d: number } | null {
   const arr = computeStochasticArray(
     highs,
     lows,
     closes,
     kPeriod,
-    dPeriod
+    dPeriod,
+    endIndex
   );
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
@@ -513,15 +555,17 @@ export function computeStochastic(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for ATR (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null}
  */
 export function computeATR(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = closes ? closes.length : 0
 ): number | null {
-  const arr = computeATRArray(highs, lows, closes, period);
+  const arr = computeATRArray(highs, lows, closes, period, endIndex);
   if (arr.length === 0) return null;
   return arr[arr.length - 1];
 }
@@ -532,19 +576,22 @@ export function computeATR(
  * @param {number[]} lows
  * @param {number[]} closes
  * @param {number} period
+ * @param {number} [endIndex]
  * @return {(number|null)[]} Array of ATR values aligned with inputs
  */
 export function computeATRArray(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = closes ? closes.length : 0
 ): (number | null)[] {
   if (!highs || !lows || !closes ||
-    highs.length < period + 1 ||
-    lows.length < period + 1 ||
-    closes.length < period + 1) {
-    return Array(closes.length).fill(null);
+    endIndex < period + 1 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
+    return Array(endIndex).fill(null);
   }
 
   const result: (number | null)[] = Array(period).fill(null);
@@ -554,11 +601,7 @@ export function computeATRArray(
   // Index 0 has no TR because no prior close.
   // TR[i] corresponds to candle i
 
-  // First TR logic check:
-  // computeATR loop: for (let i = 1; i < closes.length; i++)
-  // trueRanges has length = closes.length - 1
-
-  for (let i = 1; i < closes.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     const high = highs[i];
     const low = lows[i];
     const prevClose = closes[i - 1];
@@ -669,21 +712,23 @@ export function computeKeltnerChannelsArray(
  * Compute On-Balance Volume (OBV)
  * @param {number[]} closes - Array of close prices.
  * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
  * @return {number[]|null} Array of OBV values or null if insufficient data.
  */
 export function computeOBV(
   closes: number[],
-  volumes: number[]
+  volumes: number[],
+  endIndex = closes ? closes.length : 0
 ): number[] | null {
-  if (!closes || !volumes || closes.length < 2 || volumes.length < 2 ||
-    closes.length !== volumes.length) {
+  if (!closes || !volumes || endIndex < 2 ||
+    closes.length < endIndex || volumes.length < endIndex) {
     return null;
   }
 
   // Start OBV from 0 to avoid scale bias on first bar
   const obv: number[] = [0];
 
-  for (let i = 1; i < closes.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     if (closes[i] > closes[i - 1]) {
       obv.push(obv[obv.length - 1] + volumes[i]);
     } else if (closes[i] < closes[i - 1]) {
@@ -702,27 +747,27 @@ export function computeOBV(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed VWAP or null if insufficient data.
  */
 export function computeVWAP(
   highs: number[],
   lows: number[],
   closes: number[],
-  volumes: number[]
+  volumes: number[],
+  endIndex = closes ? closes.length : 0
 ): number | null {
   if (!highs || !lows || !closes || !volumes ||
-    highs.length < 1 || lows.length < 1 ||
-    closes.length < 1 || volumes.length < 1 ||
-    highs.length !== lows.length ||
-    lows.length !== closes.length ||
-    closes.length !== volumes.length) {
+    endIndex < 1 ||
+    highs.length < endIndex || lows.length < endIndex ||
+    closes.length < endIndex || volumes.length < endIndex) {
     return null;
   }
 
   let cumulativeTPV = 0; // Typical Price * Volume
   let cumulativeVolume = 0;
 
-  for (let i = 0; i < closes.length; i++) {
+  for (let i = 0; i < endIndex; i++) {
     const typicalPrice = (highs[i] + lows[i] + closes[i]) / 3;
     cumulativeTPV += typicalPrice * volumes[i];
     cumulativeVolume += volumes[i];
@@ -739,13 +784,15 @@ export function computeVWAP(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for ADX calculation (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {{adx: number, plusDI: number, minusDI: number}|null}
  */
 export function computeADX(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = closes ? closes.length : 0
 ): {
   adx: number;
   plusDI: number;
@@ -753,9 +800,10 @@ export function computeADX(
   prevAdx?: number | null;
 } | null {
   if (!highs || !lows || !closes ||
-    highs.length < period * 2 ||
-    lows.length < period * 2 ||
-    closes.length < period * 2) {
+    endIndex < period * 2 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return null;
   }
 
@@ -764,7 +812,7 @@ export function computeADX(
   const tr: number[] = [];
 
   // Calculate +DM, -DM, and TR
-  for (let i = 1; i < highs.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     const highDiff = highs[i] - highs[i - 1];
     const lowDiff = lows[i - 1] - lows[i];
 
@@ -3348,27 +3396,32 @@ export function evaluateIchimokuCloud(
  * Compute Commodity Channel Index (CCI)
  * @param {number[]} prices - Typical prices preferably
  * @param {number} period - The period (default 20).
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed CCI or null.
  */
-export function computeCCI(prices: number[], period = 20): number | null {
-  if (!prices || prices.length < period) return null;
+export function computeCCI(
+  prices: number[],
+  period = 20,
+  endIndex = prices ? prices.length : 0
+): number | null {
+  if (!prices || endIndex < period || prices.length < endIndex) return null;
 
-  const start = prices.length - period;
+  const start = endIndex - period;
   let sum = 0;
-  for (let i = start; i < prices.length; i++) {
+  for (let i = start; i < endIndex; i++) {
     sum += prices[i];
   }
   const sma = sum / period;
 
   let sumAbsDev = 0;
-  for (let i = start; i < prices.length; i++) {
+  for (let i = start; i < endIndex; i++) {
     sumAbsDev += Math.abs(prices[i] - sma);
   }
   const meanDeviation = sumAbsDev / period;
 
   if (meanDeviation === 0) return 0;
 
-  const currentPrice = prices[prices.length - 1];
+  const currentPrice = prices[endIndex - 1];
   return (currentPrice - sma) / (0.015 * meanDeviation);
 }
 
@@ -3997,12 +4050,17 @@ export function evaluateAllIndicators(
  * Compute Rate of Change (ROC)
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The lookback calculation period.
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} The computed ROC or null.
  */
-export function computeROC(prices: number[], period = 9): number | null {
-  if (!prices || prices.length < period + 1) return null;
-  const currentPrice = prices[prices.length - 1];
-  const prevPrice = prices[prices.length - 1 - period];
+export function computeROC(
+  prices: number[],
+  period = 9,
+  endIndex = prices ? prices.length : 0
+): number | null {
+  if (!prices || endIndex < period + 1 || prices.length < endIndex) return null;
+  const currentPrice = prices[endIndex - 1];
+  const prevPrice = prices[endIndex - 1 - period];
 
   if (prevPrice === 0) return 0;
   return ((currentPrice - prevPrice) / prevPrice) * 100;
@@ -4363,35 +4421,40 @@ export function evaluateCustomIndicator(
       return defaultVal;
     };
 
-    // Helper to calculate indicator value for a given set of data
+    // Helper to calculate indicator value using index boundary
     const calculateValue = (
       p: number[],
       h: number[],
       l: number[],
-      v: number[]
+      v: number[],
+      endIndex = p ? p.length : 0
     ): number | null => {
       switch (config.type) {
       case "SMA":
         return computeSMA(
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
       case "EMA":
         return computeEMA(
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
       case "RSI":
         return computeRSI(
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
       case "MACD": {
         const macdRes = computeMACD(
           p,
           getNumberParam(config.parameters.fastPeriod, 12),
           getNumberParam(config.parameters.slowPeriod, 26),
-          getNumberParam(config.parameters.signalPeriod, 9)
+          getNumberParam(config.parameters.signalPeriod, 9),
+          endIndex
         );
         if (!macdRes) return null;
         const comp = getStringParam(config.parameters.component, "histogram");
@@ -4403,7 +4466,8 @@ export function evaluateCustomIndicator(
         const bbRes = computeBollingerBands(
           p,
           getNumberParam(config.parameters.period, 20),
-          getNumberParam(config.parameters.stdDev, 2, true)
+          getNumberParam(config.parameters.stdDev, 2, true),
+          endIndex
         );
         if (!bbRes) return null;
         const comp = getStringParam(config.parameters.component, "middle");
@@ -4417,7 +4481,8 @@ export function evaluateCustomIndicator(
           l,
           p,
           getNumberParam(config.parameters.kPeriod, 14),
-          getNumberParam(config.parameters.dPeriod, 3)
+          getNumberParam(config.parameters.dPeriod, 3),
+          endIndex
         );
         if (!stochRes) return null;
         const comp = getStringParam(config.parameters.component, "k");
@@ -4429,10 +4494,11 @@ export function evaluateCustomIndicator(
           h,
           l,
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
       case "OBV": {
-        const obvRes = computeOBV(p, v);
+        const obvRes = computeOBV(p, v, endIndex);
         return obvRes && obvRes.length > 0 ?
           obvRes[obvRes.length - 1] : null;
       }
@@ -4441,38 +4507,41 @@ export function evaluateCustomIndicator(
           h,
           l,
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
       case "CCI": {
         // CCI requires Typical Prices: (High + Low + Close) / 3
         const period = getNumberParam(config.parameters.period, 20);
         if (
-          h.length >= period &&
-          l.length >= period &&
-          p.length >= period
+          h.length >= endIndex &&
+          l.length >= endIndex &&
+          p.length >= endIndex &&
+          endIndex >= period
         ) {
           const typicalPrices: number[] = [];
-          const len = Math.min(h.length, l.length, p.length);
-          for (let i = 0; i < len; i++) {
+          for (let i = 0; i < endIndex; i++) {
             typicalPrices.push((h[i] + l[i] + p[i]) / 3);
           }
-          return computeCCI(typicalPrices, period);
+          return computeCCI(typicalPrices, period, endIndex);
         }
         return null;
       }
       case "ROC":
         return computeROC(
           p,
-          getNumberParam(config.parameters.period, 9)
+          getNumberParam(config.parameters.period, 9),
+          endIndex
         );
       case "VWAP":
-        return computeVWAP(h, l, p, v);
+        return computeVWAP(h, l, p, v, endIndex);
       case "ADX": {
         const adxRes = computeADX(
           h,
           l,
           p,
-          getNumberParam(config.parameters.period, 14)
+          getNumberParam(config.parameters.period, 14),
+          endIndex
         );
         if (!adxRes) return null;
         const comp = getStringParam(config.parameters.component, "adx");
@@ -4514,14 +4583,14 @@ export function evaluateCustomIndicator(
     const isCrossover = config.condition.startsWith("CrossOver");
 
     if (isCrossover) {
-      // Calculate Previous Value
-      // We slice the arrays to simulate "previous candle stick" state
+      // Calculate Previous Value without allocating array slices
       if (prices.length > 1) {
         prevValue = calculateValue(
-          prices.slice(0, -1),
-          highs.slice(0, -1),
-          lows.slice(0, -1),
-          volumes.slice(0, -1)
+          prices,
+          highs,
+          lows,
+          volumes,
+          prices.length - 1
         );
       }
 

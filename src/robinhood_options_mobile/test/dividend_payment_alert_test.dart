@@ -96,7 +96,8 @@ void main() {
       );
 
       expect(event.formattedAmount, '\$48.50');
-      expect(event.formattedRate, '\$0.48/share'); // 0.485 rounds or fixed 2 decimal
+      expect(event.formattedRate,
+          '\$0.48/share'); // 0.485 rounds or fixed 2 decimal
       expect(event.formattedYield, '3.15%');
     });
 
@@ -124,7 +125,8 @@ void main() {
       expect(event.isReinvested, isTrue);
     });
 
-    test('calculates amount from rate * fallbackShares if amount is omitted', () {
+    test('calculates amount from rate * fallbackShares if amount is omitted',
+        () {
       final map = {
         'symbol': 'O',
         'rate': 0.26,
@@ -194,7 +196,8 @@ void main() {
 
       expect(exAlert.severity, PortfolioAlertSeverity.warning);
       expect(exAlert.title, 'AAPL Ex-Dividend Date Today');
-      expect(exAlert.detail, contains('Must hold 50 shares before market close'));
+      expect(
+          exAlert.detail, contains('Must hold 50 shares before market close'));
       expect(exAlert.detail, contains('Estimated payout: \$12.50'));
       expect(exAlert.target, PortfolioAlertTarget.performance);
     });
@@ -225,7 +228,8 @@ void main() {
       expect(exAlert.metric, 'Tomorrow');
     });
 
-    test('raises info alert with countdown for 2-7 DTE upcoming ex-dividend', () {
+    test('raises info alert with countdown for 2-7 DTE upcoming ex-dividend',
+        () {
       final now = DateTime(2026, 9, 24, 10, 0);
       final pos = buildStockPosition(symbol: 'JNJ', quantity: 30.0);
 
@@ -392,7 +396,8 @@ void main() {
       expect(alert.title, 'HD Dividend Payable Today');
     });
 
-    test('ignores distant future (>7 days) and distant past (<-2 days) events', () {
+    test('ignores distant future (>7 days) and distant past (<-2 days) events',
+        () {
       final now = DateTime(2026, 9, 24, 10, 0);
       final pos = buildStockPosition(symbol: 'WMT', quantity: 50.0);
 

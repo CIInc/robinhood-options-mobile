@@ -224,7 +224,9 @@ void main() {
   });
 
   group('PortfolioAlertService Earnings Calendar Alerts', () {
-    test('raises critical alert for 0 DTE earnings today with timing and consensus', () {
+    test(
+        'raises critical alert for 0 DTE earnings today with timing and consensus',
+        () {
       final aapl = buildStockPosition(
         symbol: 'AAPL',
         quantity: 100,
@@ -252,7 +254,8 @@ void main() {
       final alert = earningsAlerts.first;
       expect(alert.id, equals('earnings-today-AAPL'));
       expect(alert.severity, equals(PortfolioAlertSeverity.critical));
-      expect(alert.title, contains('AAPL Reports Earnings Today (After Close)'));
+      expect(
+          alert.title, contains('AAPL Reports Earnings Today (After Close)'));
       expect(alert.detail, contains('You hold 100 shares'));
       expect(alert.detail, contains('Consensus EPS: \$1.60'));
       expect(alert.metric, equals('Today'));
@@ -287,7 +290,8 @@ void main() {
       final alert = earningsAlerts.first;
       expect(alert.id, equals('earnings-tomorrow-MSFT'));
       expect(alert.severity, equals(PortfolioAlertSeverity.warning));
-      expect(alert.title, contains('MSFT Reports Earnings Tomorrow (Before Open)'));
+      expect(alert.title,
+          contains('MSFT Reports Earnings Tomorrow (Before Open)'));
       expect(alert.detail, contains('You hold 50 shares'));
       expect(alert.detail, contains('Consensus EPS: \$3.10'));
       expect(alert.metric, equals('1d'));
@@ -352,13 +356,15 @@ void main() {
         now: fixedNow,
       );
 
-      final nvdaAlerts =
-          alerts.where((a) => a.id.startsWith('earnings-') && a.id.contains('NVDA')).toList();
+      final nvdaAlerts = alerts
+          .where((a) => a.id.startsWith('earnings-') && a.id.contains('NVDA'))
+          .toList();
       expect(nvdaAlerts.length, equals(1));
 
       final alert = nvdaAlerts.first;
       expect(alert.id, equals('earnings-tomorrow-NVDA'));
-      expect(alert.detail, contains('You hold 150 shares and 3 option contracts'));
+      expect(
+          alert.detail, contains('You hold 150 shares and 3 option contracts'));
       expect(alert.detail, contains('Consensus EPS: \$0.95'));
     });
 
@@ -395,12 +401,18 @@ void main() {
         now: fixedNow,
       );
 
-      final earningsAlerts =
-          alerts.where((a) => a.id.startsWith('earnings-today') || a.id.startsWith('earnings-tomorrow') || a.id.startsWith('earnings-upcoming')).toList();
+      final earningsAlerts = alerts
+          .where((a) =>
+              a.id.startsWith('earnings-today') ||
+              a.id.startsWith('earnings-tomorrow') ||
+              a.id.startsWith('earnings-upcoming'))
+          .toList();
       expect(earningsAlerts, isEmpty);
     });
 
-    test('falls back to earningsCrushAnalyses if position earningsObj is missing', () {
+    test(
+        'falls back to earningsCrushAnalyses if position earningsObj is missing',
+        () {
       final stockWithoutObj = buildStockPosition(
         symbol: 'CRSH',
         quantity: 25,
