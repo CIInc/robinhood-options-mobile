@@ -356,7 +356,7 @@ void main() {
       expect(alert.detail, contains('In-The-Money (ITM)'));
       expect(alert.detail, contains('automatically exercised'));
       expect(alert.metric, '0 DTE • ITM');
-      expect(alert.target, PortfolioAlertTarget.positions);
+      expect(alert.target, PortfolioAlertTarget.optionPositions);
       expect(alert.icon, Icons.timer_outlined);
     });
 

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/insights_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/performance_section_page.dart';
@@ -7,6 +9,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_con
 import 'package:robinhood_options_mobile/widgets/portfolio/positions_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/risk_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/strategies_section_page.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 
@@ -38,6 +41,8 @@ class PortfolioNavigator {
     switch (alert.target) {
       case PortfolioAlertTarget.positions:
         return openSection(context, PortfolioSection.positions, sectionContext);
+      case PortfolioAlertTarget.optionPositions:
+        return _openOptionPositions(context, sectionContext);
       case PortfolioAlertTarget.performance:
         return openSection(
             context, PortfolioSection.performance, sectionContext);
@@ -63,6 +68,38 @@ class PortfolioNavigator {
       case PortfolioAlertTarget.none:
         return Future.value();
     }
+  }
+
+  static Future<void> _openOptionPositions(
+    BuildContext context,
+    PortfolioSectionContext sectionContext,
+  ) {
+    final account = sectionContext.account;
+    final positions = Provider.of<OptionPositionStore>(context, listen: false)
+        .items
+        .where((position) =>
+            sectionContext.isAggregateMode ||
+            account == null ||
+            position.account == account.accountNumber ||
+            position.account == account.url)
+        .toList();
+
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OptionPositionsPageWidget(
+          sectionContext.brokerageUser,
+          sectionContext.service,
+          positions,
+          analytics: sectionContext.analytics,
+          observer: sectionContext.observer,
+          generativeService: sectionContext.generativeService,
+          user: sectionContext.appUser,
+          userDocRef: sectionContext.userDocRef,
+          disableNavigation: sectionContext.isAggregateMode,
+        ),
+      ),
+    );
   }
 
   static Widget _pageFor(

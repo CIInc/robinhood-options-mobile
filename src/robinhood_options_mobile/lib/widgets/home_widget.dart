@@ -2313,6 +2313,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       if (alert.severity == PortfolioAlertSeverity.positive) continue;
       switch (alert.target) {
         case PortfolioAlertTarget.positions:
+        case PortfolioAlertTarget.optionPositions:
           flagged.add(PortfolioSection.positions);
         case PortfolioAlertTarget.performance:
           flagged.add(PortfolioSection.performance);

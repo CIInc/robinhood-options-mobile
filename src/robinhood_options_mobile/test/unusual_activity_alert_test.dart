@@ -384,7 +384,7 @@ void main() {
       expect(alert.title, contains('3.5x OI on \$230 CALL'));
       expect(alert.detail, contains('Held in portfolio (5 contracts)'));
       expect(alert.metric, '3.5x OI');
-      expect(alert.target, PortfolioAlertTarget.positions);
+      expect(alert.target, PortfolioAlertTarget.optionPositions);
     });
 
     test('surfaces warning alert for unusual option volume (2.2x OI)', () {

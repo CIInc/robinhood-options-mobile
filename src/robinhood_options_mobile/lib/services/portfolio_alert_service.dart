@@ -1750,7 +1750,7 @@ class PortfolioAlertService {
                 detail:
                     'Held in portfolio ($contractsStr). Today\'s contract volume of ${_compactNumber(optVol.toDouble())} exceeds open interest of ${_compactNumber(oi.toDouble())} (${ratio.toStringAsFixed(1)}x), signaling heavy institutional positioning.',
                 metric: '${ratio.toStringAsFixed(1)}x OI',
-                target: PortfolioAlertTarget.positions,
+                target: PortfolioAlertTarget.optionPositions,
               ),
             );
           }
@@ -2154,7 +2154,7 @@ class PortfolioAlertService {
             metric: '0 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
             target: isShort
                 ? PortfolioAlertTarget.strategies
-                : PortfolioAlertTarget.positions,
+                : PortfolioAlertTarget.optionPositions,
           ),
         );
       } else if (daysToExpiration == 1) {
@@ -2184,7 +2184,7 @@ class PortfolioAlertService {
             metric: '1 DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
             target: isShort
                 ? PortfolioAlertTarget.strategies
-                : PortfolioAlertTarget.positions,
+                : PortfolioAlertTarget.optionPositions,
           ),
         );
       } else {
@@ -2207,7 +2207,7 @@ class PortfolioAlertService {
                 '${daysToExpiration}d DTE${moneynessStr.isNotEmpty ? ' • $moneynessStr' : ''}',
             target: isShort
                 ? PortfolioAlertTarget.strategies
-                : PortfolioAlertTarget.positions,
+                : PortfolioAlertTarget.optionPositions,
           ),
         );
       }

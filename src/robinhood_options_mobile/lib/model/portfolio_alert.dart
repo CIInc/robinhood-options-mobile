@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 /// Where an alert sends the user when tapped.
 enum PortfolioAlertTarget {
   positions,
+  optionPositions,
   performance,
   risk,
   insights,
