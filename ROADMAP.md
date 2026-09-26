@@ -1025,6 +1025,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 - [x] **CI/CD Pipeline**: Automated testing and deployment ([#70](https://github.com/CIInc/robinhood-options-mobile/issues/70))
 - [x] **Option Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped underlying summaries and individual contract list mode
 - [x] **Instrument Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for equity position counts, share holdings, market values, display value switching, and bounded chart row modes
+- [x] **Futures Positions Widget Coverage** ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)): Regression tests for grouped contract counts, P&L summaries, bounded chart rows, and aggregate-view navigation blocking
 - [ ] **Performance & Technical Debt Optimization** ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): App size, market data batching, viewport fixes, and list scrolling performance
   - [x] Web app-promotion banners replace hidden native ad placements across web screens ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Clear Forex positions chart selection after navigation so the same bar can be selected again ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
