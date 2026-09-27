@@ -40,10 +40,23 @@ export const getSentimentAnalysis = onCall(async (request) => {
   logger.info("getSentimentAnalysis called", { data: request.data });
 
   try {
+    // Batch fetch all required signal snapshots in a single
+    // Firestore getAll call
+    const allSymbols = Array.from(
+      new Set([...MARKET_INDICES, ...POPULAR_SYMBOLS])
+    );
+    const docRefs = allSymbols.map((s) => db.doc(`signals/${s}`));
+    const snapshots = await db.getAll(...docRefs);
+
+    const snapshotMap = new Map<string, admin.firestore.DocumentSnapshot>();
+    allSymbols.forEach((symbol, index) => {
+      snapshotMap.set(symbol, snapshots[index]);
+    });
+
     const [marketSentiment, trendingSentiment, feedItems] = await Promise.all([
-      calculateMarketSentiment(),
-      calculateTrendingSentiment(),
-      generateSentimentFeed(),
+      calculateMarketSentiment(snapshotMap),
+      calculateTrendingSentiment(snapshotMap),
+      generateSentimentFeed(snapshotMap),
     ]);
 
     return {
@@ -59,9 +72,13 @@ export const getSentimentAnalysis = onCall(async (request) => {
 
 /**
  * Calculates overall market sentiment score based on weighted index signals.
+ * @param {Map<string, admin.firestore.DocumentSnapshot>} [snapshotMap]
+ *   Optional map of pre-fetched snapshots.
  * @return {Promise<SentimentData>} The calculated market sentiment data.
  */
-async function calculateMarketSentiment(): Promise<SentimentData> {
+export async function calculateMarketSentiment(
+  snapshotMap?: Map<string, admin.firestore.DocumentSnapshot>
+): Promise<SentimentData> {
   const weights: { [key: string]: number } = {
     "SPY": 0.35,
     "QQQ": 0.35,
@@ -74,15 +91,19 @@ async function calculateMarketSentiment(): Promise<SentimentData> {
   const reasons: string[] = [];
 
   // Fetch signals for market indices
-  const snapshots = await Promise.all(
-    MARKET_INDICES.map((s) => db.doc(`signals/${s}`).get())
-  );
+  let snapshots: admin.firestore.DocumentSnapshot[];
+  if (snapshotMap) {
+    snapshots = MARKET_INDICES.map((s) => snapshotMap.get(s)!);
+  } else {
+    const docRefs = MARKET_INDICES.map((s) => db.doc(`signals/${s}`));
+    snapshots = await db.getAll(...docRefs);
+  }
 
   for (let i = 0; i < snapshots.length; i++) {
     const snap = snapshots[i];
     const symbol = MARKET_INDICES[i];
 
-    if (snap.exists) {
+    if (snap && snap.exists) {
       const data = snap.data();
       if (data && data.multiIndicatorResult) {
         const score = data.multiIndicatorResult.signalStrength || 50;
@@ -132,20 +153,26 @@ async function calculateMarketSentiment(): Promise<SentimentData> {
 
 /**
  * Identifies trending symbols based on signal strength deviation.
+ * @param {Map<string, admin.firestore.DocumentSnapshot>} [snapshotMap]
+ *   Optional map of pre-fetched snapshots.
  * @return {Promise<SentimentData[]>} List of trending sentiment data.
  */
-async function calculateTrendingSentiment(): Promise<SentimentData[]> {
+export async function calculateTrendingSentiment(
+  snapshotMap?: Map<string, admin.firestore.DocumentSnapshot>
+): Promise<SentimentData[]> {
   const sentimentList: SentimentData[] = [];
 
   // Fetch signals for popular symbols
-  // We limit batch concurrency if list grows, but 15 is fine.
-  const snapshots = await Promise.all(
-    POPULAR_SYMBOLS.map((s) =>
-      db.doc(`signals/${s}`).get())
-  );
+  let snapshots: admin.firestore.DocumentSnapshot[];
+  if (snapshotMap) {
+    snapshots = POPULAR_SYMBOLS.map((s) => snapshotMap.get(s)!);
+  } else {
+    const docRefs = POPULAR_SYMBOLS.map((s) => db.doc(`signals/${s}`));
+    snapshots = await db.getAll(...docRefs);
+  }
 
   for (const snap of snapshots) {
-    if (snap.exists) {
+    if (snap && snap.exists) {
       const data = snap.data();
       if (data && data.multiIndicatorResult) {
         const score = data.multiIndicatorResult.signalStrength || 50;
@@ -179,19 +206,26 @@ async function calculateTrendingSentiment(): Promise<SentimentData[]> {
 
 /**
  * Generates a feed of sentiment-related items from strong signals.
+ * @param {Map<string, admin.firestore.DocumentSnapshot>} [snapshotMap]
+ *   Optional map of pre-fetched snapshots.
  * @return {Promise<SentimentFeedItem[]>} List of sentiment feed items.
  */
-async function generateSentimentFeed(): Promise<SentimentFeedItem[]> {
+export async function generateSentimentFeed(
+  snapshotMap?: Map<string, admin.firestore.DocumentSnapshot>
+): Promise<SentimentFeedItem[]> {
   const feedItems: SentimentFeedItem[] = [];
 
-  // 1. Get Signals from Popular Symbols
-  const snapshots = await Promise.all(
-    POPULAR_SYMBOLS.map((s) =>
-      db.doc(`signals/${s}`).get())
-  );
+  // Get Signals from Popular Symbols
+  let snapshots: admin.firestore.DocumentSnapshot[];
+  if (snapshotMap) {
+    snapshots = POPULAR_SYMBOLS.map((s) => snapshotMap.get(s)!);
+  } else {
+    const docRefs = POPULAR_SYMBOLS.map((s) => db.doc(`signals/${s}`));
+    snapshots = await db.getAll(...docRefs);
+  }
 
   for (const snap of snapshots) {
-    if (snap.exists) {
+    if (snap && snap.exists) {
       const data = snap.data();
       if (data && data.multiIndicatorResult) {
         const score = data.multiIndicatorResult.signalStrength || 50;
