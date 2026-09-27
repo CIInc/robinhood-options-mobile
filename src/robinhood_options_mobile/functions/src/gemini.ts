@@ -64,6 +64,12 @@ import { GoogleGenAI } from "@google/genai";
 
 export const generateContent31 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
   async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to use Gemini content generation.",
+      );
+    }
     logger.info(request.data, { structuredData: true });
     if (process.env.GEMINI_API_KEY == null) {
       throw new https.HttpsError(
@@ -119,6 +125,12 @@ export const generateContent3 = generateContent31;
 
 export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
   async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to use Gemini content generation.",
+      );
+    }
     logger.info(request.data, { structuredData: true });
     if (process.env.GEMINI_API_KEY == null) {
       throw new https.HttpsError(
@@ -170,6 +182,12 @@ export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
 
 export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
   async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to analyze price targets.",
+      );
+    }
     logger.info(request.data, { structuredData: true });
     if (process.env.GEMINI_API_KEY == null) {
       throw new https.HttpsError(
