@@ -127,15 +127,19 @@ export const deleteGroupWatchlist = onCall(
       .get();
     const batch = db.batch();
 
-    for (const symbolDoc of symbolsSnapshot.docs) {
-      const alertsSnapshot = await symbolDoc.ref
-        .collection("alerts")
-        .get();
+    const alertsSnapshots = await Promise.all(
+      symbolsSnapshot.docs.map((symbolDoc) =>
+        symbolDoc.ref.collection("alerts").get()
+      )
+    );
+
+    symbolsSnapshot.docs.forEach((symbolDoc, index) => {
+      const alertsSnapshot = alertsSnapshots[index];
       for (const alertDoc of alertsSnapshot.docs) {
         batch.delete(alertDoc.ref);
       }
       batch.delete(symbolDoc.ref);
-    }
+    });
 
     // Delete watchlist
     batch.delete(watchlistDoc.ref);
