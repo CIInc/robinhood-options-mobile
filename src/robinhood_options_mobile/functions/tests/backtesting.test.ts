@@ -1,4 +1,25 @@
-import { aggregateEquityCurves } from "../src/backtesting";
+import { HttpsError } from "firebase-functions/v2/https";
+import { aggregateEquityCurves, runBacktest } from "../src/backtesting";
+
+describe("runBacktest authentication", () => {
+  it("rejects unauthenticated requests", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: {
+        symbol: "AAPL",
+        startDate: "2025-01-01",
+        endDate: "2025-01-10",
+      },
+    };
+
+    const callFn = () => (runBacktest as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+});
 
 describe("aggregateEquityCurves", () => {
   it("correctly aggregates equity curves and missing timestamps", () => {

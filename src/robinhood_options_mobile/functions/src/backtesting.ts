@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getMarketData } from "./market-data";
 import * as technicalIndicators from "./technical-indicators";
@@ -167,6 +167,15 @@ export const runBacktest = onCall({
   timeoutSeconds: 300,
   memory: "512MiB",
 }, async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  // and API secret consumption
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to run backtests."
+    );
+  }
+
   logger.info("Starting backtest", { structuredData: true });
 
   const config = request.data;
