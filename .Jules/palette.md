@@ -21,3 +21,7 @@
 ## 2026-04-07 - Accessibility for Inline Counter Action Buttons in Social Items
 **Learning:** Interactive counter buttons (such as upvote/like controls in comment cards) consisting of an icon and count string are read as raw, isolated numbers by screen readers unless wrapped in `Semantics`. Explicitly setting `button: true`, `selected: isLiked`, `enabled`, `label: '$count upvotes'`, `hint`, and `excludeSemantics: true` ensures screen readers announce both the count and state while offering clear gesture guidance.
 **Action:** Wrap inline counter buttons in `Semantics(button: true, selected: ..., enabled: ..., label: '$count ...', hint: ..., excludeSemantics: true)` to unify icon and count string into an explicit, state-aware button action.
+
+## 2026-04-08 - Accessibility and Live Regions for Pre-Trade Order Validation Banners
+**Learning:** Pre-trade validation feedback cards (such as Schwab order rejections and warnings) containing icons and list items can leave screen reader users unaware of dynamic validation status changes unless explicitly wrapped in `Semantics` with `container: true`, `liveRegion: true`, and `excludeSemantics: true`. Combining messages into a structured summary label ensures screen readers immediately announce critical order validation alerts when rendered without repeating nested text nodes.
+**Action:** Always wrap dynamic order validation/error/warning banners in `Semantics(container: true, liveRegion: true, excludeSemantics: true, label: ...)` to immediately notify screen readers of critical status updates.

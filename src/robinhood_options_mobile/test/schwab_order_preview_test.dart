@@ -441,6 +441,7 @@ void main() {
 
     testWidgets('Renders warning and rejection banners when present',
         (tester) async {
+      final handle = tester.ensureSemantics();
       final preview = SchwabOrderPreview.fromJson({
         'orderStrategy': {
           'orderBalance': {
@@ -477,6 +478,20 @@ void main() {
       expect(find.text('Schwab Order Notices & Warnings'), findsOneWidget);
       expect(find.text('• Warning: Hard to borrow security fee applies.'),
           findsOneWidget);
+
+      expect(
+        find.bySemanticsLabel(
+          RegExp(r'Schwab Order Validation Rejected'),
+        ),
+        findsAtLeastNWidgets(1),
+      );
+      expect(
+        find.bySemanticsLabel(
+          RegExp(r'Schwab Order Notices & Warnings'),
+        ),
+        findsAtLeastNWidgets(1),
+      );
+      handle.dispose();
     });
   });
 }
