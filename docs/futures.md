@@ -90,10 +90,28 @@ A pie chart visualizes the distribution of Notional Value across different futur
 ## UI Integration
 - **Summary Header:** Displays aggregated Total Notional, Total Open P&L, and Total Day P&L.
 - **Risk Chart:** Interactive pie chart showing notional exposure by root symbol.
-- **Position List:**
+- **Position List (`FuturesPositionsWidget`):**
     - Day P&L and Open P&L with color-coded values.
     - Notional Value per position.
     - Contract details and multipliers.
+    - Bounded lazy scrolling via `SliverMainAxisGroup` and `SliverList.builder` to optimize scroll performance on long positions lists.
+
+## Futures Order Entry
+
+Users can place live futures orders directly from `FutureInstrumentWidget` via the modal `FuturesOrderEntrySheet`.
+
+### Order Sheet Features
+- **Order Types:** Supports **Market** and **Limit** orders.
+- **Side:** Toggle between **Buy** (Long) and **Sell** (Short).
+- **Quantity & Price:** Enter contract quantities and custom limit prices with live tick step increments.
+- **Time-in-Force (TIF):** Configurable between `Day` and `Good 'Til Canceled (GTC)`.
+- **Live Quote Banner:** Surfaces the real-time mark price, bid/ask prices, spread, and contract multiplier.
+- **Notional Calculation:** Dynamically calculates the estimated total notional order value ($P \times Q \times \text{Multiplier}$).
+- **Two-Step Order Confirmation:** An explicit modal review dialog confirms contract details, action, order type, price, and total estimated value before routing to the brokerage API.
+
+### Brokerage Integration (`IBrokerageService`)
+- Added `placeFuturesOrder` to `IBrokerageService` (`RobinhoodService` implements active order placement calling `/marketdata/futures/orders/`).
+- Service implementations in `PaperService`, `DemoService`, `FidelityService`, `PlaidService`, and `SchwabService` provide graceful stub/preview handling.
 
 ## Futures Auto-Trading
 

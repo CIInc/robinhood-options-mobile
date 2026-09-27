@@ -1918,15 +1918,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         return _buildNewsSlivers(instrument);
       case 'All':
         return [
-          // 1. Holdings & Activity
+          // 1. Market Overview (at the top)
+          _buildMarketQuoteSliver(instrument),
+          // 2. Holdings & Activity
           _buildPositionSliver(instrument),
           _buildOptionPositionsSliver(instrument),
           _buildHistoricalPositionsSliver(instrument),
           _buildStockOrdersSliver(instrument),
           _buildOptionOrdersSliver(instrument),
           _buildComboOrdersSliver(instrument),
-          // 2. Market Overview
-          _buildMarketQuoteSliver(instrument),
           // 3. Technical Signals & AI
           _buildAgenticTradeSignals(instrument),
           // 4. Intelligence & Quantitative Tools
@@ -1938,6 +1938,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ..._buildResearchSlivers(instrument),
           // 7. News & Community
           ..._buildNewsSlivers(instrument),
+          // Note: Deep Dive (_buildExploreSectionsCard) is omitted in 'All'
+          // because all sections are already presented inline.
         ];
       case 'Overview':
       default:

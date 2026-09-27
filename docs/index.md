@@ -15,6 +15,7 @@
 - Community-driven features for shared insights and discussions.
   - **[Social Discussion & Comment Threads](social-discussion-threads.md):** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling, comment upvoting, and moderation reporting.
 - Enhanced security and privacy for user data.
+  - **[Secure OAuth Token Storage](secure-token-storage.md):** Encrypted credential storage leveraging platform Keychain (iOS/macOS) and Android Keystore with automatic legacy migration.
   - **Balance Visibility Toggle:** Global privacy mask for sensitive P&L and equity data, including portfolio-chart axes, annotations, tooltips, and summary values.
 - **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
 - **Synchronized Position Scroll:** Synchronized multi-column scrolling across position detail rows for equities, options, forex, and futures positions.
@@ -25,7 +26,8 @@
 - **[Instrument Notes](instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
 - Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick), weighted signal strength visualization, and sparkline previews.
 - Integration with social media for sentiment analysis.
-- Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
+- Futures position monitoring with enriched contract/product metadata, real-time Open P&L calculation, and **lazy bounded scrolling optimization** (`SliverMainAxisGroup`).
+- **[Futures Order Entry](futures.md#futures-order-entry):** Full modal order sheet supporting Market and Limit orders, live quotes with estimated notional calculations, and two-step confirmation review.
 - **Futures Auto-Trading:** Automated futures strategy execution with settings, performance tracking, activity logs, and emergency stop controls.
 - **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
 - **[Trading Strategies](agentic-trading.md#trading-strategy-management):** Switch between pre-defined trading styles (e.g., Momentum, Mean Reversion) instantly.

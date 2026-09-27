@@ -22,7 +22,8 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Manages trade execution, TP/SL monitoring, and safety checks.
    - Handles automated buy trades tracking and Firebase persistence.
    - Loads auto-trade history from Firestore ensuring persistence across app restarts.
-  - Mirrors backend decision and rejection messages into a bounded activity log while suppressing duplicate messages received within a short interval.
+   - Mirrors backend decision and rejection messages into a bounded activity log while suppressing duplicate messages received within a short interval.
+   - **Systematic Mode Rule Enforcement:** Strict BUY signal validation rejecting non-BUY signals during systematic symbol evaluations (`Signal is <type>, not BUY`), comprehensive custom indicator validation under `requireAllIndicatorsGreen`, and calibrated default 50% minimum signal strength.
 
 3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
    - Centralized trade signal management
@@ -49,6 +50,7 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Auto-save functionality (no manual save button)
    - **Manual Execution:** Use the "Run Now" button to immediately trigger a market analysis and trade execution cycle.
    - **Emergency Stop:** Use the "Emergency Stop" button to immediately stop all automated trading activities. You can also **long-press the auto-trade status badge** in the app bar to quickly toggle the emergency stop.
+   - **Entry Readiness Setup UI:** Warning card displayed when Systematic mode is active without any enabled indicators, notifying users that signals cannot qualify. Offers a 1-tap "Apply balanced setup" action activating core indicators (`priceMovement`, `marketDirection`, `macd`) and a 50% minimum signal strength while keeping auto-trading disabled.
    - Integration with both AgenticTradingProvider and TradeSignalsProvider
    - **Paper Trading:** Expanded paper trading functionality allows validatation of strategies across various widgets without risking real capital. Supports TP/SL monitoring in paper mode.
 

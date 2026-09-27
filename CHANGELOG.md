@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.54.0] - 2026-09-26
+**Futures Order Entry, Secure Token Storage & Systematic Trading Readiness ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126), [#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181), [#182](https://github.com/CIInc/robinhood-options-mobile/pull/182))**
+
+- **Futures Order Entry & Service Integration (`FuturesOrderEntrySheet`, `IBrokerageService`, `RobinhoodService`, [#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - **Modal Order Entry Sheet (`FuturesOrderEntrySheet`)**:
+    - Full-featured order entry modal for futures contracts supporting Market and Limit order types.
+    - Buy and Sell actions with contract quantity selection and custom limit price input.
+    - Time-in-Force (TIF) selection supporting `Day` and `Good 'Til Canceled (GTC)`.
+    - Real-time quote integration displaying live mark price, bid/ask spread, and calculated estimated notional order value ($P \times Q \times \text{Multiplier}$).
+    - Two-step safety flow with an explicit modal review dialog confirming contract details, estimated total notional value, and order specifications prior to routing.
+  - **Brokerage Service Pipeline (`IBrokerageService`, `RobinhoodService`)**:
+    - Added `placeFuturesOrder` to `IBrokerageService` and implemented active order placement in `RobinhoodService` calling `/marketdata/futures/orders/`.
+    - Added stubbed implementations for `PaperService`, `DemoService`, `FidelityService`, `PlaidService`, and `SchwabService`.
+    - Added direct "Trade Futures" action button on `FutureInstrumentWidget` opening the order sheet.
+    - Test coverage in `test/futures_order_entry_sheet_test.dart` and `test/robinhood_futures_quote_test.dart`.
+
+- **Platform-Secure OAuth Storage (`SecureTokenStorage`, `BrokerageUserStore`, `flutter_secure_storage`, [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)):**
+  - Replaced plaintext credential storage in `SharedPreferences` and Firestore with `flutter_secure_storage` utilizing platform-native hardware keystores (Apple Keychain on iOS/macOS, Android Keystore on Android).
+  - Implemented startup migration pipeline automatically reading legacy plaintext tokens from local preferences and Firestore user documents, writing them to secure storage with random per-account opaque keys, and rewriting documents and caches stripped of credentials.
+  - Ensured token refresh callbacks persist renewed credentials directly into secure storage.
+  - Hardened lifecycle cleanup: account unlinking, sign-out, or MCP disconnection safely deletes stored tokens from keychain/keystore before local or cloud records are pruned.
+  - Detailed architecture and migration guide documented in [docs/secure-token-storage.md](docs/secure-token-storage.md).
+  - Comprehensive unit test suite in `test/secure_token_storage_test.dart` and expanded `test/brokerage_user_store_test.dart`.
+
+- **Systematic Auto-Trading Readiness & Signal Optimization (`AgenticTradingSettingsWidget`, `AgenticTradingProvider`, [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126)):**
+  - **Entry Readiness Setup UI**: Added contextual alert banner in `AgenticTradingSettingsWidget` when systematic trading mode is active without any enabled indicators, warning that signals will not pass entry evaluation.
+  - **Starter Preset Action ("Apply balanced setup")**: 1-tap setup applying a curated trio of starter indicators (`priceMovement`, `marketDirection`, `macd`) and a 50% minimum signal strength while keeping auto-trading disabled until the user is ready.
+  - **Threshold Calibration**: Updated default systematic mode minimum signal strength from 75% to 50% to prevent over-filtering during conservative market regimes.
+  - **Systematic Entry Validation**: Enforced BUY signal validation in systematic mode for symbol-filtered scans, rejecting non-BUY signals with clear rejection logging (`rejectionReason: 'Signal is <type>, not BUY'`).
+  - **Custom Indicator Enforcement**: Validates that all custom indicator conditions are met when `requireAllIndicatorsGreen` is specified.
+  - Unit and widget tests in `test/agentic_trading_provider_test.dart` and `test/agentic_trading_settings_widget_test.dart`.
+
+- **Portfolio Event Alerts & Option Positions Navigation (`PortfolioAlertTarget`, `PortfolioNavigator`, [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - Added `PortfolioAlertTarget.optionPositions` target enum to `PortfolioAlert` and `CustomAlert`.
+  - Added dedicated navigation handler in `PortfolioNavigator` to route users directly to the Option Positions tab/ledger when tapping option position alerts in the Action Center.
+
+- **Instrument Overview & Information Architecture (`InstrumentWidget`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)):**
+  - Moved equity position and option position cards from the secondary Trading Activity section directly into the primary Overview section for immediate visibility upon opening an instrument.
+  - Renamed the "Signals & Tech" tab to "Signals" across navigation chips, tabs, and test assertions.
+  - Updated Trading Activity section to focus strictly on executions, fills, and historical order records with streamlined empty state copy.
+
+- **Positions Widget & Rendering Optimizations (`FuturesPositionsWidget`, `ForexPositionsWidget`, [#116](https://github.com/CIInc/robinhood-options-mobile/issues/116), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - Refactored `FuturesPositionsWidget` to use `SliverMainAxisGroup` and `SliverList.builder` for lazy, bounded viewport rendering while scrolling, eliminating unnecessary widget builds.
+  - Added dynamic asset type labels and units in `ForexPositionsWidget` supporting crypto, forex, and mixed holdings.
+  - Added comprehensive widget test suites in `test/futures_positions_widget_test.dart` and `test/forex_positions_widget_test.dart`.
+
+- **Cloud Functions, Options Flow & Backend Security ([#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181)):**
+  - **Options Flow Cache Bypass (`refreshOptionsCache`)**: Added optional `refreshOptionsCache` parameter to callable Cloud Functions in `gamma-exposure.ts` and `options-flow-utils.ts` to bypass stale flow caches and retrieve fresh options chains.
+  - **Callable Function Auth Enforcement (Sentinel #181)**: Added strict authentication checks (`request.auth` and `request.auth.uid`) to `alphabotTask`, `riskguardTask`, and `calculatePositionSize` callable Cloud Functions to prevent unauthorized execution.
+  - **Zero-Allocation Crossover Evaluation (Bolt #180)**: Refactored `evaluateCustomIndicator` and technical indicators in `technical-indicators.ts` to support an optional `endIndex` parameter, eliminating memory allocations from array slicing during backtesting and indicator crossover computations.
+
+- **Accessibility & CI/CD Deployment ([#182](https://github.com/CIInc/robinhood-options-mobile/pull/182)):**
+  - **Sentiment Poll Accessibility (Palette #182)**: Added semantic breakdown summary labels and button/selected/enabled traits to `SocialSentimentPollWidget`.
+  - **Firebase CI/CD Deployment Workflow**: Added automated deployment workflow in `.github/workflows/cd.yml` deploying Hosting, Functions, and Firestore security rules/indexes to the `realizealpha` project on merges to `main`.
+
 ## [0.53.0] - 2026-09-25
 **Institutional Research, Portfolio Alerts & Congress Trading Tracker ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#143](https://github.com/CIInc/robinhood-options-mobile/issues/143))**
 
