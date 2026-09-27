@@ -212,13 +212,16 @@ function computeADXArrayLocal(
 
 /**
  * Computes CCI array.
+ * Optimized: Uses a sliding window sum for SMA and direct index iteration
+ * for mean deviation, avoiding O(N * period) array slice allocations and
+ * reduce passes.
  * @param {number[]} highs High prices
  * @param {number[]} lows Low prices
  * @param {number[]} closes Close prices
  * @param {number} period CCI period
  * @return {Array<number|null>} Array of CCI values
  */
-function computeCCIArrayLocal(
+export function computeCCIArrayLocal(
   highs: number[],
   lows: number[],
   closes: number[],
@@ -229,10 +232,26 @@ function computeCCIArrayLocal(
   const tp = closes.map((c, i) => (highs[i] + lows[i] + c) / 3);
   const result: (number | null)[] = Array(period - 1).fill(null);
 
+  // Compute initial sum for SMA
+  let sum = 0;
+  for (let i = 0; i < period - 1; i++) {
+    sum += tp[i];
+  }
+
   for (let i = period - 1; i < tp.length; i++) {
-    const slice = tp.slice(i - period + 1, i + 1);
-    const sma = slice.reduce((a, b) => a + b, 0) / period;
-    const meanDev = slice.reduce((a, b) => a + Math.abs(b - sma), 0) / period;
+    sum += tp[i];
+    if (i >= period) {
+      sum -= tp[i - period];
+    }
+    const sma = sum / period;
+
+    // Calculate mean deviation over window [i - period + 1 .. i]
+    let sumAbsDev = 0;
+    const start = i - period + 1;
+    for (let j = start; j <= i; j++) {
+      sumAbsDev += Math.abs(tp[j] - sma);
+    }
+    const meanDev = sumAbsDev / period;
 
     if (meanDev === 0) {
       result.push(0);
@@ -324,6 +343,8 @@ function computeROCArrayLocal(
  * Computes Money Flow Index (MFI) array.
  * MFI = 100 - (100 / (1 + Money Ratio))
  * Money Ratio = Positive Money Flow / Negative Money Flow
+ * Optimized: Pre-computes per-bar money flows and uses a sliding window sum,
+ * reducing time complexity from O(N * period) to O(N).
  * @param {number[]} highs High prices
  * @param {number[]} lows Low prices
  * @param {number[]} closes Close prices
@@ -331,7 +352,7 @@ function computeROCArrayLocal(
  * @param {number} period Period
  * @return {Array<number|null>} Array of MFI values
  */
-function computeMFIArrayLocal(
+export function computeMFIArrayLocal(
   highs: number[],
   lows: number[],
   closes: number[],
@@ -343,34 +364,45 @@ function computeMFIArrayLocal(
   // Typical Price = (H + L + C) / 3
   const tp = closes.map((c, i) => (highs[i] + lows[i] + c) / 3);
 
-  // First valid index is at 'period' because of 1-period lookback for flow
+  // Pre-calculate positive and negative money flows for each index
+  const posFlows = new Float64Array(tp.length);
+  const negFlows = new Float64Array(tp.length);
+
+  for (let j = 1; j < tp.length; j++) {
+    const rawMoneyFlow = tp[j] * volumes[j];
+    if (tp[j] > tp[j - 1]) {
+      posFlows[j] = rawMoneyFlow;
+    } else if (tp[j] < tp[j - 1]) {
+      negFlows[j] = rawMoneyFlow;
+    }
+  }
+
   const result: (number | null)[] = Array(period).fill(null);
 
-  for (let i = period; i < tp.length; i++) {
-    // Window: [i - period + 1 ... i]
-    // Flow calculation requires looking back 1 step within window
+  // Initial sum over the first period [1 .. period]
+  let posFlowSum = 0;
+  let negFlowSum = 0;
+  for (let j = 1; j <= period; j++) {
+    posFlowSum += posFlows[j];
+    negFlowSum += negFlows[j];
+  }
 
-    let posFlow = 0;
-    let negFlow = 0;
+  if (negFlowSum === 0) {
+    result.push(100);
+  } else {
+    const mr = posFlowSum / negFlowSum;
+    result.push(100 - (100 / (1 + mr)));
+  }
 
-    // Check flows for the last 'period' days relative to i
-    // Sequence of calculation: compare j to j-1
-    // Range of j: (i - period + 1) to i
-    for (let j = i - period + 1; j <= i; j++) {
-      if (j === 0) continue;
+  // Sliding window for subsequent periods
+  for (let i = period + 1; i < tp.length; i++) {
+    posFlowSum += posFlows[i] - posFlows[i - period];
+    negFlowSum += negFlows[i] - negFlows[i - period];
 
-      const rawMoneyFlow = tp[j] * volumes[j];
-      if (tp[j] > tp[j - 1]) {
-        posFlow += rawMoneyFlow;
-      } else if (tp[j] < tp[j - 1]) {
-        negFlow += rawMoneyFlow;
-      }
-    }
-
-    if (negFlow === 0) {
+    if (negFlowSum === 0) {
       result.push(100);
     } else {
-      const mr = posFlow / negFlow;
+      const mr = posFlowSum / negFlowSum;
       result.push(100 - (100 / (1 + mr)));
     }
   }

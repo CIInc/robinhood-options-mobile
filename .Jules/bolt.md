@@ -13,3 +13,7 @@
 ## 2026-03-31 - O(1) Indicator Set Lookup and Single-Pass Signal Aggregation in evaluateAllIndicators
 **Learning:** In backtesting loops, calling `evaluateAllIndicators` on every bar executed `config.enabledIndicators.includes(key)` linear array scans over 60+ times per bar and allocated 5 temporary intermediate arrays (`standardVals`, `customVals`, `allVals`, `.filter()`) for signal summary stats (`buyCount`, `sellCount`, `allGreen`, `allRed`). Over 50,000 backtest bars, this generated millions of linear search operations and heavy GC pressure.
 **Action:** Pre-build a `Set<string>` once per `evaluateAllIndicators` call for O(1) `isEnabled` lookups, and aggregate counts/scores in a single loop pass without intermediate array allocations.
+
+## 2026-03-31 - Sliding Window & Flow Pre-computation for Local Alpha Factor Indicators
+**Learning:** In factor discovery and backtesting pipelines, local indicator array computations like CCI and MFI were re-allocating array slices per bar (`tp.slice()`) and running nested O(N * period) money flow comparisons. For 2,500 historical price bars, this created thousands of array allocations and tens of thousands of redundant loop passes.
+**Action:** Use sliding window sums for SMA and pre-calculate per-bar money flow arrays (`posFlows`/`negFlows`), reducing time complexity to O(N) and eliminating temporary array slice allocations.
