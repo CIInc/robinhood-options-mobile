@@ -159,33 +159,43 @@ class _SocialCommentItemWidgetState extends State<SocialCommentItemWidget> {
               ),
 
               // Upvote Button
-              InkWell(
-                onTap: widget.onToggleLike,
-                borderRadius: BorderRadius.circular(16),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isLiked
-                            ? Icons.thumb_up_rounded
-                            : Icons.thumb_up_outlined,
-                        size: 15,
-                        color: isLiked ? theme.colorScheme.primary : null,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${c.upvotesCount}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight:
-                              isLiked ? FontWeight.bold : FontWeight.normal,
+              Semantics(
+                button: true,
+                selected: isLiked,
+                enabled: widget.onToggleLike != null,
+                label:
+                    '${c.upvotesCount} ${c.upvotesCount == 1 ? "upvote" : "upvotes"}',
+                hint:
+                    isLiked ? 'Tap to remove upvote' : 'Tap to upvote comment',
+                excludeSemantics: true,
+                child: InkWell(
+                  onTap: widget.onToggleLike,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isLiked
+                              ? Icons.thumb_up_rounded
+                              : Icons.thumb_up_outlined,
+                          size: 15,
                           color: isLiked ? theme.colorScheme.primary : null,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '${c.upvotesCount}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                isLiked ? FontWeight.bold : FontWeight.normal,
+                            color: isLiked ? theme.colorScheme.primary : null,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

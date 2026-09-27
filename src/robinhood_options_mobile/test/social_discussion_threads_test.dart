@@ -1,5 +1,6 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -414,7 +415,19 @@ void main() {
       expect(find.text('Alpha Analyst'), findsOneWidget);
       expect(find.text('Pinned note: Key level to watch is \$150.25.'),
           findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
+
+      // Semantics check for upvote button
+      final upvoteSemanticsData = tester
+          .getSemantics(find.byWidgetPredicate(
+            (w) =>
+                w is Semantics &&
+                w.properties.label == '2 upvotes' &&
+                w.properties.button == true,
+          ))
+          .getSemanticsData();
+      expect(upvoteSemanticsData.label, equals('2 upvotes'));
+      expect(upvoteSemanticsData.hint, equals('Tap to remove upvote'));
+      expect(upvoteSemanticsData.hasFlag(SemanticsFlag.isSelected), isTrue);
 
       // Tap upvote
       await tester.tap(find.byIcon(Icons.thumb_up_rounded));

@@ -16,4 +16,8 @@
 
 ## 2026-04-06 - Accessibility for Interactive Poll Widgets and Segmented Distribution Bars
 **Learning:** Visual-only segmented distribution bars (e.g., sentiment polls) and custom option button tiles in community widgets lack screen reader context unless explicitly wrapped in `Semantics`. Providing a summary label on the segmented bar (`Sentiment poll breakdown: ...`) and setting `button: true`, `selected: isSelected`, `enabled`, and explicit `hint`s on option tiles allows screen reader users to understand both poll results and voting capabilities.
-**Action:** Wrap segmented progress/distribution bars in `Semantics(container: true, excludeSemantics: true, label: ...)` with percentage breakdowns, and wrap option tiles with `Semantics(button: true, selected: ..., hint: ...)`."
+**Action:** Wrap segmented progress/distribution bars in `Semantics(container: true, excludeSemantics: true, label: ...)` with percentage breakdowns, and wrap option tiles with `Semantics(button: true, selected: ..., hint: ...)`.
+
+## 2026-04-07 - Accessibility for Inline Counter Action Buttons in Social Items
+**Learning:** Interactive counter buttons (such as upvote/like controls in comment cards) consisting of an icon and count string are read as raw, isolated numbers by screen readers unless wrapped in `Semantics`. Explicitly setting `button: true`, `selected: isLiked`, `enabled`, `label: '$count upvotes'`, `hint`, and `excludeSemantics: true` ensures screen readers announce both the count and state while offering clear gesture guidance.
+**Action:** Wrap inline counter buttons in `Semantics(button: true, selected: ..., enabled: ..., label: '$count ...', hint: ..., excludeSemantics: true)` to unify icon and count string into an explicit, state-aware button action.
