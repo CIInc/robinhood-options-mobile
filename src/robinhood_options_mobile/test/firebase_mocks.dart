@@ -61,6 +61,14 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
     List<AnalyticsEventItem>? items,
     AnalyticsCallOptions? callOptions,
   }) async {}
+
+  @override
+  Future<void> logScreenView({
+    String? screenClass,
+    String? screenName,
+    AnalyticsCallOptions? callOptions,
+    Map<String, Object>? parameters,
+  }) async {}
 }
 
 class MockRemoteConfig extends Fake implements FirebaseRemoteConfig {
@@ -94,7 +102,9 @@ Future<void> setupFirebaseMocks() async {
   TestWidgetsFlutterBinding.ensureInitialized();
   SharedPreferences.setMockInitialValues({});
   FirebasePlatform.instance = MockFirebasePlatform();
-  RemoteConfigService.mockInstance = MockRemoteConfigService();
+  try {
+    RemoteConfigService.mockInstance = MockRemoteConfigService();
+  } catch (_) {}
 
   // Initialize Firebase App
   final app = await Firebase.initializeApp();

@@ -377,7 +377,13 @@ class PaperService implements IBrokerageService {
         user.userInfo?.id ??
         user.userName ??
         'default_paper_user';
-    final positions = await _firestoreService.listPaperOptionPositions(userId);
+    final List<OptionAggregatePosition> positions;
+    if (auth.currentUser == null) {
+      final engine = await _engine();
+      positions = engine.optionPositions.toList();
+    } else {
+      positions = await _firestoreService.listPaperOptionPositions(userId);
+    }
 
     if (positions.isNotEmpty) {
       // Collect option instrument IDs to fetch metadata/market data
@@ -655,6 +661,32 @@ class PaperService implements IBrokerageService {
   /// historicals — reports the same numbers.
   Future<PaperEquitySnapshot> _equitySnapshot(
       BrokerageUser user, String userId) async {
+    if (auth.currentUser == null) {
+      final engine = await _engine();
+      final cashBalance = engine.cashBalance;
+      final initialCapital = engine.initialCapital;
+      double positionsValue = 0.0;
+      for (var pos in engine.positions) {
+        positionsValue += pos.marketValue;
+      }
+      for (var op in engine.optionPositions) {
+        final value = op.marketValue != 0
+            ? op.marketValue
+            : (op.averageOpenPrice ?? 0) * (op.quantity ?? 0) * 100;
+        positionsValue += op.direction == 'credit' ? -value : value;
+      }
+      for (var fp in engine.futuresPositions) {
+        positionsValue += fp.openPnl;
+      }
+      return PaperEquitySnapshot(
+        cashBalance: cashBalance,
+        positionsValue: positionsValue,
+        initialCapital: initialCapital,
+        previousClose: null,
+        equityHistoricals: [],
+      );
+    }
+
     final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
     final data = paperAccountDoc.data() ?? {};
     final cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
@@ -1326,16 +1358,11 @@ class PaperService implements IBrokerageService {
           InstrumentOrderStore store, List<String> instrumentUrls) async =>
       [];
 
-  /// Returns the single app-wide paper trading engine, bound to the signed-in
-  /// Firebase user and fully loaded from Firestore. All paper order execution
-  /// must go through [PaperTradingStore] so positions/cash/history stay
-  /// consistent with the rest of the app.
+  /// Returns the single app-wide paper trading engine. When a Firebase user
+  /// is signed in, it is bound to the user and loaded from Firestore. For
+  /// guest users, it operates from local storage via SharedPreferences.
   Future<PaperTradingStore> _engine() async {
     final firebaseUser = auth.currentUser;
-    if (firebaseUser == null) {
-      throw Exception(
-          'Paper trading requires a signed-in session. Please sign in again.');
-    }
     await paperTradingStore.ensureLoaded(firebaseUser);
     return paperTradingStore;
   }

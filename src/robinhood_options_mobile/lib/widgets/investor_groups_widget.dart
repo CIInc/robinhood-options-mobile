@@ -127,8 +127,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
               });
             },
             actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded),
+              if (auth.currentUser != null)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded),
                 tooltip: 'More options',
                 onSelected: (value) {
                   if (value == 'copy_trading') {

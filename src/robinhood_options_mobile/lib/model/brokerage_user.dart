@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
@@ -176,8 +177,13 @@ class BrokerageUser {
     if (oauth2Client != null || credentials == null) {
       return;
     }
+    final raw = credentials;
+    if (raw is String && (raw.trim().isEmpty || raw.trim() == 'null')) {
+      return;
+    }
     try {
-      var creds = Credentials.fromJson(credentials as String);
+      final jsonString = raw is String ? raw : jsonEncode(raw);
+      var creds = Credentials.fromJson(jsonString);
       var service = source == BrokerageSource.robinhood
           ? RobinhoodService()
           : source == BrokerageSource.schwab

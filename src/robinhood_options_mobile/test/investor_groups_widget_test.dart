@@ -122,11 +122,13 @@ void main() {
     }
 
     testWidgets(
-        'renders 3 primary tabs (Feed, Leaderboard, Groups) and overflow menu',
+        'renders 3 primary tabs (Feed, Leaderboard, Groups) and overflow menu when logged in',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
+      FakeFirebaseAuth.mockUser = MockFirebaseUser();
       addTearDown(() {
+        FakeFirebaseAuth.mockUser = null;
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
       });
@@ -145,6 +147,22 @@ void main() {
       // Verify old top-level icon buttons are removed from app bar
       expect(find.byTooltip('Following Activity Feed'), findsNothing);
       expect(find.byTooltip('Copy Trading History'), findsNothing);
+    });
+
+    testWidgets('hides app bar overflow menu when user is not logged in',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Verify overflow action menu button is NOT present in app bar
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
     });
 
     testWidgets('tapping Groups tab displays segmented filter chips',

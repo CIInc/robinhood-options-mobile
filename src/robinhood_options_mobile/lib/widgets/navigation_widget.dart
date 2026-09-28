@@ -1292,6 +1292,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                       child: WelcomeWidget(
                         message: message,
                         onLogin: onLogin ?? _openLogin,
+                        onExploreDemo: () async {
+                          final user = BrokerageUser(
+                              BrokerageSource.demo, "Demo Account", null, null);
+                          userStore.addOrUpdate(user);
+                          userStore.setCurrentUserIndex(
+                              userStore.items.indexOf(user));
+                          await userStore.save();
+                        },
                       ),
                     ),
                   ],

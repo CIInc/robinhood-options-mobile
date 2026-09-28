@@ -4,6 +4,7 @@
 - A better options UI view for Robinhood users.
 - Ability to make better trades.
 - **[Price Targets](price-targets.md):** AI-driven price target recommendations with confidence scoring and rationale.
+- **[AI Devil's Advocate & Trade Thesis Stress Tester](devils-advocate.md):** Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades.
 - Enhanced portfolio management with advanced analytics.
 - Simplified trading for beginners with guided workflows.
 - Centralized view for stocks, options, and crypto assets.

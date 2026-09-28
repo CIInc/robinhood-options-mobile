@@ -1075,15 +1075,23 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     if (user.oauth2Client!.credentials.isExpired) {
       try {
         user.oauth2Client = await user.oauth2Client!.refreshCredentials();
         user.credentials = user.oauth2Client!.credentials.toJson();
+        await user.persistCredentials();
       } catch (e) {
         throw Exception('Authorization expired. Please log back in.');
       }
     }
-    String responseStr = await user.oauth2Client!.read(Uri.parse(url));
+    String responseStr = await user.oauth2Client!
+        .read(Uri.parse(url))
+        .timeout(const Duration(seconds: 30));
     debugPrint(
         "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
     dynamic responseJson = jsonDecode(responseStr);
@@ -1943,6 +1951,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     var response = await user.oauth2Client!.post(Uri.parse(url),
         body: jsonEncode(body),
         headers: {
@@ -1977,6 +1990,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     var response = await user.oauth2Client!.post(Uri.parse(url),
         body: jsonEncode(body),
         headers: {
@@ -2140,6 +2158,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     var url =
         "$endpoint/trader/v1/accounts/${account.accountNumber}/previewOrder";
 
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     var response = await user.oauth2Client!.post(
       Uri.parse(url),
       body: jsonEncode(orderPayload),
@@ -2217,6 +2240,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     var url =
         "$endpoint/trader/v1/accounts/${account.accountNumber}/orders/$orderId";
 
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     var response = await user.oauth2Client!.put(
       Uri.parse(url),
       body: jsonEncode(body),
@@ -2263,6 +2291,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
     var url = "$endpoint/trader/v1/accounts/${account.accountNumber}/orders";
 
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     var response = await user.oauth2Client!.post(
       Uri.parse(url),
       body: jsonEncode(body),
@@ -3360,6 +3393,7 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
+    user.ensureOAuth2Client();
     final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
     final ordersIndex = parts.indexOf('orders');
     if (ordersIndex > 0 &&

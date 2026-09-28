@@ -746,15 +746,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: _getCardBorderColor(), width: 1),
       ),
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          _trackEvent('overview_card_tapped');
-          _navigateToMembers(group);
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -773,14 +766,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Overview & Members',
+                    'Group Overview',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const Spacer(),
-                  Icon(Icons.arrow_forward_ios,
-                      size: 16, color: _getTertiaryTextColor()),
                 ],
               ),
               const SizedBox(height: 16),
@@ -792,6 +782,10 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     label: 'Members',
                     value: '${group.members.length}',
                     color: Colors.blue,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _navigateToMembers(group);
+                    },
                   ),
                   const SizedBox(width: 8),
                   _buildOverviewStatTile(
@@ -799,6 +793,10 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                     label: 'Admins',
                     value: '${group.admins?.length ?? 0}',
                     color: Colors.purple,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _navigateToMembers(group);
+                    },
                   ),
                 ],
               ),
@@ -820,26 +818,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _navigateToMembers(group);
-                  },
-                  icon: const Icon(Icons.people_outline, size: 18),
-                  label: Text('View All Members (${group.members.length})'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
               if (auth.currentUser != null) ...[
+                const SizedBox(height: 14),
                 if (isMember) ...[
                   SizedBox(
                     width: double.infinity,
@@ -909,8 +889,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildOverviewStatTile({
@@ -918,53 +897,71 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
     required String label,
     required String value,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: _getBackgroundColor(),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _getCardBorderColor()),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: _isDarkTheme ? 0.25 : 0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 16, color: color),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: _getSecondaryTextColor(),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    final tile = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: _getBackgroundColor(),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _getCardBorderColor()),
       ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: _isDarkTheme ? 0.25 : 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: _getSecondaryTextColor(),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          if (onTap != null)
+            Icon(
+              Icons.chevron_right,
+              size: 14,
+              color: _getSecondaryTextColor().withValues(alpha: 0.6),
+            ),
+        ],
+      ),
+    );
+
+    return Expanded(
+      child: onTap != null
+          ? Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(10),
+                child: tile,
+              ),
+            )
+          : tile,
     );
   }
 
@@ -1042,24 +1039,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       ],
                     );
                   }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'View group performance metrics, rankings, and charts',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: _getSecondaryTextColor(),
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => _navigateToPerformance(group),
-                          child: const Text('View Details →'),
+                  return Text(
+                    'View group performance metrics, rankings, and charts',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: _getSecondaryTextColor(),
                         ),
-                      ),
-                    ],
                   );
                 },
               ),

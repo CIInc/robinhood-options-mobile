@@ -564,6 +564,15 @@ class TradeSignalsProvider with ChangeNotifier {
   }
 
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
+  bool _mockMode = false;
+
+  @visibleForTesting
+  void setTradeSignalsForTesting(List<Map<String, dynamic>> signals) {
+    _tradeSignals = signals;
+    _mockMode = true;
+    _isLoading = false;
+    notifyListeners();
+  }
   String? get error => _error;
   bool get isTradeInProgress => _isTradeInProgress;
   bool get isLoading => _isLoading;
@@ -791,6 +800,11 @@ class TradeSignalsProvider with ChangeNotifier {
     String? interval,
     String sortBy = 'signalStrength',
   }) {
+    if (_mockMode) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     _error = null;
     notifyListeners();

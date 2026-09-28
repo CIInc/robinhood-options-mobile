@@ -215,6 +215,11 @@ class PlaidService implements IBrokerageService {
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     if (user.oauth2Client!.credentials.isExpired) {
       throw Exception('Authorization expired. Please log back in.');
       // user.oauth2Client = await user.oauth2Client!.refreshCredentials();

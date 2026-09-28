@@ -21,87 +21,103 @@ class SchwabOrderPreviewCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (preview.hasRejections) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.1),
-              border: Border.all(color: Colors.red),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.red, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Schwab Order Validation Rejected",
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
+          Semantics(
+            container: true,
+            liveRegion: true,
+            excludeSemantics: true,
+            label:
+                "Schwab Order Validation Rejected: ${preview.rejectMessages.join('. ')}",
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.1),
+                border: Border.all(color: Colors.red),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Schwab Order Validation Rejected",
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                for (final msg in preview.rejectMessages)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2.0),
-                    child: Text(
-                      "• $msg",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.red,
-                      ),
-                    ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 6),
+                  for (final msg in preview.rejectMessages)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Text(
+                        "• $msg",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.red,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
         if (preview.hasWarnings) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.12),
-              border: Border.all(color: Colors.amber.shade700),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: Colors.amber.shade800, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Schwab Order Notices & Warnings",
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.bold,
+          Semantics(
+            container: true,
+            liveRegion: true,
+            excludeSemantics: true,
+            label: "Schwab Order Notices and Warnings: ${[
+              ...preview.warningMessages,
+              ...preview.alertMessages
+            ].join('. ')}",
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                border: Border.all(color: Colors.amber.shade700),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          color: Colors.amber.shade800, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Schwab Order Notices & Warnings",
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.amber.shade900,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                for (final msg in [
-                  ...preview.warningMessages,
-                  ...preview.alertMessages
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2.0),
-                    child: Text(
-                      "• $msg",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 6),
+                  for (final msg in [
+                    ...preview.warningMessages,
+                    ...preview.alertMessages
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2.0),
+                      child: Text(
+                        "• $msg",
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -174,25 +190,30 @@ class SchwabOrderPreviewCard extends StatelessWidget {
 
   Widget _buildRow(ThemeData theme, String label, String value,
       {bool isBold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: "$label: $value",
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-              color: theme.colorScheme.onSurface,
+            Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -69,12 +70,28 @@ class Constants {
     if (object is DateTime) {
       return object.toIso8601String();
     }
-    if (object is Iterable) {
-      return object
-          .map((e) => e is DateTime ? e.toIso8601String() : e)
-          .toList();
+    if (object is Timestamp) {
+      return object.toDate().toIso8601String();
     }
-    return object;
+    try {
+      final dynamic dyn = object;
+      if (dyn.toDate is Function) {
+        final dt = dyn.toDate();
+        if (dt is DateTime) {
+          return dt.toIso8601String();
+        }
+      }
+    } catch (_) {}
+    try {
+      final dynamic dyn = object;
+      if (dyn.toJson is Function) {
+        return dyn.toJson();
+      }
+    } catch (_) {}
+    if (object is Iterable) {
+      return object.map((e) => toEncodable(e)).toList();
+    }
+    return object?.toString();
   }
 }
 

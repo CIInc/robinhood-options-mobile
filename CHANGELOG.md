@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.0] - 2026-09-27
+**AI Devil's Advocate & Trade Thesis Stress Tester ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))**
+
+- **AI Devil's Advocate & Trade Thesis Stress Tester (`DevilsAdvocateWidget`, `DevilsAdvocateAnalysis`, `stressTestTradeThesis`, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Adversarial Critique Engine**: Embedded AI Devil's Advocate designed to counter confirmation bias by performing rigorous, quantitative adversarial stress testing on trading theses before capital is committed.
+  - **Categorical Resilience Scoring**: Evaluates trade ideas with a 0–100 Resilience Score and categorical verdict (`Fragile`, `Moderate`, `Resilient`) indicating trade thesis durability against shocks.
+  - **The Killer Question**: Highlights a single, sharp stress point that pinpoints the trade's greatest single vulnerability (e.g. margin cliff, capex normalization, regulatory exposure).
+  - **Derivatives Skew Traps & Options Hazards**: Analyzes options volatility skew, high-percentile IV crush hazards, and negative gamma amplifier traps.
+  - **Event Hazard Detection**: Flags imminent calendar risks including earnings surprises, central bank rate decisions (FOMC), ex-dividend assignment risk, and insider sales with timing and severity indicators.
+  - **Stress Scenario Matrix**: Models projected price impacts under standardized market shock scenarios (-5% market selloff, +30% VIX volatility shock).
+  - **Pre-Trade Integration**:
+    - Embedded in the primary Research slivers on `InstrumentWidget` alongside AI Price Targets.
+    - Added 1-tap "Devil's Advocate (Stress Test Thesis)" modal sheets to `TradeInstrumentWidget` (Equities) and `TradeOptionWidget` (Options).
+  - **Cloud Function & Caching**: Added `stressTestTradeThesis` callable Cloud Function with Google GenAI (Gemini 3.1 Flash-Lite, fallback to 2.5 Flash-Lite) and 24-hour Firestore caching (`ai_thesis_stress/{symbol}_{direction}`).
+  - **Unit & Widget Tests**: Added unit tests in `test/devils_advocate_model_test.dart`, widget tests in `test/devils_advocate_widget_test.dart`, and Cloud Function authentication/validation tests in `functions/tests/gemini.test.ts`.
+  - **Documentation**: Comprehensive architecture, methodology, and integration guide in [docs/devils-advocate.md](docs/devils-advocate.md).
+
 ## [0.54.0] - 2026-09-26
 **Futures Order Entry, Secure Token Storage & Systematic Trading Readiness ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126), [#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181), [#182](https://github.com/CIInc/robinhood-options-mobile/pull/182))**
 

@@ -17,3 +17,7 @@
 ## 2026-03-31 - Sliding Window & Flow Pre-computation for Local Alpha Factor Indicators
 **Learning:** In factor discovery and backtesting pipelines, local indicator array computations like CCI and MFI were re-allocating array slices per bar (`tp.slice()`) and running nested O(N * period) money flow comparisons. For 2,500 historical price bars, this created thousands of array allocations and tens of thousands of redundant loop passes.
 **Action:** Use sliding window sums for SMA and pre-calculate per-bar money flow arrays (`posFlows`/`negFlows`), reducing time complexity to O(N) and eliminating temporary array slice allocations.
+
+## 2026-04-01 - Scalar Technical Indicator Evaluation without Full-Series Array Allocations
+**Learning:** Scalar indicator computation functions (`computeRSI`, `computeATR`, `computeADX`) delegated to full-series array generators (`computeRSIArray`, `computeATRArray`) or created up to 9 intermediate arrays (`plusDM`, `minusDM`, `tr`, `smoothedPlusDM`, `smoothedMinusDM`, `smoothedTR`, `plusDI`, `minusDI`, `dx`, `changes`, `trueRanges`). In backtests and multi-indicator evaluations across thousands of bars, this caused millions of transient heap allocations and heavy GC pauses.
+**Action:** Refactor scalar indicator functions (`computeRSI`, `computeATR`, `computeADX`) to calculate smoothed Wilder averages directly using running scalar variables in O(1) space, and compute series differences on-the-fly without allocating intermediate arrays.

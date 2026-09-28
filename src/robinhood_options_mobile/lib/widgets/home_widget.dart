@@ -1245,20 +1245,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
       futureStockPositions = (futureAccounts ?? Future.value(<Account>[]))
           .catchError((_) => <Account>[])
-          .then((_) => widget.service!.getStockPositionStore(
-              widget.brokerageUser!,
-              instrumentPositionStore,
-              instrumentStore,
-              quoteStore,
-              nonzero: !hasQuantityFilters[1],
-              userDoc: widget.userDoc));
+          .then<InstrumentPositionStore>((accounts) async {
+        if (accounts.isEmpty) {
+          return instrumentPositionStore;
+        }
+        return await widget.service!.getStockPositionStore(
+            widget.brokerageUser!,
+            instrumentPositionStore,
+            instrumentStore,
+            quoteStore,
+            nonzero: !hasQuantityFilters[1],
+            userDoc: widget.userDoc);
+      }).catchError((error) {
+        debugPrint('Error loading stock positions: $error');
+        return instrumentPositionStore;
+      });
       futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
 
       futureOptionPositions = (futureAccounts ?? Future.value(<Account>[]))
           .catchError((_) => <Account>[])
-          .then((_) => widget.service!.getOptionPositionStore(
-              widget.brokerageUser!, optionPositionStore, instrumentStore,
-              nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc));
+          .then<OptionPositionStore>((accounts) async {
+        if (accounts.isEmpty) {
+          return optionPositionStore;
+        }
+        return await widget.service!.getOptionPositionStore(
+            widget.brokerageUser!, optionPositionStore, instrumentStore,
+            nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc);
+      }).catchError((error) {
+        debugPrint('Error loading option positions: $error');
+        return optionPositionStore;
+      });
       futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
     } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
       futureStockPositions = widget.service!.getStockPositionStore(
@@ -1766,6 +1782,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             SliverFillRemaining(
               child: WelcomeWidget(
                 onLogin: widget.onLogin,
+                onExploreDemo: () async {
+                  final user = BrokerageUser(
+                      BrokerageSource.demo, "Demo Account", null, null);
+                  final userStore =
+                      Provider.of<BrokerageUserStore>(context, listen: false);
+                  userStore.addOrUpdate(user);
+                  userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                  await userStore.save();
+                },
                 message: (widget.brokerageUser?.oauth2Client?.credentials
                             .isExpired ??
                         false)

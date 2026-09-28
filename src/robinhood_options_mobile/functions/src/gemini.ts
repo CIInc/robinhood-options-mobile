@@ -327,3 +327,192 @@ export const analyzePriceTargets = https.onCall({ secrets: ["GEMINI_API_KEY"] },
       modelVersion: response.modelVersion,
     };
   });
+
+export const stressTestTradeThesis = https.onCall(
+  { secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to stress test trade thesis.",
+      );
+    }
+    logger.info(request.data, { structuredData: true });
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError(
+        "unavailable", "GEMINI_API_KEY not found.");
+    }
+    const symbol = request.data.symbol;
+    if (!symbol) {
+      throw new https.HttpsError(
+        "invalid-argument",
+        "The function must be called with a 'symbol' argument.");
+    }
+    const direction = (request.data.direction || "Bullish").trim();
+    const thesis = request.data.thesis ?
+      String(request.data.thesis).trim() : "";
+    const currentPrice = request.data.currentPrice != null ?
+      Number(request.data.currentPrice) : null;
+
+    const cacheKey = `${symbol.toUpperCase()}_${direction.toLowerCase()}`;
+    const db = getFirestore();
+    const docRef = db.collection("ai_thesis_stress").doc(cacheKey);
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+      const data = doc.data();
+      if (data && data.last_updated && !thesis) {
+        const lastUpdated = new Date(data.last_updated);
+        const now = new Date();
+        const diffHours =
+          Math.abs(now.getTime() - lastUpdated.getTime()) / 36e5;
+        // Return cached data if less than 24 hours old and no custom user
+        // thesis
+        if (diffHours < 24) {
+          logger.info(`Returning cached thesis stress test for ${cacheKey}`);
+          return {
+            candidates: [{
+              content: {
+                parts: [{
+                  text: JSON.stringify(data),
+                }],
+              },
+            }],
+          };
+        }
+      }
+    }
+
+    const priceContext = currentPrice ?
+      ` Current reference price: $${currentPrice.toFixed(2)}.` : "";
+    const thesisContext = thesis ?
+      ` Trader's expressed rationale: "${thesis}".` : "";
+
+    const prompt = `
+    You are an elite quantitative hedge fund risk manager and institutional
+    Devil's Advocate for RealizeAlpha.
+    Your mission is to perform a rigorous adversarial critique and stress test
+    against a proposed ${direction} trading thesis on
+    ${symbol}.${priceContext}${thesisContext}
+    Actively counter confirmation bias. Highlight asymmetric downside risks,
+    options volatility skew traps, upcoming event hazards, and macro
+    vulnerabilities that the trader might be ignoring.
+
+    Provide an adversarial stress test with:
+    1. A Resilience Score from 0 to 100 (0-49: Fragile, 50-74: Moderate,
+       75-100: Resilient).
+    2. A categorical verdict: "Fragile", "Moderate", or "Resilient".
+    3. A single, sharp "Killer Question" exposing the trade's greatest single
+       vulnerability.
+    4. 2-4 objective Counter-Arguments challenging the ${direction} thesis
+       with severity ("High", "Medium", or "Low").
+    5. 2-3 Skew Traps identifying options volatility skew, high IV
+       percentile / post-earnings IV crush hazards, or negative gamma regime
+       amplification.
+    6. 2-3 Event Hazards identifying upcoming earnings, FOMC/macro catalysts,
+       dividend ex-dates, or insider selling with timing, risk, and hazard
+       level ("High", "Medium", or "Low").
+    7. 2-3 Stress Scenarios modeling projected impact under market shocks
+       (e.g. -5% SPY drop, +30% VIX surge, rate rise).
+    8. A concise summary synthesizing the adversarial critique.
+
+    Return the response in strict JSON format with the following schema:
+    {
+      "symbol": "${symbol.toUpperCase()}",
+      "direction": "${direction}",
+      "resilience_score": number,
+      "verdict": "Fragile" | "Moderate" | "Resilient",
+      "killer_question": string,
+      "counter_arguments": [
+        {
+          "title": string,
+          "argument": string,
+          "severity": "High" | "Medium" | "Low"
+        }
+      ],
+      "skew_traps": [
+        {
+          "title": string,
+          "description": string,
+          "severity": "High" | "Medium" | "Low"
+        }
+      ],
+      "event_hazards": [
+        {
+          "event": string,
+          "timing": string,
+          "risk": string,
+          "hazard_level": "High" | "Medium" | "Low"
+        }
+      ],
+      "stress_scenarios": [
+        {"scenario": string, "projected_impact": string, "assessment": string}
+      ],
+      "summary": string,
+      "last_updated": string
+    }
+    Do not include markdown code blocks. Just the raw JSON.
+    `;
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          maxOutputTokens: 1400,
+          temperature: 0.2,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in stressTestTradeThesis, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            maxOutputTokens: 1400,
+            temperature: 0.2,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    const textContent = response.text ||
+      response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (textContent) {
+      try {
+        let text = textContent;
+        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        const json = JSON.parse(text);
+        json.last_updated = new Date().toISOString();
+        if (!thesis) {
+          await docRef.set(json);
+        }
+      } catch (e) {
+        logger.error("Failed to parse or save AI response", e);
+      }
+    }
+
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
+  });
+

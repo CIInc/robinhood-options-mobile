@@ -60,6 +60,7 @@ import 'package:robinhood_options_mobile/widgets/delta_neutral_builder_widget.da
 import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
+import 'package:robinhood_options_mobile/widgets/devils_advocate_widget.dart';
 import 'package:robinhood_options_mobile/widgets/short_interest_widget.dart';
 import 'package:robinhood_options_mobile/widgets/retail_order_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
@@ -3308,6 +3309,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: PriceTargetsWidget(
           symbol: instrument.symbol,
           generativeService: widget.generativeService,
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: DevilsAdvocateWidget(
+          symbol: instrument.symbol,
+          generativeService: widget.generativeService,
+          currentPrice: instrument.quoteObj?.lastTradePrice,
         ),
       ),
       if (instrument.ratingsObj != null &&

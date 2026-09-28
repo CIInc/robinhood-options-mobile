@@ -691,12 +691,13 @@ class _TopPortfoliosLeaderboardWidgetState
                                   icon: const Icon(Icons.refresh, size: 16),
                                   label: const Text('Reset Filters'),
                                 ),
-                              FilledButton.icon(
-                                onPressed: () =>
-                                    _showPublishPortfolioSheet(context),
-                                icon: const Icon(Icons.publish, size: 16),
-                                label: const Text('Publish My Portfolio'),
-                              ),
+                              if (widget.auth.currentUser != null)
+                                FilledButton.icon(
+                                  onPressed: () =>
+                                      _showPublishPortfolioSheet(context),
+                                  icon: const Icon(Icons.publish, size: 16),
+                                  label: const Text('Publish My Portfolio'),
+                                ),
                             ],
                           ),
                         ],
@@ -1531,6 +1532,7 @@ class _TopPortfoliosLeaderboardWidgetState
 
   /// Publish / Manage Portfolio Bottom Sheet
   Future<void> _showPublishPortfolioSheet(BuildContext context) async {
+    if (widget.auth.currentUser == null) return;
     widget.analytics.logEvent(name: 'leaderboard_open_publish');
     await PublishPortfolioBottomSheet.show(
       context,
