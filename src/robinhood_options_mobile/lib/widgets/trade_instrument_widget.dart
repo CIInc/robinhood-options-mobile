@@ -26,6 +26,8 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/schwab_order_preview_card.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_lot_selection_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/devils_advocate_widget.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
   const TradeInstrumentWidget(this.brokerageUser, this.service,
@@ -252,6 +254,46 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     } catch (e) {
       debugPrint('Error fetching instrument buying power & warnings: $e');
     }
+  }
+
+  void _showDevilsAdvocateSheet() {
+    final symbol = widget.instrument?.symbol ?? '';
+    if (symbol.isEmpty) return;
+    GenerativeService? generativeService;
+    try {
+      generativeService =
+          Provider.of<GenerativeService?>(context, listen: false);
+    } catch (_) {}
+    final direction = positionType == "Sell" ? "Bearish" : "Bullish";
+    final price = widget.instrument?.quoteObj?.lastTradePrice;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: DevilsAdvocateWidget(
+              symbol: symbol,
+              generativeService: generativeService,
+              initialDirection: direction,
+              currentPrice: price,
+              isModal: true,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showInstrumentBuyingPowerSheet() {
@@ -661,6 +703,14 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // Devil's Advocate Stress Test
+          OutlinedButton.icon(
+            icon: const Icon(Icons.psychology_alt_outlined),
+            label: const Text("Devil's Advocate (Stress Test Thesis)"),
+            onPressed: _showDevilsAdvocateSheet,
+          ),
+          const SizedBox(height: 12),
 
           // Action Button
           SizedBox(

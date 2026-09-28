@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
+import 'package:robinhood_options_mobile/model/devils_advocate_model.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/gamma_exposure_model.dart';
@@ -485,6 +486,52 @@ Follow the table with a strategic breakdown:
     }
     return null;
   }
+
+  Future<DevilsAdvocateAnalysis?> analyzeDevilsAdvocate(
+    String symbol, {
+    String direction = 'Bullish',
+    String? thesis,
+    double? currentPrice,
+  }) async {
+    try {
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'stressTestTradeThesis',
+      );
+      final resp = await callable.call(<String, dynamic>{
+        'symbol': symbol,
+        'direction': direction,
+        if (thesis != null && thesis.isNotEmpty) 'thesis': thesis,
+        if (currentPrice != null) 'currentPrice': currentPrice,
+      });
+
+      String? responseText;
+      if (resp.data != null) {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          responseText =
+              (resp.data["candidates"][0]["content"]["parts"] as List)
+                  .map((e) => e["text"])
+                  .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          responseText = (resp.data["response"]["candidates"][0]["content"]
+                  ["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      }
+
+      if (responseText != null) {
+        responseText = responseText
+            .replaceAll(RegExp(r'^```json\s*'), '')
+            .replaceAll(RegExp(r'\s*```$'), '');
+        final json = jsonDecode(responseText);
+        return DevilsAdvocateAnalysis.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint("Error stress testing trade thesis: $e");
+    }
+    return null;
+  }
+
 
   Future<String> sendChatMessage(
     String message, {

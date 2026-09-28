@@ -19,6 +19,7 @@ import {
   generateContent31,
   generateContent25,
   analyzePriceTargets,
+  stressTestTradeThesis,
 } from "../src/gemini";
 
 describe("Gemini Cloud Functions Security Checks", () => {
@@ -74,4 +75,43 @@ describe("Gemini Cloud Functions Security Checks", () => {
       });
     });
   });
+
+  describe("stressTestTradeThesis", () => {
+    test("rejects unauthenticated requests (null auth)", async () => {
+      const unauthReq = {
+        auth: null,
+        data: { symbol: "TSLA", direction: "Bullish" },
+      };
+      const callFn = () => (stressTestTradeThesis as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects unauthenticated requests (undefined auth)", async () => {
+      const unauthReq = {
+        data: { symbol: "TSLA" },
+      };
+      const callFn = () => (stressTestTradeThesis as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects missing symbol when authenticated", async () => {
+      const authReq = {
+        auth: { uid: "test-user-123" },
+        data: {},
+      };
+      process.env.GEMINI_API_KEY = "dummy-key";
+      const callFn = () => (stressTestTradeThesis as any).run(authReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+  });
 });
+
