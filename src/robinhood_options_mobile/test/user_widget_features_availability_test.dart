@@ -87,7 +87,6 @@ class FakeBiometricService extends Fake implements BiometricService {
 }
 
 class FakeSchwabService extends Fake implements SchwabService {
-  @override
   BrokerageSource get source => BrokerageSource.schwab;
 }
 

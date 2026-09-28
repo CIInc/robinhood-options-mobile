@@ -43,17 +43,17 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 26, 2026 · **Current app version:** 0.54.0 (released September 26, 2026)
+**Last reviewed:** September 28, 2026 · **Current app version:** 0.54.1 (released September 28, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 394
+- **Completed checklist items:** 398
 - **Planned checklist items:** 67
-- **GitHub issues:** 120 total — 34 open and 86 closed (as of September 26, 2026)
+- **GitHub issues:** 120 total — 34 open and 86 closed (as of September 28, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.52.0-v0.54.0):** Futures Order Entry (`FuturesOrderEntrySheet`), Platform-Secure OAuth Storage (`flutter_secure_storage`), Systematic Trading Entry Readiness, Portfolio Alert option navigation, Congress & Political Trading Tracker, SEC EDGAR Disclosures, and Schwab account activity. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.55.0 (target: Q1 2027; tentative)** — multi-model AI consensus engine, devil's advocate, and biometric tilt guardrails. Tournaments remain exploratory until separately defined.
+- ✅ **Recently Completed (v0.53.0-v0.54.1):** AI Devil's Advocate & Trade Thesis Stress Tester, Tiered Guest & Freemium Screen Access Controls, Futures Order Entry (`FuturesOrderEntrySheet`), Platform-Secure OAuth Storage (`flutter_secure_storage`), Systematic Trading Entry Readiness, Portfolio Alert option navigation, Congress & Political Trading Tracker, and SEC EDGAR Disclosures. See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.55.0 (target: Q1 2027; tentative)** — multi-model AI consensus engine and biometric tilt guardrails. Tournaments remain exploratory until separately defined.
 - **Later candidates (v0.55.0+):** Remaining SEC EDGAR filing coverage and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
@@ -441,10 +441,17 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Cloud Functions, Options Flow & Backend Security:** Added `refreshOptionsCache` parameter to bypass flow cache ([#134](https://github.com/CIInc/robinhood-options-mobile/issues/134)); enforced auth checks on `alphabotTask`, `riskguardTask`, and `calculatePositionSize` ([#181](https://github.com/CIInc/robinhood-options-mobile/pull/181)); and eliminated temporary array allocations in indicator crossover evaluations ([#180](https://github.com/CIInc/robinhood-options-mobile/pull/180)).
 - ✅ **Accessibility & CI/CD Deployment:** Added accessibility semantics to `SocialSentimentPollWidget` ([#182](https://github.com/CIInc/robinhood-options-mobile/pull/182)) and automated Firebase CD deployment for Hosting, Functions, and Firestore rules/indexes on `main`.
 
-### v0.55.0 (2027 Q1 - February)
-**Multi-Model AI Consensus Engine, Devil's Advocate & Biometric Tilt**
-- **Multi-Model AI Consensus Engine:** Ensemble trading conviction grades combining Gemini 3.1 Flash-Lite, deep reasoning agents, and quantitative factor scores ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
+### v0.54.1 ✅ (Released Sep 28, 2026)
+**AI Devil's Advocate, Screen Access Matrix & Backend Security Hardening**
 - ✅ **AI Devil's Advocate & Trade Thesis Stress Tester:** Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew risks, and event hazards before entering trades ([docs](docs/devils-advocate.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
+- ✅ **Screen Access Controls, Guest Mode & Freemium Pro Protection:** Enforced guest and subscriber access tiers across tabs; added interactive guest paper trading demo mode; restricted non-subscriber trade signals to 3 samples with `SAMPLE` badge, Pro locked teaser card, `+N Pro Indicators 🔒` lock chip, and paywall prompts ([#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)).
+- ✅ **Backend Security & Callable Authentication:** Enforced authentication verification on `runBacktest` ([#188](https://github.com/CIInc/robinhood-options-mobile/pull/188)), `getSentimentAnalysis` ([#192](https://github.com/CIInc/robinhood-options-mobile/pull/192)), `stressTestTradeThesis`, and Gemini callable functions ([#186](https://github.com/CIInc/robinhood-options-mobile/pull/186)).
+- ✅ **Algorithmic Indicator & Query Performance Optimizations:** Zero-allocation scalar technical indicator computations ([#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)); optimized CCI and MFI local computations ([#189](https://github.com/CIInc/robinhood-options-mobile/pull/189)); batched Firestore reads in sentiment analysis ([#184](https://github.com/CIInc/robinhood-options-mobile/pull/184)); optimized `evaluateAllIndicators` lookups ([#185](https://github.com/CIInc/robinhood-options-mobile/pull/185)); and reduced symbol alert queries in `deleteGroupWatchlist` ([#183](https://github.com/CIInc/robinhood-options-mobile/pull/183)).
+- ✅ **Accessibility & CI/CD Deployment Diagnostics:** Accessible labels and layout hierarchy for Schwab order preview card ([#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)); accessibility semantics for comment upvotes ([#187](https://github.com/CIInc/robinhood-options-mobile/pull/187)); added `--debug` flag to `firebase-tools deploy` in `.github/workflows/cd.yml` and documented required IAM roles in `docs/mobile-ci-setup.md`.
+
+### v0.55.0 (2027 Q1 - February)
+**Multi-Model AI Consensus Engine, Biometric Tilt & Autonomous Risk Copilot**
+- **Multi-Model AI Consensus Engine:** Ensemble trading conviction grades combining Gemini 3.1 Flash-Lite, deep reasoning agents, and quantitative factor scores ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Biometric Tilt & Panic Trading Guardian:** Extends risk circuit breakers with Apple HealthKit / Wear OS biometric data (heart rate spikes) and rapid erratic order tapping to detect emotional tilt and enforce cooling-off locks.
 - **Autonomous Agentic Risk Copilot:** Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges.
 - **Algorithmic Strategy Marketplace:** Community strategy sharing with audited performance proofs, strategy rental/subscriptions, and automated creator royalty distribution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)).
@@ -922,7 +929,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 - [ ] **Multi-Model AI Consensus Engine** (v0.54.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Synthesize multiple AI models (Gemini 3.1 Flash-Lite, local factor engines, deep reasoning agents) to generate high-conviction trade consensus ratings - **Medium** (3-4 weeks)
-- [x] **AI Devil's Advocate & Trade Thesis Stress Tester** (v0.55.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades - **Medium** (3-4 weeks)
+- [x] **AI Devil's Advocate & Trade Thesis Stress Tester** (v0.54.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades - **Medium** (3-4 weeks)
 - [ ] **Autonomous Agentic Risk Copilot** (v0.54.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges - **Medium** (3-4 weeks)
 - [ ] **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger** (v0.54.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and tactical lessons - **Medium** (2-3 weeks)
 - [x] **Autonomous Risk Circuit Breakers** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Hard user-defined limits (max daily loss, drawdown limit, cooling-off trading suspension) that proactively lock execution to protect capital - **Medium** (2-3 weeks)
@@ -1050,7 +1057,11 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
   - [x] Use all plotted income dates when selecting automatic chart viewport behavior ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Deduplicate cached symbols and fetch Robinhood quote batches with bounded concurrency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
   - [x] Build futures position cards lazily while scrolling ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124))
+  - [x] Zero-allocation scalar technical indicator computations and optimized local CCI/MFI calculations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191))
+  - [x] Batched Firestore reads and reused signal snapshots in sentiment analysis ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184))
+  - [x] Optimized evaluateAllIndicators lookups and symbol alert queries in deleteGroupWatchlist ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185))
 - [ ] **Security Audit & Infrastructure Roadmap** ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)): Third-party security assessment, enterprise MCP hub, and zero-knowledge portfolio sharing
+  - [x] Enforce mandatory authentication on callable Cloud Functions (`runBacktest`, `getSentimentAnalysis`, `stressTestTradeThesis`, Gemini services) ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192))
 
 #### Data & Integration
 - [x] **Schwab Integration Expansion & Real-Time Streaming** ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#93](https://github.com/CIInc/robinhood-options-mobile/issues/93), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):

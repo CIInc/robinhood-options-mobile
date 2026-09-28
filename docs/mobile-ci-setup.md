@@ -14,10 +14,18 @@ rules, or indexes trigger CD.
 
 Add a `FIREBASE_SERVICE_ACCOUNT_REALIZEALPHA` GitHub Actions secret containing
 the JSON key for a Google Cloud service account authorized to deploy Firebase
-resources to the `realizealpha` project. The account needs the Firebase
-deployment permissions required for Hosting, Functions, Firestore rules/indexes,
-and the functions' associated services. The workflow authenticates with
-Application Default Credentials and runs a full `firebase deploy`.
+resources to the `realizealpha` project.
+
+#### Required IAM Roles for the Service Account:
+Go to [Google Cloud Console IAM](https://console.cloud.google.com/iam-admin/iam?project=realizealpha) and grant the following roles to the service account used in CI:
+1. **Firebase Admin** (`roles/firebase.admin`) or **Firebase Develop Admin** (`roles/firebase.developAdmin`): Required for project lookup and rule/config deployments. *(Note: The default "Firebase Admin SDK Administrator Service Agent" role does NOT have project management or CLI deployment permissions and will result in `Error: Failed to get Firebase project realizealpha`).*
+2. **Firebase Hosting Admin** (`roles/firebasehosting.admin`): Required to deploy web hosting assets.
+3. **Cloud Functions Admin** (`roles/cloudfunctions.admin`): Required to deploy backend functions.
+4. **Service Account User** (`roles/iam.serviceAccountUser`): Required to deploy Cloud Functions runtime identity.
+5. **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Required to build function containers.
+6. **Artifact Registry Administrator** (`roles/artifactregistry.admin`): Required to manage function images.
+
+Also ensure the **Firebase Management API** (`firebase.googleapis.com`) is enabled in the project.
 
 ## iOS Setup
 

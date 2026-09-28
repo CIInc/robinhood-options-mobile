@@ -2,8 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.55.0] - 2026-09-27
-**AI Devil's Advocate & Trade Thesis Stress Tester ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))**
+## [0.54.1] - 2026-09-28
+**AI Devil's Advocate, Screen Access Matrix & Backend Security Hardening ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#187](https://github.com/CIInc/robinhood-options-mobile/pull/187), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192), [#193](https://github.com/CIInc/robinhood-options-mobile/pull/193))**
 
 - **AI Devil's Advocate & Trade Thesis Stress Tester (`DevilsAdvocateWidget`, `DevilsAdvocateAnalysis`, `stressTestTradeThesis`, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
   - **Adversarial Critique Engine**: Embedded AI Devil's Advocate designed to counter confirmation bias by performing rigorous, quantitative adversarial stress testing on trading theses before capital is committed.
@@ -18,6 +18,38 @@ All notable changes to this project will be documented in this file.
   - **Cloud Function & Caching**: Added `stressTestTradeThesis` callable Cloud Function with Google GenAI (Gemini 3.1 Flash-Lite, fallback to 2.5 Flash-Lite) and 24-hour Firestore caching (`ai_thesis_stress/{symbol}_{direction}`).
   - **Unit & Widget Tests**: Added unit tests in `test/devils_advocate_model_test.dart`, widget tests in `test/devils_advocate_widget_test.dart`, and Cloud Function authentication/validation tests in `functions/tests/gemini.test.ts`.
   - **Documentation**: Comprehensive architecture, methodology, and integration guide in [docs/devils-advocate.md](docs/devils-advocate.md).
+
+- **Screen Access Controls, Guest Mode & Freemium Pro Value Protection (`TradeSignalsPage`, `TradeSignalsWidget`, `PaywallWidget`, `WelcomeWidget`, `BrokerageUserStore`, `PaperTradingStore`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)):**
+  - **Screen Access Matrix**: Enforced tiered authentication and subscription access controls across all 5 navigation tabs. Unauthenticated guests can preview markets, browse leaderboards, and practice simulated paper trading without forced login walls.
+  - **Guest Paper Trading Mode**: Added interactive "Explore Demo / Paper Mode" directly from `WelcomeWidget`, provisioning local demo user state in `BrokerageUserStore` and enabling local simulation persistence via `SharedPreferences`.
+  - **Freemium Trade Signals Gating & Pro Value Protection**:
+    - Gated non-subscriber/guest signal feeds to 3 sample signals (`maxFreemiumSignals = 3`) tagged with a `SAMPLE` badge.
+    - Appended a high-conversion Pro Locked Teaser Card (`Key('PRO_LOCKED_CARD')`) displaying hidden signal counts and core Pro feature value props (20+ indicators, push alerts, auto-trading, zero delay).
+    - Gated deep quantitative indicators on sample cards, capping visible tags to 4 and collapsing remaining indicators into a `+N Pro Indicators 🔒` lock chip triggering the upgrade paywall.
+    - Gated AppBar Notifications and Strategy Settings actions behind subscriber paywall and sign-in prompts.
+    - Refined modal bottom sheet paywall presentation, eliminating duplicate close buttons and ensuring clean dismissal.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/screen_access_guest_and_preview_test.dart`, `test/user_widget_features_availability_test.dart`, and `test/auth_button_test.dart`.
+
+- **Backend Security & Callable Authentication Hardening ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192)):**
+  - Enforced mandatory `request.auth` authentication verification on all public callable Cloud Functions:
+    - `runBacktest` callable simulation function ([#188](https://github.com/CIInc/robinhood-options-mobile/pull/188)).
+    - `getSentimentAnalysis` news & social sentiment function ([#192](https://github.com/CIInc/robinhood-options-mobile/pull/192)).
+    - Gemini callable services and AI prompt functions ([#186](https://github.com/CIInc/robinhood-options-mobile/pull/186)).
+    - `stressTestTradeThesis` AI thesis stress tester.
+
+- **Algorithmic Indicator & Query Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)):**
+  - **Zero-Allocation Scalar Calculations**: Refactored scalar indicator calculations (`calculateSMA`, `calculateEMA`, `calculateRSI`, etc.) in `functions/src/technical-indicators.ts` to compute using sliding index pointers, eliminating intermediate slice array allocations ([#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)).
+  - **Local CCI & MFI Computations**: Optimized Commodity Channel Index and Money Flow Index evaluation routines in Dart and TypeScript to reduce CPU cycles and garbage collection pressure ([#189](https://github.com/CIInc/robinhood-options-mobile/pull/189)).
+  - **Batching & Snapshot Reuse**: Batched Firestore document reads and reused signal snapshots during sentiment analysis aggregation ([#184](https://github.com/CIInc/robinhood-options-mobile/pull/184)).
+  - **Lookup & Query Reductions**: Optimized `evaluateAllIndicators` symbol lookups ([#185](https://github.com/CIInc/robinhood-options-mobile/pull/185)) and reduced symbol alert queries when deleting group watchlists ([#183](https://github.com/CIInc/robinhood-options-mobile/pull/183)).
+
+- **Accessibility Semantics & Screen Reader Enhancements ([#187](https://github.com/CIInc/robinhood-options-mobile/pull/187), [#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)):**
+  - Enhanced Schwab order preview card with accessible labels, contrast adjustments, and assistive layout hierarchy ([#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)).
+  - Added semantic labels and accessibility hints to community discussion comment upvote controls (`SocialCommentItemWidget`, [#187](https://github.com/CIInc/robinhood-options-mobile/pull/187)).
+
+- **Firebase CI/CD Deployment Diagnostics (`.github/workflows/cd.yml`, `docs/mobile-ci-setup.md`):**
+  - Added `--debug` diagnostic flag to `firebase-tools deploy` in `.github/workflows/cd.yml` to provide detailed HTTP API error payloads on failure.
+  - Documented complete list of required Google Cloud IAM roles (`roles/firebase.admin`, `roles/firebasehosting.admin`, `roles/cloudfunctions.admin`, `roles/iam.serviceAccountUser`, `roles/cloudbuild.builds.editor`, `roles/artifactregistry.admin`) in `docs/mobile-ci-setup.md` to prevent project permission failures.
 
 ## [0.54.0] - 2026-09-26
 **Futures Order Entry, Secure Token Storage & Systematic Trading Readiness ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126), [#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181), [#182](https://github.com/CIInc/robinhood-options-mobile/pull/182))**
