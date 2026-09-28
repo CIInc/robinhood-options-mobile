@@ -132,9 +132,9 @@ class _AuthGateState extends State<AuthGate> {
       };
     } else {
       authButtons = {
-        // AuthButtonType.apple: () => _handleMultiFactorException(
-        //       _signInWithApple,
-        //     ),
+        AuthButtonType.apple: () => _handleMultiFactorException(
+              _signInWithApple,
+            ),
         AuthButtonType.google: () => _handleMultiFactorException(
               _signInWithGoogle,
             ),
@@ -228,6 +228,7 @@ class _AuthGateState extends State<AuthGate> {
                                             width: double.infinity,
                                             height: 50,
                                             child: _buildAuthButton(
+                                              context,
                                               button,
                                               authButtons[button],
                                             ),
@@ -688,42 +689,61 @@ class _AuthGateState extends State<AuthGate> {
         codeAutoRetrievalTimeout: print,
       );
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        // Provide more user-friendly error messages
-        switch (e.code) {
-          case 'user-not-found':
-            error =
-                'No account found with this email. Please check or register.';
-            break;
-          case 'wrong-password':
-            error =
-                'Incorrect password. Please try again or reset your password.';
-            break;
-          case 'email-already-in-use':
-            error = 'This email is already registered. Try signing in instead.';
-            break;
-          case 'weak-password':
-            error = 'Password is too weak. Please use at least 6 characters.';
-            break;
-          case 'invalid-email':
-            error = 'Invalid email format. Please check your email address.';
-            break;
-          case 'network-request-failed':
-            error =
-                'Network error. Please check your connection and try again.';
-            break;
-          case 'too-many-requests':
-            error = 'Too many attempts. Please wait a moment and try again.';
-            break;
-          default:
-            error = e.message ?? 'An error occurred. Please try again.';
-        }
-      });
+      if (e.code == 'canceled' ||
+          e.code == 'cancelled' ||
+          e.code == 'popup-closed-by-user') {
+        // User cancelled the sign-in modal/dialog
+      } else {
+        setState(() {
+          // Provide more user-friendly error messages
+          switch (e.code) {
+            case 'user-not-found':
+              error =
+                  'No account found with this email. Please check or register.';
+              break;
+            case 'wrong-password':
+              error =
+                  'Incorrect password. Please try again or reset your password.';
+              break;
+            case 'email-already-in-use':
+              error = 'This email is already registered. Try signing in instead.';
+              break;
+            case 'account-exists-with-different-credential':
+              error =
+                  'An account already exists with the same email. Please sign in using your existing provider.';
+              break;
+            case 'weak-password':
+              error = 'Password is too weak. Please use at least 6 characters.';
+              break;
+            case 'invalid-email':
+              error = 'Invalid email format. Please check your email address.';
+              break;
+            case 'network-request-failed':
+              error =
+                  'Network error. Please check your connection and try again.';
+              break;
+            case 'too-many-requests':
+              error = 'Too many attempts. Please wait a moment and try again.';
+              break;
+            default:
+              error = e.message ?? 'An error occurred. Please try again.';
+          }
+        });
+      }
     } catch (e) {
-      setState(() {
-        debugPrint('Auth unexpected error: $e');
-        error = e.toString();
-      });
+      if (e is PlatformException &&
+          (e.code == 'canceled' ||
+              e.code == 'cancelled' ||
+              e.code == '1001' ||
+              e.message?.toLowerCase().contains('canceled') == true ||
+              e.message?.toLowerCase().contains('cancelled') == true)) {
+        // User cancelled the sign-in modal/dialog
+      } else {
+        setState(() {
+          debugPrint('Auth unexpected error: $e');
+          error = e.toString();
+        });
+      }
     }
     setIsLoading();
   }
@@ -886,18 +906,36 @@ class _AuthGateState extends State<AuthGate> {
   // }
 }
 
-// ignore: unused_element, retained until Apple authentication is configured
 Future<void> _signInWithApple() async {
   final appleProvider = AppleAuthProvider();
   appleProvider.addScope('email');
+  appleProvider.addScope('name');
 
-  if (kIsWeb) {
-    // Once signed in, return the UserCredential
-    await auth.signInWithPopup(appleProvider);
-  } else {
-    final userCred = await auth.signInWithProvider(appleProvider);
-    AuthGate.appleAuthorizationCode =
-        userCred.additionalUserInfo?.authorizationCode;
+  try {
+    if (kIsWeb) {
+      // Once signed in, return the UserCredential
+      await auth.signInWithPopup(appleProvider);
+    } else {
+      final userCred = await auth.signInWithProvider(appleProvider);
+      AuthGate.appleAuthorizationCode =
+          userCred.additionalUserInfo?.authorizationCode;
+    }
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'canceled' ||
+        e.code == 'cancelled' ||
+        e.code == 'popup-closed-by-user') {
+      return;
+    }
+    rethrow;
+  } on PlatformException catch (e) {
+    if (e.code == 'canceled' ||
+        e.code == 'cancelled' ||
+        e.code == '1001' ||
+        e.message?.toLowerCase().contains('canceled') == true ||
+        e.message?.toLowerCase().contains('cancelled') == true) {
+      return;
+    }
+    rethrow;
   }
 }
 
@@ -1034,16 +1072,18 @@ Future<String?> getTotpFromUser(
   return smsCode;
 }
 
-Widget _buildAuthButton(AuthButtonType type, VoidCallback? onPressed) {
+Widget _buildAuthButton(
+    BuildContext context, AuthButtonType type, VoidCallback? onPressed) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   switch (type) {
     case AuthButtonType.apple:
       return ElevatedButton.icon(
         onPressed: onPressed,
-        icon: const Icon(Icons.apple, color: Colors.white),
-        label: const Text('Sign in with Apple',
-            style: TextStyle(color: Colors.white)),
+        icon: Icon(Icons.apple, color: isDark ? Colors.black : Colors.white),
+        label: Text('Sign in with Apple',
+            style: TextStyle(color: isDark ? Colors.black : Colors.white)),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
+          backgroundColor: isDark ? Colors.white : Colors.black,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -1067,3 +1107,8 @@ Widget _buildAuthButton(AuthButtonType type, VoidCallback? onPressed) {
       );
   }
 }
+
+/// Helper to build an OAuth provider button for testing and customization.
+Widget buildAuthButton(
+    BuildContext context, AuthButtonType type, VoidCallback? onPressed) =>
+    _buildAuthButton(context, type, onPressed);

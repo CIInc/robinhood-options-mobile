@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -258,6 +259,27 @@ void main() {
       expect(loaded[0]['symbol'], equals('AAPL'));
       expect(loaded[0]['signalType'], equals('BUY'));
       expect(loaded[1]['symbol'], equals('NVDA'));
+    });
+
+    test('save and load trade signals with Firestore Timestamp', () async {
+      final signals = [
+        {
+          'symbol': 'TSLA',
+          'signalType': 'BUY',
+          'strength': 90,
+          'timestamp': Timestamp.fromDate(DateTime(2026, 9, 28, 12, 0)),
+          'interval': '1d',
+        },
+      ];
+
+      await OfflineCacheService.saveTradeSignals(signals);
+      final loaded = await OfflineCacheService.loadTradeSignals();
+
+      expect(loaded.length, equals(1));
+      expect(loaded[0]['symbol'], equals('TSLA'));
+      expect(loaded[0]['signalType'], equals('BUY'));
+      expect(loaded[0]['timestamp'], isA<String>());
+      expect(loaded[0]['timestamp'], contains('2026-09-28'));
     });
 
     test('save and load quotes', () async {

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
@@ -195,6 +197,8 @@ class PaperTradingStore extends ChangeNotifier {
   /// aren't dependent on the wall clock.
   final bool Function() _isMarketOpen;
 
+  static const String guestPaperAccountKey = 'guest_paper_account';
+
   PaperTradingStore(
       {FirebaseFirestore? firestore, bool Function()? isMarketOpen})
       : _firestore = firestore ?? FirebaseFirestore.instance,
@@ -327,34 +331,26 @@ class PaperTradingStore extends ChangeNotifier {
     if (_user != null) {
       _loadFuture = _load();
     } else {
-      _loadFuture = null;
-      _resetState();
+      _loadFuture = _loadLocal();
     }
   }
 
-  /// Binds the store to [user] (if not already) and waits for its state to be
-  /// loaded from Firestore. Callers outside the widget tree (e.g.
-  /// PaperService) must await this before executing orders so they don't
-  /// mutate default state that a pending load would overwrite.
-  Future<void> ensureLoaded(firebase_auth.User user) async {
-    if (_user?.uid != user.uid) {
+  /// Binds the store to [user] (if provided) and waits for its state to be
+  /// loaded from Firestore (or local storage for guests). Callers outside the
+  /// widget tree (e.g. PaperService) must await this before executing orders
+  /// so they don't mutate default state that a pending load would overwrite.
+  Future<void> ensureLoaded([firebase_auth.User? user]) async {
+    if (user != null && _user?.uid != user.uid) {
       setUser(user);
+    } else if (user == null && _user != null) {
+      setUser(null);
+    } else {
+      _loadFuture ??= _user != null ? _load() : _loadLocal();
     }
     final pendingLoad = _loadFuture;
     if (pendingLoad != null) {
       await pendingLoad;
     }
-  }
-
-  void _resetState() {
-    _cashBalance = 100000.0;
-    _initialCapital = 100000.0;
-    _positions = [];
-    _optionPositions = [];
-    _futuresPositions = [];
-    _pendingOrders = [];
-    _history = [];
-    notifyListeners();
   }
 
   Future<void> _load() async {
@@ -483,7 +479,10 @@ class PaperTradingStore extends ChangeNotifier {
   }
 
   Future<void> _save() async {
-    if (_user == null) return;
+    if (_user == null) {
+      await _saveLocal();
+      return;
+    }
     try {
       await _firestore
           .collection('user')
@@ -506,6 +505,96 @@ class PaperTradingStore extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint("Error saving paper account: $e");
+    }
+  }
+
+  Future<void> _loadLocal() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(guestPaperAccountKey);
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        _cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
+        _initialCapital =
+            (data['initialCapital'] as num?)?.toDouble() ?? _cashBalance;
+        _slippage = (data['slippage'] as num?)?.toDouble() ?? 0.0;
+        _commission = (data['commission'] as num?)?.toDouble() ?? 0.0;
+
+        if (data['positions'] != null) {
+          _positions = (data['positions'] as List).map((e) {
+            var pos = InstrumentPosition.fromJson(e);
+            if (e['instrumentObj'] != null) {
+              pos.instrumentObj = Instrument.fromJson(e['instrumentObj']);
+            }
+            return pos;
+          }).toList();
+        }
+
+        if (data['optionPositions'] != null) {
+          _optionPositions = (data['optionPositions'] as List).map((e) {
+            var pos = OptionAggregatePosition.fromJson(e);
+            if (e['optionInstrument'] != null) {
+              pos.optionInstrument =
+                  OptionInstrument.fromJson(e['optionInstrument']);
+            }
+            return pos;
+          }).toList();
+        }
+
+        if (data['futuresPositions'] != null) {
+          _futuresPositions = (data['futuresPositions'] as List)
+              .map((e) =>
+                  FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+
+        if (data['pendingOrders'] != null) {
+          _pendingOrders = (data['pendingOrders'] as List)
+              .map((e) =>
+                  PendingPaperOrder.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
+        }
+
+        if (data['history'] != null) {
+          _history = List<Map<String, dynamic>>.from(data['history']);
+        }
+      }
+    } catch (e, stack) {
+      debugPrint("Error loading guest paper account: $e\n$stack");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final data = {
+        'cashBalance': _cashBalance,
+        'initialCapital': _initialCapital,
+        'slippage': _slippage,
+        'commission': _commission,
+        'positions':
+            _positions.map((p) => _instrumentPositionToJson(p)).toList(),
+        'optionPositions':
+            _optionPositions.map((p) => _optionAggregationToJson(p)).toList(),
+        'futuresPositions': _futuresPositions.map((p) => p.toJson()).toList(),
+        'pendingOrders': _pendingOrders.map((o) => o.toJson()).toList(),
+        'history': _history,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      final jsonStr = jsonEncode(data, toEncodable: (dynamic item) {
+        if (item is DateTime) {
+          return item.toIso8601String();
+        }
+        return item.toString();
+      });
+      await prefs.setString(guestPaperAccountKey, jsonStr);
+    } catch (e, stack) {
+      debugPrint("Error saving guest paper account: $e\n$stack");
     }
   }
 

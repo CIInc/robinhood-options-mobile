@@ -41,6 +41,8 @@ class TradeSignalsWidget extends StatefulWidget {
   final bool useSlivers;
   final Map<String, String>? initialIndicators;
   final TradeStrategyTemplate? strategyTemplate;
+  final bool isSubscribed;
+  final VoidCallback? onUpgrade;
 
   const TradeSignalsWidget({
     super.key,
@@ -55,6 +57,8 @@ class TradeSignalsWidget extends StatefulWidget {
     this.useSlivers = true,
     this.initialIndicators,
     this.strategyTemplate,
+    this.isSubscribed = false,
+    this.onUpgrade,
   });
 
   @override
@@ -161,6 +165,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
           int getMillis(dynamic timestamp) {
             if (timestamp is int) return timestamp;
             if (timestamp is Timestamp) return timestamp.millisecondsSinceEpoch;
+            if (timestamp is String) {
+              return DateTime.tryParse(timestamp)?.millisecondsSinceEpoch ?? 0;
+            }
+            if (timestamp is DateTime) return timestamp.millisecondsSinceEpoch;
             return 0;
           }
 
@@ -194,6 +202,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
               date = DateTime.fromMillisecondsSinceEpoch(timestamp);
             } else if (timestamp is Timestamp) {
               date = timestamp.toDate();
+            } else if (timestamp is String) {
+              date = DateTime.tryParse(timestamp) ?? DateTime.now();
+            } else if (timestamp is DateTime) {
+              date = timestamp;
             } else {
               date = DateTime.now();
             }
@@ -236,17 +248,40 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
             return a.key.compareTo(b.key);
           });
 
+        const int maxFreemiumSignals = 3;
+        int freemiumSignalsAdded = 0;
+
         for (final entry in sortedGroupedSignals) {
-          listItems.add(entry.key);
+          if (!widget.isSubscribed && freemiumSignalsAdded >= maxFreemiumSignals) {
+            break;
+          }
           if (!_collapsedDates.contains(entry.key)) {
-            listItems.addAll(entry.value);
+            final List<Map<String, dynamic>> signalsInGroup = [];
+            for (final signal in entry.value) {
+              if (!widget.isSubscribed &&
+                  freemiumSignalsAdded >= maxFreemiumSignals) {
+                break;
+              }
+              signalsInGroup.add(signal);
+              freemiumSignalsAdded++;
+            }
+            if (signalsInGroup.isNotEmpty) {
+              listItems.add(entry.key);
+              listItems.addAll(signalsInGroup);
+            }
+          } else {
+            listItems.add(entry.key);
           }
         }
 
-        // Add Load More button if not searching locally and limit reached
-        if (_searchQuery.isEmpty &&
-            tradeSignalsProvider.tradeSignals.length >= tradeSignalLimit) {
-          listItems.add("LOAD_MORE");
+        if (!widget.isSubscribed && tradeSignals.isNotEmpty) {
+          listItems.add("PRO_LOCKED_CARD");
+        } else if (widget.isSubscribed) {
+          // Add Load More button if not searching locally and limit reached
+          if (_searchQuery.isEmpty &&
+              tradeSignalsProvider.tradeSignals.length >= tradeSignalLimit) {
+            listItems.add("LOAD_MORE");
+          }
         }
 
         if (widget.useSlivers) {
@@ -280,6 +315,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
                                     ),
                             ),
                           );
+                        } else if (item == "PRO_LOCKED_CARD") {
+                          return _buildProLockedCard(context,
+                              totalSignals:
+                                  tradeSignalsProvider.tradeSignals.length);
                         } else if (item is String) {
                           return _buildDateHeader(item);
                         } else {
@@ -336,6 +375,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
                                         ),
                                 ),
                               );
+                            } else if (item == "PRO_LOCKED_CARD") {
+                              return _buildProLockedCard(context,
+                                  totalSignals:
+                                      tradeSignalsProvider.tradeSignals.length);
                             } else if (item is String) {
                               return _buildDateHeader(item);
                             } else {
@@ -479,6 +522,129 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
         observer: widget.observer,
         generativeService: widget.generativeService,
         useTradingSettings: useTradingSettings,
+        isSubscribed: widget.isSubscribed,
+        onUpgrade: widget.onUpgrade,
+      ),
+    );
+  }
+
+  Widget _buildProLockedCard(BuildContext context,
+      {required int totalSignals}) {
+    final theme = Theme.of(context);
+    final remainingCount = totalSignals > 3 ? totalSignals - 3 : 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
+                theme.colorScheme.surface,
+              ],
+            ),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  size: 32,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                remainingCount > 0
+                    ? 'Unlock $remainingCount+ More Real-Time Signals'
+                    : 'Unlock Real-Time Trade Signals',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'RealizeAlpha Pro members receive unlimited real-time signals across all market caps, deep 20+ indicator analysis, live push notifications, and agentic auto-trading execution.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.textTheme.bodyMedium?.color
+                      ?.withValues(alpha: 0.8),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 6,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildProFeaturePill(context, '✓ 20+ Indicators'),
+                  _buildProFeaturePill(context, '✓ Push Alerts'),
+                  _buildProFeaturePill(context, '✓ Auto-Trading'),
+                  _buildProFeaturePill(context, '✓ Zero Delay'),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => widget.onUpgrade?.call(),
+                  icon: const Icon(Icons.bolt, size: 18),
+                  label: Text(
+                    widget.user == null
+                        ? 'Sign In to Unlock Pro'
+                        : 'Upgrade to RealizeAlpha Pro',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProFeaturePill(BuildContext context, String text) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -542,6 +708,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
                       icon: const Icon(Icons.tune),
                       tooltip: 'Settings',
                       onPressed: () async {
+                        if (!widget.isSubscribed) {
+                          widget.onUpgrade?.call();
+                          return;
+                        }
                         if (widget.user != null && widget.userDocRef != null) {
                           final result = await Navigator.of(context).push(
                             MaterialPageRoute(
@@ -570,6 +740,10 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
                           ),
                           tooltip: 'Notifications',
                           onPressed: () {
+                            if (!widget.isSubscribed) {
+                              widget.onUpgrade?.call();
+                              return;
+                            }
                             if (widget.user != null &&
                                 widget.userDocRef != null) {
                               Navigator.of(context).push(
@@ -1034,10 +1208,15 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
   Widget _buildTradeSignalFilterChips() {
     // Calculate active filter count
     int activeFilterCount = 0;
-    if (signalStrengthCategory != null) activeFilterCount++;
-    if (selectedIndicators.isNotEmpty)
+    if (signalStrengthCategory != null) {
+      activeFilterCount++;
+    }
+    if (selectedIndicators.isNotEmpty) {
       activeFilterCount += selectedIndicators.length;
-    if (_searchQuery.isNotEmpty) activeFilterCount++;
+    }
+    if (_searchQuery.isNotEmpty) {
+      activeFilterCount++;
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -1409,6 +1588,8 @@ class _TradeSignalCard extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final GenerativeService generativeService;
   final bool useTradingSettings;
+  final bool isSubscribed;
+  final VoidCallback? onUpgrade;
 
   const _TradeSignalCard({
     required this.signal,
@@ -1420,6 +1601,8 @@ class _TradeSignalCard extends StatefulWidget {
     required this.observer,
     required this.generativeService,
     this.useTradingSettings = true,
+    this.isSubscribed = false,
+    this.onUpgrade,
   });
 
   @override
@@ -1530,9 +1713,19 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
 
   @override
   Widget build(BuildContext context) {
-    final timestamp = widget.signal['timestamp'] != null
-        ? DateTime.fromMillisecondsSinceEpoch(widget.signal['timestamp'] as int)
-        : DateTime.now();
+    final rawTs = widget.signal['timestamp'];
+    final DateTime timestamp;
+    if (rawTs is int) {
+      timestamp = DateTime.fromMillisecondsSinceEpoch(rawTs);
+    } else if (rawTs is Timestamp) {
+      timestamp = rawTs.toDate();
+    } else if (rawTs is String) {
+      timestamp = DateTime.tryParse(rawTs) ?? DateTime.now();
+    } else if (rawTs is DateTime) {
+      timestamp = rawTs;
+    } else {
+      timestamp = DateTime.now();
+    }
     final symbol = widget.signal['symbol'] ?? 'N/A';
     final overallSignalType = widget.signal['signal'] ?? 'HOLD';
 
@@ -1851,6 +2044,33 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
                                                   color: Theme.of(context)
                                                       .colorScheme
                                                       .onPrimaryContainer,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                          if (!widget.isSubscribed) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 1.5),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                'SAMPLE',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
                                                   letterSpacing: 0.5,
                                                 ),
                                               ),
@@ -2183,49 +2403,103 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         return 0;
       });
 
+    final List<MapEntry<String, String>> displayedEntries;
+    final int remainingCount;
+    if (!widget.isSubscribed && sortedEntries.length > 4) {
+      displayedEntries = sortedEntries.take(4).toList();
+      remainingCount = sortedEntries.length - 4;
+    } else {
+      displayedEntries = sortedEntries;
+      remainingCount = 0;
+    }
+
+    final tags = displayedEntries.map<Widget>((entry) {
+      final indicatorName = entry.key;
+      final indicatorSignal = entry.value;
+      final indicatorValue = indicatorValues[indicatorName];
+
+      Color tagColor;
+      if (indicatorSignal == 'BUY') {
+        tagColor = Colors.green;
+      } else if (indicatorSignal == 'SELL') {
+        tagColor = Colors.red;
+      } else {
+        tagColor = Colors.grey;
+      }
+
+      String displayName = _getIndicatorDisplayName(indicatorName);
+      String label = displayName;
+      if (indicatorValue != null) {
+        label = '$displayName $indicatorValue';
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: tagColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: tagColor.withValues(alpha: 0.3),
+            width: 0.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: tagColor.withValues(alpha: 0.9),
+          ),
+        ),
+      );
+    }).toList();
+
+    if (remainingCount > 0) {
+      tags.add(
+        InkWell(
+          onTap: () => widget.onUpgrade?.call(),
+          borderRadius: BorderRadius.circular(6),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.35),
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline,
+                    size: 11, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 3),
+                Text(
+                  '+$remainingCount Pro Indicators',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Wrap(
       spacing: 6,
       runSpacing: 6,
-      children: sortedEntries.map((entry) {
-        final indicatorName = entry.key;
-        final indicatorSignal = entry.value;
-        final indicatorValue = indicatorValues[indicatorName];
-
-        Color tagColor;
-        if (indicatorSignal == 'BUY') {
-          tagColor = Colors.green;
-        } else if (indicatorSignal == 'SELL') {
-          tagColor = Colors.red;
-        } else {
-          tagColor = Colors.grey;
-        }
-
-        String displayName = _getIndicatorDisplayName(indicatorName);
-        String label = displayName;
-        if (indicatorValue != null) {
-          label = '$displayName $indicatorValue';
-        }
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            color: tagColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: tagColor.withValues(alpha: 0.3),
-              width: 0.5,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: tagColor.withValues(alpha: 0.9),
-            ),
-          ),
-        );
-      }).toList(),
+      children: tags,
     );
   }
 

@@ -567,6 +567,41 @@ void main() {
     });
 
     testWidgets(
+        'empty state hides Publish My Portfolio button when user is not logged in',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final emptyDb = FakeFirebaseFirestore();
+      final emptyFirestoreService = FirestoreService(firestore: emptyDb);
+      final auth = FakeFirebaseAuth();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: TopPortfoliosLeaderboardWidget(
+            auth: auth,
+            firestoreService: emptyFirestoreService,
+            analytics: fakeAnalytics,
+            observer: fakeObserver,
+            brokerageUser: brokerageUser,
+            service: service,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No Portfolios Found'), findsOneWidget);
+      expect(find.text('No public portfolios match the current filters.'),
+          findsOneWidget);
+      expect(find.text('Publish My Portfolio'), findsNothing);
+    });
+
+    testWidgets(
         'PublishPortfolioBottomSheet publishes portfolio and updates Firestore',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);

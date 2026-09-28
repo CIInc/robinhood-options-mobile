@@ -544,6 +544,15 @@ class _HistoryPageState extends State<HistoryPage>
               SliverFillRemaining(
                 child: WelcomeWidget(
                   onLogin: widget.onLogin,
+                  onExploreDemo: () async {
+                    final user = BrokerageUser(
+                        BrokerageSource.demo, "Demo Account", null, null);
+                    final userStore =
+                        Provider.of<BrokerageUserStore>(context, listen: false);
+                    userStore.addOrUpdate(user);
+                    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                    await userStore.save();
+                  },
                   message: aggregateUsers.isEmpty
                       ? "No linked accounts found. Please log in."
                       : "Session expired. Please log in again.",
@@ -594,6 +603,15 @@ class _HistoryPageState extends State<HistoryPage>
               SliverFillRemaining(
                 child: WelcomeWidget(
                   onLogin: widget.onLogin,
+                  onExploreDemo: () async {
+                    final user = BrokerageUser(
+                        BrokerageSource.demo, "Demo Account", null, null);
+                    final userStore =
+                        Provider.of<BrokerageUserStore>(context, listen: false);
+                    userStore.addOrUpdate(user);
+                    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                    await userStore.save();
+                  },
                   message: isSessionExpired
                       ? "Session expired. Please log in again."
                       : null,

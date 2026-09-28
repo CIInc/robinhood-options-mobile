@@ -281,7 +281,7 @@ class FakePaperTradingStore extends ChangeNotifier
   auth.User? get user => null;
 
   @override
-  Future<void> ensureLoaded(auth.User user) async {}
+  Future<void> ensureLoaded([auth.User? user]) async {}
 
   @override
   double get initialCapital => 100000.0;
