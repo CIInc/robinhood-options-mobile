@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
@@ -37,6 +37,14 @@ export const POPULAR_SYMBOLS = [
 ];
 
 export const getSentimentAnalysis = onCall(async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to perform sentiment analysis."
+    );
+  }
+
   logger.info("getSentimentAnalysis called", { data: request.data });
 
   try {

@@ -29,6 +29,18 @@ jest.mock("firebase-admin", () => {
 
 jest.mock("firebase-functions/v2/https", () => ({
   onCall: (fn: any) => fn,
+  HttpsError: class HttpsError extends Error {
+    code: string;
+    /**
+     * Mock HttpsError constructor.
+     * @param {string} code Error code.
+     * @param {string} message Error message.
+     */
+    constructor(code: string, message: string) {
+      super(message);
+      this.code = code;
+    }
+  },
 }));
 
 jest.mock("firebase-functions/logger", () => ({
@@ -95,7 +107,10 @@ describe("sentiment-analysis tests", () => {
         });
       });
 
-      const result = await (getSentimentAnalysis as any)({ data: {} });
+      const result = await (getSentimentAnalysis as any)({
+        data: {},
+        auth: { uid: "user123" },
+      });
 
       // Ensure getAll was called exactly once for getSentimentAnalysis
       expect(mockGetAll).toHaveBeenCalledTimes(1);
@@ -117,6 +132,14 @@ describe("sentiment-analysis tests", () => {
         result.feed.some((f: any) => f.relatedSymbols.includes("NVDA"))
       ).toBe(true);
     });
+
+  test("getSentimentAnalysis rejects unauthenticated requests", async () => {
+    await expect(
+      (getSentimentAnalysis as any)({ data: {} })
+    ).rejects.toThrow(
+      "Authentication is required to perform sentiment analysis."
+    );
+  });
 
   test("helper functions fall back to batched getAll without snapshotMap",
     async () => {
