@@ -184,6 +184,9 @@ export function computeEMAArray(
 
 /**
  * Compute Relative Strength Index (RSI)
+ * Performance optimization: Computes scalar RSI directly in O(N) time with
+ * O(1) space, avoiding allocation of intermediate arrays (e.g. `changes`
+ * or `rsiValues`).
  * @param {number[]} prices - Array of prices.
  * @param {number} period - The period for RSI calculation (default 14).
  * @param {number} [endIndex] - Optional end index.
@@ -194,13 +197,44 @@ export function computeRSI(
   period = 14,
   endIndex = prices ? prices.length : 0
 ): number | null {
-  const arr = computeRSIArray(prices, period, endIndex);
-  if (arr.length === 0) return null;
-  return arr[arr.length - 1];
+  if (!prices || endIndex < period + 1 || prices.length < endIndex) return null;
+
+  let gains = 0;
+  let losses = 0;
+
+  // Initial average gains and losses
+  for (let i = 1; i <= period; i++) {
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      gains += change;
+    } else {
+      losses += Math.abs(change);
+    }
+  }
+
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+
+  // Calculate RSI using smoothed averages up to endIndex
+  for (let i = period + 1; i < endIndex; i++) {
+    const change = prices[i] - prices[i - 1];
+    const currentGain = change > 0 ? change : 0;
+    const currentLoss = change < 0 ? Math.abs(change) : 0;
+
+    avgGain = (avgGain * (period - 1) + currentGain) / period;
+    avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
+  }
+
+  if (avgLoss === 0) {
+    return 100;
+  }
+  return 100 - (100 / (1 + avgGain / avgLoss));
 }
 
 /**
  * Compute array of RSI values
+ * Performance optimization: Calculates price changes on-the-fly to avoid
+ * allocating an intermediate `changes` array.
  * @param {number[]} prices - Array of prices
  * @param {number} period - RSI period
  * @param {number} [endIndex] - Optional end index
@@ -213,21 +247,17 @@ export function computeRSIArray(
 ): number[] {
   if (!prices || endIndex < period + 1 || prices.length < endIndex) return [];
 
-  const changes: number[] = [];
-  for (let i = 1; i < endIndex; i++) {
-    changes.push(prices[i] - prices[i - 1]);
-  }
-
   const rsiValues: number[] = [];
   let gains = 0;
   let losses = 0;
 
   // Initial average gains and losses
-  for (let i = 0; i < period; i++) {
-    if (changes[i] > 0) {
-      gains += changes[i];
+  for (let i = 1; i <= period; i++) {
+    const change = prices[i] - prices[i - 1];
+    if (change > 0) {
+      gains += change;
     } else {
-      losses += Math.abs(changes[i]);
+      losses += Math.abs(change);
     }
   }
 
@@ -242,15 +272,10 @@ export function computeRSIArray(
   }
 
   // Calculate RSI using smoothed averages
-  for (let i = period; i < changes.length; i++) {
-    const change = changes[i];
-    let currentGain = 0;
-    let currentLoss = 0;
-    if (change > 0) {
-      currentGain = change;
-    } else {
-      currentLoss = Math.abs(change);
-    }
+  for (let i = period + 1; i < endIndex; i++) {
+    const change = prices[i] - prices[i - 1];
+    const currentGain = change > 0 ? change : 0;
+    const currentLoss = change < 0 ? Math.abs(change) : 0;
 
     avgGain = (avgGain * (period - 1) + currentGain) / period;
     avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
@@ -551,6 +576,9 @@ export function computeStochastic(
 
 /**
  * Compute Average True Range (ATR)
+ * Performance optimization: Computes scalar ATR directly in O(N) time with
+ * O(1) space, eliminating `trueRanges` array creation and `.slice().reduce()`
+ * array allocations.
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
@@ -565,13 +593,50 @@ export function computeATR(
   period = 14,
   endIndex = closes ? closes.length : 0
 ): number | null {
-  const arr = computeATRArray(highs, lows, closes, period, endIndex);
-  if (arr.length === 0) return null;
-  return arr[arr.length - 1];
+  if (!highs || !lows || !closes ||
+    endIndex < period + 1 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
+    return null;
+  }
+
+  // Initial average of first 'period' True Ranges (indices 1 to period)
+  let sumTR = 0;
+  for (let i = 1; i <= period; i++) {
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    sumTR += tr;
+  }
+
+  let atr = sumTR / period;
+
+  // Smoothed ATR for remaining bars
+  for (let i = period + 1; i < endIndex; i++) {
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    atr = (atr * (period - 1) + tr) / period;
+  }
+
+  return atr;
 }
 
 /**
  * Compute array of ATR values
+ * Performance optimization: Avoids array slicing (`.slice().reduce()`) by
+ * computing initial ATR sum via direct index iteration.
  * @param {number[]} highs
  * @param {number[]} lows
  * @param {number[]} closes
@@ -615,8 +680,11 @@ export function computeATRArray(
   }
 
   // Initial ATR: average of first 'period' TRs
-  // These TRs correspond to indices 1 to period
-  let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let sumTR = 0;
+  for (let i = 0; i < period; i++) {
+    sumTR += trueRanges[i];
+  }
+  let atr = sumTR / period;
   result.push(atr);
 
   // Smoothed ATR
@@ -780,12 +848,15 @@ export function computeVWAP(
 
 /**
  * Compute ADX (Average Directional Index)
+ * Performance optimization: Calculates Wilder's smoothed +DM, -DM, TR, +DI,
+ * -DI, and DX using running scalar variables, eliminating 9 intermediate
+ * array allocations.
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for ADX calculation (default 14).
  * @param {number} [endIndex] - Optional end index.
- * @return {{adx: number, plusDI: number, minusDI: number}|null}
+ * @return {object|null} Computed ADX components or null.
  */
 export function computeADX(
   highs: number[],
@@ -807,102 +878,89 @@ export function computeADX(
     return null;
   }
 
-  const plusDM: number[] = [];
-  const minusDM: number[] = [];
-  const tr: number[] = [];
+  // Initial smoothed DM and TR values (sum over first 'period' bars)
+  let sumPlusDM = 0;
+  let sumMinusDM = 0;
+  let sumTR = 0;
 
-  // Calculate +DM, -DM, and TR
-  for (let i = 1; i < endIndex; i++) {
+  for (let i = 1; i <= period; i++) {
     const highDiff = highs[i] - highs[i - 1];
     const lowDiff = lows[i - 1] - lows[i];
 
-    if (highDiff > lowDiff && highDiff > 0) {
-      plusDM.push(highDiff);
-    } else {
-      plusDM.push(0);
-    }
-
-    if (lowDiff > highDiff && lowDiff > 0) {
-      minusDM.push(lowDiff);
-    } else {
-      minusDM.push(0);
-    }
-
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
     const trueRange = Math.max(
       highs[i] - lows[i],
       Math.abs(highs[i] - closes[i - 1]),
       Math.abs(lows[i] - closes[i - 1])
     );
-    tr.push(trueRange);
+
+    sumPlusDM += pDM;
+    sumMinusDM += mDM;
+    sumTR += trueRange;
   }
 
-  if (plusDM.length < period || minusDM.length < period || tr.length < period) {
-    return null;
+  // Compute first DI and DX values at index 'period'
+  let lastPlusDI = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+  let lastMinusDI = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+  let diSum = lastPlusDI + lastMinusDI;
+  let dxSum = diSum === 0 ?
+    0 : (Math.abs(lastPlusDI - lastMinusDI) / diSum) * 100;
+
+  // Compute initial ADX sum over first 'period' DX values
+  for (let i = period + 1; i < 2 * period; i++) {
+    const highDiff = highs[i] - highs[i - 1];
+    const lowDiff = lows[i - 1] - lows[i];
+
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
+    const trueRange = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+
+    sumPlusDM = sumPlusDM - (sumPlusDM / period) + pDM;
+    sumMinusDM = sumMinusDM - (sumMinusDM / period) + mDM;
+    sumTR = sumTR - (sumTR / period) + trueRange;
+
+    lastPlusDI = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+    lastMinusDI = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+    diSum = lastPlusDI + lastMinusDI;
+    const dxVal = diSum === 0 ?
+      0 : (Math.abs(lastPlusDI - lastMinusDI) / diSum) * 100;
+    dxSum += dxVal;
   }
 
-  // Calculate smoothed values using Wilder's smoothing
-  const smoothedPlusDM: number[] = [];
-  const smoothedMinusDM: number[] = [];
-  const smoothedTR: number[] = [];
-
-  // Initial smoothed values (sum of first 'period' values)
-  let sumPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0);
-  let sumMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0);
-  let sumTR = tr.slice(0, period).reduce((a, b) => a + b, 0);
-
-  smoothedPlusDM.push(sumPlusDM);
-  smoothedMinusDM.push(sumMinusDM);
-  smoothedTR.push(sumTR);
-
-  // Wilder's smoothing for subsequent values
-  for (let i = period; i < plusDM.length; i++) {
-    sumPlusDM = sumPlusDM - (sumPlusDM / period) + plusDM[i];
-    sumMinusDM = sumMinusDM - (sumMinusDM / period) + minusDM[i];
-    sumTR = sumTR - (sumTR / period) + tr[i];
-
-    smoothedPlusDM.push(sumPlusDM);
-    smoothedMinusDM.push(sumMinusDM);
-    smoothedTR.push(sumTR);
-  }
-
-  // Calculate +DI and -DI
-  const plusDI: number[] = [];
-  const minusDI: number[] = [];
-  const dx: number[] = [];
-
-  for (let i = 0; i < smoothedTR.length; i++) {
-    if (smoothedTR[i] === 0) {
-      plusDI.push(0);
-      minusDI.push(0);
-      dx.push(0);
-      continue;
-    }
-
-    const pdi = (smoothedPlusDM[i] / smoothedTR[i]) * 100;
-    const mdi = (smoothedMinusDM[i] / smoothedTR[i]) * 100;
-    plusDI.push(pdi);
-    minusDI.push(mdi);
-
-    const diSum = pdi + mdi;
-    if (diSum === 0) {
-      dx.push(0);
-    } else {
-      dx.push((Math.abs(pdi - mdi) / diSum) * 100);
-    }
-  }
-
-  if (dx.length < period) return null;
-
-  // Calculate ADX (smoothed average of DX)
-  let adx = dx.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let adx = dxSum / period;
   let prevAdx: number | null = null;
-  for (let i = period; i < dx.length; i++) {
-    prevAdx = adx;
-    adx = ((adx * (period - 1)) + dx[i]) / period;
-  }
 
-  const lastPlusDI = plusDI[plusDI.length - 1];
-  const lastMinusDI = minusDI[minusDI.length - 1];
+  // Calculate smoothed ADX for remaining bars
+  for (let i = 2 * period; i < endIndex; i++) {
+    const highDiff = highs[i] - highs[i - 1];
+    const lowDiff = lows[i - 1] - lows[i];
+
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
+    const trueRange = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+
+    sumPlusDM = sumPlusDM - (sumPlusDM / period) + pDM;
+    sumMinusDM = sumMinusDM - (sumMinusDM / period) + mDM;
+    sumTR = sumTR - (sumTR / period) + trueRange;
+
+    lastPlusDI = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+    lastMinusDI = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+    diSum = lastPlusDI + lastMinusDI;
+    const dxVal = diSum === 0 ?
+      0 : (Math.abs(lastPlusDI - lastMinusDI) / diSum) * 100;
+
+    prevAdx = adx;
+    adx = ((adx * (period - 1)) + dxVal) / period;
+  }
 
   return {
     adx,
