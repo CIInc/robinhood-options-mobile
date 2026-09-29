@@ -172,7 +172,8 @@ void main() {
       );
     }
 
-    testWidgets('Logged out state shows Login Required badges and shows snackbar on tap',
+    testWidgets(
+        'Logged out state shows Login Required badges and shows snackbar on tap',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -193,16 +194,21 @@ void main() {
       expect(find.text('Login Required'), findsWidgets);
 
       // Tap on Following Activity Feed (requires login)
-      final followingFinder = find.widgetWithText(ListTile, 'Following Activity Feed');
+      final followingFinder =
+          find.widgetWithText(ListTile, 'Following Activity Feed');
       expect(followingFinder, findsOneWidget);
       await tester.tap(followingFinder);
       await tester.pump();
 
       // Expect snackbar explaining login is required
-      expect(find.text('Please sign in to your account to use Following Activity Feed.'), findsOneWidget);
+      expect(
+          find.text(
+              'Please sign in to your account to use Following Activity Feed.'),
+          findsOneWidget);
     });
 
-    testWidgets('Logged in without brokerage shows Brokerage Required badges and snackbar on tap',
+    testWidgets(
+        'Logged in without brokerage shows Brokerage Required badges and snackbar on tap',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -220,23 +226,29 @@ void main() {
       await tester.pumpAndSettle();
 
       // Following Activity Feed and Risk Circuit Breakers should be enabled without badges
-      expect(find.widgetWithText(ListTile, 'Risk Circuit Breakers'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Risk Circuit Breakers'),
+          findsOneWidget);
       expect(find.text('Guarded & Active'), findsOneWidget);
 
       // Brokerage-only features should display 'Brokerage Required' badge
       expect(find.text('Brokerage Required'), findsWidgets);
 
       // Tap on Banking & Transfers (requires brokerage)
-      final bankingFinder = find.widgetWithText(ListTile, 'Banking & Transfers');
+      final bankingFinder =
+          find.widgetWithText(ListTile, 'Banking & Transfers');
       expect(bankingFinder, findsOneWidget);
       await tester.tap(bankingFinder);
       await tester.pump();
 
       // Expect snackbar explaining brokerage connection is required
-      expect(find.text('Please link a brokerage account to use Banking & Transfers.'), findsOneWidget);
+      expect(
+          find.text(
+              'Please link a brokerage account to use Banking & Transfers.'),
+          findsOneWidget);
     });
 
-    testWidgets('Connected with Charles Schwab displays Unsupported badges for Robinhood-only features',
+    testWidgets(
+        'Connected with Charles Schwab displays Unsupported badges for Robinhood-only features',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -262,24 +274,30 @@ void main() {
       await tester.pumpAndSettle();
 
       // Margin Health is supported by Schwab -> enabled, no badge
-      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
+          findsOneWidget);
 
       // Banking & Transfers is Robinhood-only -> shows 'Unsupported' badge and subtitle note
       expect(find.text('Unsupported'), findsWidgets);
       expect(find.text('Not supported by Charles Schwab'), findsWidgets);
-      expect(find.text('Manage deposits, withdrawals & linked bank accounts'), findsOneWidget);
+      expect(find.text('Manage deposits, withdrawals & linked bank accounts'),
+          findsOneWidget);
 
       // Tap on Banking & Transfers
-      final bankingFinder = find.widgetWithText(ListTile, 'Banking & Transfers');
+      final bankingFinder =
+          find.widgetWithText(ListTile, 'Banking & Transfers');
       expect(bankingFinder, findsOneWidget);
       await tester.tap(bankingFinder);
       await tester.pump();
 
       // Expect snackbar explaining Charles Schwab lack of support
-      expect(find.text('Banking & Transfers is not supported by Charles Schwab.'), findsOneWidget);
+      expect(
+          find.text('Banking & Transfers is not supported by Charles Schwab.'),
+          findsOneWidget);
     });
 
-    testWidgets('Connected with Demo / Robinhood enables all supported features without error badges',
+    testWidgets(
+        'Connected with Demo / Robinhood enables all supported features without error badges',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -310,8 +328,10 @@ void main() {
       expect(find.text('Unsupported'), findsNothing);
 
       // Both Banking & Transfers and Margin Health should be available and display normal subtitles
-      expect(find.text('Manage deposits, withdrawals & linked bank accounts'), findsOneWidget);
-      expect(find.text('Margin buffer, buying power & collateral holds'), findsOneWidget);
+      expect(find.text('Manage deposits, withdrawals & linked bank accounts'),
+          findsOneWidget);
+      expect(find.text('Margin buffer, buying power & collateral holds'),
+          findsOneWidget);
     });
   });
 }

@@ -532,7 +532,6 @@ Follow the table with a strategic breakdown:
     return null;
   }
 
-
   Future<String> sendChatMessage(
     String message, {
     List<ChatMessage>? history,

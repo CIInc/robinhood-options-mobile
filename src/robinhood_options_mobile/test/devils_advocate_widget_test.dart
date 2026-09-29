@@ -61,7 +61,8 @@ void main() {
         EventHazard(
           event: 'FOMC Rate Announcement',
           timing: 'Next Wednesday',
-          risk: 'High duration growth stock sensitive to 10-year Treasury yield moves.',
+          risk:
+              'High duration growth stock sensitive to 10-year Treasury yield moves.',
           hazardLevel: 'Medium',
         ),
       ],
@@ -74,7 +75,8 @@ void main() {
         StressScenario(
           scenario: 'Volatility Shock (+30% VIX)',
           projectedImpact: '-6.2%',
-          assessment: 'Rapid contraction in high-beta speculative call open interest.',
+          assessment:
+              'Rapid contraction in high-beta speculative call open interest.',
         ),
       ],
       lastUpdated: DateTime(2026, 9, 27, 2, 0),

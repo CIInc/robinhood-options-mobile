@@ -278,8 +278,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
         builder: (_, scrollController) => Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SingleChildScrollView(
             controller: scrollController,

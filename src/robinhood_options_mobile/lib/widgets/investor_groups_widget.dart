@@ -130,68 +130,68 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
               if (auth.currentUser != null)
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded),
-                tooltip: 'More options',
-                onSelected: (value) {
-                  if (value == 'copy_trading') {
-                    widget.analytics
-                        .logEvent(name: 'view_copy_trading_history');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const CopyTradingDashboardWidget(),
-                      ),
-                    );
-                  } else if (value == 'find_traders') {
-                    widget.analytics.logEvent(name: 'view_find_traders');
-                    if (widget.brokerageUser != null &&
-                        widget.service != null) {
+                  tooltip: 'More options',
+                  onSelected: (value) {
+                    if (value == 'copy_trading') {
+                      widget.analytics
+                          .logEvent(name: 'view_copy_trading_history');
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => UsersWidget(
-                            auth,
-                            widget.service!,
-                            firestoreService: widget.firestoreService,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            brokerageUser: widget.brokerageUser!,
-                            user: widget.user,
-                            userDocRef: widget.userDocRef,
+                          builder: (context) =>
+                              const CopyTradingDashboardWidget(),
+                        ),
+                      );
+                    } else if (value == 'find_traders') {
+                      widget.analytics.logEvent(name: 'view_find_traders');
+                      if (widget.brokerageUser != null &&
+                          widget.service != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UsersWidget(
+                              auth,
+                              widget.service!,
+                              firestoreService: widget.firestoreService,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              brokerageUser: widget.brokerageUser!,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            ),
                           ),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Please connect your brokerage account to find traders.'),
-                        ),
-                      );
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                                'Please connect your brokerage account to find traders.'),
+                          ),
+                        );
+                      }
                     }
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'copy_trading',
-                    child: ListTile(
-                      leading: Icon(Icons.copy_rounded),
-                      title: Text('Copy Trading History'),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'copy_trading',
+                      child: ListTile(
+                        leading: Icon(Icons.copy_rounded),
+                        title: Text('Copy Trading History'),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'find_traders',
-                    child: ListTile(
-                      leading: Icon(Icons.person_search_rounded),
-                      title: Text('Find Traders'),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
+                    const PopupMenuItem(
+                      value: 'find_traders',
+                      child: ListTile(
+                        leading: Icon(Icons.person_search_rounded),
+                        title: Text('Find Traders'),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
             ],
             bottom: TabBar(
               controller: _tabController,

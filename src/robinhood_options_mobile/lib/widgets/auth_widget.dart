@@ -706,7 +706,8 @@ class _AuthGateState extends State<AuthGate> {
                   'Incorrect password. Please try again or reset your password.';
               break;
             case 'email-already-in-use':
-              error = 'This email is already registered. Try signing in instead.';
+              error =
+                  'This email is already registered. Try signing in instead.';
               break;
             case 'account-exists-with-different-credential':
               error =
@@ -1110,5 +1111,5 @@ Widget _buildAuthButton(
 
 /// Helper to build an OAuth provider button for testing and customization.
 Widget buildAuthButton(
-    BuildContext context, AuthButtonType type, VoidCallback? onPressed) =>
+        BuildContext context, AuthButtonType type, VoidCallback? onPressed) =>
     _buildAuthButton(context, type, onPressed);

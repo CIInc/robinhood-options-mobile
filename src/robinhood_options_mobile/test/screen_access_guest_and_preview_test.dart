@@ -122,7 +122,8 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('renders Explore Demo / Paper Mode button and triggers callback',
+    testWidgets(
+        'renders Explore Demo / Paper Mode button and triggers callback',
         (tester) async {
       bool demoTriggered = false;
 
@@ -464,7 +465,7 @@ void main() {
       await tester.pump();
 
       // Top 3 sample signals should be rendered
-            expect(find.text('AAPL'), findsOneWidget);
+      expect(find.text('AAPL'), findsOneWidget);
       expect(find.text('MSFT'), findsOneWidget);
       expect(find.text('NVDA'), findsOneWidget);
 

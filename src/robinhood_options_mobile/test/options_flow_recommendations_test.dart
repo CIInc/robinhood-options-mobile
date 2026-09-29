@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/model/option_flow_item.dart';
 import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/widgets/option_flow_list_item.dart';
 
@@ -89,6 +90,53 @@ void main() {
     final semantics = tester.getSemantics(guidanceFinder).getSemanticsData();
     expect(semantics.flagsCollection.isButton, isTrue);
     expect(semantics.hasAction(SemanticsAction.tap), isTrue);
+
+    semanticsHandle.dispose();
+  });
+
+  testWidgets('OptionFlowListItem exposes unified accessible semantics',
+      (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+
+    final item = OptionFlowItem(
+      symbol: 'AAPL',
+      lastTradeDate: DateTime.now(),
+      strike: 150.0,
+      expirationDate: DateTime.now().add(const Duration(days: 30)),
+      type: 'CALL',
+      spotPrice: 155.0,
+      premium: 500000,
+      volume: 1200,
+      openInterest: 500,
+      impliedVolatility: 0.35,
+      flowType: FlowType.sweep,
+      sentiment: Sentiment.bullish,
+      details: 'Above Ask',
+      flags: ['SWEEP'],
+      score: 85,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: OptionFlowListItem(
+            item: item,
+          ),
+        ),
+      ),
+    );
+
+    final itemFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          widget.properties.label != null &&
+          widget.properties.label!.startsWith('Option flow for ${item.symbol}'),
+    );
+
+    expect(itemFinder, findsOneWidget);
+
+    final semantics = tester.getSemantics(itemFinder).getSemanticsData();
+    expect(semantics.flagsCollection.isButton, isTrue);
 
     semanticsHandle.dispose();
   });

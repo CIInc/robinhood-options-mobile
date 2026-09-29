@@ -335,8 +335,7 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
             ),
             child: Text(
               isGuest ? 'Sign In' : 'Unlock Pro',
-              style:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
             ),
           ),
         ],

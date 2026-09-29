@@ -748,148 +748,148 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .primaryColor
-                          .withOpacity(_isDarkTheme ? 0.15 : 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.info_outline,
-                        color: Theme.of(context).primaryColor, size: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .primaryColor
+                        .withOpacity(_isDarkTheme ? 0.15 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Group Overview',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Group Stats Grid
-              Row(
-                children: [
-                  _buildOverviewStatTile(
-                    icon: Icons.people_alt_outlined,
-                    label: 'Members',
-                    value: '${group.members.length}',
-                    color: Colors.blue,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _navigateToMembers(group);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  _buildOverviewStatTile(
-                    icon: Icons.admin_panel_settings_outlined,
-                    label: 'Admins',
-                    value: '${group.admins?.length ?? 0}',
-                    color: Colors.purple,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      _navigateToMembers(group);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildOverviewStatTile(
-                    icon: group.isPrivate ? Icons.lock_outline : Icons.public,
-                    label: 'Access',
-                    value: group.isPrivate ? 'Private' : 'Public',
-                    color: group.isPrivate ? Colors.orange : Colors.green,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildOverviewStatTile(
-                    icon: Icons.calendar_today_outlined,
-                    label: 'Created',
-                    value: DateFormat.yMMMd().format(group.dateCreated),
-                    color: Colors.teal,
-                  ),
-                ],
-              ),
-              if (auth.currentUser != null) ...[
-                const SizedBox(height: 14),
-                if (isMember) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              HapticFeedback.mediumImpact();
-                              _trackEvent('copy_trade_settings_pressed');
-                              _showCopyTradeSettings(context, group);
-                            },
-                      icon: const Icon(Icons.content_copy, size: 18),
-                      label: const Text('Copy Trade Settings'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                  child: Icon(Icons.info_outline,
+                      color: Theme.of(context).primaryColor, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Group Overview',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              HapticFeedback.heavyImpact();
-                              _trackEvent('leave_group_pressed');
-                              _leaveGroup(context, group);
-                            },
-                      icon: const Icon(Icons.exit_to_app, size: 18),
-                      label: const Text('Leave Group'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[_isDarkTheme ? 600 : 500],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ] else
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              HapticFeedback.mediumImpact();
-                              _trackEvent('join_group_pressed');
-                              _joinGroup(context, group);
-                            },
-                      icon: const Icon(Icons.group_add, size: 18),
-                      label: const Text('Join Group'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 16),
+            // Group Stats Grid
+            Row(
+              children: [
+                _buildOverviewStatTile(
+                  icon: Icons.people_alt_outlined,
+                  label: 'Members',
+                  value: '${group.members.length}',
+                  color: Colors.blue,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _navigateToMembers(group);
+                  },
+                ),
+                const SizedBox(width: 8),
+                _buildOverviewStatTile(
+                  icon: Icons.admin_panel_settings_outlined,
+                  label: 'Admins',
+                  value: '${group.admins?.length ?? 0}',
+                  color: Colors.purple,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _navigateToMembers(group);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildOverviewStatTile(
+                  icon: group.isPrivate ? Icons.lock_outline : Icons.public,
+                  label: 'Access',
+                  value: group.isPrivate ? 'Private' : 'Public',
+                  color: group.isPrivate ? Colors.orange : Colors.green,
+                ),
+                const SizedBox(width: 8),
+                _buildOverviewStatTile(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Created',
+                  value: DateFormat.yMMMd().format(group.dateCreated),
+                  color: Colors.teal,
+                ),
+              ],
+            ),
+            if (auth.currentUser != null) ...[
+              const SizedBox(height: 14),
+              if (isMember) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            _trackEvent('copy_trade_settings_pressed');
+                            _showCopyTradeSettings(context, group);
+                          },
+                    icon: const Icon(Icons.content_copy, size: 18),
+                    label: const Text('Copy Trade Settings'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            HapticFeedback.heavyImpact();
+                            _trackEvent('leave_group_pressed');
+                            _leaveGroup(context, group);
+                          },
+                    icon: const Icon(Icons.exit_to_app, size: 18),
+                    label: const Text('Leave Group'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[_isDarkTheme ? 600 : 500],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            _trackEvent('join_group_pressed');
+                            _joinGroup(context, group);
+                          },
+                    icon: const Icon(Icons.group_add, size: 18),
+                    label: const Text('Join Group'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
             ],
-          ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildOverviewStatTile({

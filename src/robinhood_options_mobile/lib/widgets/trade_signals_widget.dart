@@ -252,7 +252,8 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
         int freemiumSignalsAdded = 0;
 
         for (final entry in sortedGroupedSignals) {
-          if (!widget.isSubscribed && freemiumSignalsAdded >= maxFreemiumSignals) {
+          if (!widget.isSubscribed &&
+              freemiumSignalsAdded >= maxFreemiumSignals) {
             break;
           }
           if (!_collapsedDates.contains(entry.key)) {
@@ -588,8 +589,8 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
                 'RealizeAlpha Pro members receive unlimited real-time signals across all market caps, deep 20+ indicator analysis, live push notifications, and agentic auto-trading execution.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color
-                      ?.withValues(alpha: 0.8),
+                  color:
+                      theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                   height: 1.4,
                 ),
               ),
@@ -634,8 +635,7 @@ class TradeSignalsWidgetState extends State<TradeSignalsWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
