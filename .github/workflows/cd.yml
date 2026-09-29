@@ -450,7 +450,7 @@ jobs:
         working-directory: src/robinhood_options_mobile/functions
 
       - name: Deploy Firebase resources
-        run: npx --yes firebase-tools deploy --project realizealpha --debug
+        run: npx --yes firebase-tools deploy --project realizealpha
 
   create_release:
     name: Create GitHub Release

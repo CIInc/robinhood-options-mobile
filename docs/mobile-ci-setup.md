@@ -24,6 +24,8 @@ Go to [Google Cloud Console IAM](https://console.cloud.google.com/iam-admin/iam?
 4. **Service Account User** (`roles/iam.serviceAccountUser`): Required to deploy Cloud Functions runtime identity.
 5. **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Required to build function containers.
 6. **Artifact Registry Administrator** (`roles/artifactregistry.admin`): Required to manage function images.
+7. **Secret Manager Admin** (`roles/secretmanager.admin`): Required to validate and grant access to parameterized secrets (`APPLE_SHARED_SECRET`, `TWELVE_DATA_API_KEY`, etc.) used in Firebase Functions.
+8. **Cloud Scheduler Admin** (`roles/cloudscheduler.admin`): Required to create and update scheduled Cloud Functions (cron jobs).
 
 Also ensure the **Firebase Management API** (`firebase.googleapis.com`) is enabled in the project.
 
