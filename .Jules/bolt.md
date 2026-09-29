@@ -21,3 +21,7 @@
 ## 2026-04-01 - Scalar Technical Indicator Evaluation without Full-Series Array Allocations
 **Learning:** Scalar indicator computation functions (`computeRSI`, `computeATR`, `computeADX`) delegated to full-series array generators (`computeRSIArray`, `computeATRArray`) or created up to 9 intermediate arrays (`plusDM`, `minusDM`, `tr`, `smoothedPlusDM`, `smoothedMinusDM`, `smoothedTR`, `plusDI`, `minusDI`, `dx`, `changes`, `trueRanges`). In backtests and multi-indicator evaluations across thousands of bars, this caused millions of transient heap allocations and heavy GC pauses.
 **Action:** Refactor scalar indicator functions (`computeRSI`, `computeATR`, `computeADX`) to calculate smoothed Wilder averages directly using running scalar variables in O(1) space, and compute series differences on-the-fly without allocating intermediate arrays.
+
+## 2026-04-01 - Scalar Stochastic and Keltner Channels directly in O(1) Space
+**Learning:** Scalar indicator functions `computeStochastic` and `computeKeltnerChannels` delegated to full-series array generators (`computeStochasticArray`, `computeKeltnerChannelsArray`). In custom indicator evaluations and backtests over 500+ bars, this created dynamic arrays of hundreds of elements and intermediate objects on every evaluation step only to return a single trailing value.
+**Action:** Refactor `computeStochastic` to compute trailing %K/%D directly in O(dPeriod * kPeriod) time and O(1) space, and refactor `computeKeltnerChannels` to directly use scalar `computeEMA` and `computeATR` helpers.

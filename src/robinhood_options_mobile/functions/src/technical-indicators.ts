@@ -545,7 +545,11 @@ export function computeStochasticArray(
 }
 
 /**
- * Compute Stochastic Oscillator
+ * Compute Stochastic Oscillator for a single point (scalar) in
+ * O(dPeriod * kPeriod) time and O(1) space.
+ * Performance optimization: Computes %K and %D directly for the trailing
+ * window ending at endIndex, eliminating full-series array allocations
+ * (kValues and result arrays from computeStochasticArray).
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
@@ -562,16 +566,47 @@ export function computeStochastic(
   dPeriod = 3,
   endIndex = closes ? closes.length : 0
 ): { k: number; d: number } | null {
-  const arr = computeStochasticArray(
-    highs,
-    lows,
-    closes,
-    kPeriod,
-    dPeriod,
-    endIndex
-  );
-  if (arr.length === 0) return null;
-  return arr[arr.length - 1];
+  const minRequired = kPeriod + dPeriod - 1;
+  if (
+    !highs ||
+    !lows ||
+    !closes ||
+    endIndex < minRequired ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex
+  ) {
+    return null;
+  }
+
+  // Calculate the trailing dPeriod %K values ending at (endIndex - 1)
+  let kSum = 0;
+  let latestK = 0;
+
+  for (let i = endIndex - dPeriod; i < endIndex; i++) {
+    let hh = Number.NEGATIVE_INFINITY;
+    let ll = Number.POSITIVE_INFINITY;
+    for (let j = i - kPeriod + 1; j <= i; j++) {
+      const valH = highs[j];
+      const valL = lows[j];
+      if (valH > hh) hh = valH;
+      if (valL < ll) ll = valL;
+    }
+
+    let kVal = 50;
+    if (hh !== ll && Number.isFinite(hh) && Number.isFinite(ll)) {
+      kVal = ((closes[i] - ll) / (hh - ll)) * 100;
+    }
+
+    if (i === endIndex - 1) {
+      latestK = kVal;
+    }
+    kSum += kVal;
+  }
+
+  const dVal = kSum / dPeriod;
+
+  return { k: latestK, d: dVal };
 }
 
 /**
@@ -699,13 +734,18 @@ export function computeATRArray(
 }
 
 /**
- * Compute Keltner Channels
+ * Compute Keltner Channels for a single point (scalar) in
+ * O(endIndex) time and O(1) space.
+ * Performance optimization: Directly computes scalar EMA and scalar ATR
+ * without generating full-series arrays, and accepts optional endIndex
+ * parameter to eliminate array slicing.
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - EMA period for midline (default 20).
  * @param {number} atrPeriod - ATR period for band width (default 10).
  * @param {number} multiplier - ATR multiplier (default 1.5).
+ * @param {number} [endIndex] - Optional end index.
  * @return {{upper: number, middle: number, lower: number}|null}
  */
 export function computeKeltnerChannels(
@@ -714,18 +754,31 @@ export function computeKeltnerChannels(
   closes: number[],
   period = 20,
   atrPeriod = 10,
-  multiplier = 1.5
+  multiplier = 1.5,
+  endIndex = closes ? closes.length : 0
 ): { upper: number; middle: number; lower: number } | null {
-  const arr = computeKeltnerChannelsArray(
-    highs,
-    lows,
-    closes,
-    period,
-    atrPeriod,
-    multiplier
-  );
-  if (arr.length === 0) return null;
-  return arr[arr.length - 1];
+  if (
+    !highs ||
+    !lows ||
+    !closes ||
+    endIndex < Math.max(period, atrPeriod) ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex
+  ) {
+    return null;
+  }
+
+  const middle = computeEMA(closes, period, endIndex);
+  const atr = computeATR(highs, lows, closes, atrPeriod, endIndex);
+
+  if (middle === null || atr === null) return null;
+
+  return {
+    upper: middle + atr * multiplier,
+    middle: middle,
+    lower: middle - atr * multiplier,
+  };
 }
 
 /**
