@@ -131,7 +131,7 @@ void main() {
     });
 
     testWidgets(
-        'Features and App Settings cards display Biometric Authentication, Risk Circuit Breakers, Portfolio & Social Privacy, and Following Activity Feed',
+        'Features and App Settings show expected settings without duplicating Investors feed',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 3000);
       tester.view.devicePixelRatio = 1.0;
@@ -186,10 +186,8 @@ void main() {
       expect(find.text('Portfolio & Social Privacy'), findsOneWidget);
       expect(find.text('Public Portfolio'), findsOneWidget);
 
-      // Verify Following Activity Feed is rendered under Features
-      expect(find.text('Following Activity Feed'), findsOneWidget);
-      expect(find.text('Real-time trades from traders you follow'),
-          findsOneWidget);
+      // Following Activity Feed is available under Investors, not Settings.
+      expect(find.text('Following Activity Feed'), findsNothing);
 
       // Verify they are within the Features card structure
       expect(find.text('RISK & MARGIN SAFEGUARDS'), findsOneWidget);

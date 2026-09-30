@@ -172,8 +172,7 @@ void main() {
       );
     }
 
-    testWidgets(
-        'Logged out state shows Login Required badges and shows snackbar on tap',
+    testWidgets('Logged out state shows login reasons and snackbar on tap',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -190,20 +189,18 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Features requiring login should display 'Login Required' badge
-      expect(find.text('Login Required'), findsWidgets);
+      // The inline reason stays visible without repeating it in a badge.
+      expect(find.text('Login Required'), findsNothing);
+      expect(find.text('Requires account login'), findsWidgets);
 
-      // Tap on Following Activity Feed (requires login)
-      final followingFinder =
-          find.widgetWithText(ListTile, 'Following Activity Feed');
-      expect(followingFinder, findsOneWidget);
-      await tester.tap(followingFinder);
+      // Tap on Backtesting (requires login)
+      final backtestingFinder = find.widgetWithText(ListTile, 'Backtesting');
+      expect(backtestingFinder, findsOneWidget);
+      await tester.tap(backtestingFinder);
       await tester.pump();
 
       // Expect snackbar explaining login is required
-      expect(
-          find.text(
-              'Please sign in to your account to use Following Activity Feed.'),
+      expect(find.text('Please sign in to your account to use Backtesting.'),
           findsOneWidget);
     });
 
@@ -248,7 +245,7 @@ void main() {
     });
 
     testWidgets(
-        'Connected with Charles Schwab displays Unsupported badges for Robinhood-only features',
+        'Connected with Charles Schwab shows unsupported reasons without badges',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -277,8 +274,8 @@ void main() {
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsOneWidget);
 
-      // Banking & Transfers is Robinhood-only -> shows 'Unsupported' badge and subtitle note
-      expect(find.text('Unsupported'), findsWidgets);
+      // Banking & Transfers is Robinhood-only; the subtitle explains why it is disabled.
+      expect(find.text('Unsupported'), findsNothing);
       expect(find.text('Not supported by Charles Schwab'), findsWidgets);
       expect(find.text('Manage deposits, withdrawals & linked bank accounts'),
           findsOneWidget);

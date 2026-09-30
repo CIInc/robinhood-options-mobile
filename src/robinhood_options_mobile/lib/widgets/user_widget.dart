@@ -54,7 +54,6 @@ import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_privacy_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/user_follow_list_dialog.dart';
-import 'package:robinhood_options_mobile/widgets/following_activity_feed_widget.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
@@ -1423,6 +1422,9 @@ class _UserWidgetState extends State<UserWidget> {
                                         title: 'Backtesting',
                                         subtitle: const Text(
                                             'Test strategies on historical data'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
                                         user: user,
                                         onTap: () async {
                                           Navigator.push(
@@ -1441,35 +1443,38 @@ class _UserWidgetState extends State<UserWidget> {
                                           );
                                         },
                                       ),
+                                      // What is the point of Paper Trading Simulator settings view when there is a paper trading brokerage account type?
+                                      // The **paper trading account type** selects the simulated brokerage: trades use virtual cash and paper positions instead of a live broker account. The **Settings** view tunes how those simulated trades fill—currently, slippage per share/contract and a fixed commission per trade. Those values are saved with the paper account and applied when orders execute.
+                                      // Starting capital is handled separately in **Reset Account**, which also clears positions and history. So the settings view isn’t needed to make the account a paper account; it’s there to make its trade-cost assumptions configurable.
                                       // Paper Trading Simulator
-                                      _buildFeatureTile(
-                                        context,
-                                        icon: Icons.school_outlined,
-                                        title: 'Paper Trading Simulator',
-                                        subtitle: const Text(
-                                            'Practice trading with virtual money'),
-                                        requiresBrokerage: true,
-                                        user: user,
-                                        onTap: () async {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  PaperTradingDashboardWidget(
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                brokerageUser:
-                                                    widget.brokerageUser,
-                                                service: widget.service ??
-                                                    PaperService(),
-                                                user: user,
-                                                userDocRef:
-                                                    userDocumentReference,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                      // _buildFeatureTile(
+                                      //   context,
+                                      //   icon: Icons.school_outlined,
+                                      //   title: 'Paper Trading Simulator',
+                                      //   subtitle: const Text(
+                                      //       'Practice trading with virtual money'),
+                                      //   requiresBrokerage: true,
+                                      //   user: user,
+                                      //   onTap: () async {
+                                      //     Navigator.push(
+                                      //       context,
+                                      //       MaterialPageRoute(
+                                      //         builder: (context) =>
+                                      //             PaperTradingDashboardWidget(
+                                      //           analytics: widget.analytics,
+                                      //           observer: widget.observer,
+                                      //           brokerageUser:
+                                      //               widget.brokerageUser,
+                                      //           service: widget.service ??
+                                      //               PaperService(),
+                                      //           user: user,
+                                      //           userDocRef:
+                                      //               userDocumentReference,
+                                      //         ),
+                                      //       ),
+                                      //     );
+                                      //   },
+                                      // ),
 
                                       const Divider(
                                           height: 1, indent: 16, endIndent: 16),
@@ -1515,6 +1520,8 @@ class _UserWidgetState extends State<UserWidget> {
                                         subtitle: const Text(
                                             'Manage price, volume, and volatility alerts'),
                                         requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
                                         user: user,
                                         onTap: () async {
                                           Navigator.push(
@@ -1940,35 +1947,6 @@ class _UserWidgetState extends State<UserWidget> {
                                               user?.portfolioPrivacy = updated;
                                             });
                                           }
-                                        },
-                                      ),
-                                      // Following Activity Feed
-                                      _buildFeatureTile(
-                                        context,
-                                        icon: Icons.dynamic_feed_outlined,
-                                        title: 'Following Activity Feed',
-                                        subtitle: const Text(
-                                            'Real-time trades from traders you follow'),
-                                        requiresLogin: true,
-                                        user: user,
-                                        onTap: () async {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  FollowingActivityFeedWidget(
-                                                auth: widget.auth,
-                                                firestoreService:
-                                                    _firestoreService,
-                                                brokerageUser:
-                                                    widget.brokerageUser,
-                                                service: widget.service,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                                userRole: user?.role,
-                                              ),
-                                            ),
-                                          );
                                         },
                                       ),
                                       // Shareholder Q&A (Say Technologies)
@@ -2569,14 +2547,12 @@ class _UserWidgetState extends State<UserWidget> {
 
     if (!isLoginSatisfied) {
       disabledReason = 'Requires account login';
-      badgeText = 'Login Required';
     } else if (!isBrokerageSatisfied) {
       disabledReason = 'Requires linked brokerage account';
       badgeText = 'Brokerage Required';
     } else if (!isSourceSupported) {
       final brokerName = _brokerLabel(widget.brokerageUser!.source);
       disabledReason = 'Not supported by $brokerName';
-      badgeText = 'Unsupported';
     }
 
     final Widget effectiveSubtitle = (!isEnabled && disabledReason != null)
@@ -2622,27 +2598,29 @@ class _UserWidgetState extends State<UserWidget> {
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: theme.colorScheme.outline.withValues(alpha: 0.3),
-                      width: 0.8,
+                if (badgeText != null) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.outline,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    badgeText ?? 'Disabled',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.outline,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
+                  const SizedBox(width: 4),
+                ],
                 Icon(
                   Icons.lock_outline,
                   size: 16,
