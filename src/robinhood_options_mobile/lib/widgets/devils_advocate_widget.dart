@@ -31,7 +31,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
   late String _direction;
   String? _customThesis;
   Future<DevilsAdvocateAnalysis?>? _future;
-  int _selectedTab = 0; // 0: Counter-Arguments, 1: Skew Traps, 2: Event Hazards, 3: Stress Scenarios
+  int _selectedTab =
+      0; // 0: Counter-Arguments, 1: Skew Traps, 2: Event Hazards, 3: Stress Scenarios
   final TextEditingController _thesisController = TextEditingController();
   bool _showCustomThesisInput = false;
 
@@ -113,13 +114,15 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: const SizedBox(
@@ -144,17 +147,20 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
 
         if (snapshot.hasError) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: ListTile(
-                leading: Icon(Icons.error_outline, color: theme.colorScheme.error),
+                leading:
+                    Icon(Icons.error_outline, color: theme.colorScheme.error),
                 title: const Text('Devil\'s Advocate analysis unavailable'),
                 subtitle: Text('${snapshot.error}'),
                 trailing: IconButton(
@@ -170,19 +176,22 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
         final analysis = snapshot.data;
         if (analysis == null) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
                 ),
               ),
               child: ListTile(
                 leading: const Icon(Icons.psychology_alt_outlined),
                 title: Text('No stress test data for ${widget.symbol}'),
-                subtitle: const Text('Tap refresh to run an adversarial critique'),
+                subtitle:
+                    const Text('Tap refresh to run an adversarial critique'),
                 trailing: IconButton(
                   tooltip: 'Run stress test',
                   icon: const Icon(Icons.refresh),
@@ -193,7 +202,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
           );
         }
 
-        final resilienceColor = _getResilienceColor(analysis.resilienceScore, theme);
+        final resilienceColor =
+            _getResilienceColor(analysis.resilienceScore, theme);
 
         return Padding(
           padding: widget.isModal
@@ -388,9 +398,12 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
             spacing: 8,
             runSpacing: 4,
             children: [
-              _buildDirectionChip('Bullish', Icons.trending_up, Colors.green, theme),
-              _buildDirectionChip('Bearish', Icons.trending_down, Colors.red, theme),
-              _buildDirectionChip('Neutral', Icons.swap_horiz, Colors.blue, theme),
+              _buildDirectionChip(
+                  'Bullish', Icons.trending_up, Colors.green, theme),
+              _buildDirectionChip(
+                  'Bearish', Icons.trending_down, Colors.red, theme),
+              _buildDirectionChip(
+                  'Neutral', Icons.swap_horiz, Colors.blue, theme),
             ],
           ),
         ],
@@ -458,7 +471,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                 visualDensity: VisualDensity.compact,
               ),
               icon: const Icon(Icons.psychology, size: 16),
-              label: const Text('Critique Custom Thesis', style: TextStyle(fontSize: 12)),
+              label: const Text('Critique Custom Thesis',
+                  style: TextStyle(fontSize: 12)),
               onPressed: () {
                 setState(() {
                   _customThesis = _thesisController.text.trim();
@@ -555,20 +569,31 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildTabChip(0, 'Counter-Arguments (${analysis.counterArguments.length})', Icons.gavel, theme),
+            _buildTabChip(
+                0,
+                'Counter-Arguments (${analysis.counterArguments.length})',
+                Icons.gavel,
+                theme),
             const SizedBox(width: 6),
-            _buildTabChip(1, 'Skew Traps (${analysis.skewTraps.length})', Icons.show_chart, theme),
+            _buildTabChip(1, 'Skew Traps (${analysis.skewTraps.length})',
+                Icons.show_chart, theme),
             const SizedBox(width: 6),
-            _buildTabChip(2, 'Event Hazards (${analysis.eventHazards.length})', Icons.event_busy, theme),
+            _buildTabChip(2, 'Event Hazards (${analysis.eventHazards.length})',
+                Icons.event_busy, theme),
             const SizedBox(width: 6),
-            _buildTabChip(3, 'Stress Scenarios (${analysis.stressScenarios.length})', Icons.analytics_outlined, theme),
+            _buildTabChip(
+                3,
+                'Stress Scenarios (${analysis.stressScenarios.length})',
+                Icons.analytics_outlined,
+                theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTabChip(int index, String title, IconData icon, ThemeData theme) {
+  Widget _buildTabChip(
+      int index, String title, IconData icon, ThemeData theme) {
     final isSelected = _selectedTab == index;
     return ChoiceChip(
       selected: isSelected,
@@ -627,7 +652,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -647,7 +673,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -699,7 +726,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -721,7 +749,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -773,7 +802,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -795,7 +825,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(4),
@@ -847,7 +878,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
@@ -867,7 +899,8 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: isNegative
                             ? Colors.red.withValues(alpha: 0.15)
@@ -879,7 +912,9 @@ class _DevilsAdvocateWidgetState extends State<DevilsAdvocateWidget> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: isNegative ? Colors.red.shade700 : Colors.green.shade700,
+                          color: isNegative
+                              ? Colors.red.shade700
+                              : Colors.green.shade700,
                         ),
                       ),
                     ),

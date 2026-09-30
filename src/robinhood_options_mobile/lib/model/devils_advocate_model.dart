@@ -100,7 +100,8 @@ class StressScenario {
   factory StressScenario.fromJson(Map<String, dynamic> json) {
     return StressScenario(
       scenario: json['scenario'] ?? '',
-      projectedImpact: json['projected_impact'] ?? json['projectedImpact'] ?? '',
+      projectedImpact:
+          json['projected_impact'] ?? json['projectedImpact'] ?? '',
       assessment: json['assessment'] ?? '',
     );
   }
@@ -162,7 +163,8 @@ class DevilsAdvocateAnalysis {
               .toList() ??
           [],
       stressScenarios: (json['stress_scenarios'] as List<dynamic>?)
-              ?.map((e) => StressScenario.fromJson(Map<String, dynamic>.from(e)))
+              ?.map(
+                  (e) => StressScenario.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
       summary: json['summary'] ?? '',

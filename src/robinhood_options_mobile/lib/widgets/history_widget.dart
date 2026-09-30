@@ -550,7 +550,8 @@ class _HistoryPageState extends State<HistoryPage>
                     final userStore =
                         Provider.of<BrokerageUserStore>(context, listen: false);
                     userStore.addOrUpdate(user);
-                    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                    userStore
+                        .setCurrentUserIndex(userStore.items.indexOf(user));
                     await userStore.save();
                   },
                   message: aggregateUsers.isEmpty
@@ -609,7 +610,8 @@ class _HistoryPageState extends State<HistoryPage>
                     final userStore =
                         Provider.of<BrokerageUserStore>(context, listen: false);
                     userStore.addOrUpdate(user);
-                    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                    userStore
+                        .setCurrentUserIndex(userStore.items.indexOf(user));
                     await userStore.save();
                   },
                   message: isSessionExpired

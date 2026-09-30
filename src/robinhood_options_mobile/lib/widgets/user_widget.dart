@@ -1802,8 +1802,7 @@ class _UserWidgetState extends State<UserWidget> {
                                         user: user,
                                         onTap: () async {
                                           final currentAccount =
-                                              Provider.of<AccountStore>(
-                                                      context,
+                                              Provider.of<AccountStore>(context,
                                                       listen: false)
                                                   .selectedAccount;
                                           Navigator.push(
@@ -1934,13 +1933,11 @@ class _UserWidgetState extends State<UserWidget> {
                                             context,
                                             userId: widget.userId ?? '',
                                             currentSettings: currentPrivacy,
-                                            firestoreService:
-                                                _firestoreService,
+                                            firestoreService: _firestoreService,
                                           );
                                           if (updated != null && mounted) {
                                             setState(() {
-                                              user?.portfolioPrivacy =
-                                                  updated;
+                                              user?.portfolioPrivacy = updated;
                                             });
                                           }
                                         },

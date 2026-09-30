@@ -573,6 +573,7 @@ class TradeSignalsProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
   String? get error => _error;
   bool get isTradeInProgress => _isTradeInProgress;
   bool get isLoading => _isLoading;

@@ -175,19 +175,23 @@ class OptionFlowListItem extends StatelessWidget {
 
     Color sentimentColor;
     IconData sentimentIcon;
+    String sentimentLabel;
 
     switch (item.sentiment) {
       case Sentiment.bullish:
         sentimentColor = Colors.green;
         sentimentIcon = Icons.trending_up;
+        sentimentLabel = 'Bullish';
         break;
       case Sentiment.bearish:
         sentimentColor = Colors.red;
         sentimentIcon = Icons.trending_down;
+        sentimentLabel = 'Bearish';
         break;
       case Sentiment.neutral:
         sentimentColor = Colors.grey;
         sentimentIcon = Icons.remove;
+        sentimentLabel = 'Neutral';
         break;
     }
 
@@ -231,309 +235,338 @@ class OptionFlowListItem extends StatelessWidget {
       borderWidth = 1.5;
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 0,
-      color: backgroundColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: borderColor,
-          width: borderWidth,
+    final flagLabels = <String>[
+      if (item.isUnusual) 'UNUSUAL',
+      if (item.daysToExpiration == 0) '0DTE',
+      if (item.flowType == FlowType.sweep) 'SWEEP',
+      if (item.flowType == FlowType.block) 'BLOCK',
+      if (item.flowType == FlowType.darkPool) 'DARK POOL',
+      if (item.details.isNotEmpty) item.details,
+      ...item.flags,
+    ];
+    final flagsText =
+        flagLabels.isNotEmpty ? ', flags: ${flagLabels.join(", ")}' : '';
+    final scoreText = item.score > 0 ? ', score ${item.score}' : '';
+    final premiumText = _currencyFormat.format(item.premium);
+    final contractText =
+        '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}';
+
+    final semanticLabel =
+        'Option flow for ${item.symbol}, $sentimentLabel$scoreText, $premiumText, $contractText, $moneynessLabel$flagsText';
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        elevation: 0,
+        color: backgroundColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: borderColor,
+            width: borderWidth,
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap ?? () => _handleItemTap(context, item),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: sentimentColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap ?? () => _handleItemTap(context, item),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: sentimentColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child:
+                          Icon(sentimentIcon, color: sentimentColor, size: 24),
                     ),
-                    child: Icon(sentimentIcon, color: sentimentColor, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              item.symbol,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                item.symbol,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (item.score > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: getScoreColor(context, item.score)
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
+                              const SizedBox(width: 8),
+                              if (item.score > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: getScoreColor(context, item.score)
+                                        .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color:
+                                            getScoreColor(context, item.score),
+                                        width: 0.5),
+                                  ),
+                                  child: Text(
+                                    '${item.score}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                       color: getScoreColor(context, item.score),
-                                      width: 0.5),
-                                ),
-                                child: Text(
-                                  '${item.score}',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: getScoreColor(context, item.score),
-                                  ),
-                                ),
-                              ),
-                            const Spacer(),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isWhale) ...[
-                                  Icon(
-                                    Icons.star,
-                                    size: 16,
-                                    color: isDark
-                                        ? Colors.amber.shade300
-                                        : Colors.amber.shade800,
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Text(
-                                  _currencyFormat.format(item.premium),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                    color: isWhale
-                                        ? (isDark
-                                            ? Colors.amber.shade300
-                                            : Colors.amber.shade800)
-                                        : null,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  if (isItm) ...[
-                                    const SizedBox(width: 6),
-                                    OptionFlowFlagBadge(
-                                        flag: 'ITM',
-                                        small: true,
-                                        showTooltip: false),
+                                ),
+                              const Spacer(),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isWhale) ...[
+                                    Icon(
+                                      Icons.star,
+                                      size: 16,
+                                      color: isDark
+                                          ? Colors.amber.shade300
+                                          : Colors.amber.shade800,
+                                    ),
+                                    const SizedBox(width: 4),
                                   ],
+                                  Text(
+                                    _currencyFormat.format(item.premium),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: isWhale
+                                          ? (isDark
+                                              ? Colors.amber.shade300
+                                              : Colors.amber.shade800)
+                                          : null,
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        '${_dateFormat.format(item.expirationDate)} ($daysLabel) \$${item.strike.toStringAsFixed(1)} ${item.type}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (isItm) ...[
+                                      const SizedBox(width: 6),
+                                      OptionFlowFlagBadge(
+                                          flag: 'ITM',
+                                          small: true,
+                                          showTooltip: false),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _timeFormat.format(item.lastTradeDate ??
+                                    DateTime.fromMillisecondsSinceEpoch(0)),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (item.isUnusual)
+                      OptionFlowBadge(
+                          label: 'UNUSUAL',
+                          color: isDark
+                              ? Colors.purple.shade200
+                              : Colors.purple.shade700,
+                          icon: Icons.bolt,
+                          showTooltip: true),
+                    if (item.daysToExpiration == 0)
+                      OptionFlowBadge(
+                          label: '0DTE',
+                          color: Colors.red,
+                          icon: Icons.timer_off,
+                          showTooltip: true),
+                    if (item.flowType == FlowType.sweep)
+                      OptionFlowBadge(
+                          label: 'SWEEP',
+                          color: isDark
+                              ? Colors.orange.shade300
+                              : Colors.orange.shade900,
+                          icon: Icons.waves,
+                          showTooltip: true),
+                    if (item.flowType == FlowType.block)
+                      OptionFlowBadge(
+                          label: 'BLOCK',
+                          color: Colors.blue,
+                          icon: Icons.view_module,
+                          showTooltip: true),
+                    if (item.flowType == FlowType.darkPool)
+                      OptionFlowBadge(
+                          label: 'DARK POOL',
+                          color: Colors.grey.shade800,
+                          icon: Icons.visibility_off,
+                          showTooltip: true),
+                    if (item.details.isNotEmpty)
+                      OptionFlowBadge(
+                          label: item.details,
+                          color: Theme.of(context).colorScheme.secondary,
+                          icon: null,
+                          showTooltip: false),
+                    ...item.flags.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final flag = entry.value;
+                      final reason = index < item.reasons.length
+                          ? item.reasons[index]
+                          : null;
+                      return OptionFlowFlagBadge(
+                          flag: flag, showTooltip: true, reason: reason);
+                    }),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Spot Price',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
                             Text(
-                              _timeFormat.format(item.lastTradeDate ??
-                                  DateTime.fromMillisecondsSinceEpoch(0)),
-                              style: Theme.of(context).textTheme.bodySmall,
+                              _currencyFormat.format(item.spotPrice),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              moneynessLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: moneynessColor,
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (item.isUnusual)
-                    OptionFlowBadge(
-                        label: 'UNUSUAL',
-                        color: isDark
-                            ? Colors.purple.shade200
-                            : Colors.purple.shade700,
-                        icon: Icons.bolt,
-                        showTooltip: true),
-                  if (item.daysToExpiration == 0)
-                    OptionFlowBadge(
-                        label: '0DTE',
-                        color: Colors.red,
-                        icon: Icons.timer_off,
-                        showTooltip: true),
-                  if (item.flowType == FlowType.sweep)
-                    OptionFlowBadge(
-                        label: 'SWEEP',
-                        color: isDark
-                            ? Colors.orange.shade300
-                            : Colors.orange.shade900,
-                        icon: Icons.waves,
-                        showTooltip: true),
-                  if (item.flowType == FlowType.block)
-                    OptionFlowBadge(
-                        label: 'BLOCK',
-                        color: Colors.blue,
-                        icon: Icons.view_module,
-                        showTooltip: true),
-                  if (item.flowType == FlowType.darkPool)
-                    OptionFlowBadge(
-                        label: 'DARK POOL',
-                        color: Colors.grey.shade800,
-                        icon: Icons.visibility_off,
-                        showTooltip: true),
-                  if (item.details.isNotEmpty)
-                    OptionFlowBadge(
-                        label: item.details,
-                        color: Theme.of(context).colorScheme.secondary,
-                        icon: null,
-                        showTooltip: false),
-                  ...item.flags.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final flag = entry.value;
-                    final reason = index < item.reasons.length
-                        ? item.reasons[index]
-                        : null;
-                    return OptionFlowFlagBadge(
-                        flag: flag, showTooltip: true, reason: reason);
-                  }),
-                ],
-              ),
-              const Divider(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Spot Price',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            _currencyFormat.format(item.spotPrice),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            moneynessLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: moneynessColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Vol / OI',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
-                              fontSize: 10,
-                            ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            '${_compactFormat.format(item.volume)} / ${_compactFormat.format(item.openInterest)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                          if (item.openInterest > 0 &&
-                              item.volume > item.openInterest) ...[
-                            const SizedBox(width: 4),
-                            Tooltip(
-                              message:
-                                  'Volume is ${(item.volume / item.openInterest).toStringAsFixed(1)}x Open Interest',
-                              triggerMode: TooltipTriggerMode.tap,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[800],
-                                borderRadius: BorderRadius.circular(8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Vol / OI',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              '${_compactFormat.format(item.volume)} / ${_compactFormat.format(item.openInterest)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
                               ),
-                              textStyle: const TextStyle(color: Colors.white),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 1),
+                            ),
+                            if (item.openInterest > 0 &&
+                                item.volume > item.openInterest) ...[
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message:
+                                    'Volume is ${(item.volume / item.openInterest).toStringAsFixed(1)}x Open Interest',
+                                triggerMode: TooltipTriggerMode.tap,
                                 decoration: BoxDecoration(
-                                  color: (item.volume / item.openInterest > 5
+                                  color: Colors.grey[800],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                textStyle: const TextStyle(color: Colors.white),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: (item.volume / item.openInterest > 5
+                                            ? (isDark
+                                                ? Colors.purple.shade200
+                                                : Colors.purple)
+                                            : (isDark
+                                                ? Colors.amber
+                                                : Colors.amber.shade900))
+                                        .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${(item.volume / item.openInterest).toStringAsFixed(1)}x',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: item.volume / item.openInterest > 5
                                           ? (isDark
                                               ? Colors.purple.shade200
                                               : Colors.purple)
                                           : (isDark
                                               ? Colors.amber
-                                              : Colors.amber.shade900))
-                                      .withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${(item.volume / item.openInterest).toStringAsFixed(1)}x',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: item.volume / item.openInterest > 5
-                                        ? (isDark
-                                            ? Colors.purple.shade200
-                                            : Colors.purple)
-                                        : (isDark
-                                            ? Colors.amber
-                                            : Colors.amber.shade900),
+                                              : Colors.amber.shade900),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                  _buildDetailItem(context, 'Implied Vol',
-                      '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
-                ],
-              ),
-            ],
+                        ),
+                      ],
+                    ),
+                    _buildDetailItem(context, 'Implied Vol',
+                        '${(item.impliedVolatility * 100).toStringAsFixed(1)}%'),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
