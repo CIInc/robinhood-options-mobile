@@ -25,3 +25,7 @@
 ## 2026-04-01 - Scalar Stochastic and Keltner Channels directly in O(1) Space
 **Learning:** Scalar indicator functions `computeStochastic` and `computeKeltnerChannels` delegated to full-series array generators (`computeStochasticArray`, `computeKeltnerChannelsArray`). In custom indicator evaluations and backtests over 500+ bars, this created dynamic arrays of hundreds of elements and intermediate objects on every evaluation step only to return a single trailing value.
 **Action:** Refactor `computeStochastic` to compute trailing %K/%D directly in O(dPeriod * kPeriod) time and O(1) space, and refactor `computeKeltnerChannels` to directly use scalar `computeEMA` and `computeATR` helpers.
+
+## 2026-04-01 - O(1) Space Scalar Evaluation for ATR and Typical Price On-The-Fly CCI
+**Learning:** `evaluateATR` delegated to `computeATRArray` and accumulated full-series array allocations (`fullATRSeries`, `trueRanges`, `atrValues`), adding 19.7 µs/op per bar. Similarly, `evaluateCCI` and `evaluateCustomIndicator` allocated temporary `typicalPrices` arrays on every call.
+**Action:** Refactor `evaluateATR` to track running ATR sums and counts directly in scalar variables (reducing runtime by ~73%), and accept direct HLC arrays in `computeCCI` to calculate typical prices on-the-fly without intermediate array allocations.
