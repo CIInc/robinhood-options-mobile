@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
@@ -23,8 +24,14 @@ class MockFirebaseAuth extends Fake implements firebase_auth.FirebaseAuth {
 }
 
 class MockFirebaseUser extends Fake implements firebase_auth.User {
+  final bool anonymous;
+  MockFirebaseUser({this.anonymous = false});
+
   @override
   String get uid => 'test_uid';
+
+  @override
+  bool get isAnonymous => anonymous;
 
   @override
   String? get photoURL => null;
@@ -70,6 +77,12 @@ void main() {
     mockAgenticProvider = MockAgenticTradingProvider();
     mockBrokerageUserStore = BrokerageUserStore([], 0);
     mockAccountStore = AccountStore();
+  });
+
+  test('anonymous Firebase sessions are treated as guests', () {
+    expect(AuthUtil.isSignedIn(null), isFalse);
+    expect(AuthUtil.isSignedIn(MockFirebaseUser(anonymous: true)), isFalse);
+    expect(AuthUtil.isSignedIn(MockFirebaseUser()), isTrue);
   });
 
   Widget buildWidget({required firebase_auth.FirebaseAuth auth}) {

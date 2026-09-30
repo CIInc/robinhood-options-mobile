@@ -149,16 +149,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   Future<List<dynamic>> _loadData(BrokerageUserStore userStore) async {
-    // Paper accounts store their data under the Firebase user; make sure a
-    // session exists before loading (e.g. an anonymous session that was
-    // cleared), otherwise the Firestore reads are denied.
-    if (auth.currentUser == null &&
-        userStore.currentUser?.source == BrokerageSource.paper) {
-      try {
-        await AuthUtil(auth).ensureFirebaseUserSession();
-      } catch (e) {
-        debugPrint('Could not ensure Firebase session for paper trading: $e');
-      }
+    if (userStore.currentUser?.source == BrokerageSource.paper) {
+      await Provider.of<PaperTradingStore>(context, listen: false)
+          .ensureLoaded(auth.currentUser);
     }
 
     final packageInfoFuture = PackageInfo.fromPlatform();
@@ -1858,18 +1851,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       // });
 
       final authUtil = AuthUtil(auth);
-      if (auth.currentUser == null && result.source == BrokerageSource.paper) {
-        await authUtil.ensureFirebaseUserSession();
-      }
-
       if (auth.currentUser != null) {
         var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
         user = await authUtil.setUser(_firestoreService,
             brokerageUserStore: userStore);
-        if (result.source == BrokerageSource.paper) {
-          Provider.of<PaperTradingStore>(context, listen: false)
-              .setUser(auth.currentUser);
-        }
+      }
+      if (result.source == BrokerageSource.paper) {
+        await Provider.of<PaperTradingStore>(context, listen: false)
+            .ensureLoaded(auth.currentUser);
       }
 
       // After the Selection Screen returns a result, hide any previous snackbars

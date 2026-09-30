@@ -284,6 +284,18 @@ class FakePaperTradingStore extends ChangeNotifier
   Future<void> ensureLoaded([auth.User? user]) async {}
 
   @override
+  Future<bool> hasLocalGuestAccount() async => false;
+
+  @override
+  Future<bool> localGuestAccountConflictsWith(auth.User user) async => false;
+
+  @override
+  Future<void> migrateLocalGuestAccount(
+    auth.User user, {
+    required bool replaceExisting,
+  }) async {}
+
+  @override
   double get initialCapital => 100000.0;
 
   @override

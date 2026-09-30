@@ -22,6 +22,9 @@ class AuthUtil {
   final firebase_auth.FirebaseAuth auth;
   AuthUtil(this.auth);
 
+  static bool isSignedIn(firebase_auth.User? user) =>
+      user != null && !user.isAnonymous;
+
   UserRole? _userRole;
 
   Future<UserRole> userRole() async {

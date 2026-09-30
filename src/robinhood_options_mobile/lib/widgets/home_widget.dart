@@ -1436,9 +1436,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void didUpdateWidget(HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.brokerageUser != oldWidget.brokerageUser) {
+    final userChanged = widget.brokerageUser != oldWidget.brokerageUser;
+    if (userChanged || widget.service != oldWidget.service) {
+      if (userChanged) {
+        _lastSelectedAccountNumber = null;
+      }
       _updatePaperStoreBinding();
-      _lastSelectedAccountNumber = null;
       _loadData();
     }
   }
@@ -1804,18 +1807,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
     return Scaffold(
       primary: false,
-      body: FutureBuilder(
-        future: Future.wait([
-          futureAccounts as Future,
-          //futurePortfolios as Future,
-          //futureNummusHoldings as Future,
-          // myBanner.load()
-        ]),
+      body: FutureBuilder<List<Account>>(
+        future: futureAccounts,
         builder: (context1, dataSnapshot) {
           if (dataSnapshot.hasData &&
               dataSnapshot.connectionState == ConnectionState.done) {
-            List<dynamic> data = dataSnapshot.data as List<dynamic>;
-            List<Account> accts = data[0] as List<Account>;
+            final accts = dataSnapshot.data!;
             if (accts.isNotEmpty) {
               final selectedNo = accountStore.selectedAccountNumber;
               account = (selectedNo != null)

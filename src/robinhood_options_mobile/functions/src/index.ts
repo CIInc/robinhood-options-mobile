@@ -40,6 +40,7 @@ import * as groupWatchlists from "./group-watchlists";
 import * as watchlistAlerts from "./watchlist-alerts-cron";
 import * as customAlertsCron from "./custom-alerts-cron";
 import * as paperTradingCron from "./paper-trading-cron";
+import * as paperAccountMigration from "./paper-account-migration";
 import * as yahooProxyFuncs from "./yahoo-proxy";
 import * as rebalancingCronFuncs from "./rebalancing-cron";
 import * as whaleWatchCron from "./whale-watch-cron";
@@ -145,6 +146,8 @@ export const checkWatchlistAlerts = watchlistAlerts.checkWatchlistAlerts;
 export const checkCustomAlerts = customAlertsCron.checkCustomAlerts;
 export const updatePaperHistoricalsCronJob =
   paperTradingCron.updatePaperHistoricalsCron;
+export const migrateGuestPaperAccount =
+  paperAccountMigration.migrateGuestPaperAccount;
 export const yahooProxy = yahooProxyFuncs.yahooProxy;
 export const evaluatePaperOrdersCronJob =
   paperTradingCron.evaluatePaperOrdersCron;

@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:uuid/uuid.dart';
 
 class FuturesPaperPosition {
   final String contractId;
@@ -63,6 +64,24 @@ class PaperOrderResult {
   final String id;
   final String state; // 'filled' | 'confirmed'
   PaperOrderResult(this.id, this.state);
+}
+
+bool _hasPaperAccountActivity(Map<String, dynamic>? data) {
+  if (data == null) return false;
+  final initialCapital = (data['initialCapital'] as num?)?.toDouble() ?? 100000;
+  final cashBalance =
+      (data['cashBalance'] as num?)?.toDouble() ?? initialCapital;
+  final hasPositions = [
+    'positions',
+    'optionPositions',
+    'futuresPositions',
+    'pendingOrders',
+    'history',
+  ].any((key) => (data[key] as List<dynamic>?)?.isNotEmpty == true);
+  return hasPositions ||
+      cashBalance != initialCapital ||
+      ((data['slippage'] as num?)?.toDouble() ?? 0) != 0 ||
+      ((data['commission'] as num?)?.toDouble() ?? 0) != 0;
 }
 
 /// A resting (working) paper order awaiting its trigger or limit price.
@@ -335,6 +354,87 @@ class PaperTradingStore extends ChangeNotifier {
     }
   }
 
+  Future<bool> hasLocalGuestAccount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(guestPaperAccountKey) != null;
+  }
+
+  Future<bool> localGuestAccountConflictsWith(firebase_auth.User user) async {
+    if (!await hasLocalGuestAccount()) return false;
+    final userRef = _firestore.collection('user').doc(user.uid);
+    final account = await userRef.collection('paper_account').doc('main').get();
+    if (_hasPaperAccountActivity(account.data())) return true;
+    final orders = await userRef.collection('paper_orders').limit(1).get();
+    if (orders.docs.isNotEmpty) return true;
+    final equityHistory =
+        await userRef.collection('paper_equity_history').limit(1).get();
+    return equityHistory.docs.isNotEmpty;
+  }
+
+  /// Moves locally persisted guest paper state to [user]. Existing account
+  /// balances and positions are preserved unless [replaceExisting] is true;
+  /// guest fills are appended using stable ids so retries are safe.
+  Future<void> migrateLocalGuestAccount(
+    firebase_auth.User user, {
+    required bool replaceExisting,
+  }) async {
+    await ensureLoaded();
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(guestPaperAccountKey);
+    if (raw == null) return;
+
+    final data = Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    final migrationId = data['migrationId'] as String? ?? const Uuid().v4();
+    data['migrationId'] = migrationId;
+    await prefs.setString(
+      guestPaperAccountKey,
+      jsonEncode(data, toEncodable: (dynamic item) {
+        if (item is DateTime) return item.toIso8601String();
+        return item.toString();
+      }),
+    );
+    final accountRef = _firestore
+        .collection('user')
+        .doc(user.uid)
+        .collection('paper_account')
+        .doc('main');
+    final destination = await accountRef.get();
+    if (replaceExisting || !_hasPaperAccountActivity(destination.data())) {
+      data.remove('migrationId');
+      data['updatedAt'] = FieldValue.serverTimestamp();
+      data['historyMigrated'] = true;
+      await accountRef.set(data);
+    }
+
+    final history = (data['history'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((entry) => Map<String, dynamic>.from(entry))
+        .toList();
+    for (var offset = 0; offset < history.length; offset += 400) {
+      final batch = _firestore.batch();
+      final entries = history.skip(offset).take(400).toList();
+      for (var index = 0; index < entries.length; index++) {
+        final sourceIndex = offset + index;
+        final entry = entries[index];
+        entry['created_at'] ??= entry['timestamp'] ?? entry['updated_at'] ?? '';
+        final orderRef = _firestore
+            .collection('user')
+            .doc(user.uid)
+            .collection('paper_orders')
+            .doc(
+              'guest_local_${migrationId}_'
+              '${sourceIndex.toString().padLeft(6, '0')}',
+            );
+        batch.set(orderRef, entry);
+      }
+      await batch.commit();
+    }
+
+    await prefs.remove(guestPaperAccountKey);
+    setUser(user);
+    await ensureLoaded(user);
+  }
+
   /// Binds the store to [user] (if provided) and waits for its state to be
   /// loaded from Firestore (or local storage for guests). Callers outside the
   /// widget tree (e.g. PaperService) must await this before executing orders
@@ -356,7 +456,16 @@ class PaperTradingStore extends ChangeNotifier {
   Future<void> _load() async {
     if (_user == null) return;
     _isLoading = true;
-    notifyListeners();
+    _cashBalance = 100000.0;
+    _initialCapital = 100000.0;
+    _slippage = 0.0;
+    _commission = 0.0;
+    _positions = [];
+    _optionPositions = [];
+    _futuresPositions = [];
+    _pendingOrders = [];
+    _history = [];
+    scheduleMicrotask(notifyListeners);
 
     try {
       final doc = await _firestore
@@ -510,7 +619,7 @@ class PaperTradingStore extends ChangeNotifier {
 
   Future<void> _loadLocal() async {
     _isLoading = true;
-    notifyListeners();
+    scheduleMicrotask(notifyListeners);
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(guestPaperAccountKey);

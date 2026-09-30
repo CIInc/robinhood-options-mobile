@@ -550,7 +550,7 @@ Future<String?> showProfile(
     FirebaseAnalyticsObserver observer,
     BrokerageUser? brokerageUser,
     IBrokerageService? service) async {
-  if (auth.currentUser == null) {
+  if (!AuthUtil.isSignedIn(auth.currentUser)) {
     return await showLogin(context, auth, firestoreService);
   }
   return await showModalBottomSheet<String>(
@@ -566,7 +566,7 @@ Future<String?> showProfile(
           initialChildSize: 0.93,
           // minChildSize: 0.5,
           builder: (context, scrollController) {
-            return auth.currentUser != null
+            return AuthUtil.isSignedIn(auth.currentUser)
                 ? UserWidget(
                     auth,
                     userId: auth.currentUser!.uid,
