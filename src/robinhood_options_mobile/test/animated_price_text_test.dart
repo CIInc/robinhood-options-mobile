@@ -125,4 +125,21 @@ void main() {
 
     expect(find.text('\$1,234.56'), findsOneWidget);
   });
+
+  testWidgets('AnimatedPriceText passes semanticsLabel to Text widget',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: AnimatedPriceText(
+            price: 150.25,
+            semanticsLabel: 'Stock Price: \$150.25',
+          ),
+        ),
+      ),
+    );
+
+    final textWidget = tester.widget<Text>(find.byType(Text));
+    expect(textWidget.semanticsLabel, 'Stock Price: \$150.25');
+  });
 }
