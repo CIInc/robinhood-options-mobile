@@ -1,3 +1,8 @@
+## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
+**Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
+**Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.
+**Prevention:** Always validate `if (!request.auth || !request.auth.uid)` at the entry point of all market data and news analysis callable functions before querying external APIs or reading/writing Firestore documents.
+
 ## 2025-03-12 - Missing Authentication on Macro Agent Callable Functions
 **Vulnerability:** `getMacroAssessmentCall` and `getMacroHistoryCall` in `macro-agent.ts` were `onCall` Cloud Functions binding `GEMINI_API_KEY` and `TWELVE_DATA_API_KEY` secrets without checking `request.auth`, allowing unauthenticated public callers to trigger LLM macro analysis, consume API tokens, and write macro assessments to Firestore.
 **Learning:** Callable functions performing macroeconomic aggregation and Gemini AI analysis with persistent Firestore writes (`macro_assessments` collection) must strictly check `request.auth` to prevent unauthorized generation and API quota exhaustion.
