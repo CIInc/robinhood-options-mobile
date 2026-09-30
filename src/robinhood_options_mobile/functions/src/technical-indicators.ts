@@ -3528,7 +3528,7 @@ export function evaluateIchimokuCloud(
  * eliminating `typicalPrices` array allocations.
  * @param {number[]} pricesOrHighs - Typical prices or high prices array.
  * @param {number[]|number} [lowsOrPeriod=20] - Low prices array or period.
- * @param {number[]|number} [closesOrEndIndex] - Close prices array or end index.
+ * @param {number[]|number} [closesOrEndIndex] - Close prices or end index.
  * @param {number} [periodParam=20] - Period if HLC arrays are provided.
  * @param {number} [endIndexParam] - End index if HLC arrays are provided.
  * @return {number|null} The computed CCI or null.
