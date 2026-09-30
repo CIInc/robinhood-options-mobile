@@ -470,12 +470,49 @@ with the client engine), skips weekends, and account reset clears
 | 5 | **No crypto/forex paper trading** — `placeForexOrder` unimplemented | |
 | 6 | **Multi-leg via brokerage interface needs Firestore-resolvable option instruments** — the strategy builder's direct engine path is the reliable route | |
 
+### 8.5 Guest Paper Trading & Account Migration
+
+To support frictionless onboarding without forced sign-in walls, RealizeAlpha supports guest paper trading with seamless post-authentication account migration:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Guest User
+    participant App as Flutter App (PaperTradingStore)
+    participant Auth as AuthWidget
+    participant CF as Cloud Function (migrateGuestPaperAccount)
+    participant FS as Firestore (user/{uid})
+
+    User->>App: Practices in Demo / Paper Mode
+    App->>App: Persists guest state locally in SharedPreferences & anonymous Firestore
+    User->>Auth: Signs In / Registers (Apple / Google / Phone / Email)
+    Auth->>Auth: Captures guest Firebase ID token before switching identity
+    Auth->>CF: Calls migrateGuestPaperAccount(guestIdToken)
+    alt Signed-in user has active paper account
+        CF-->>Auth: Returns { conflict: true }
+        Auth->>User: Prompts conflict policy dialog (_choosePaperMigrationPolicy)
+        User-->>Auth: Selects "keep_existing" or "replace_with_guest"
+        Auth->>CF: Calls migrateGuestPaperAccount(guestIdToken, policy)
+    end
+    CF->>FS: Merges orders & equity subcollections with guest_* prefixes
+    CF->>FS: Sets/overwrites primary account document according to policy
+    CF->>FS: Deletes guest source documents
+    CF-->>Auth: Migration success
+    Auth->>App: PaperTradingStore.migrateLocalGuestAccount()
+```
+
+- **Conflict Policy (`keep_existing` vs `replace_with_guest`)**:
+  - `keep_existing`: Preserves the signed-in user's cash balance and active stock/option positions, while merging the guest's past orders and equity history into the account.
+  - `replace_with_guest`: Overwrites the signed-in user's active portfolio with the guest's cash balance and positions, while also merging history.
+- **Client Synchronization**: Handled in `AuthWidget._completeSignIn` and `PaperTradingStore.migrateLocalGuestAccount()`.
+
 ## 9. Testing
 
 | Layer | Location | Approach |
 |---|---|---|
 | Equity valuation (cron) | `functions/tests/paper-trading-utils.test.ts` | Jest tests for `computePaperAccountEquity` (shorts, written options, futures, fallbacks) and the trading-day guard |
 | Server-side fills | `functions/tests/paper-orders-engine.test.ts` | Jest port-parity tests: limit/stop/stop-limit/trailing triggers, slippage+commission, GFD (ET), rejections, short opens, covered-call pledge blocks, market-hours guard |
+| Guest migration | `test/paper_trading_guest_migration_test.dart` | Store unit tests verifying local guest detection, conflict evaluation, and local guest migration |
 | Maintenance margin | `test/paper_trading_margin_test.dart` | Margin-call sweep: healthy/improved accounts untouched, partial covers with exact share math, blown-account full liquidation + warning, multi-short ordering, CSP immunity |
 | Shorts & collateral | `test/paper_trading_short_test.dart` | Short stock (open/extend/cover/reject), cash-secured puts, covered calls, buy-to-close, expiration assignment, equity math |
 | Trailing stops | `test/paper_trading_trailing_stop_test.dart` | Watermark ratchet, $/% trails, buy-side (cover) trails, moving reservations, validation, GFD, JSON round-trip |

@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.0] - 2026-09-30
+**Guest Paper Account Migration, Streamlined Auth, Profile Feature Availability & Systematic Performance ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195), [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196))**
+
+- **Guest Paper Trading Account Migration (`AuthWidget`, `PaperTradingStore`, `migrateGuestPaperAccount`, [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)):**
+  - **Seamless Onboarding to Registered Account Flow**: When anonymous or guest users register or log in (via Google, Apple, Phone, or Email), their guest paper portfolio—including cash balances, stock & option positions, pending orders, and execution history—is automatically transferred to their authenticated account.
+  - **Backend Cloud Function (`migrateGuestPaperAccount`)**: Added secure callable Cloud Function that verifies the guest session token, copies subcollections (`paper_equity_history`, `paper_orders`) with unique prefixed document IDs, updates or creates the primary paper account, and cleans up the source anonymous documents.
+  - **Conflict Resolution Dialog**: If the user already has an active paper trading account on their signed-in profile, an interactive conflict dialog (`_choosePaperMigrationPolicy`) lets them choose between keeping their existing signed-in portfolio or replacing it with their guest portfolio, with order and equity history merged either way.
+  - **Local State Synchronization**: Synchronized `PaperTradingStore` guest migration with `SharedPreferences` to ensure instantaneous UI updates without desync.
+  - **Automated Test Coverage**: Added dedicated test suite in `test/paper_trading_guest_migration_test.dart` and updated `test/full_paper_trading_test.dart`.
+
+- **Streamlined Authentication & Collapsible Sign-In Form (`AuthWidget`):**
+  - Re-architected initial login layout with prominent primary OAuth providers (Apple, Google) and an expandable "Or sign in with" section for Phone and Email/Password credentials, reducing visual clutter and friction on mobile devices.
+  - Hardened phone SMS verification flow with direct credential generation and automated guest migration handoff.
+
+- **Profile Feature Availability & Inline Prerequisites (`UserWidget`, `_buildFeatureTile`):**
+  - Replaced repetitive disabled badges with clear, contextual inline notes explaining access prerequisites (e.g. "Requires account login", "Requires linked brokerage account", "Not supported by Charles Schwab").
+  - Tapping a disabled feature triggers an informative floating SnackBar detailing what is needed to unlock that feature.
+  - Removed deprecated Following Activity Feed tile and updated feature matrix requirements.
+  - Updated test expectations in `test/user_widget_features_availability_test.dart`.
+
+- **Backend Security & Macro Agent Callable Authentication ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195)):**
+  - Enforced mandatory `request.auth` authentication verification on `macroAssessmentTask` and macro agent callable endpoints, ensuring institutional macro metrics cannot be accessed anonymously.
+  - Added unit test coverage in `functions/tests/macro-agent.test.ts`.
+
+- **Algorithmic Technical Indicator Performance ($O(1)$ Space) ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194)):**
+  - Optimized `computeStochastic` to evaluate trailing %K and %D indicators directly in $O(1)$ space without creating intermediate array slices.
+  - Optimized `computeKeltnerChannels` to calculate scalar EMA and ATR directly with optional `endIndex` support, eliminating heap allocations during real-time indicator evaluation loops.
+  - Added unit tests in `functions/tests/technical-indicators.test.ts`.
+
+- **Assistive Accessibility for Options Flow (`OptionFlowListItem`, [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196)):**
+  - Wrapped `OptionFlowListItem` in accessible `Semantics`, consolidating ticker, strike price, contract type, expiration, premium, trade size, and volume/OI ratios into a single natural spoken screen reader sentence.
+
+- **Deployment Infrastructure & Service Account Documentation (`.github/workflows/cd.yml`, `docs/mobile-ci-setup.md`):**
+  - Granted and documented `Secret Manager Admin` (`roles/secretmanager.admin`) and `Cloud Scheduler Admin` (`roles/cloudscheduler.admin`) IAM roles for `github-action-deploy@realizealpha.iam.gserviceaccount.com`, enabling fully automated, zero-error CI/CD deployments of Cloud Functions, parameterized secrets, and scheduled cron jobs.
+
 ## [0.54.1] - 2026-09-28
 **AI Devil's Advocate, Screen Access Matrix & Backend Security Hardening ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#187](https://github.com/CIInc/robinhood-options-mobile/pull/187), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192), [#193](https://github.com/CIInc/robinhood-options-mobile/pull/193))**
 

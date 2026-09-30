@@ -43,18 +43,18 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** September 28, 2026 · **Current app version:** 0.54.1 (released September 28, 2026)
+**Last reviewed:** September 30, 2026 · **Current app version:** 0.55.0 (released September 30, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 398
+- **Completed checklist items:** 399
 - **Planned checklist items:** 67
-- **GitHub issues:** 120 total — 34 open and 86 closed (as of September 28, 2026)
+- **GitHub issues:** 120 total — 34 open and 86 closed (as of September 30, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.53.0-v0.54.1):** AI Devil's Advocate & Trade Thesis Stress Tester, Tiered Guest & Freemium Screen Access Controls, Futures Order Entry (`FuturesOrderEntrySheet`), Platform-Secure OAuth Storage (`flutter_secure_storage`), Systematic Trading Entry Readiness, Portfolio Alert option navigation, Congress & Political Trading Tracker, and SEC EDGAR Disclosures. See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.55.0 (target: Q1 2027; tentative)** — multi-model AI consensus engine and biometric tilt guardrails. Tournaments remain exploratory until separately defined.
-- **Later candidates (v0.55.0+):** Remaining SEC EDGAR filing coverage and expanded AI research; multi-broker routing is planned for v0.56.0+. These are planning targets, not release commitments.
+- ✅ **Recently Completed (v0.54.0-v0.55.0):** Guest Paper Trading Account Migration & Streamlined Auth ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)), Profile Feature Availability Inline Context, $O(1)$ Space Technical Indicators ([#194](https://github.com/CIInc/robinhood-options-mobile/pull/194)), Macro Agent Security Hardening ([#195](https://github.com/CIInc/robinhood-options-mobile/pull/195)), OptionFlowListItem Accessibility Semantics ([#196](https://github.com/CIInc/robinhood-options-mobile/pull/196)), AI Devil's Advocate & Trade Thesis Stress Tester ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), Tiered Screen Access Controls, Futures Order Entry (`FuturesOrderEntrySheet`), and Platform-Secure OAuth Storage (`flutter_secure_storage`). See the release timeline for issue links and details.
+- **Next proposed milestone:** **v0.55.1 / v0.56.0 (target: Q1 2027; tentative)** — multi-model AI consensus engine and biometric tilt guardrails. Tournaments remain exploratory until separately defined.
+- **Later candidates (v0.56.0+):** Remaining SEC EDGAR filing coverage and expanded AI research; multi-broker routing is planned for v0.57.0+. These are planning targets, not release commitments.
 - **Longer-term exploration:** Desktop workflows, privacy-preserving performance proofs, wearable clients, and spatial interfaces remain exploratory until scoped and prioritized.
 
 ## Release Versions & Timeline
@@ -449,7 +449,17 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Algorithmic Indicator & Query Performance Optimizations:** Zero-allocation scalar technical indicator computations ([#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)); optimized CCI and MFI local computations ([#189](https://github.com/CIInc/robinhood-options-mobile/pull/189)); batched Firestore reads in sentiment analysis ([#184](https://github.com/CIInc/robinhood-options-mobile/pull/184)); optimized `evaluateAllIndicators` lookups ([#185](https://github.com/CIInc/robinhood-options-mobile/pull/185)); and reduced symbol alert queries in `deleteGroupWatchlist` ([#183](https://github.com/CIInc/robinhood-options-mobile/pull/183)).
 - ✅ **Accessibility & CI/CD Deployment Diagnostics:** Accessible labels and layout hierarchy for Schwab order preview card ([#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)); accessibility semantics for comment upvotes ([#187](https://github.com/CIInc/robinhood-options-mobile/pull/187)); added `--debug` flag to `firebase-tools deploy` in `.github/workflows/cd.yml` and documented required IAM roles in `docs/mobile-ci-setup.md`.
 
-### v0.55.0 (2027 Q1 - February)
+### v0.55.0 ✅ (Released Sep 30, 2026)
+**Guest Paper Account Migration, Streamlined Auth, Profile Feature Availability & Systematic Performance**
+- ✅ **Guest Paper Trading Account Migration:** Seamless transfer of simulated balances, positions, pending orders, and history from anonymous guest sessions to authenticated accounts upon login, with `migrateGuestPaperAccount` callable Cloud Function token verification and interactive conflict resolution policies ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)).
+- ✅ **Streamlined Authentication & Collapsible Sign-In:** Prominent primary OAuth buttons (Apple, Google) with an expandable "Or sign in with" section for Phone and Email/Password credentials, reducing visual clutter.
+- ✅ **Profile Feature Availability & Inline Context:** Replaced repetitive disabled badges with clear, contextual inline notes explaining access prerequisites (e.g., "Requires account login", "Requires linked brokerage account", "Not supported by Charles Schwab") with floating SnackBar alerts on tap.
+- ✅ **Backend Security & Macro Agent Callable Authentication:** Enforced mandatory `request.auth` authentication verification on `macroAssessmentTask` and macro agent callable endpoints ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195)).
+- ✅ **Algorithmic Indicator Performance ($O(1)$ Space):** Optimized `computeStochastic` and `computeKeltnerChannels` in `functions/src/technical-indicators.ts` to evaluate scalar indicators in $O(1)$ space without heap array slice allocations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194)).
+- ✅ **Assistive Accessibility for Options Flow:** Wrapped `OptionFlowListItem` in accessible `Semantics` consolidating complex flow parameters into a single natural spoken screen reader sentence ([#196](https://github.com/CIInc/robinhood-options-mobile/pull/196)).
+- ✅ **Deployment Automation & Documentation:** Added Secret Manager Admin (`roles/secretmanager.admin`) and Cloud Scheduler Admin (`roles/cloudscheduler.admin`) IAM roles to deployment documentation and removed `--debug` flag in CI CD workflow.
+
+### v0.55.1 / v0.56.0 (2027 Q1 - February)
 **Multi-Model AI Consensus Engine, Biometric Tilt & Autonomous Risk Copilot**
 - **Multi-Model AI Consensus Engine:** Ensemble trading conviction grades combining Gemini 3.1 Flash-Lite, deep reasoning agents, and quantitative factor scores ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Biometric Tilt & Panic Trading Guardian:** Extends risk circuit breakers with Apple HealthKit / Wear OS biometric data (heart rate spikes) and rapid erratic order tapping to detect emotional tilt and enforce cooling-off locks.
@@ -615,6 +625,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] Risk-free strategy testing with simulated execution
     - [x] Paper vs real trade filtering and comparison
     - [x] Visual indicators (PAPER badges throughout UI)
+    - [x] Guest paper trading with seamless post-authentication migration ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144))
 - [x] **Trailing Stop Loss** ([#131](https://github.com/CIInc/robinhood-options-mobile/pull/131)):
     - [x] Dynamic stop loss adjustment as profit increases
     - [x] Peak price tracking for each trade

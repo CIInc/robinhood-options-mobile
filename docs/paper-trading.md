@@ -7,6 +7,8 @@ Paper Trading is a fully featured simulation environment that allows you to prac
 ## Getting Started
 
 Your paper trading account is initialized with a simulated equity of **$100,000**.
+*   **Guest Mode:** Unauthenticated users can explore paper trading immediately from the welcome screen without signing up. Simulated balances, open positions, and orders are persisted locally on the device.
+*   **Account Migration:** When a guest user registers or logs in with Google, Apple, Phone, or Email, their simulated portfolio is automatically transferred to their permanent authenticated account via the `migrateGuestPaperAccount` Cloud Function. If the registered account already has an active paper portfolio, an interactive conflict resolution dialog lets them choose whether to keep their signed-in portfolio or replace it with their guest portfolio (merging trade and equity history in both cases).
 *   **Reset:** You can reset your paper account to the initial $100k balance at any time via the "Refresh"/Reset icon in the dashboard.
 *   **Switching:** Toggle between "Live" and "Paper" modes using the switch in the main navigation drawer or Agentic Trading settings.
 
