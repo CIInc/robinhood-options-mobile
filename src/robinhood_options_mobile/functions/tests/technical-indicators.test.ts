@@ -11,6 +11,10 @@ import {
   computeMACD,
   evaluateMACD,
   evaluateMacroAssessment,
+  computeStochastic,
+  computeStochasticArray,
+  computeKeltnerChannels,
+  computeKeltnerChannelsArray,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -403,6 +407,129 @@ describe("Technical Indicators", () => {
         score: 0.5,
         reason: "Market is neutral with positive bias",
       });
+    });
+  });
+
+  describe("computeStochastic", () => {
+    it("should return null for insufficient data", () => {
+      const highs = [10, 11, 12];
+      const lows = [8, 9, 10];
+      const closes = [9, 10, 11];
+      expect(computeStochastic(highs, lows, closes, 14, 3)).toBeNull();
+    });
+
+    it("should match computeStochasticArray last element", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + Math.sin(i / 5) * 10;
+        highs.push(base + 2);
+        lows.push(base - 2);
+        closes.push(base + (i % 2 === 0 ? 1 : -1));
+      }
+
+      const scalarRes = computeStochastic(highs, lows, closes, 14, 3);
+      const arrayRes = computeStochasticArray(highs, lows, closes, 14, 3);
+      const lastArrayElem = arrayRes[arrayRes.length - 1];
+
+      expect(scalarRes).not.toBeNull();
+      expect(lastArrayElem).not.toBeNull();
+      expect(scalarRes!.k).toBeCloseTo(lastArrayElem!.k, 5);
+      expect(scalarRes!.d).toBeCloseTo(lastArrayElem!.d, 5);
+    });
+
+    it("should handle custom endIndex parameter correctly", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + i;
+        highs.push(base + 2);
+        lows.push(base - 2);
+        closes.push(base);
+      }
+
+      const endIndex = 30;
+      const scalarRes = computeStochastic(
+        highs, lows, closes, 14, 3, endIndex
+      );
+      const arrayRes = computeStochasticArray(
+        highs, lows, closes, 14, 3, endIndex
+      );
+      const lastArrayElem = arrayRes[arrayRes.length - 1];
+
+      expect(scalarRes).not.toBeNull();
+      expect(lastArrayElem).not.toBeNull();
+      expect(scalarRes!.k).toBeCloseTo(lastArrayElem!.k, 5);
+      expect(scalarRes!.d).toBeCloseTo(lastArrayElem!.d, 5);
+    });
+  });
+
+  describe("computeKeltnerChannels", () => {
+    it("should return null for insufficient data", () => {
+      const highs = [10, 11, 12];
+      const lows = [8, 9, 10];
+      const closes = [9, 10, 11];
+      expect(computeKeltnerChannels(highs, lows, closes, 20, 10)).toBeNull();
+    });
+
+    it("should match computeKeltnerChannelsArray last element", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + i * 0.5;
+        highs.push(base + 3);
+        lows.push(base - 3);
+        closes.push(base + 1);
+      }
+
+      const scalarRes = computeKeltnerChannels(
+        highs, lows, closes, 20, 10, 1.5
+      );
+      const arrayRes = computeKeltnerChannelsArray(
+        highs, lows, closes, 20, 10, 1.5
+      );
+      const lastArrayElem = arrayRes[arrayRes.length - 1];
+
+      expect(scalarRes).not.toBeNull();
+      expect(lastArrayElem).not.toBeNull();
+      expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
+      expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
+      expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+
+    it("should respect endIndex parameter", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + i * 0.5;
+        highs.push(base + 3);
+        lows.push(base - 3);
+        closes.push(base + 1);
+      }
+
+      const endIndex = 30;
+      const scalarRes = computeKeltnerChannels(
+        highs, lows, closes, 20, 10, 1.5, endIndex
+      );
+      const arrayRes = computeKeltnerChannelsArray(
+        highs.slice(0, endIndex),
+        lows.slice(0, endIndex),
+        closes.slice(0, endIndex),
+        20,
+        10,
+        1.5
+      );
+      const lastArrayElem = arrayRes[arrayRes.length - 1];
+
+      expect(scalarRes).not.toBeNull();
+      expect(lastArrayElem).not.toBeNull();
+      expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
+      expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
+      expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
     });
   });
 });
