@@ -2637,6 +2637,9 @@ export function evaluateStochastic(
 
 /**
  * Evaluate ATR for volatility context
+ * Performance optimization: Calculates scalar ATR and historical average ATR
+ * in O(N) time and O(1) space, avoiding full-series array allocations
+ * (`fullATRSeries`, `trueRanges`, and `atrValues`).
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
@@ -2657,28 +2660,44 @@ export function evaluateATR(
     };
   }
 
-  // Optimized to use O(N) array computation
-  const fullATRSeries = computeATRArray(highs, lows, closes, period);
-  const atr = fullATRSeries[fullATRSeries.length - 1];
-
-  if (atr === null) {
-    return {
-      value: null,
-      signal: "HOLD",
-      reason: "Unable to compute ATR",
-    };
+  // Initial average of first 'period' True Ranges (indices 1 to period)
+  let sumTR = 0;
+  for (let i = 1; i <= period; i++) {
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    sumTR += tr;
   }
 
-  const currentPrice = closes[closes.length - 1];
+  let atr = sumTR / period;
+  let sumATR = atr;
+  let countATR = 1;
+
+  // Smoothed ATR for remaining bars
+  const len = closes.length;
+  for (let i = period + 1; i < len; i++) {
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    atr = (atr * (period - 1) + tr) / period;
+    sumATR += atr;
+    countATR++;
+  }
+
+  const currentPrice = closes[len - 1];
   const atrPercent = (atr / currentPrice) * 100;
 
-  // Collect historical ATR values for comparison
-  const atrValues: number[] = [];
-  for (const val of fullATRSeries) {
-    if (val !== null) atrValues.push(val);
-  }
-
-  if (atrValues.length < 10) {
+  if (countATR < 10) {
     const atrStr = atr.toFixed(2);
     const pct = atrPercent.toFixed(2);
     return {
@@ -2689,8 +2708,7 @@ export function evaluateATR(
     };
   }
 
-  const avgATR = atrValues.length > 0 ?
-    atrValues.reduce((a, b) => a + b, 0) / atrValues.length : 0;
+  const avgATR = countATR > 0 ? sumATR / countATR : 0;
   const atrRatio = avgATR > 0 ? atr / avgATR : 1.0;
 
   // Extremely High Volatility (Climax / Exhaustion risk)
@@ -3505,35 +3523,83 @@ export function evaluateIchimokuCloud(
 
 /**
  * Compute Commodity Channel Index (CCI)
- * @param {number[]} prices - Typical prices preferably
- * @param {number} period - The period (default 20).
- * @param {number} [endIndex] - Optional end index.
+ * Performance optimization: Supports either a single typical prices array or
+ * high/low/close arrays directly to compute typical prices on-the-fly,
+ * eliminating `typicalPrices` array allocations.
+ * @param {number[]} pricesOrHighs - Typical prices or high prices array.
+ * @param {number[]|number} [lowsOrPeriod=20] - Low prices array or period.
+ * @param {number[]|number} [closesOrEndIndex] - Close prices array or end index.
+ * @param {number} [periodParam=20] - Period if HLC arrays are provided.
+ * @param {number} [endIndexParam] - End index if HLC arrays are provided.
  * @return {number|null} The computed CCI or null.
  */
 export function computeCCI(
-  prices: number[],
-  period = 20,
-  endIndex = prices ? prices.length : 0
+  pricesOrHighs: number[],
+  lowsOrPeriod: number[] | number = 20,
+  closesOrEndIndex:
+  number[] | number = pricesOrHighs ? pricesOrHighs.length : 0,
+  periodParam = 20,
+  endIndexParam = pricesOrHighs ? pricesOrHighs.length : 0
 ): number | null {
-  if (!prices || endIndex < period || prices.length < endIndex) return null;
+  let isHLC = false;
+  let highs: number[] = [];
+  let lows: number[] = [];
+  let closes: number[] = [];
+  let period = 20;
+  let endIndex = 0;
+
+  if (Array.isArray(lowsOrPeriod) && Array.isArray(closesOrEndIndex)) {
+    isHLC = true;
+    highs = pricesOrHighs;
+    lows = lowsOrPeriod;
+    closes = closesOrEndIndex;
+    period = typeof periodParam === "number" ? periodParam : 20;
+    endIndex = typeof endIndexParam === "number" ?
+      endIndexParam : closes.length;
+  } else {
+    closes = pricesOrHighs;
+    period = typeof lowsOrPeriod === "number" ? lowsOrPeriod : 20;
+    endIndex = typeof closesOrEndIndex === "number" ?
+      closesOrEndIndex : closes.length;
+  }
+
+  if (!closes || endIndex < period || period <= 0 || closes.length < endIndex) {
+    return null;
+  }
 
   const start = endIndex - period;
   let sum = 0;
-  for (let i = start; i < endIndex; i++) {
-    sum += prices[i];
+  if (isHLC) {
+    for (let i = start; i < endIndex; i++) {
+      sum += (highs[i] + lows[i] + closes[i]) / 3;
+    }
+  } else {
+    for (let i = start; i < endIndex; i++) {
+      sum += closes[i];
+    }
   }
   const sma = sum / period;
 
   let sumAbsDev = 0;
-  for (let i = start; i < endIndex; i++) {
-    sumAbsDev += Math.abs(prices[i] - sma);
+  if (isHLC) {
+    for (let i = start; i < endIndex; i++) {
+      const tp = (highs[i] + lows[i] + closes[i]) / 3;
+      sumAbsDev += Math.abs(tp - sma);
+    }
+  } else {
+    for (let i = start; i < endIndex; i++) {
+      sumAbsDev += Math.abs(closes[i] - sma);
+    }
   }
   const meanDeviation = sumAbsDev / period;
 
   if (meanDeviation === 0) return 0;
 
-  const currentPrice = prices[endIndex - 1];
-  return (currentPrice - sma) / (0.015 * meanDeviation);
+  const currentTP = isHLC ?
+    (highs[endIndex - 1] + lows[endIndex - 1] + closes[endIndex - 1]) / 3 :
+    closes[endIndex - 1];
+
+  return (currentTP - sma) / (0.015 * meanDeviation);
 }
 
 /**
@@ -3558,14 +3624,7 @@ export function evaluateCCI(
     };
   }
 
-  // Calculate Typical Prices for only the required period window
-  const typicalPrices: number[] = [];
-  const start = closes.length - period;
-  for (let i = start; i < closes.length; i++) {
-    typicalPrices.push((highs[i] + lows[i] + closes[i]) / 3);
-  }
-
-  const cci = computeCCI(typicalPrices, period);
+  const cci = computeCCI(highs, lows, closes, period);
   if (cci === null) {
     return {
       value: null,
@@ -4627,7 +4686,6 @@ export function evaluateCustomIndicator(
           endIndex
         );
       case "CCI": {
-        // CCI requires Typical Prices: (High + Low + Close) / 3
         const period = getNumberParam(config.parameters.period, 20);
         if (
           h.length >= endIndex &&
@@ -4635,11 +4693,7 @@ export function evaluateCustomIndicator(
           p.length >= endIndex &&
           endIndex >= period
         ) {
-          const typicalPrices: number[] = [];
-          for (let i = 0; i < endIndex; i++) {
-            typicalPrices.push((h[i] + l[i] + p[i]) / 3);
-          }
-          return computeCCI(typicalPrices, period, endIndex);
+          return computeCCI(h, l, p, period, endIndex);
         }
         return null;
       }
