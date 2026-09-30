@@ -358,6 +358,13 @@ export function analyzeNewsArticles(
  * Callable Firebase Function to retrieve news intelligence for a symbol.
  */
 export const getNewsIntelligence = onCall({ cors: true }, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to view news intelligence."
+    );
+  }
+
   const data = request.data || {};
   const symbol = (data.symbol || "").toUpperCase();
   const providedArticles = data.articles || [];
@@ -408,6 +415,13 @@ export const getNewsIntelligence = onCall({ cors: true }, async (request) => {
 export const getWatchlistNewsIntelligence = onCall(
   { cors: true },
   async (request) => {
+    if (!request.auth || !request.auth.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Authentication is required to view news intelligence."
+      );
+    }
+
     const data = request.data || {};
     const symbols = (data.symbols || []) as string[];
 

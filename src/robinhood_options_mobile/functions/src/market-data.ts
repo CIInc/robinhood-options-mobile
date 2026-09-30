@@ -1,4 +1,4 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
 import { fetchWithRetry } from "./utils";
@@ -704,6 +704,12 @@ export async function getQuotes(symbols: string[]): Promise<any> {
 export const getQuotesCall = onCall({
   secrets: ["TWELVE_DATA_API_KEY"],
 }, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to fetch quotes."
+    );
+  }
   const symbols = request.data?.symbols;
   if (!symbols || !Array.isArray(symbols)) {
     return { error: "Expected 'symbols' as an array of strings." };

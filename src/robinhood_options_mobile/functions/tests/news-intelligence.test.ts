@@ -1,8 +1,31 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, jest } from "@jest/globals";
+import { HttpsError } from "firebase-functions/v2/https";
+
+jest.mock("firebase-admin", () => {
+  const mockSet = jest.fn(async () => ({}));
+  const mockGet = jest.fn(async () => ({
+    exists: false,
+    data: () => ({}),
+  }));
+  const mockDoc = jest.fn().mockReturnValue({ set: mockSet, get: mockGet });
+  const mockCollection = jest.fn().mockReturnValue({
+    doc: mockDoc,
+  });
+  return {
+    apps: [{}],
+    initializeApp: jest.fn(),
+    firestore: jest.fn().mockReturnValue({
+      collection: mockCollection,
+    }),
+  };
+});
+
 import {
   scoreArticleText,
   analyzeNewsArticles,
   adjustSignalConfidence,
+  getNewsIntelligence,
+  getWatchlistNewsIntelligence,
 } from "../src/news-intelligence";
 
 describe("News Intelligence Analyzer", () => {
@@ -99,5 +122,35 @@ describe("News Intelligence Analyzer", () => {
     expect(adjustSignalConfidence(intelligence, "HOLD").applied).toBe(false);
     expect(adjustSignalConfidence(analyzeNewsArticles([], "AAPL"), "BUY")
       .applied).toBe(false);
+  });
+
+  it("rejects unauthenticated getNewsIntelligence calls", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: { symbol: "AAPL" },
+    };
+
+    const callFn = () =>
+      (getNewsIntelligence as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  it("rejects unauthenticated getWatchlistNewsIntelligence calls", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: { symbols: ["AAPL", "NVDA"] },
+    };
+
+    const callFn = () =>
+      (getWatchlistNewsIntelligence as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
   });
 });
