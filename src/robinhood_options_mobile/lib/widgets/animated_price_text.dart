@@ -12,6 +12,7 @@ class AnimatedPriceText extends StatefulWidget {
   final bool? softWrap;
   final Color? flashColorUp;
   final Color? flashColorDown;
+  final String? semanticsLabel;
 
   const AnimatedPriceText({
     super.key,
@@ -25,6 +26,7 @@ class AnimatedPriceText extends StatefulWidget {
     this.softWrap,
     this.flashColorUp,
     this.flashColorDown,
+    this.semanticsLabel,
   });
 
   @override
@@ -108,6 +110,7 @@ class _AnimatedPriceTextState extends State<AnimatedPriceText>
           textAlign: widget.textAlign,
           maxLines: widget.maxLines,
           softWrap: widget.softWrap,
+          semanticsLabel: widget.semanticsLabel,
         );
       },
     );
