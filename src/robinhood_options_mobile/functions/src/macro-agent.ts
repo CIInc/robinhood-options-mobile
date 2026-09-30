@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
@@ -1817,6 +1817,13 @@ async function saveMacroAssessmentToHistory(assessment: MacroAssessment) {
 export const getMacroAssessmentCall = onCall({
   secrets: ["GEMINI_API_KEY", "TWELVE_DATA_API_KEY"],
 }, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to perform macro assessment."
+    );
+  }
+
   const forceRefresh = request.data?.forceRefresh === true;
 
   // en-CA gives YYYY-MM-DD format
@@ -1890,6 +1897,13 @@ export const macroAssessmentCron = onSchedule({
 export const getMacroHistoryCall = onCall({
   secrets: ["TWELVE_DATA_API_KEY"],
 }, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to access macro history."
+    );
+  }
+
   const limit = request.data.limit || 30;
   const snapshot = await db.collection("macro_assessments")
     .orderBy("timestamp", "desc")

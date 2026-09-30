@@ -1,3 +1,8 @@
+## 2025-03-12 - Missing Authentication on Macro Agent Callable Functions
+**Vulnerability:** `getMacroAssessmentCall` and `getMacroHistoryCall` in `macro-agent.ts` were `onCall` Cloud Functions binding `GEMINI_API_KEY` and `TWELVE_DATA_API_KEY` secrets without checking `request.auth`, allowing unauthenticated public callers to trigger LLM macro analysis, consume API tokens, and write macro assessments to Firestore.
+**Learning:** Callable functions performing macroeconomic aggregation and Gemini AI analysis with persistent Firestore writes (`macro_assessments` collection) must strictly check `request.auth` to prevent unauthorized generation and API quota exhaustion.
+**Prevention:** Always enforce `if (!request.auth || !request.auth.uid)` at the start of all macro agent callable functions before invoking LLM generation or reading/writing persistent assessments.
+
 ## 2025-03-11 - Missing Authentication on Heavy Compute & API Secret Callable Functions
 **Vulnerability:** `runBacktest` in `backtesting.ts` was an unauthenticated `onCall` Cloud Function configured with high memory (`512MiB`), long timeout (`300s`), and access to `TWELVE_DATA_API_KEY` secrets. Unauthenticated callers could invoke compute-heavy backtesting simulations and deplete third-party API quotas.
 **Learning:** High-memory and high-timeout callable functions using third-party API key secrets default to allowing public access in Firebase v2 `onCall` unless `if (!request.auth)` is explicitly enforced.
