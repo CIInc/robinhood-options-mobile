@@ -229,6 +229,121 @@ class RiskCircuitBreakerService {
     saveToLocal();
   }
 
+  /// Prune cancellation timestamps outside the rolling evaluation window
+  void pruneStaleCancelTimestamps({DateTime? now}) {
+    if (_config.recentCancelTimestamps.isEmpty) return;
+    final currentTime = now ?? DateTime.now();
+    final cutoff = currentTime
+        .subtract(Duration(minutes: _config.rapidCancelWindowMinutes));
+    _config.recentCancelTimestamps.removeWhere((t) => t.isBefore(cutoff));
+  }
+
+  /// Record an order cancellation or replacement event to detect rapid cancel/replace loops
+  RiskEvaluationResult recordOrderCancelledOrReplaced({DateTime? timestamp}) {
+    if (!_config.enabled || !_config.enableTiltSafeguards) {
+      return RiskEvaluationResult.ok;
+    }
+
+    final eventTime = timestamp ?? DateTime.now();
+    pruneStaleCancelTimestamps(now: eventTime);
+    _config.recentCancelTimestamps.add(eventTime);
+
+    if (_config.maxRapidCancels != null &&
+        _config.maxRapidCancels! > 0 &&
+        _config.recentCancelTimestamps.length >= _config.maxRapidCancels!) {
+      final count = _config.recentCancelTimestamps.length;
+      _tripCircuitBreaker(
+        'Behavioral tilt safeguard: Rapid order cancel/replace loop detected ($count cancellations in ${_config.rapidCancelWindowMinutes} min). Mandatory cooling-off pause activated to prevent emotional overtrading.',
+        triggerType: 'rapid_cancels',
+      );
+      saveToLocal();
+      return RiskEvaluationResult(
+        allowed: false,
+        isCoolingOff: true,
+        remainingCoolingOff: _config.remainingCoolingOff,
+        reason: _config.tripReason,
+        triggerType: 'rapid_cancels',
+      );
+    }
+
+    saveToLocal();
+    return RiskEvaluationResult.ok;
+  }
+
+  /// Evaluate prospective order size against baseline trade size following losses to prevent revenge-trading sizing spikes
+  RiskEvaluationResult evaluateOrderSize({
+    required double prospectiveOrderSize,
+  }) {
+    if (!_config.enabled || !_config.enableTiltSafeguards) {
+      return RiskEvaluationResult.ok;
+    }
+
+    if (_config.isInCoolingOff) {
+      return RiskEvaluationResult(
+        allowed: false,
+        isCoolingOff: true,
+        remainingCoolingOff: _config.remainingCoolingOff,
+        reason:
+            'Cooling-off lock active. Trading suspended until ${_formatDateTime(_config.coolingOffUntil)}.',
+        triggerType: 'cooling_off',
+      );
+    }
+
+    if (_config.isTripped) {
+      return RiskEvaluationResult(
+        allowed: false,
+        reason: _config.tripReason ??
+            'Circuit breaker tripped. Order execution locked.',
+        triggerType: 'tripped',
+      );
+    }
+
+    if (prospectiveOrderSize <= 0) {
+      return RiskEvaluationResult.ok;
+    }
+
+    // Check revenge-trading sizing spike following consecutive losses
+    if (_config.revengeSizingMultiplier != null &&
+        _config.revengeSizingMultiplier! > 0 &&
+        _config.baselineTradeSize != null &&
+        _config.baselineTradeSize! > 0 &&
+        _config.currentConsecutiveLosses > 0) {
+      final allowedLimit =
+          _config.baselineTradeSize! * _config.revengeSizingMultiplier!;
+      if (prospectiveOrderSize >= allowedLimit) {
+        final ratio = prospectiveOrderSize / _config.baselineTradeSize!;
+        return RiskEvaluationResult(
+          allowed: false,
+          reason:
+              'Revenge-trading tilt safeguard: Order size (\$${prospectiveOrderSize.toStringAsFixed(0)}) is ${ratio.toStringAsFixed(1)}x larger than your baseline average trade size (\$${_config.baselineTradeSize!.toStringAsFixed(0)}) following consecutive losses. Order blocked to prevent emotional revenge sizing.',
+          triggerType: 'revenge_sizing',
+        );
+      }
+    }
+
+    return RiskEvaluationResult.ok;
+  }
+
+  /// Record an executed trade with size, outcome, and P&L to update rolling baseline sizing
+  void recordTradeExecution({
+    required double orderSize,
+    required bool isWin,
+    double? pnl,
+  }) {
+    if (!_config.enabled) return;
+
+    if (orderSize > 0) {
+      _config.recentTradeSizes.add(orderSize);
+      if (_config.recentTradeSizes.length > 10) {
+        _config.recentTradeSizes.removeAt(0);
+      }
+      final total = _config.recentTradeSizes.reduce((a, b) => a + b);
+      _config.baselineTradeSize = total / _config.recentTradeSizes.length;
+    }
+
+    recordTradeOutcome(isWin: isWin, pnl: pnl);
+  }
+
   /// Internal helper to trip the circuit breaker and initiate cooling-off
   void _tripCircuitBreaker(String reason, {required String triggerType}) {
     _config.isTripped = true;
@@ -242,7 +357,11 @@ class RiskCircuitBreakerService {
   }
 
   /// Manually trip the circuit breaker (e.g. for testing or emergency user lock)
-  void tripManually({String? reason, int? durationMinutes}) {
+  void tripManually({
+    String? reason,
+    int? durationMinutes,
+    String? triggerType,
+  }) {
     final dur = durationMinutes ?? _config.coolingOffDurationMinutes;
     _config.isTripped = true;
     _config.tripReason =
@@ -259,6 +378,7 @@ class RiskCircuitBreakerService {
     _config.tripReason = null;
     _config.coolingOffUntil = null;
     _config.currentConsecutiveLosses = 0;
+    _config.recentCancelTimestamps.clear();
 
     await saveToLocal();
 

@@ -197,6 +197,47 @@ class PortfolioAlertService {
       }
     }
 
+    // Behavioral Tilt & Overtrading alerts
+    if (!config.isExecutionBlocked && config.enableTiltSafeguards) {
+      // 1. Approaching rapid cancel/replace loop limit
+      if (config.maxRapidCancels != null && config.maxRapidCancels! > 1) {
+        final activeCancels = config.activeRapidCancelCount;
+        if (activeCancels >= config.maxRapidCancels! - 1 && activeCancels > 0) {
+          alerts.add(
+            PortfolioAlert(
+              id: 'risk-tilt-rapid-cancels-near',
+              severity: PortfolioAlertSeverity.warning,
+              icon: Icons.warning_amber_rounded,
+              title:
+                  'Approaching Rapid Cancel Limit ($activeCancels/${config.maxRapidCancels})',
+              detail:
+                  'Frequent order cancellations detected in the last ${config.rapidCancelWindowMinutes}m. Slow down execution to prevent automated cooling-off suspension.',
+              metric: '$activeCancels/${config.maxRapidCancels}',
+              target: PortfolioAlertTarget.risk,
+            ),
+          );
+        }
+      }
+
+      // 2. Elevated tilt risk from consecutive losses
+      if (config.currentConsecutiveLosses >= 2 &&
+          config.baselineTradeSize != null) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'risk-tilt-revenge-trading-risk',
+            severity: PortfolioAlertSeverity.warning,
+            icon: Icons.psychology_outlined,
+            title:
+                'Elevated Tilt Risk (${config.currentConsecutiveLosses} Losses)',
+            detail:
+                'Maintain disciplined position sizing (\$${config.baselineTradeSize!.toStringAsFixed(0)} baseline). Avoid sizing up to recover losses.',
+            metric: '${config.currentConsecutiveLosses}L',
+            target: PortfolioAlertTarget.risk,
+          ),
+        );
+      }
+    }
+
     return alerts;
   }
 

@@ -1605,7 +1605,8 @@ class _UserWidgetState extends State<UserWidget> {
                                       _buildFeatureTile(
                                         context,
                                         icon: Icons.shield_outlined,
-                                        title: 'Risk Circuit Breakers',
+                                        title:
+                                            'Risk Circuit Breakers & Tilt Guardrails',
                                         subtitle: Text(
                                           user?.riskCircuitBreakerConfig
                                                       ?.isExecutionBlocked ==

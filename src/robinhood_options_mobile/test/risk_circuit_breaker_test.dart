@@ -27,6 +27,14 @@ void main() {
       expect(config.currentConsecutiveLosses, 0);
       expect(config.isInCoolingOff, false);
       expect(config.isExecutionBlocked, false);
+      expect(config.enableTiltSafeguards, true);
+      expect(config.maxRapidCancels, 4);
+      expect(config.rapidCancelWindowMinutes, 5);
+      expect(config.revengeSizingMultiplier, 2.5);
+      expect(config.baselineTradeSize, isNull);
+      expect(config.recentCancelTimestamps, isEmpty);
+      expect(config.recentTradeSizes, isEmpty);
+      expect(config.activeRapidCancelCount, 0);
     });
 
     test('Serialization and deserialization works correctly', () {
@@ -47,6 +55,13 @@ void main() {
         trippedAt: now,
         peakPortfolioEquity: 25000.0,
         currentConsecutiveLosses: 2,
+        enableTiltSafeguards: true,
+        maxRapidCancels: 5,
+        rapidCancelWindowMinutes: 7,
+        revengeSizingMultiplier: 3.0,
+        baselineTradeSize: 1500.0,
+        recentCancelTimestamps: [now],
+        recentTradeSizes: [1000.0, 2000.0],
       );
 
       final json = config.toJson();
@@ -65,6 +80,14 @@ void main() {
       expect(deserialized.currentConsecutiveLosses, 2);
       expect(deserialized.isInCoolingOff, true);
       expect(deserialized.isExecutionBlocked, true);
+      expect(deserialized.enableTiltSafeguards, true);
+      expect(deserialized.maxRapidCancels, 5);
+      expect(deserialized.rapidCancelWindowMinutes, 7);
+      expect(deserialized.revengeSizingMultiplier, 3.0);
+      expect(deserialized.baselineTradeSize, 1500.0);
+      expect(deserialized.recentCancelTimestamps.length, 1);
+      expect(deserialized.recentTradeSizes, [1000.0, 2000.0]);
+      expect(deserialized.activeRapidCancelCount, 1);
     });
 
     test('copyWith updates specified fields only', () {
@@ -382,6 +405,179 @@ void main() {
       );
 
       expect(alerts.any((a) => a.id.startsWith('risk-circuit-breaker')), false);
+    });
+
+    test('Surfaces warning alert when approaching rapid cancel limit', () {
+      final now = DateTime.now();
+      final config = RiskCircuitBreakerConfig(
+        enabled: true,
+        enableTiltSafeguards: true,
+        maxRapidCancels: 4,
+        rapidCancelWindowMinutes: 5,
+        recentCancelTimestamps: [
+          now.subtract(const Duration(minutes: 1)),
+          now.subtract(const Duration(minutes: 2)),
+          now.subtract(const Duration(minutes: 3)), // 3 active cancels (>= 4 - 1)
+        ],
+      );
+
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: [],
+        optionPositions: [],
+        riskCircuitBreakerConfig: config,
+      );
+
+      final tiltAlert =
+          alerts.firstWhere((a) => a.id == 'risk-tilt-rapid-cancels-near');
+      expect(tiltAlert.severity, PortfolioAlertSeverity.warning);
+      expect(tiltAlert.title, contains('Approaching Rapid Cancel Limit (3/4)'));
+      expect(tiltAlert.metric, '3/4');
+    });
+
+    test('Surfaces warning alert for elevated tilt risk on loss streaks', () {
+      final config = RiskCircuitBreakerConfig(
+        enabled: true,
+        enableTiltSafeguards: true,
+        currentConsecutiveLosses: 2,
+        baselineTradeSize: 1200.0,
+      );
+
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: [],
+        optionPositions: [],
+        riskCircuitBreakerConfig: config,
+      );
+
+      final tiltAlert =
+          alerts.firstWhere((a) => a.id == 'risk-tilt-revenge-trading-risk');
+      expect(tiltAlert.severity, PortfolioAlertSeverity.warning);
+      expect(tiltAlert.title, contains('Elevated Tilt Risk (2 Losses)'));
+      expect(tiltAlert.detail, contains('\$1200 baseline'));
+      expect(tiltAlert.metric, '2L');
+    });
+  });
+
+  group('Behavioral Tilt & Overtrading Safeguards Service Tests', () {
+    test('Rapid cancel detection trips circuit breaker upon reaching threshold', () {
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+          maxRapidCancels: 3,
+          rapidCancelWindowMinutes: 5,
+          coolingOffDurationMinutes: 30,
+        ),
+      );
+
+      // 1st cancel: Safe
+      var res = service.recordOrderCancelledOrReplaced();
+      expect(res.allowed, true);
+      expect(service.config.isTripped, false);
+
+      // 2nd cancel: Safe
+      res = service.recordOrderCancelledOrReplaced();
+      expect(res.allowed, true);
+      expect(service.config.isTripped, false);
+
+      // 3rd cancel: Trips rapid cancel tilt safeguard
+      res = service.recordOrderCancelledOrReplaced();
+      expect(res.allowed, false);
+      expect(res.triggerType, 'rapid_cancels');
+      expect(res.isCoolingOff, true);
+      expect(service.config.isTripped, true);
+      expect(service.config.tripReason, contains('Rapid order cancel/replace loop detected'));
+    });
+
+    test('Stale cancellations outside time window are pruned and do not trip', () {
+      final now = DateTime.now();
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+          maxRapidCancels: 3,
+          rapidCancelWindowMinutes: 5,
+          recentCancelTimestamps: [
+            now.subtract(const Duration(minutes: 10)), // Stale
+            now.subtract(const Duration(minutes: 8)),  // Stale
+          ],
+        ),
+      );
+
+      // Recording 1 new cancel should prune the 2 stale ones, resulting in only 1 active cancel
+      final res = service.recordOrderCancelledOrReplaced(timestamp: now);
+      expect(res.allowed, true);
+      expect(service.config.recentCancelTimestamps.length, 1);
+      expect(service.config.isTripped, false);
+    });
+
+    test('Revenge-trading sizing spike is blocked following consecutive losses', () {
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+          revengeSizingMultiplier: 2.5,
+          baselineTradeSize: 1000.0,
+          currentConsecutiveLosses: 1, // On a loss
+        ),
+      );
+
+      // Normal order ($1500 < $2500 limit): Allowed
+      var evalResult = service.evaluateOrderSize(prospectiveOrderSize: 1500.0);
+      expect(evalResult.allowed, true);
+
+      // Sizing spike ($3000 >= $2500 limit): Blocked by revenge trading safeguard
+      evalResult = service.evaluateOrderSize(prospectiveOrderSize: 3000.0);
+      expect(evalResult.allowed, false);
+      expect(evalResult.triggerType, 'revenge_sizing');
+      expect(evalResult.reason, contains('Revenge-trading tilt safeguard'));
+      expect(evalResult.reason, contains('3.0x larger than your baseline'));
+    });
+
+    test('Revenge sizing check is bypassed when trader has zero losses or tilt safeguards disabled', () {
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+          revengeSizingMultiplier: 2.5,
+          baselineTradeSize: 1000.0,
+          currentConsecutiveLosses: 0, // Winning streak / no losses
+        ),
+      );
+
+      // Large order is permitted when not on a losing streak
+      final evalResult = service.evaluateOrderSize(prospectiveOrderSize: 5000.0);
+      expect(evalResult.allowed, true);
+    });
+
+    test('recordTradeExecution updates rolling baseline average trade size', () {
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+        ),
+      );
+
+      service.recordTradeExecution(orderSize: 1000.0, isWin: true, pnl: 150.0);
+      expect(service.config.baselineTradeSize, 1000.0);
+      expect(service.config.currentConsecutiveLosses, 0);
+
+      service.recordTradeExecution(orderSize: 2000.0, isWin: false, pnl: -200.0);
+      expect(service.config.baselineTradeSize, 1500.0);
+      expect(service.config.currentConsecutiveLosses, 1);
+    });
+
+    test('Resetting circuit breaker clears recent cancellation timestamps', () async {
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          isTripped: true,
+          recentCancelTimestamps: [DateTime.now(), DateTime.now()],
+        ),
+      );
+
+      expect(service.config.recentCancelTimestamps.isNotEmpty, true);
+      await service.resetCircuitBreaker();
+      expect(service.config.recentCancelTimestamps.isEmpty, true);
     });
   });
 }

@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -257,6 +258,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                                 widget.brokerageUser, positionOrder.cancel!);
                             if (mounted) {
                               if (response.statusCode == 200) {
+                                final riskService = RiskCircuitBreakerService();
+                                await riskService.loadConfig();
+                                riskService.recordOrderCancelledOrReplaced();
+                                if (!mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                       content:

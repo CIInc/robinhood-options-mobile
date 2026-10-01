@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -265,6 +266,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                             await widget.service.cancelOrder(
                                 widget.brokerageUser,
                                 widget.optionOrder.cancelUrl!);
+                            final riskService = RiskCircuitBreakerService();
+                            await riskService.loadConfig();
+                            riskService.recordOrderCancelledOrReplaced();
                             if (mounted) {
                               // TODO: Handle response properly, maybe it returns an object or map
                               // Assuming response is dynamic and we might need to check something

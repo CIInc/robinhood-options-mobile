@@ -54,6 +54,7 @@ void main() {
       expect(find.text('Daily Loss Limit'), findsOneWidget);
       expect(find.text('Max Peak Drawdown Limit'), findsOneWidget);
       expect(find.text('Consecutive Loss Lockout'), findsOneWidget);
+      expect(find.text('Behavioral Tilt & Overtrading Safeguards'), findsOneWidget);
       expect(find.text('Minimum Margin Buffer'), findsOneWidget);
       expect(find.text('Cooling-Off Period Duration'), findsOneWidget);
       expect(find.text('Guardrail Test Mode'), findsOneWidget);
@@ -164,6 +165,70 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(service.config.maxDailyLossAmount, 1000.0);
+    });
+
+    testWidgets('Toggling tilt safeguards switch updates config',
+        (tester) async {
+      setLargeTestWindow(tester);
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+        ),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(service: service));
+      await tester.pumpAndSettle();
+
+      final tiltSwitch = find.widgetWithText(SwitchListTile, 'Enable Tilt Safeguards');
+      await tester.ensureVisible(tiltSwitch);
+      await tester.tap(tiltSwitch);
+      await tester.pumpAndSettle();
+
+      expect(service.config.enableTiltSafeguards, false);
+    });
+
+    testWidgets('Selecting rapid cancel chip updates maxRapidCancels',
+        (tester) async {
+      setLargeTestWindow(tester);
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(
+          enabled: true,
+          enableTiltSafeguards: true,
+          maxRapidCancels: 4,
+        ),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(service: service));
+      await tester.pumpAndSettle();
+
+      final chip6 = find.text('6 Cancels');
+      await tester.ensureVisible(chip6);
+      await tester.tap(chip6);
+      await tester.pumpAndSettle();
+
+      expect(service.config.maxRapidCancels, 6);
+    });
+
+    testWidgets('Simulate rapid cancel loop button activates cooling off',
+        (tester) async {
+      setLargeTestWindow(tester);
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(enabled: true),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(service: service));
+      await tester.pumpAndSettle();
+
+      final simulateBtn = find.text('Simulate Rapid Cancel Loop Trip');
+      await tester.ensureVisible(simulateBtn);
+      await tester.tap(simulateBtn);
+      await tester.pumpAndSettle();
+
+      expect(service.config.isTripped, true);
+      expect(service.config.isInCoolingOff, true);
+      expect(find.textContaining('Cooling Off Active'), findsOneWidget);
+      expect(find.textContaining('Rapid order cancel/replace loop detected'), findsOneWidget);
     });
   });
 }

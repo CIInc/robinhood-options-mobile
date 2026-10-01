@@ -1197,6 +1197,42 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       return;
     }
 
+    // Evaluate prospective order size against tilt & revenge-trading safeguards
+    final double estPrice = double.tryParse(priceCtl.text) ??
+        widget.optionInstrument?.optionMarketData?.markPrice ??
+        0.0;
+    final double estQty = double.tryParse(quantityCtl.text) ?? 1.0;
+    final double prospectiveNotional = estPrice * estQty * 100.0;
+    final sizeEval = riskService.evaluateOrderSize(
+      prospectiveOrderSize: prospectiveNotional,
+    );
+    if (!sizeEval.allowed) {
+      setState(() {
+        placingOrder = false;
+      });
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.psychology_outlined,
+                color: Colors.orange, size: 36),
+            title: const Text('Revenge Sizing Safeguard'),
+            content: Text(
+              sizeEval.reason ??
+                  'Order blocked to prevent emotional revenge-trading sizing spikes.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     if (!mounted) return;
     var accountStore = Provider.of<AccountStore>(context, listen: false);
 

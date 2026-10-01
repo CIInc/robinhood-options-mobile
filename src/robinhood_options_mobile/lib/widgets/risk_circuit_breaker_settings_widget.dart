@@ -160,6 +160,24 @@ class _RiskCircuitBreakerSettingsWidgetState
     );
   }
 
+  void _simulateRapidCancelTrip() {
+    _service.tripManually(
+      reason:
+          'Simulation: Rapid order cancel/replace loop detected (4 cancels in 5 min). Mandatory cooling-off activated.',
+      durationMinutes: 2,
+      triggerType: 'rapid_cancels',
+    );
+    setState(() {
+      _config = _service.config;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Simulated rapid cancel tilt cooling-off activated.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -189,6 +207,8 @@ class _RiskCircuitBreakerSettingsWidgetState
             _buildDrawdownSection(colorScheme),
             const SizedBox(height: 16),
             _buildConsecutiveLossSection(colorScheme),
+            const SizedBox(height: 16),
+            _buildTiltSafeguardsSection(colorScheme),
             const SizedBox(height: 16),
             _buildMarginBufferSection(colorScheme),
             const SizedBox(height: 16),
@@ -559,6 +579,149 @@ class _RiskCircuitBreakerSettingsWidgetState
     );
   }
 
+  Widget _buildTiltSafeguardsSection(ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.psychology_outlined, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Behavioral Tilt & Overtrading Safeguards',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Zero-permission, software-based heuristics detecting rapid cancel/replace thrashing and revenge-trading sizing spikes.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Enable Tilt Safeguards',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              subtitle: const Text(
+                'Monitor execution pace and sizing discipline without health permissions.',
+                style: TextStyle(fontSize: 12),
+              ),
+              value: _config.enableTiltSafeguards,
+              onChanged: (val) {
+                _saveConfig(_config.copyWith(enableTiltSafeguards: val));
+              },
+            ),
+            if (_config.enableTiltSafeguards) ...[
+              const Divider(height: 24),
+              const Text(
+                'Rapid Cancel / Replace Loop Limit',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Halts trading if order cancellations or replacements exceed threshold within ${_config.rapidCancelWindowMinutes} minutes.',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [2, 4, 6, 8, 0].map((cancels) {
+                  final isSelected = cancels == 0
+                      ? _config.maxRapidCancels == null
+                      : _config.maxRapidCancels == cancels;
+                  return ChoiceChip(
+                    label: Text(cancels == 0 ? 'Disabled' : '$cancels Cancels'),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      final newCancels = cancels == 0 ? null : cancels;
+                      _saveConfig(
+                          _config.copyWith(maxRapidCancels: newCancels));
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 14, color: colorScheme.onSurfaceVariant),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Recent cancellations: ${_config.activeRapidCancelCount} / ${_config.maxRapidCancels ?? '∞'} in last ${_config.rapidCancelWindowMinutes}m',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              const Text(
+                'Revenge-Trading Sizing Spikes',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Blocks oversized orders placed immediately after losing trades (relative to baseline trade size).',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: [1.5, 2.0, 2.5, 3.0, 0.0].map((multiplier) {
+                  final isSelected = multiplier == 0.0
+                      ? _config.revengeSizingMultiplier == null
+                      : _config.revengeSizingMultiplier == multiplier;
+                  return ChoiceChip(
+                    label: Text(multiplier == 0.0
+                        ? 'Disabled'
+                        : '${multiplier.toStringAsFixed(1)}x Baseline'),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      final newMult = multiplier == 0.0 ? null : multiplier;
+                      _saveConfig(
+                          _config.copyWith(revengeSizingMultiplier: newMult));
+                    },
+                  );
+                }).toList(),
+              ),
+              if (_config.baselineTradeSize != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.analytics_outlined,
+                        size: 14, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Baseline average order size: \$${_config.baselineTradeSize!.toStringAsFixed(0)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMarginBufferSection(ColorScheme colorScheme) {
     return Card(
       elevation: 0,
@@ -710,6 +873,12 @@ class _RiskCircuitBreakerSettingsWidgetState
               onPressed: _simulateTrip,
               icon: const Icon(Icons.flash_on, size: 18),
               label: const Text('Simulate 2-Min Circuit Breaker Trip'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _simulateRapidCancelTrip,
+              icon: const Icon(Icons.loop, size: 18),
+              label: const Text('Simulate Rapid Cancel Loop Trip'),
             ),
           ],
         ),

@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 30, 2026 · **Current app version:** 0.55.0 (released September 30, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 399
-- **Planned checklist items:** 72
+- **Completed checklist items:** 400
+- **Planned checklist items:** 71
 - **GitHub issues:** 120 total — 34 open and 86 closed (as of September 30, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
@@ -462,10 +462,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.55.1 (Target: Q4 2026 / Q1 2027)
 **Autonomous Risk Copilot, Multi-Leg Order Templates & Post-Trade Behavioral Analytics**
+- ✅ **In-App Behavioral Tilt & Overtrading Safeguards:** Pure software-based tilt detection analyzing rapid order cancel/replace loops, revenge-trading sizing spikes, and consecutive losses to prompt cooling-off pauses (replaces complex HealthKit biometrics with zero-permission reliability) ([docs](docs/risk-circuit-breakers.md), [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
 - **Autonomous Agentic Risk Copilot:** Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Multi-Leg Order Entry Templates & Spread Builder:** Pre-configured structural order pads for Vertical Spreads, Iron Condors, Straddles, Strangles, and Calendar Spreads with real-time net credit/debit calculation across Schwab and Robinhood.
 - **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger:** Automated post-trade diagnostic analyzing closed trades against entry thesis, tracking cognitive biases (FOMO, disposition effect) and execution mistakes upon position closing ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
-- **In-App Behavioral Tilt & Overtrading Safeguards:** Pure software-based tilt detection analyzing rapid order cancel/replace loops, revenge-trading sizing spikes, and consecutive losses to prompt cooling-off pauses (replaces complex HealthKit biometrics with zero-permission reliability) ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
 - **Performance, Memory & Stream Throttling:** Viewport-aware streaming subscriptions, memory optimization, and background stream pausing for mobile battery efficiency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 
 ### v0.56.0 (Target: Q1 2027)
@@ -994,7 +994,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 
 #### Behavioral & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - [x] **Autonomous Risk Circuit Breakers & Cooling-Off Lock** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Daily max loss, portfolio drawdown, and consecutive loss guardrails
-- [ ] **In-App Behavioral Tilt & Overtrading Safeguards** (v0.55.1, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Software-based tilt detection monitoring rapid cancel/replace loops, sizing spikes, and revenge trading without requiring intrusive health permissions - **Small** (1-2 weeks)
+- [x] **In-App Behavioral Tilt & Overtrading Safeguards** (v0.55.1, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Software-based tilt detection monitoring rapid cancel/replace loops, sizing spikes, and revenge trading without requiring intrusive health permissions - **Small** (1-2 weeks)
 - [ ] **Biometric Tilt & Panic Trading Guardian** (Deferred to Future Horizons, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Integrates with Apple HealthKit / Wear OS biometric data (heart rate spikes) to detect emotional tilt (demoted to exploratory due to high false-positive rate and platform health permission hurdles) - **Medium** (2-3 weeks)
 
 ### Social & Community
