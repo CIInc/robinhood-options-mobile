@@ -13,6 +13,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
   final IBrokerageService? service;
   final FirebaseAnalytics? analytics;
   final EdgeInsetsGeometry outerPadding;
+  final bool disabled;
+  final String? disabledReason;
 
   const FuturesAutoTradingCardWidget({
     super.key,
@@ -22,6 +24,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
     this.analytics,
     this.outerPadding =
         const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    this.disabled = false,
+    this.disabledReason,
   });
 
   @override
@@ -32,7 +36,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
     return Consumer<FuturesAutoTradingProvider>(
       builder: (context, provider, child) {
         final config = provider.config;
-        final isEnabled = config.autoTradeEnabled;
+        final isEnabled = !disabled && config.autoTradeEnabled;
         final isPaper = config.paperTradingMode;
         final statusColor = isEnabled ? Colors.green : Colors.orange;
 
@@ -54,6 +58,17 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
           totalPnl += (trade['pnl'] ?? 0).toDouble();
         }
 
+        void showDisabledNotice() {
+          if (disabledReason != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(disabledReason!),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+
         return Padding(
           padding: outerPadding,
           child: Card(
@@ -62,27 +77,31 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
               side: BorderSide(
-                color: isEnabled
-                    ? statusColor.withValues(alpha: 0.5)
-                    : colorScheme.outlineVariant,
+                color: disabled
+                    ? colorScheme.outlineVariant.withValues(alpha: 0.5)
+                    : (isEnabled
+                        ? statusColor.withValues(alpha: 0.5)
+                        : colorScheme.outlineVariant),
                 width: isEnabled ? 1.5 : 1,
               ),
             ),
             child: InkWell(
-              onTap: (user == null || userDocRef == null)
-                  ? null
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FuturesTradingSettingsWidget(
-                            user: user!,
-                            userDocRef: userDocRef!,
-                            service: service,
-                          ),
-                        ),
-                      );
-                    },
+              onTap: disabled
+                  ? showDisabledNotice
+                  : (user == null || userDocRef == null)
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FuturesTradingSettingsWidget(
+                                user: user!,
+                                userDocRef: userDocRef!,
+                                service: service,
+                              ),
+                            ),
+                          );
+                        },
               borderRadius: BorderRadius.circular(20),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -94,12 +113,20 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
+                            color: disabled
+                                ? colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.5)
+                                : statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            isEnabled ? Icons.sensors : Icons.sensors_off,
-                            color: statusColor,
+                            disabled
+                                ? Icons.sensors_off
+                                : (isEnabled
+                                    ? Icons.sensors
+                                    : Icons.sensors_off),
+                            color:
+                                disabled ? colorScheme.outline : statusColor,
                             size: 24,
                           ),
                         ),
@@ -112,25 +139,39 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                                 'Futures Auto-Trading',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
+                                  color: disabled
+                                      ? colorScheme.onSurface
+                                          .withValues(alpha: 0.5)
+                                      : null,
                                 ),
                               ),
                               Text(
-                                isEnabled
-                                    ? (isPaper
-                                        ? 'Live Paper Trading'
-                                        : 'Live Real Trading')
-                                    : 'Inactive',
+                                disabled
+                                    ? (disabledReason ??
+                                        'Not applicable to paper trading')
+                                    : (isEnabled
+                                        ? (isPaper
+                                            ? 'Live Paper Trading'
+                                            : 'Live Real Trading')
+                                        : 'Inactive'),
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: isEnabled
-                                      ? (isPaper ? Colors.blue : Colors.green)
-                                      : colorScheme.onSurfaceVariant,
+                                  color: disabled
+                                      ? colorScheme.outline
+                                      : (isEnabled
+                                          ? (isPaper
+                                              ? Colors.blue
+                                              : Colors.green)
+                                          : colorScheme.onSurfaceVariant),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        if (provider.isAutoTrading)
+                        if (disabled)
+                          Icon(Icons.block,
+                              size: 16, color: colorScheme.outline)
+                        else if (provider.isAutoTrading)
                           const _AutoTradingIndicator()
                         else
                           IconButton(
@@ -154,50 +195,62 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildStat(
-                          context,
-                          'Trades Today',
-                          todayHistory.length.toString(),
-                          Icons.swap_horiz,
-                        ),
-                        _buildStat(
-                          context,
-                          'Total P&L',
-                          '\$${totalPnl.toStringAsFixed(2)}',
-                          Icons.insights,
-                          color: totalPnl >= 0 ? Colors.green : Colors.red,
-                        ),
-                        _buildStat(
-                          context,
-                          'Contracts',
-                          config.strategyConfig.contractIds.length.toString(),
-                          Icons.layers,
-                        ),
-                      ],
-                    ),
-                    if (provider.activityLog.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surface.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          provider.activityLog.first,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontFamily: 'monospace',
-                            fontSize: 10,
+                    Opacity(
+                      opacity: disabled ? 0.5 : 1.0,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildStat(
+                                context,
+                                'Trades Today',
+                                todayHistory.length.toString(),
+                                Icons.swap_horiz,
+                              ),
+                              _buildStat(
+                                context,
+                                'Total P&L',
+                                '\$${totalPnl.toStringAsFixed(2)}',
+                                Icons.insights,
+                                color: totalPnl >= 0
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                              _buildStat(
+                                context,
+                                'Contracts',
+                                config.strategyConfig.contractIds.length
+                                    .toString(),
+                                Icons.layers,
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          if (provider.activityLog.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    colorScheme.surface.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                provider.activityLog.first,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

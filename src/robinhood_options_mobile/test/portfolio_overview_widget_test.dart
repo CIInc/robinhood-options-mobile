@@ -278,6 +278,29 @@ void main() {
 
       expect(tapped, PortfolioSection.performance);
     });
+
+    testWidgets('renders disabled sections and shows snackbar on tap without navigating',
+        (tester) async {
+      PortfolioSection? tapped;
+      await tester.pumpWidget(wrap(
+        PortfolioSectionGridWidget(
+          onSectionTap: (section) => tapped = section,
+          disabled: const {PortfolioSection.taxes},
+          disabledReasons: const {
+            PortfolioSection.taxes: 'Not applicable to paper trading',
+          },
+        ),
+      ));
+
+      expect(find.text('Not applicable to paper trading'), findsOneWidget);
+      expect(find.byIcon(Icons.block), findsOneWidget);
+
+      await tester.tap(find.text('Taxes'));
+      await tester.pump();
+
+      expect(tapped, isNull);
+      expect(find.text('Not applicable to paper trading'), findsWidgets);
+    });
   });
 
   group('RiskAnalyticsCard', () {

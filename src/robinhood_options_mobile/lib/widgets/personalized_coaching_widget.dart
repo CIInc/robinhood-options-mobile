@@ -1386,11 +1386,6 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
             ],
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.add_reaction_outlined),
-              onPressed: _showEmotionCheckInDialog,
-              tooltip: "Emotion Check-In",
-            ),
             if (streak > 0)
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),

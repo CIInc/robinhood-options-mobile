@@ -22,6 +22,17 @@ All notable changes to this project will be documented in this file.
   - Removed deprecated Following Activity Feed tile and updated feature matrix requirements.
   - Updated test expectations in `test/user_widget_features_availability_test.dart`.
 
+- **Paper Trading Portfolio Browse & Strategies Adaptations (`home_widget.dart`, `PortfolioSectionGridWidget`, `StrategiesSectionPage`, `PortfolioNavigator`, `PortfolioAlertService`, `AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`):**
+  - Contextually disabled features that do not apply to simulated trading accounts:
+    - **Taxes (`PortfolioSection.taxes`)**: In paper mode, the Browse grid tile is visually dimmed with an `Icons.block` badge and subtitle `"Not applicable to paper trading"`; taps display an informative SnackBar; `PortfolioNavigator.openSection` blocks routing; `PortfolioAlertService` omits tax-loss alerts; and tax optimization calculations are bypassed.
+    - **Strategies Paper Trading Simulator**: Disabled redundant "Paper Trading Simulator" tile in `StrategiesSectionPage` when already active in paper trading mode with subtitle `"Already active (currently in paper trading mode)"` and SnackBar feedback.
+    - **Strategies Auto-Trading Cards**: In `StrategiesSectionPage`, Stocks Auto-Trading (`AgenticTradingCardWidget`) and Futures Auto-Trading (`FuturesAutoTradingCardWidget`) cards are visually dimmed with `Icons.block` badges, `'Not applicable to paper trading'` subtitles, and tap feedback SnackBars preventing navigation to settings or backtesting.
+  - Added test coverage in `test/portfolio_browse_paper_trading_test.dart` and updated `test/portfolio_overview_widget_test.dart`.
+
+- **Trading Psychology & Coaching UI Polish (`PersonalizedCoachingWidget`):**
+  - Removed redundant "Emotion Check-In" (`Icons.add_reaction_outlined`) icon button from the AppBar actions in AI Trading Coach, eliminating clutter as emotion check-ins are accessible directly from the dedicated "Emotion Journal" tab (`EmotionJournalView`).
+  - Added widget test coverage in `test/trading_psychology_test.dart`.
+
 - **Backend Security & Macro Agent Callable Authentication ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195)):**
   - Enforced mandatory `request.auth` authentication verification on `macroAssessmentTask` and macro agent callable endpoints, ensuring institutional macro metrics cannot be accessed anonymously.
   - Added unit test coverage in `functions/tests/macro-agent.test.ts`.

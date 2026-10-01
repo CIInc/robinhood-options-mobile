@@ -214,6 +214,22 @@ low-risk by omission.
 | `widgets/portfolio/analytics/analytics_filter_bar.dart` | Shared period chips + benchmark menu |
 | `widgets/portfolio/analytics/analytics_csv_export.dart` | CSV export |
 
+## Paper trading adaptations
+
+Simulated accounts do not generate taxable events or need redundant simulator launchers. When viewing a paper trading account (`brokerageUser.source == BrokerageSource.paper` or `account?.accountNumber == 'paper_account'`), features that do not apply are disabled with clear inline explanations and SnackBar feedback:
+
+- **Taxes (`PortfolioSection.taxes`)**:
+  - The Browse grid tile on the Overview screen is visually disabled (dimmed icon and text, `Icons.block` indicator, and `'Not applicable to paper trading'` subtitle).
+  - Tapping the disabled tile presents an informative SnackBar rather than navigating.
+  - `PortfolioNavigator.openSection` guards against programmatic routing to Taxes for paper accounts.
+  - `PortfolioAlertService` omits tax-loss harvesting alerts from the Action Center.
+  - `TaxOptimizationService.calculateTaxHarvestingOpportunities` is bypassed on the Overview summary calculation.
+- **Paper Trading Simulator in Strategies**:
+  - Inside `StrategiesSectionPage`, the Paper Trading Simulator tile is disabled with subtitle `'Already active (currently in paper trading mode)'` and a block icon, providing SnackBar feedback when tapped.
+- **Auto-Trading Cards in Strategies (`AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`)**:
+  - Inside `StrategiesSectionPage`, the Stocks Auto-Trading and Futures Auto-Trading cards are visually disabled with dimmed borders, muted icons, trailing `Icons.block` indicators, and subtitle `'Not applicable to paper trading'`.
+  - Tapping either card (or settings / backtesting actions) presents an informative SnackBar explaining the feature is not applicable to paper trading rather than navigating.
+
 ## Gotcha: date alignment
 
 The controller keys the portfolio and benchmark series by calendar date.

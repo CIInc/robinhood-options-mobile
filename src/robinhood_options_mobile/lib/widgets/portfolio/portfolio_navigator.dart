@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/insights_section_page.dart';
@@ -25,6 +26,19 @@ class PortfolioNavigator {
     PortfolioSection section,
     PortfolioSectionContext sectionContext,
   ) {
+    final isPaper =
+        sectionContext.brokerageUser.source == BrokerageSource.paper ||
+            sectionContext.account?.accountNumber == 'paper_account';
+    if (section == PortfolioSection.taxes && isPaper) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Tax optimization does not apply to paper trading accounts.'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return Future.value();
+    }
     return Navigator.push(
       context,
       MaterialPageRoute(

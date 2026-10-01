@@ -611,5 +611,67 @@ void main() {
       );
       expect(signalsChip.selected, isTrue);
     });
+
+    testWidgets('supports categoryScrollController for header auto-scrolling',
+        (WidgetTester tester) async {
+      final chipScrollController = ScrollController();
+      String selected = 'Overview';
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomScrollView(
+              slivers: [
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: InstrumentCategoryHeaderDelegate(
+                    selectedCategory: selected,
+                    onCategorySelected: (cat) {
+                      selected = cat;
+                    },
+                    categories: categories,
+                    categoryScrollController: chipScrollController,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(chipScrollController.hasClients, isTrue);
+      expect(chipScrollController.offset, equals(0.0));
+
+      // Scroll horizontal chip list
+      chipScrollController.jumpTo(50.0);
+      await tester.pump();
+      expect(chipScrollController.offset, equals(50.0));
+      chipScrollController.dispose();
+    });
+
+    test('shouldRebuild detects changes to categoryScrollController', () {
+      final ctrl1 = ScrollController();
+      final ctrl2 = ScrollController();
+
+      final delegate1 = InstrumentCategoryHeaderDelegate(
+        selectedCategory: 'Overview',
+        onCategorySelected: (_) {},
+        categories: categories,
+        categoryScrollController: ctrl1,
+      );
+
+      final delegate2 = InstrumentCategoryHeaderDelegate(
+        selectedCategory: 'Overview',
+        onCategorySelected: (_) {},
+        categories: categories,
+        categoryScrollController: ctrl2,
+      );
+
+      expect(delegate1.shouldRebuild(delegate2), isTrue);
+
+      ctrl1.dispose();
+      ctrl2.dispose();
+    });
   });
 }
+

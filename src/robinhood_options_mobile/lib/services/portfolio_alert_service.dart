@@ -119,7 +119,12 @@ class PortfolioAlertService {
     alerts.addAll(
         _marginHealthAlerts(account, unifiedAccount, totalEquity, marginCalls));
     alerts.addAll(_pdtAlerts(account, totalEquity, dayTradeSummary));
-    alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
+    final isPaper = account?.type == 'Paper Account' ||
+        account?.accountNumber == 'paper_account' ||
+        (account?.url.contains('paper') ?? false);
+    if (!isPaper) {
+      alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
+    }
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_cashAlerts(account, totalEquity));
     alerts.addAll(_unusualActivityAlerts(

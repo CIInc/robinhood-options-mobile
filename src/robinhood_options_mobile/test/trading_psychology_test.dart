@@ -1,10 +1,23 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.dart';
+
+import 'firebase_mocks.dart';
+
+class FakeBrokerageService extends Fake implements IBrokerageService {}
+class FakeObserver extends Fake implements FirebaseAnalyticsObserver {}
 
 void main() {
+  setUpAll(() async {
+    await setupFirebaseMocks();
+  });
   group('EmotionLog Model Tests', () {
     test('EmotionLog serialization and deserialization', () {
       final now = DateTime(2026, 9, 7, 10, 30);
@@ -281,6 +294,40 @@ void main() {
       final afterDelete = await firestoreService.getEmotionLogs(userDoc);
       expect(afterDelete.length, 1);
       expect(afterDelete.first.id, 'log_2');
+    });
+  });
+
+  group('PersonalizedCoachingWidget AppBar Tests', () {
+    testWidgets(
+        'Emotion Check-In button is not present in AppBar, while Emotion Journal tab is present',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final brokerageUser =
+          BrokerageUser(BrokerageSource.robinhood, 'user_123', null, null);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PersonalizedCoachingWidget(
+            service: FakeBrokerageService(),
+            user: brokerageUser,
+            userDoc: null,
+            firebaseUser: null,
+            analytics: FakeFirebaseAnalytics(),
+            observer: FakeObserver(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tooltip "Emotion Check-In" and icon should NOT be found in AppBar actions
+      expect(find.byTooltip('Emotion Check-In'), findsNothing);
+      expect(find.byIcon(Icons.add_reaction_outlined), findsNothing);
+
+      // Emotion Journal tab should still be present
+      expect(find.text('Emotion Journal'), findsOneWidget);
     });
   });
 }

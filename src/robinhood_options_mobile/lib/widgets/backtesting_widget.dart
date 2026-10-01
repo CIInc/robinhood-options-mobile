@@ -217,6 +217,7 @@ class BacktestRunTabState extends State<BacktestRunTab> {
     'chaikinMoneyFlow': false,
     'fibonacciRetracements': false,
     'pivotPoints': false,
+    'gammaExposure': false,
   };
   final Map<String, String> _indicatorReasons = {};
 

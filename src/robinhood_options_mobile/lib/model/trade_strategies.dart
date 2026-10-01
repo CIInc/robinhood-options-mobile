@@ -79,6 +79,7 @@ class TradeStrategyDefaults {
           'chaikinMoneyFlow': true,
           'fibonacciRetracements': true,
           'pivotPoints': true,
+          'gammaExposure': true,
         },
         indicatorReasons: {
           'priceMovement': 'Price action analysis.',
@@ -100,6 +101,8 @@ class TradeStrategyDefaults {
           'chaikinMoneyFlow': 'Money flow analysis.',
           'fibonacciRetracements': 'Support and resistance levels.',
           'pivotPoints': 'Daily support and resistance levels.',
+          'gammaExposure':
+              'Dealer gamma positioning and price pinning analysis.',
         },
         riskPerTrade: 0.02,
         enableDynamicPositionSizing: true,

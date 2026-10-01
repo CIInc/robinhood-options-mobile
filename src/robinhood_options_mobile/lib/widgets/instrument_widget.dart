@@ -95,7 +95,6 @@ import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
-import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/widgets/event_study_widget.dart';
@@ -184,11 +183,13 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String selectedCategory;
   final ValueChanged<String> onCategorySelected;
   final List<InstrumentCategory> categories;
+  final ScrollController? categoryScrollController;
 
   InstrumentCategoryHeaderDelegate({
     required this.selectedCategory,
     required this.onCategorySelected,
     required this.categories,
+    this.categoryScrollController,
   });
 
   @override
@@ -221,6 +222,7 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
         ),
         child: ListView.separated(
+          controller: categoryScrollController,
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
           itemCount: categories.length,
@@ -306,6 +308,7 @@ class InstrumentCategoryHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant InstrumentCategoryHeaderDelegate oldDelegate) {
     return oldDelegate.selectedCategory != selectedCategory ||
+        oldDelegate.categoryScrollController != categoryScrollController ||
         !listEquals(oldDelegate.categories, categories);
   }
 }
@@ -375,6 +378,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final GlobalKey _categoryHeaderKey = GlobalKey();
 
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _categoryChipsScrollController = ScrollController();
 
   late String _selectedCategory;
 
@@ -904,6 +908,76 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
     Provider.of<TradeSignalsProvider>(context, listen: false)
         .fetchTradeSignal(widget.instrument.symbol);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final categories = _getCategories();
+      _scrollCategoryChipsIntoView(_selectedCategory, categories);
+    });
+  }
+
+  List<InstrumentCategory> _getCategories() {
+    TradeSignalsProvider? tradeSignalsProvider;
+    try {
+      tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+    } catch (_) {}
+    return _buildCategories(context, widget.instrument, tradeSignalsProvider);
+  }
+
+  void _scrollCategoryChipsIntoView(
+      String category, List<InstrumentCategory> categories) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_categoryChipsScrollController.hasClients) return;
+      final index = categories.indexWhere((c) => c.key == category);
+      if (index == -1) return;
+      final screenWidth = MediaQuery.of(context).size.width;
+      const estimatedChipWidth = 105.0;
+      final chipCenter =
+          (index * estimatedChipWidth) + (estimatedChipWidth / 2) + 16.0;
+      final targetScroll = math.max(0.0, chipCenter - (screenWidth / 2));
+      final maxScroll =
+          _categoryChipsScrollController.position.maxScrollExtent;
+      _categoryChipsScrollController.animateTo(
+        targetScroll.clamp(0.0, maxScroll),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _scrollToCategoryHeader() {
+    if (!_scrollController.hasClients) return;
+    final renderObject =
+        _categoryHeaderKey.currentContext?.findRenderObject();
+    if (renderObject is RenderSliver) {
+      final pinnedAppBarHeight =
+          kToolbarHeight + MediaQuery.paddingOf(context).top;
+      final targetOffset = math.max(
+        0.0,
+        renderObject.constraints.precedingScrollExtent - pinnedAppBarHeight,
+      );
+      _scrollController.animateTo(
+        targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+    } else {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _scrollToTop() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOutCubic,
+    );
   }
 
   void _onCategorySelected(String category) {
@@ -919,7 +993,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         'symbol': widget.instrument.symbol,
       },
     );
-    if (_scrollController.hasClients) {
+
+    final categories = _getCategories();
+    _scrollCategoryChipsIntoView(category, categories);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
       final renderObject =
           _categoryHeaderKey.currentContext?.findRenderObject();
       if (renderObject is RenderSliver) {
@@ -931,18 +1010,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         );
         if ((_scrollController.offset - targetOffset).abs() > 2.0) {
           _scrollController.animateTo(
-            targetOffset,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
+            targetOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
           );
         }
       }
-    }
+    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _categoryChipsScrollController.dispose();
     _stopRefreshTimer();
     _showAIReasoningNotifier.dispose();
     _showAllSimilarNotifier.dispose();
@@ -1769,19 +1849,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           );
                         },
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.add_alert_outlined),
-                        tooltip: 'Custom Alerts',
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => CustomAlertsWidget(
-                                initialSymbol: widget.instrument.symbol,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                       if (auth.currentUser != null)
                         AutoTradeStatusBadgeWidget(
                           user: widget.user,
@@ -1892,11 +1959,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       selectedCategory: _selectedCategory,
                       onCategorySelected: _onCategorySelected,
                       categories: categories,
+                      categoryScrollController: _categoryChipsScrollController,
                     ),
                   );
                 },
               ),
               ..._buildCategorySlivers(instrument),
+              Consumer<TradeSignalsProvider>(
+                builder: (context, tradeSignalsProvider, child) {
+                  final categories = _buildCategories(
+                      context, instrument, tradeSignalsProvider);
+                  return _buildCategoryTransitionSliver(
+                      instrument, categories);
+                },
+              ),
               ..._buildFooterSlivers(),
             ])));
   }
@@ -1950,152 +2026,307 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           // Current holdings belong on the initial Overview, not Activity.
           _buildPositionSliver(instrument),
           _buildOptionPositionsSliver(instrument),
-          // Explore other sections shortcut card
-          _buildExploreSectionsCard(instrument),
         ];
     }
   }
 
-  Widget _buildExploreSectionsCard(Instrument instrument) {
+  (String, String, IconData, Color) _getCategoryInfo(
+      String key, ThemeData theme) {
+    switch (key) {
+      case 'Overview':
+        return (
+          'Overview',
+          'Market summary, real-time quote & your current positions',
+          Icons.dashboard_outlined,
+          theme.colorScheme.primary,
+        );
+      case 'Signals':
+        return (
+          'Signals & Technicals',
+          'Trade signals, 20 technical indicators, GEX & order flow',
+          Icons.bolt_outlined,
+          Colors.amber.shade700,
+        );
+      case 'Financials':
+        return (
+          'Financials & Valuation',
+          'Quarterly earnings, revenue, balance sheet & dividend yield',
+          Icons.account_balance_outlined,
+          Colors.blue.shade700,
+        );
+      case 'Research':
+        return (
+          'Analyst Research',
+          'Wall Street price targets, analyst consensus & smart money',
+          Icons.psychology_outlined,
+          Colors.purple.shade700,
+        );
+      case 'Activity':
+        return (
+          'Trading Activity',
+          'Execution history, order fills & stock/options orders',
+          Icons.receipt_long_outlined,
+          Colors.teal.shade700,
+        );
+      case 'News':
+        return (
+          'News & Notes',
+          'Latest market news, sentiment headlines & personal notes',
+          Icons.newspaper_outlined,
+          Colors.indigo.shade700,
+        );
+      case 'All':
+      default:
+        return (
+          'All Sections',
+          'Combined comprehensive overview of all analysis sections',
+          Icons.view_agenda_outlined,
+          Colors.deepPurple,
+        );
+    }
+  }
+
+  Widget _buildCategoryTransitionSliver(
+      Instrument instrument, List<InstrumentCategory> categories) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final orderedCategories =
+        categories.where((c) => c.key != 'All').toList();
+    final currentIndex =
+        orderedCategories.indexWhere((c) => c.key == _selectedCategory);
 
-    final sections = [
-      (
-        'Signals',
-        'Trade signals, 19 indicators, GEX & flow',
-        Icons.bolt_outlined,
-        Colors.amber.shade700,
-        'Signals',
-      ),
-      (
-        'Financials & Earnings',
-        'Valuation, quarterly reports & dividend yield',
-        Icons.account_balance_outlined,
-        Colors.blue.shade700,
-        'Financials',
-      ),
-      (
-        'Analyst Research',
-        'Price targets, short interest & smart money',
-        Icons.psychology_outlined,
-        Colors.purple.shade700,
-        'Research',
-      ),
-      (
-        'Trading Activity',
-        'Executions, fills & order history',
-        Icons.receipt_long_outlined,
-        Colors.teal.shade700,
-        'Activity',
-      ),
-      (
-        'News & Notes',
-        'Market news, personal notes & lists',
-        Icons.newspaper_outlined,
-        Colors.indigo.shade700,
-        'News',
-      ),
-    ];
+    final nextCategory = _selectedCategory == 'All'
+        ? orderedCategories.first
+        : (currentIndex != -1 && currentIndex + 1 < orderedCategories.length
+            ? orderedCategories[currentIndex + 1]
+            : orderedCategories.first);
+
+    final prevCategory = (_selectedCategory != 'All' && currentIndex > 0)
+        ? orderedCategories[currentIndex - 1]
+        : null;
+
+    final nextInfo = _getCategoryInfo(nextCategory.key, theme);
+    final currentInfo = _getCategoryInfo(_selectedCategory, theme);
 
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Card(
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          color: theme.colorScheme.surfaceContainerLow,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+        child: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            if (details.primaryVelocity != null) {
+              if (details.primaryVelocity! < -250) {
+                // Swiped left -> Go to Next category
+                _onCategorySelected(nextCategory.key);
+              } else if (details.primaryVelocity! > 250 && prevCategory != null) {
+                // Swiped right -> Go to Previous category
+                _onCategorySelected(prevCategory.key);
+              }
+            }
+          },
+          child: Card(
+            elevation: 0,
+            margin: EdgeInsets.zero,
+            color: theme.colorScheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.explore_outlined,
-                        size: 20, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Deep Dive into ${instrument.symbol}',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ...sections.map((sec) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => _onCategorySelected(sec.$5),
-                      child: Container(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Header: Section indicator & progress
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0, vertical: 10.0),
+                            horizontal: 8.0, vertical: 3.0),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.3)
-                              : theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.5),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.2),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _selectedCategory == 'Overview'
+                                  ? Icons.explore_outlined
+                                  : Icons.check_circle_outline,
+                              size: 13,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _selectedCategory == 'All'
+                                  ? 'ALL SECTIONS'
+                                  : (_selectedCategory == 'Overview'
+                                      ? 'OVERVIEW COMPLETE'
+                                      : 'FINISHED ${currentInfo.$1.toUpperCase()}'),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_selectedCategory != 'All' && currentIndex != -1)
+                        Text(
+                          'Section ${currentIndex + 1} of ${orderedCategories.length}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 2. UP NEXT Hero Card (Primary transition trigger)
+                  Material(
+                    color: isDark
+                        ? theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35)
+                        : theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _onCategorySelected(nextCategory.key),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: sec.$4.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
+                                color: nextInfo.$4.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Icon(sec.$3, size: 18, color: sec.$4),
+                              child: Icon(
+                                nextCategory.selectedIcon,
+                                size: 22,
+                                color: nextInfo.$4,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    sec.$1,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Next: ${nextCategory.label}',
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (nextCategory.badge != null) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6.0, vertical: 1.0),
+                                          decoration: BoxDecoration(
+                                            color: nextCategory.badgeColor ??
+                                                theme.colorScheme.primary
+                                                    .withValues(alpha: 0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            nextCategory.badge!,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: nextCategory
+                                                      .badgeTextColor ??
+                                                  theme.colorScheme.primary,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    sec.$2,
+                                    nextInfo.$2,
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color: theme.textTheme.bodySmall?.color,
+                                      color:
+                                          theme.textTheme.bodySmall?.color,
+                                      height: 1.25,
                                     ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
                             ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 13,
-                              color: theme.colorScheme.onSurfaceVariant,
+                            const SizedBox(width: 8),
+                            FilledButton.tonalIcon(
+                              style: FilledButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: () =>
+                                  _onCategorySelected(nextCategory.key),
+                              icon: const Icon(Icons.arrow_forward_rounded,
+                                  size: 15),
+                              label: const Text('Go',
+                                  style: TextStyle(fontSize: 12)),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  );
-                }),
-              ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // 3. Navigation Actions: Previous Section & Back to Top
+                  Row(
+                    children: [
+                      if (prevCategory != null)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () =>
+                              _onCategorySelected(prevCategory.key),
+                          icon: const Icon(Icons.arrow_back_rounded, size: 14),
+                          label: Text(
+                            'Back: ${prevCategory.label}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      const Spacer(),
+                      TextButton.icon(
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: _scrollToTop,
+                        icon:
+                            const Icon(Icons.arrow_upward_rounded, size: 14),
+                        label: const Text('Back to Top',
+                            style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -2755,7 +2986,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               ),
                               const SizedBox(height: 2.0),
                               Text(
-                                '19-indicator simulation',
+                                '20-indicator simulation',
                                 style: TextStyle(
                                   fontSize: 12.0,
                                   color: Theme.of(context)
@@ -6956,8 +7187,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           final key = def['key']!;
                           final label = def['label']!;
                           final configKey = key;
-                          final isEnabled =
-                              enabledIndicators[configKey] == true;
+                          final isEnabled = enabledCount > 0
+                              ? (enabledIndicators[configKey] == true)
+                              : true;
 
                           final row = _buildIndicatorRow(
                               label,
@@ -8545,7 +8777,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 icon: const Icon(Icons.analytics_outlined,
                                     size: 18),
                                 label: const Text(
-                                    'View Full Technical Analysis (19 Indicators)'),
+                                    'View Full Technical Analysis (20 Indicators)'),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size.fromHeight(44),
                                   shape: RoundedRectangleBorder(

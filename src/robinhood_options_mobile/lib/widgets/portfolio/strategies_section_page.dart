@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
@@ -27,6 +28,9 @@ class StrategiesSectionPage extends StatelessWidget {
     final userDocRef = ctx.userDocRef;
     final account = ctx.account;
 
+    final isPaper = ctx.brokerageUser.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
     return PortfolioSectionScaffold(
       title: 'Strategies',
       subtitle: 'Automation, options flow, GEX & simulation',
@@ -38,6 +42,8 @@ class StrategiesSectionPage extends StatelessWidget {
           service: ctx.service,
           analytics: ctx.analytics,
           outerPadding: EdgeInsets.zero,
+          disabled: isPaper,
+          disabledReason: isPaper ? 'Not applicable to paper trading' : null,
         ),
         FuturesAutoTradingCardWidget(
           user: appUser,
@@ -45,6 +51,8 @@ class StrategiesSectionPage extends StatelessWidget {
           service: ctx.service,
           analytics: ctx.analytics,
           outerPadding: EdgeInsets.zero,
+          disabled: isPaper,
+          disabledReason: isPaper ? 'Not applicable to paper trading' : null,
         ),
         OptionsFlowCardWidget(
           brokerageUser: ctx.brokerageUser,
@@ -98,10 +106,17 @@ class StrategiesSectionPage extends StatelessWidget {
           context,
           icon: Icons.school_outlined,
           title: 'Paper Trading Simulator',
-          subtitle: 'Practice trading with virtual money',
+          subtitle: isPaper
+              ? 'Already active (currently in paper trading mode)'
+              : 'Practice trading with virtual money',
+          disabledReason: isPaper
+              ? 'Paper trading simulator is already active'
+              : (ctx.isAggregateMode
+                  ? 'Paper trading is not available in aggregate mode'
+                  : null),
           // Simulated trading targets one account, so it stays disabled while
-          // the user is viewing all brokerages at once.
-          onTap: ctx.isAggregateMode
+          // the user is viewing all brokerages at once or already in paper trading.
+          onTap: (ctx.isAggregateMode || isPaper)
               ? null
               : () => Navigator.push(
                     context,
@@ -127,29 +142,64 @@ class StrategiesSectionPage extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback? onTap,
+    String? disabledReason,
   }) {
     final theme = Theme.of(context);
+    final isEnabled = onTap != null;
     return AnalyticsStyleCard(
       padding: EdgeInsets.zero,
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
-        enabled: onTap != null,
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: theme.colorScheme.secondaryContainer,
+            color: isEnabled
+                ? theme.colorScheme.secondaryContainer
+                : theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon,
-              size: 24, color: theme.colorScheme.onSecondaryContainer),
+          child: Icon(
+            icon,
+            size: 24,
+            color: isEnabled
+                ? theme.colorScheme.onSecondaryContainer
+                : theme.colorScheme.outline,
+          ),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isEnabled
+                ? null
+                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+        ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4.0),
-          child: Text(subtitle),
+          child: Text(
+            subtitle,
+            style: TextStyle(
+              color: isEnabled ? null : theme.colorScheme.outline,
+            ),
+          ),
         ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
+        trailing: isEnabled
+            ? const Icon(Icons.chevron_right)
+            : Icon(Icons.block, size: 16, color: theme.colorScheme.outline),
+        onTap: isEnabled
+            ? onTap
+            : () {
+                if (disabledReason != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(disabledReason),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
       ),
     );
   }

@@ -2147,15 +2147,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           // fold of a single scroll.
           SliverToBoxAdapter(
             child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
-              builder: (context, stockStore, optionStore, child) =>
-                  PortfolioSectionGridWidget(
-                summaries: _sectionSummaries(
-                    context, stockStore, optionStore, account),
-                flagged:
-                    _flaggedSections(context, stockStore, optionStore, account),
-                onSectionTap: (section) => PortfolioNavigator.openSection(
-                    context, section, _sectionContext(account)),
-              ),
+              builder: (context, stockStore, optionStore, child) {
+                final isPaper =
+                    widget.brokerageUser?.source == BrokerageSource.paper ||
+                        account?.accountNumber == 'paper_account';
+                return PortfolioSectionGridWidget(
+                  summaries: _sectionSummaries(
+                      context, stockStore, optionStore, account),
+                  flagged: _flaggedSections(
+                      context, stockStore, optionStore, account),
+                  disabled: {
+                    if (isPaper) PortfolioSection.taxes,
+                  },
+                  disabledReasons: {
+                    if (isPaper)
+                      PortfolioSection.taxes:
+                          'Not applicable to paper trading',
+                  },
+                  onSectionTap: (section) => PortfolioNavigator.openSection(
+                      context, section, _sectionContext(account)),
+                );
+              },
             ),
           ),
 
@@ -2292,17 +2304,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           '$holdings ${holdings == 1 ? 'holding' : 'holdings'}';
     }
 
-    final suggestions =
-        TaxOptimizationService.calculateTaxHarvestingOpportunities(
-      instrumentPositions: stocks,
-      optionPositions: options,
-    );
-    if (suggestions.isNotEmpty) {
-      final total = suggestions.fold<double>(
-          0, (sum, suggestion) => sum + suggestion.estimatedLoss);
-      summaries[PortfolioSection.taxes] =
-          '${NumberFormat.simpleCurrency(decimalDigits: 0).format(total.abs())} '
-          'harvestable';
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
+    if (!isPaper) {
+      final suggestions =
+          TaxOptimizationService.calculateTaxHarvestingOpportunities(
+        instrumentPositions: stocks,
+        optionPositions: options,
+      );
+      if (suggestions.isNotEmpty) {
+        final total = suggestions.fold<double>(
+            0, (totalLoss, suggestion) => totalLoss + suggestion.estimatedLoss);
+        summaries[PortfolioSection.taxes] =
+            '${NumberFormat.simpleCurrency(decimalDigits: 0).format(total.abs())} '
+            'harvestable';
+      }
+    } else {
+      summaries[PortfolioSection.taxes] = 'Not applicable to paper trading';
     }
 
     return summaries;
@@ -2330,6 +2349,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       totalEquity: _totalEquity(context, account: account),
     );
 
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
     final flagged = <PortfolioSection>{};
     for (final alert in alerts) {
       if (alert.severity == PortfolioAlertSeverity.positive) continue;
@@ -2350,7 +2372,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         case PortfolioAlertTarget.congressionalTrading:
           flagged.add(PortfolioSection.insights);
         case PortfolioAlertTarget.taxes:
-          flagged.add(PortfolioSection.taxes);
+          if (!isPaper) {
+            flagged.add(PortfolioSection.taxes);
+          }
         case PortfolioAlertTarget.strategies:
         case PortfolioAlertTarget.rebalance:
           flagged.add(PortfolioSection.strategies);

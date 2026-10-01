@@ -3819,6 +3819,12 @@ export function evaluateAllIndicators(
     reason: "Disabled",
   };
 
+  const unavailableResult: IndicatorResult = {
+    value: null,
+    signal: "HOLD",
+    reason: "Unavailable",
+  };
+
   // Pre-process: Filter out zero-volume data points (market closed/bad data)
   // This prevents skewing averages and triggering "Low volume (0% of avg)"
   if (symbolData.volumes && symbolData.volumes.length > 0) {
@@ -3987,8 +3993,8 @@ export function evaluateAllIndicators(
     disabledResult;
 
   // 20. Gamma Exposure (GEX) — pre-computed externally
-  const gammaExposure = isEnabled("gammaExposure") && gammaExposureResult ?
-    gammaExposureResult :
+  const gammaExposure = isEnabled("gammaExposure") ?
+    (gammaExposureResult ?? unavailableResult) :
     disabledResult;
 
   // Custom Indicators

@@ -35,7 +35,7 @@ class _WelcomeWidgetState extends State<WelcomeWidget>
       accentColor: Color(0xFF6366F1),
       title: 'Quantitative Auto-Trading',
       description:
-          '19-indicator correlation engine with automated RiskGuard execution and multi-timeframe signals.',
+          '20-indicator correlation engine with automated RiskGuard execution and multi-timeframe signals.',
     ),
     _FeatureItem(
       icon: Icons.waterfall_chart_rounded,
