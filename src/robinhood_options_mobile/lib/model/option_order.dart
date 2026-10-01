@@ -96,6 +96,150 @@ class OptionOrder {
                 ? DateTime.tryParse(json['updated_at'])
                 : null);
 
+  factory OptionOrder.fromPaperJson(dynamic json) {
+    final symbol = json['symbol']?.toString() ??
+        json['chain_symbol']?.toString() ??
+        '';
+    final id = json['id']?.toString() ??
+        'paper_${json['timestamp'] ?? DateTime.now().millisecondsSinceEpoch}';
+    final side =
+        (json['side'] ?? json['action'] ?? 'buy').toString().toLowerCase();
+    final isBuy = side == 'buy';
+    final direction =
+        json['direction']?.toString() ?? (isBuy ? 'debit' : 'credit');
+    final price = parseDouble(json['price'] ??
+        json['limit_price'] ??
+        json['limitPrice'] ??
+        json['stop_price'] ??
+        json['stopPrice']);
+    final quantity = parseDouble(json['quantity']);
+    final state = json['state']?.toString() ?? 'filled';
+    final type = json['type']?.toString() ??
+        json['order_type']?.toString() ??
+        json['orderType']?.toString() ??
+        'limit';
+    final timeInForce = json['time_in_force']?.toString() ??
+        json['timeInForce']?.toString() ??
+        'gtc';
+    final trigger = json['trigger']?.toString() ?? 'immediate';
+    final stopPrice = parseDouble(json['stop_price'] ?? json['stopPrice']);
+    DateTime parseDate(dynamic value) {
+      if (value is Timestamp) return value.toDate();
+      if (value is DateTime) return value;
+      return DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+    }
+
+    final createdAt = parseDate(json['created_at'] ??
+        json['createdAt'] ??
+        json['timestamp'] ??
+        json['updated_at']);
+    final updatedAt = parseDate(json['updated_at'] ??
+        json['updatedAt'] ??
+        json['timestamp'] ??
+        json['created_at']);
+    final cancel = json['cancel']?.toString() ??
+        json['cancel_url']?.toString() ??
+        json['id']?.toString();
+
+    List<OptionLeg> legs = [];
+    if (json['legs'] != null) {
+      legs = OptionLeg.fromJsonArray(json['legs']);
+    } else if (json['instrumentJson'] != null) {
+      final opt = json['instrumentJson'];
+      legs = [
+        OptionLeg(
+          id,
+          null,
+          opt['type']?.toString() ?? 'call',
+          opt['url']?.toString() ?? '',
+          'open',
+          1,
+          side,
+          opt['expiration_date'] != null
+              ? DateTime.tryParse(opt['expiration_date'].toString())
+              : null,
+          (opt['strike_price'] as num?)?.toDouble(),
+          opt['type']?.toString() ?? 'call',
+          [],
+        )
+      ];
+    } else if (json['optionInstrument'] != null) {
+      final opt = json['optionInstrument'];
+      legs = [
+        OptionLeg(
+          id,
+          null,
+          opt['type']?.toString() ?? 'call',
+          opt['url']?.toString() ?? '',
+          'open',
+          1,
+          side,
+          opt['expiration_date'] != null
+              ? DateTime.tryParse(opt['expiration_date'].toString())
+              : null,
+          (opt['strike_price'] as num?)?.toDouble(),
+          opt['type']?.toString() ?? 'call',
+          [],
+        )
+      ];
+    } else if (json['strike_price'] != null || json['strikePrice'] != null) {
+      final strike = parseDouble(json['strike_price'] ?? json['strikePrice']);
+      final exp = json['expiration_date'] != null
+          ? DateTime.tryParse(json['expiration_date'].toString())
+          : null;
+      final optType = json['option_type']?.toString() ??
+          json['type']?.toString() ??
+          'call';
+      legs = [
+        OptionLeg(
+          id,
+          null,
+          optType,
+          '',
+          'open',
+          1,
+          side,
+          exp,
+          strike,
+          optType,
+          [],
+        )
+      ];
+    }
+
+    final optType = legs.isNotEmpty
+        ? (legs.first.optionType ?? 'call').toLowerCase()
+        : 'call';
+    final openingStrategy = isBuy ? 'long_$optType' : 'short_$optType';
+
+    return OptionOrder(
+      id,
+      json['chain_id']?.toString() ?? symbol,
+      symbol,
+      cancel,
+      0,
+      direction,
+      legs,
+      state == 'confirmed' ? quantity : 0,
+      null,
+      price != null && quantity != null ? price * quantity * 100 : null,
+      price,
+      state == 'filled' ? quantity : 0,
+      quantity,
+      id,
+      state,
+      timeInForce,
+      trigger,
+      type,
+      null,
+      openingStrategy,
+      null,
+      stopPrice,
+      createdAt,
+      updatedAt,
+    );
+  }
+
   OptionOrder.fromSchwabJson(dynamic json)
       : id = json['orderId'].toString(),
         chainId = json['orderLegCollection'][0]['instrument']['instrumentId']
@@ -184,6 +328,11 @@ class OptionOrder {
           strat = "Put Buy";
           break;
       }
+    }
+    if (strat.isEmpty && legs.isNotEmpty) {
+      final leg = legs.first;
+      strat =
+          '${leg.side == "buy" ? "Long" : "Short"} ${(leg.optionType ?? "").toUpperCase()}';
     }
     return strat;
   }

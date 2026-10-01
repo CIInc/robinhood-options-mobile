@@ -22,6 +22,8 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -135,6 +137,12 @@ class FakePaperTradingStore extends ChangeNotifier
 
   @override
   List<FuturesPaperPosition> get futuresPositions => [];
+
+  @override
+  List<InstrumentOrder> getStockOrders({String? symbol}) => [];
+
+  @override
+  List<OptionOrder> getOptionOrders({String? symbol, String? chainId}) => [];
 
   @override
   void applyFuturesTrade({

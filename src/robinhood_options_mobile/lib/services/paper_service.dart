@@ -1127,6 +1127,26 @@ class PaperService implements IBrokerageService {
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore,
       {DocumentReference? userDoc}) {
+    if (auth.currentUser == null) {
+      late StreamController<List<InstrumentOrder>> guestController;
+      void emitGuest() {
+        if (!guestController.isClosed) {
+          guestController.add(paperTradingStore.getStockOrders());
+        }
+      }
+
+      guestController = StreamController<List<InstrumentOrder>>(
+        onListen: () {
+          paperTradingStore.addListener(emitGuest);
+          emitGuest();
+        },
+        onCancel: () {
+          paperTradingStore.removeListener(emitGuest);
+        },
+      );
+      return guestController.stream;
+    }
+
     final userId = userDoc?.id ??
         auth.currentUser?.uid ??
         user.userInfo?.id ??
@@ -1153,12 +1173,27 @@ class PaperService implements IBrokerageService {
 
     void emit() {
       if (!controller.isClosed) {
-        controller.add([...working, ...fills]);
+        final inMemory = paperTradingStore.getStockOrders();
+        final all = <String, InstrumentOrder>{};
+        for (final o in inMemory) {
+          all[o.id] = o;
+        }
+        for (final o in working) {
+          all[o.id] = o;
+        }
+        for (final o in fills) {
+          all[o.id] = o;
+        }
+        final list = all.values.toList();
+        list.sort((a, b) => (b.updatedAt ?? b.createdAt ?? DateTime.now())
+            .compareTo(a.updatedAt ?? a.createdAt ?? DateTime.now()));
+        controller.add(list);
       }
     }
 
     controller = StreamController<List<InstrumentOrder>>(
       onListen: () {
+        paperTradingStore.addListener(emit);
         accountSub =
             _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
           final data = snapshot.data() ?? {};
@@ -1171,6 +1206,7 @@ class PaperService implements IBrokerageService {
                     'side': o['side'],
                     'order_type': o['orderType'],
                     'state': 'confirmed',
+                    'cancel': o['id'],
                     'quantity': o['quantity'],
                     'price': o['limitPrice'] ?? o['stopPrice'],
                     'instrument': (o['instrumentJson'] as Map?)?['url'],
@@ -1190,8 +1226,10 @@ class PaperService implements IBrokerageService {
               .toList();
           emit();
         });
+        emit();
       },
       onCancel: () {
+        paperTradingStore.removeListener(emit);
         accountSub?.cancel();
         fillsSub?.cancel();
       },
@@ -1203,7 +1241,87 @@ class PaperService implements IBrokerageService {
   Stream<List<OptionOrder>> streamOptionOrders(
       BrokerageUser user, OptionOrderStore store,
       {DocumentReference? userDoc}) {
-    return Stream.value([]);
+    if (auth.currentUser == null) {
+      late StreamController<List<OptionOrder>> guestController;
+      void emitGuest() {
+        if (!guestController.isClosed) {
+          guestController.add(paperTradingStore.getOptionOrders());
+        }
+      }
+
+      guestController = StreamController<List<OptionOrder>>(
+        onListen: () {
+          paperTradingStore.addListener(emitGuest);
+          emitGuest();
+        },
+        onCancel: () {
+          paperTradingStore.removeListener(emitGuest);
+        },
+      );
+      return guestController.stream;
+    }
+
+    final userId = userDoc?.id ??
+        auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+
+    late StreamController<List<OptionOrder>> controller;
+    StreamSubscription? accountSub;
+    StreamSubscription? fillsSub;
+    List<OptionOrder> working = [];
+    List<OptionOrder> fills = [];
+
+    void emit() {
+      if (!controller.isClosed) {
+        final inMemory = paperTradingStore.getOptionOrders();
+        final all = <String, OptionOrder>{};
+        for (final o in inMemory) {
+          all[o.id] = o;
+        }
+        for (final o in working) {
+          all[o.id] = o;
+        }
+        for (final o in fills) {
+          all[o.id] = o;
+        }
+        final list = all.values.toList();
+        list.sort((a, b) => (b.createdAt ?? DateTime.now())
+            .compareTo(a.createdAt ?? DateTime.now()));
+        controller.add(list);
+      }
+    }
+
+    controller = StreamController<List<OptionOrder>>(
+      onListen: () {
+        paperTradingStore.addListener(emit);
+        accountSub =
+            _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
+          final data = snapshot.data() ?? {};
+          working = (data['pendingOrders'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e))
+              .where((o) => o['assetType']?.toString() == 'option')
+              .map((o) => OptionOrder.fromPaperJson(o))
+              .toList();
+          emit();
+        });
+        fillsSub = _firestoreService.streamPaperFills(userId).listen((list) {
+          fills = list
+              .where((d) => d['type']?.toString().toLowerCase() == 'option')
+              .map((d) => OptionOrder.fromPaperJson(d))
+              .toList();
+          emit();
+        });
+        emit();
+      },
+      onCancel: () {
+        paperTradingStore.removeListener(emit);
+        accountSub?.cancel();
+        fillsSub?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   @override
@@ -1351,12 +1469,30 @@ class PaperService implements IBrokerageService {
 
   @override
   Future<List<OptionOrder>> getOptionOrders(
-          BrokerageUser user, OptionOrderStore store, String chainId) async =>
-      [];
+      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    final engine = await _engine();
+    final orders = engine.getOptionOrders(chainId: chainId);
+    for (final order in orders) {
+      store.addOrUpdate(order);
+    }
+    return orders;
+  }
+
   @override
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
-          InstrumentOrderStore store, List<String> instrumentUrls) async =>
-      [];
+      InstrumentOrderStore store, List<String> instrumentUrls) async {
+    final engine = await _engine();
+    final orders = engine.getStockOrders();
+    final matching = instrumentUrls.isEmpty
+        ? orders
+        : orders.where((o) =>
+            instrumentUrls.contains(o.instrument) ||
+            instrumentUrls.contains(o.instrumentObj?.symbol)).toList();
+    for (final order in matching) {
+      store.addOrUpdate(order);
+    }
+    return matching;
+  }
 
   /// Returns the single app-wide paper trading engine. When a Firebase user
   /// is signed in, it is bound to the user and loaded from Firestore. For
@@ -1675,7 +1811,9 @@ class PaperService implements IBrokerageService {
     // Accept either a bare order id or a cancel URL ending with the id.
     final id = cancel.split('/').where((s) => s.isNotEmpty).last;
     final removed = await store.cancelPendingOrder(id);
-    return {'status': removed ? 'success' : 'not_found'};
+    return http.Response(
+        jsonEncode({'status': removed ? 'success' : 'not_found', 'state': 'cancelled'}),
+        removed ? 200 : 404);
   }
 
   @override

@@ -22,8 +22,10 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
 import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/widgets/combo_orders_widget.dart';
+import 'package:robinhood_options_mobile/widgets/combo_order_widget.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
@@ -322,6 +324,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   // ... existing state variables ...
   final FirestoreService _firestoreService = FirestoreService();
 
+  static const _workingStates = {
+    'confirmed',
+    'queued',
+    'unconfirmed',
+    'working',
+    'pending',
+    'received',
+    'partially_filled',
+  };
+
+  bool _isOrderWorking(String? state, dynamic cancel) {
+    if (state == null) return cancel != null;
+    final s = state.toLowerCase();
+    if (s == 'filled' ||
+        s == 'cancelled' ||
+        s == 'canceled' ||
+        s == 'rejected' ||
+        s == 'failed') {
+      return false;
+    }
+    return _workingStates.contains(s) || cancel != null;
+  }
+
   Future<Quote?>? futureQuote;
   Future<Fundamentals?>? futureFundamentals;
   Future<InstrumentHistoricals>? futureHistoricals;
@@ -415,6 +440,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
     var holdingsCount = 0;
     int orderCount = 0;
+    int workingCount = 0;
 
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
@@ -424,9 +450,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           paperStore.optionPositions
               .where((e) => e.symbol == instrument.symbol)
               .length;
-      orderCount = paperStore.history
-          .where((h) => h['symbol'] == instrument.symbol)
-          .length;
+      final stockOrders = paperStore.getStockOrders(symbol: instrument.symbol);
+      final optOrders = paperStore.getOptionOrders(symbol: instrument.symbol);
+      orderCount = stockOrders.length + optOrders.length;
+      workingCount = stockOrders
+              .where((o) => _isOrderWorking(o.state, o.cancel))
+              .length +
+          optOrders
+              .where((o) => _isOrderWorking(o.state, o.cancelUrl))
+              .length;
     } else {
       final stockStore =
           Provider.of<InstrumentPositionStore>(context, listen: false);
@@ -446,6 +478,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       orderCount = (instrument.positionOrders?.length ?? 0) +
           (instrument.optionOrders?.length ?? 0) +
           comboCount;
+      final workingStock = (instrument.positionOrders ?? [])
+          .where((o) => _isOrderWorking(o.state, o.cancel))
+          .length;
+      final workingOpt = (instrument.optionOrders ?? [])
+          .where((o) => _isOrderWorking(o.state, o.cancelUrl))
+          .length;
+      final workingCombo = comboStore.items
+          .where((order) =>
+              (order.primarySymbol.toUpperCase() ==
+                      instrument.symbol.toUpperCase() ||
+                  order.legs.any((l) =>
+                      l.symbol != null &&
+                      l.symbol!.toUpperCase() ==
+                          instrument.symbol.toUpperCase())) &&
+              order.isOpen)
+          .length;
+      workingCount = workingStock + workingOpt + workingCombo;
     }
 
     if (holdingsCount > 0) {
@@ -453,6 +502,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       overviewBadgeColor =
           Theme.of(context).colorScheme.primary.withValues(alpha: 0.18);
       overviewBadgeTextColor = Theme.of(context).colorScheme.primary;
+    } else if (workingCount > 0) {
+      overviewBadge = '$workingCount';
+      overviewBadgeColor =
+          Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.18);
+      overviewBadgeTextColor = Theme.of(context).colorScheme.tertiary;
     }
     if (orderCount > 0) {
       activityBadge = '$orderCount';
@@ -527,12 +581,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var positionOrders = instrument.positionOrders ?? [];
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
-      var history = paperStore.history
-          .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-          .toList();
-      positionOrders =
-          history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+      positionOrders = paperStore.getStockOrders(symbol: instrument.symbol);
     }
 
     positionOrdersBalance = positionOrders.isNotEmpty
@@ -546,38 +595,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var optionOrders = instrument.optionOrders ?? [];
     if (isPaper) {
       final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
-      var history = paperStore.history
-          .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
-          .toList();
-      optionOrders = history.map((h) {
-        return OptionOrder(
-          "paper_${h['timestamp']}",
-          "",
-          h['symbol'],
-          null,
-          0,
-          h['action'] == 'BUY' ? 'debit' : 'credit',
-          [],
-          0,
-          h['price'],
-          h['price'],
-          h['price'],
-          h['quantity'],
-          h['quantity'],
-          "paper_${h['timestamp']}",
-          "filled",
-          "gtc",
-          "immediate",
-          "limit",
-          null,
-          null,
-          null,
-          null,
-          DateTime.tryParse(h['timestamp']),
-          DateTime.tryParse(h['timestamp']),
-        );
-      }).toList();
+      optionOrders = paperStore.getOptionOrders(symbol: instrument.symbol);
     }
 
     optionOrdersPremiumBalance = optionOrders.isNotEmpty
@@ -635,40 +653,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Provider.of<OptionOrderStore>(context, listen: false);
 
     if (isPaper && paperStore != null) {
-      var history = paperStore.history
-          .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
-          .toList();
-      var paperOrders = history.map((h) {
-        var order = OptionOrder(
-          "paper_${h['timestamp']}",
-          "",
-          h['symbol'],
-          null,
-          0,
-          h['action'] == 'BUY' ? 'debit' : 'credit',
-          [],
-          0,
-          h['price'],
-          h['price'],
-          h['price'],
-          h['quantity'],
-          h['quantity'],
-          "paper_${h['timestamp']}",
-          "filled",
-          "gtc",
-          "immediate",
-          "limit",
-          null,
-          null,
-          null,
-          null,
-          DateTime.tryParse(h['timestamp']),
-          DateTime.tryParse(h['timestamp']),
-        );
-        return order;
-      }).toList();
-      futureOptionOrders = Future.value(paperOrders);
+      futureOptionOrders =
+          Future.value(paperStore.getOptionOrders(symbol: instrument.symbol));
     } else {
       var optionOrders = optionOrderStore.items
           .where((element) => element.chainSymbol == widget.instrument.symbol)
@@ -697,14 +683,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Provider.of<InstrumentOrderStore>(context, listen: false);
 
     if (isPaper && paperStore != null) {
-      var history = paperStore.history
-          .where(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-          .toList();
-      var paperOrders = history.map((h) {
-        return InstrumentOrder.fromPaperJson(h);
-      }).toList();
-      futureInstrumentOrders = Future.value(paperOrders);
+      futureInstrumentOrders =
+          Future.value(paperStore.getStockOrders(symbol: instrument.symbol));
     } else {
       var positionOrders = stockPositionOrderStore.items
           .where((element) => element.instrumentId == widget.instrument.id)
@@ -2023,6 +2003,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         return [
           // Lead with the live market context before the user's holdings.
           _buildMarketQuoteSliver(instrument),
+          // Pending/working orders front and center for immediate feedback.
+          _buildWorkingOrdersSliver(instrument),
           // Current holdings belong on the initial Overview, not Activity.
           _buildPositionSliver(instrument),
           _buildOptionPositionsSliver(instrument),
@@ -2474,18 +2456,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildStockOrdersSliver(Instrument instrument) {
-    return Consumer<InstrumentOrderStore>(
-        builder: (context, stockOrderStore, child) {
+    return Consumer2<InstrumentOrderStore, PaperTradingStore>(
+        builder: (context, stockOrderStore, paperStore, child) {
       List<InstrumentOrder>? positionOrders;
       if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where(
-                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-            .toList();
-        positionOrders =
-            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+        positionOrders = paperStore.getStockOrders(symbol: instrument.symbol);
       } else {
         positionOrders = instrument.positionOrders;
       }
@@ -2498,18 +2473,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildHistoricalPositionsSliver(Instrument instrument) {
-    return Consumer<InstrumentOrderStore>(
-        builder: (context, stockOrderStore, child) {
+    return Consumer2<InstrumentOrderStore, PaperTradingStore>(
+        builder: (context, stockOrderStore, paperStore, child) {
       List<InstrumentOrder>? positionOrders;
       if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where(
-                (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK')
-            .toList();
-        positionOrders =
-            history.map((h) => InstrumentOrder.fromPaperJson(h)).toList();
+        positionOrders = paperStore.getStockOrders(symbol: instrument.symbol);
       } else {
         positionOrders = instrument.positionOrders;
       }
@@ -2534,44 +2502,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildOptionOrdersSliver(Instrument instrument) {
-    return Consumer<OptionOrderStore>(
-        builder: (context, optionOrderStore, child) {
+    return Consumer2<OptionOrderStore, PaperTradingStore>(
+        builder: (context, optionOrderStore, paperStore, child) {
       List<OptionOrder>? optionOrders;
       if (widget.brokerageUser.source == BrokerageSource.paper) {
-        final paperStore =
-            Provider.of<PaperTradingStore>(context, listen: false);
-        var history = paperStore.history
-            .where((h) =>
-                h['symbol'] == instrument.symbol && h['type'] == 'OPTION')
-            .toList();
-        optionOrders = history.map((h) {
-          return OptionOrder(
-            "paper_${h['timestamp']}",
-            "",
-            h['symbol'],
-            null,
-            0,
-            h['action'] == 'BUY' ? 'debit' : 'credit',
-            [],
-            0,
-            h['price'],
-            h['price'],
-            h['price'],
-            h['quantity'],
-            h['quantity'],
-            "paper_${h['timestamp']}",
-            "filled",
-            "gtc",
-            "immediate",
-            "limit",
-            null,
-            null,
-            null,
-            null,
-            DateTime.tryParse(h['timestamp']),
-            DateTime.tryParse(h['timestamp']),
-          );
-        }).toList();
+        optionOrders = paperStore.getOptionOrders(symbol: instrument.symbol);
       } else {
         optionOrders = instrument.optionOrders;
       }
@@ -2614,6 +2549,384 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  Widget _buildWorkingOrdersSliver(Instrument instrument) {
+    final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
+    return Consumer4<InstrumentOrderStore, OptionOrderStore, PaperTradingStore,
+        ComboOrderStore>(
+      builder: (context, stockOrderStore, optionOrderStore, paperStore,
+          comboStore, child) {
+        List<InstrumentOrder> stockOrders = [];
+        List<OptionOrder> optionOrders = [];
+        List<ComboOrder> comboOrders = [];
+
+        if (isPaper) {
+          stockOrders = paperStore.getStockOrders(symbol: instrument.symbol);
+          optionOrders = paperStore.getOptionOrders(symbol: instrument.symbol);
+        } else {
+          stockOrders = instrument.positionOrders ??
+              stockOrderStore.items
+                  .where((e) => e.instrumentId == instrument.id)
+                  .toList();
+          optionOrders = instrument.optionOrders ??
+              optionOrderStore.items
+                  .where((e) => e.chainSymbol == instrument.symbol)
+                  .toList();
+          comboOrders = comboStore.items.where((order) {
+            if (order.primarySymbol.toUpperCase() ==
+                instrument.symbol.toUpperCase()) {
+              return true;
+            }
+            return order.legs.any((l) =>
+                l.symbol != null &&
+                l.symbol!.toUpperCase() == instrument.symbol.toUpperCase());
+          }).toList();
+        }
+
+        final workingStockOrders = stockOrders
+            .where((o) => _isOrderWorking(o.state, o.cancel))
+            .toList();
+        final workingOptionOrders = optionOrders
+            .where((o) => _isOrderWorking(o.state, o.cancelUrl))
+            .toList();
+        final workingComboOrders =
+            comboOrders.where((o) => o.isOpen).toList();
+
+        final totalWorking = workingStockOrders.length +
+            workingOptionOrders.length +
+            workingComboOrders.length;
+
+        if (totalWorking == 0) {
+          return const SliverToBoxAdapter(child: SizedBox.shrink());
+        }
+
+        final orderTiles = <Widget>[];
+
+        for (final order in workingStockOrders) {
+          final sideStr = order.side == "buy"
+              ? "Buy"
+              : order.side == "sell"
+                  ? "Sell"
+                  : order.side;
+          final priceStr = order.price != null
+              ? formatCurrency.format(order.price)
+              : "Market";
+          final estTotal = order.price != null && order.quantity != null
+              ? (order.side == "sell" ? "+" : "-") +
+                  formatCurrency.format(order.price! * order.quantity!)
+              : "";
+          orderTiles.add(
+            ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  '${order.quantity?.round() ?? 1}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(
+                "$sideStr ${order.quantity ?? 1} shares at $priceStr",
+                style: const TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Row(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4, right: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      order.state.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    order.type.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: estTotal.isNotEmpty
+                  ? Text(
+                      estTotal,
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PositionOrderWidget(
+                      widget.brokerageUser,
+                      widget.service,
+                      order,
+                      generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+
+        for (final order in workingOptionOrders) {
+          final firstLeg = order.legs.isNotEmpty ? order.legs.first : null;
+          final sideStr = firstLeg?.side?.toUpperCase() ?? '';
+          final optTypeStr = firstLeg?.optionType?.toUpperCase() ?? '';
+          final strikeStr = firstLeg?.strikePrice != null
+              ? '\$${formatCompactNumber.format(firstLeg!.strikePrice)}'
+              : '';
+          final title = order.strategy != null
+              ? "${order.direction.isNotEmpty ? '${order.direction[0].toUpperCase()}${order.direction.substring(1)} ' : ''}${order.strategy}"
+              : (firstLeg != null
+                  ? "$sideStr $optTypeStr $strikeStr".trim()
+                  : "Option Order");
+          final priceStr = order.price != null
+              ? formatCurrency.format(order.price)
+              : "Market";
+          final qty = order.quantity ?? 1.0;
+          final estTotal = order.price != null && order.quantity != null
+              ? (order.direction == "credit" ? "+" : "-") +
+                  formatCurrency.format(order.price! * qty * 100)
+              : (order.processedPremium != null
+                  ? (order.direction == "credit" ? "+" : "-") +
+                      formatCurrency.format(order.processedPremium)
+                  : "");
+          orderTiles.add(
+            ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  '${qty.round()}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Row(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4, right: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      order.state.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "${order.type.toUpperCase()} @ $priceStr",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: estTotal.isNotEmpty
+                  ? Text(
+                      estTotal,
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OptionOrderWidget(
+                      widget.brokerageUser,
+                      widget.service,
+                      order,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+
+        for (final order in workingComboOrders) {
+          final priceStr = order.price != null
+              ? formatCurrency.format(order.price)
+              : "Market";
+          final estTotal = order.price != null
+              ? formatCurrency
+                  .format(order.price! * order.quantity * 100)
+              : "";
+          orderTiles.add(
+            ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  '${order.quantity.round()}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(
+                "${order.directionDisplay} ${order.strategyDisplay}",
+                style: const TextStyle(
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Row(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4, right: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      order.state.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimaryContainer,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    "${order.type.toUpperCase()} @ $priceStr",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
+              trailing: estTotal.isNotEmpty
+                  ? Text(
+                      estTotal,
+                      style: const TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ComboOrderWidget(
+                      widget.brokerageUser,
+                      widget.service,
+                      order,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: widget.generativeService,
+                      user: widget.user,
+                      userDocRef: widget.userDocRef,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(
+                title: "Pending Orders",
+                subtitle:
+                    "$totalWorking active order${totalWorking > 1 ? 's' : ''}",
+                icon: Icons.pending_actions_outlined,
+              ),
+              Card(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: orderTiles.length,
+                  separatorBuilder: (context, index) => const Divider(
+                    height: 1,
+                    indent: 72,
+                    endIndent: 16,
+                  ),
+                  itemBuilder: (context, index) => orderTiles[index],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   List<Widget> _buildActivitySlivers(Instrument instrument) {
     return [
       _buildHistoricalPositionsSliver(instrument),
@@ -2633,10 +2946,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         bool hasComboOrders = false;
 
         if (isPaper) {
-          hasStockOrders = paperStore.history.any(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'STOCK');
-          hasOptOrders = paperStore.history.any(
-              (h) => h['symbol'] == instrument.symbol && h['type'] == 'OPTION');
+          hasStockOrders =
+              paperStore.getStockOrders(symbol: instrument.symbol).isNotEmpty;
+          hasOptOrders =
+              paperStore.getOptionOrders(symbol: instrument.symbol).isNotEmpty;
         } else {
           hasStockOrders = (instrument.positionOrders != null &&
               instrument.positionOrders!.isNotEmpty);
@@ -6198,7 +6511,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold))),
                             title: Text(
-                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}",
+                                optionOrder.legs.isNotEmpty
+                                    ? "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy ?? ''} ${optionOrder.legs.first.expirationDate != null ? formatCompactDate.format(optionOrder.legs.first.expirationDate!) : ''}".trim()
+                                    : "${optionOrder.chainSymbol} ${optionOrder.strategy ?? ''}".trim(),
                                 style: const TextStyle(
                                     fontSize: 16.0,
                                     fontWeight: FontWeight.w500)),

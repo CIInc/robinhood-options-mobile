@@ -24,6 +24,7 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/options_flow_store.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -117,16 +118,26 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var optionOrderStore =
-        Provider.of<OptionOrderStore>(context, listen: false);
-    var optionOrders = optionOrderStore.items
-        .where((element) => element.chainId == widget.optionInstrument.chainId)
-        .toList();
-    if (optionOrders.isNotEmpty) {
-      futureOptionOrders = Future.value(optionOrders);
+    if (widget.brokerageUser.source == BrokerageSource.paper) {
+      final paperStore = Provider.of<PaperTradingStore>(context);
+      futureOptionOrders = Future.value(
+        paperStore.getOptionOrders(
+          symbol: widget.optionInstrument.chainSymbol,
+          chainId: widget.optionInstrument.chainId,
+        ),
+      );
     } else {
-      futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
-          optionOrderStore, widget.optionInstrument.chainId);
+      var optionOrderStore =
+          Provider.of<OptionOrderStore>(context, listen: false);
+      var optionOrders = optionOrderStore.items
+          .where((element) => element.chainId == widget.optionInstrument.chainId)
+          .toList();
+      if (optionOrders.isNotEmpty) {
+        futureOptionOrders = Future.value(optionOrders);
+      } else {
+        futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
+            optionOrderStore, widget.optionInstrument.chainId);
+      }
     }
 
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
@@ -330,7 +341,16 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     if (optionOrders != null) {
       optionInstrumentOrders = optionOrders
           .where((element) =>
-              element.legs.first.option == widget.optionInstrument.url)
+              element.legs.isNotEmpty &&
+              (element.legs.first.option == widget.optionInstrument.url ||
+                  (widget.optionInstrument.id != null &&
+                      element.legs.first.option
+                          .contains(widget.optionInstrument.id!)) ||
+                  (element.chainSymbol == widget.optionInstrument.chainSymbol &&
+                      element.legs.first.strikePrice ==
+                          widget.optionInstrument.strikePrice &&
+                      element.legs.first.expirationDate ==
+                          widget.optionInstrument.expirationDate)))
           .toList();
     }
 

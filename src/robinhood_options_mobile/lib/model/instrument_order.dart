@@ -133,7 +133,7 @@ class InstrumentOrder {
       instrumentUrl,
       json['account']?.toString() ?? '',
       '',
-      null,
+      json['cancel']?.toString(),
       instrumentUrl,
       instrumentId,
       parseDouble(json['quantity']),

@@ -11,6 +11,8 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
@@ -206,6 +208,60 @@ class PendingPaperOrder {
           : {},
     );
   }
+
+  InstrumentOrder toInstrumentOrder() {
+    return InstrumentOrder.fromPaperJson({
+      'id': id,
+      'symbol': symbol,
+      'side': side,
+      'order_type': orderType,
+      'state': triggered ? 'working' : 'confirmed',
+      'cancel': id,
+      'quantity': quantity,
+      'price': limitPrice ?? effectiveStopPrice ?? stopPrice ?? watermark,
+      'instrument': instrumentJson['url'] ?? assetUrl,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': createdAt.toIso8601String(),
+      'time_in_force': timeInForce,
+      'trigger': stopPrice != null ? 'stop' : 'immediate',
+    });
+  }
+
+  OptionOrder toOptionOrder() {
+    return OptionOrder.fromPaperJson({
+      'id': id,
+      'symbol': symbol,
+      'chain_symbol': symbol,
+      'chain_id': instrumentJson['chain_id']?.toString() ?? symbol,
+      'side': side,
+      'order_type': orderType,
+      'state': triggered ? 'working' : 'confirmed',
+      'cancel': id,
+      'cancel_url': id,
+      'quantity': quantity,
+      'price': limitPrice ?? effectiveStopPrice ?? stopPrice ?? watermark,
+      'stop_price': stopPrice,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': createdAt.toIso8601String(),
+      'time_in_force': timeInForce,
+      'trigger': stopPrice != null ? 'stop' : 'immediate',
+      'legs': instrumentJson['legs'] ??
+          (instrumentJson['type'] != null
+              ? [
+                  {
+                    'id': id,
+                    'position_effect': positionEffect,
+                    'side': side,
+                    'ratio_quantity': 1,
+                    'option': instrumentJson['url'] ?? '',
+                    'expiration_date': instrumentJson['expiration_date'],
+                    'strike_price': instrumentJson['strike_price'],
+                    'option_type': instrumentJson['type'],
+                  }
+                ]
+              : null),
+    });
+  }
 }
 
 class PaperTradingStore extends ChangeNotifier {
@@ -249,6 +305,59 @@ class PaperTradingStore extends ChangeNotifier {
       List.unmodifiable(_pendingOrders);
   List<Map<String, dynamic>> get history => List.unmodifiable(_history);
   bool get isLoading => _isLoading;
+
+  /// Returns all stock orders (both working and filled) as [InstrumentOrder]s,
+  /// optionally filtered by [symbol].
+  List<InstrumentOrder> getStockOrders({String? symbol}) {
+    final pending = _pendingOrders
+        .where((o) =>
+            o.assetType == 'stock' &&
+            (symbol == null || o.symbol.toUpperCase() == symbol.toUpperCase()))
+        .map((o) => o.toInstrumentOrder())
+        .toList();
+    const nonStockTypes = {
+      'option',
+      'futures',
+      'strategy',
+      'expiration',
+      'margin'
+    };
+    final fills = _history
+        .where((h) =>
+            (h['type']?.toString().toUpperCase() == 'STOCK' ||
+                !nonStockTypes.contains(h['type']?.toString().toLowerCase())) &&
+            (symbol == null ||
+                h['symbol']?.toString().toUpperCase() == symbol.toUpperCase()))
+        .map((h) => InstrumentOrder.fromPaperJson(h))
+        .toList();
+    return [...pending, ...fills];
+  }
+
+  /// Returns all option orders (both working and filled) as [OptionOrder]s,
+  /// optionally filtered by [symbol] or [chainId].
+  List<OptionOrder> getOptionOrders({String? symbol, String? chainId}) {
+    final pending = _pendingOrders
+        .where((o) =>
+            o.assetType == 'option' &&
+            (symbol == null || o.symbol.toUpperCase() == symbol.toUpperCase()) &&
+            (chainId == null ||
+                o.symbol == chainId ||
+                o.instrumentJson['chain_id']?.toString() == chainId))
+        .map((o) => o.toOptionOrder())
+        .toList();
+    final fills = _history
+        .where((h) =>
+            h['type']?.toString().toUpperCase() == 'OPTION' &&
+            (symbol == null ||
+                h['symbol']?.toString().toUpperCase() == symbol.toUpperCase()) &&
+            (chainId == null ||
+                h['symbol'] == chainId ||
+                h['chain_id']?.toString() == chainId ||
+                h['chain_symbol']?.toString() == chainId))
+        .map((h) => OptionOrder.fromPaperJson(h))
+        .toList();
+    return [...pending, ...fills];
+  }
 
   /// Cash reserved by working buy orders (each also reserves its commission).
   double get reservedCash => _pendingOrders.where((o) => o.side == 'buy').fold(

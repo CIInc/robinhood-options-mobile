@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -257,7 +258,14 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                             var response = await widget.service.cancelOrder(
                                 widget.brokerageUser, positionOrder.cancel!);
                             if (mounted) {
-                              if (response.statusCode == 200) {
+                              final statusCode = response is http.Response
+                                  ? response.statusCode
+                                  : (response is Map &&
+                                          (response['status'] == 'success' ||
+                                              response['state'] == 'cancelled')
+                                      ? 200
+                                      : 400);
+                              if (statusCode == 200) {
                                 final riskService = RiskCircuitBreakerService();
                                 await riskService.loadConfig();
                                 riskService.recordOrderCancelledOrReplaced();

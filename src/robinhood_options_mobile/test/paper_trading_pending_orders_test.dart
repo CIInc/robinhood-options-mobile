@@ -605,5 +605,55 @@ void main() {
       expect(restored.assetUrl, 'https://x/');
       expect(restored.priceKey, 'AAPL');
     });
+
+    test('getStockOrders returns both working pending orders and filled history', () async {
+      final closedStore = PaperTradingStore(
+          firestore: _UnusedFirestore(), isMarketOpen: () => false);
+
+      // Place order when market is closed -> goes into pending orders (state confirmed)
+      final pendingResult = await closedStore.submitStockOrder(
+        instrument: makeInstrument(symbol: 'AAPL'),
+        quantity: 10,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: 150.0,
+      );
+      expect(pendingResult.state, 'confirmed');
+
+      final orders = closedStore.getStockOrders(symbol: 'AAPL');
+      expect(orders, hasLength(1));
+      expect(orders.first.state, 'confirmed');
+      expect(orders.first.cancel, isNotNull);
+      expect(orders.first.instrumentObj?.symbol, 'AAPL');
+      expect(orders.first.quantity, 10.0);
+
+      // Other symbol returns empty
+      expect(closedStore.getStockOrders(symbol: 'TSLA'), isEmpty);
+    });
+
+    test('getOptionOrders returns both working pending orders and filled history', () async {
+      final closedStore = PaperTradingStore(
+          firestore: _UnusedFirestore(), isMarketOpen: () => false);
+
+      final optInst = makeOptionInstrument();
+      final pendingResult = await closedStore.submitOptionOrder(
+        optionInstrument: optInst,
+        quantity: 2,
+        side: 'buy',
+        positionEffect: 'open',
+        orderType: 'market',
+        marketPrice: 5.0,
+      );
+      expect(pendingResult.state, 'confirmed');
+
+      final orders = closedStore.getOptionOrders(symbol: 'AAPL');
+      expect(orders, hasLength(1));
+      expect(orders.first.state, 'confirmed');
+      expect(orders.first.cancelUrl, isNotNull);
+      expect(orders.first.chainSymbol, 'AAPL');
+      expect(orders.first.quantity, 2.0);
+      expect(orders.first.legs, isNotEmpty);
+      expect(orders.first.legs.first.strikePrice, 150.0);
+    });
   });
 }
