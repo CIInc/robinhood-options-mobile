@@ -1,13 +1,17 @@
+// ignore_for_file: subtype_of_sealed_class
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 
 import 'firebase_mocks.dart';
@@ -51,6 +55,22 @@ class MockFirebaseAuthWithUser extends Fake
 
   @override
   Stream<firebase_auth.User?> authStateChanges() => Stream.value(_user);
+}
+
+class FakeUserDocSnapshot extends Fake implements DocumentSnapshot<User> {
+  final User? _user;
+  final String _id;
+
+  FakeUserDocSnapshot(this._user, this._id);
+
+  @override
+  String get id => _id;
+
+  @override
+  bool get exists => _user != null;
+
+  @override
+  User? data() => _user;
 }
 
 void main() {
@@ -109,6 +129,47 @@ void main() {
       expect(find.text('Top Portfolios Leaderboard'), findsNothing);
       expect(find.text('View ranked traders, track records & credibility'),
           findsNothing);
+    });
+
+    testWidgets('UserListTile renders with consolidated Semantics label',
+        (tester) async {
+      final user = User(
+        name: 'Jane Trader',
+        location: 'New York',
+        followersCount: 5,
+        followingCount: 2,
+        role: UserRole.user,
+        devices: const [],
+        brokerageUsers: const [],
+        dateCreated: DateTime(2025, 1, 1),
+      );
+      final fakeDoc = FakeUserDocSnapshot(user, 'user_123');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserListTile(
+              document: fakeDoc,
+              showNavigation: true,
+              analytics: fakeAnalytics,
+              observer: fakeObserver,
+              brokerageUser: brokerageUser,
+              service: service,
+            ),
+          ),
+        ),
+      );
+
+      final semanticsFinder = find.byWidgetPredicate((widget) {
+        if (widget is Semantics) {
+          return widget.properties.label ==
+                  'Jane Trader, New York, 5 followers, Novice Trader' &&
+              widget.container == true;
+        }
+        return false;
+      });
+
+      expect(semanticsFinder, findsOneWidget);
     });
   });
 }
