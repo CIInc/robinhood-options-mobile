@@ -1,5 +1,5 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { onRequest } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions";
 import { performTradeProposal } from "./agentic-trading";
@@ -151,25 +151,38 @@ export const agenticTradingCron = onSchedule(
 
 // Callable function to trigger the cron logic ad-hoc
 // (e.g., from dashboard or admin tooling).
-// Optional: add auth/role checks before execution.
-export const agenticTradingCronInvoke = onRequest(
+// Enforces authentication and admin role check to prevent unauthorized
+// execution.
+export const agenticTradingCronInvoke = onCall(
   {
+    secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
     memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes
   },
-  async (request, response) => {
-    // logger.info(request.query, { structuredData: true });
-    // Example simple auth gating (adjust to project standards):
-    // if (!request.auth || request.auth.token.admin !== true) {
-    //   throw new HttpsError('permission-denied', 'Admin privileges required');
-    // }
+  async (request) => {
+    // SECURITY: Require authentication
+    if (!request.auth || !request.auth.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Authentication is required to trigger ad-hoc cron invocation."
+      );
+    }
+    // SECURITY: Require admin role
+    if (request.auth.token?.role !== "admin") {
+      throw new HttpsError(
+        "permission-denied",
+        "Admin privileges are required to trigger ad-hoc cron invocation."
+      );
+    }
+
     try {
-      const result = await runAgenticTradingCron();
-      // Send JSON response instead of returning the result
-      // to satisfy onRequest signature (void | Promise<void>)
-      response.json(result);
+      return await runAgenticTradingCron();
     } catch (err) {
       logger.error("Ad-hoc cron invocation failed", err);
-      response.status(500).json({ error: "Ad-hoc cron invocation failed" });
+      throw new HttpsError(
+        "internal",
+        "Ad-hoc cron invocation failed."
+      );
     }
-  });
+  }
+);
