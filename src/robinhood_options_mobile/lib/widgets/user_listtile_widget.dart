@@ -43,14 +43,95 @@ class UserListTile extends StatelessWidget {
           )
         : const CircleAvatar(radius: 20, child: Icon(Icons.account_circle));
 
-    return ListTile(
+    final userName = user.name ?? user.providerId?.capitalize() ?? 'Guest';
+    final userDetails = <String>[userName];
+
+    if ((userRole == UserRole.admin || document.id == auth.currentUser?.uid) &&
+        (user.email != null || user.phoneNumber != null)) {
+      userDetails.add(user.email ?? user.phoneNumber ?? '');
+    } else if (user.location != null && user.location!.isNotEmpty) {
+      userDetails.add(user.location!);
+    }
+
+    if (user.followersCount > 0 || user.followingCount > 0) {
+      final followerText =
+          '${user.followersCount} ${user.followersCount == 1 ? "follower" : "followers"}';
+      userDetails.add(followerText);
+      final tier =
+          ReputationTier.fromScore((user.followersCount * 2).clamp(0, 100));
+      userDetails.add('${tier.label} tier');
+    }
+
+    final semanticLabel = userDetails.join(', ');
+
+    final VoidCallback? onTapHandler = showNavigation
+        ? () {
+            final isSelf = auth.currentUser?.uid == document.id;
+            if (userRole == UserRole.admin && !isSelf) {
+              // Admin user management view
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (BuildContext context) => Scaffold(
+                            appBar: AppBar(
+                              title: Text(user.name ??
+                                  user.providerId?.capitalize() ??
+                                  ''),
+                            ),
+                            body: UserWidget(
+                              auth,
+                              userId: document.id,
+                              isProfileView: true,
+                              onSignout: () async {
+                                final authUtil = AuthUtil(auth);
+                                userRole = await authUtil.userRole();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text('Signed out'),
+                                          behavior: SnackBarBehavior.floating));
+                                  Navigator.pop(context);
+                                }
+                              },
+                              analytics: analytics,
+                              observer: observer,
+                              brokerageUser: brokerageUser,
+                              service: service,
+                            ),
+                          )));
+            } else {
+              // Public trader profile view
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (BuildContext context) => TraderProfileWidget(
+                            auth: auth,
+                            userId: document.id,
+                            analytics: analytics,
+                            observer: observer,
+                            brokerageUser: brokerageUser,
+                            service: service,
+                          )));
+            }
+          }
+        : null;
+
+    return Semantics(
+      container: true,
+      button: showNavigation,
+      enabled: showNavigation,
+      label: semanticLabel,
+      hint: showNavigation ? 'Double tap to view trader profile' : null,
+      onTap: onTapHandler,
+      excludeSemantics: true,
+      child: ListTile(
         leading: Hero(
             tag: 'user_${document.id}',
             placeholderBuilder: (context, size, child) {
               return heroAsset;
             },
             child: heroAsset),
-        title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
+        title: Text(userName),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -124,58 +205,8 @@ class UserListTile extends StatelessWidget {
           ],
         ),
         trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
-        onTap: showNavigation
-            ? () {
-                final isSelf = auth.currentUser?.uid == document.id;
-                if (userRole == UserRole.admin && !isSelf) {
-                  // Admin user management view
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (BuildContext context) => Scaffold(
-                                appBar: AppBar(
-                                  title: Text(user.name ??
-                                      user.providerId?.capitalize() ??
-                                      ''),
-                                ),
-                                body: UserWidget(
-                                  auth,
-                                  userId: document.id,
-                                  isProfileView: true,
-                                  onSignout: () async {
-                                    final authUtil = AuthUtil(auth);
-                                    userRole = await authUtil.userRole();
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text('Signed out'),
-                                              behavior:
-                                                  SnackBarBehavior.floating));
-                                      Navigator.pop(context);
-                                    }
-                                  },
-                                  analytics: analytics,
-                                  observer: observer,
-                                  brokerageUser: brokerageUser,
-                                  service: service,
-                                ),
-                              )));
-                } else {
-                  // Public trader profile view
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (BuildContext context) =>
-                              TraderProfileWidget(
-                                auth: auth,
-                                userId: document.id,
-                                analytics: analytics,
-                                observer: observer,
-                                brokerageUser: brokerageUser,
-                                service: service,
-                              )));
-                }
-              }
-            : null);
+        onTap: onTapHandler,
+      ),
+    );
   }
 }
