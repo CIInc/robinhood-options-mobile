@@ -29,3 +29,7 @@
 ## 2026-04-09 - Unified Screen Reader Semantics for Option Flow Cards
 **Learning:** Complex option flow list cards (`OptionFlowListItem`) containing fragmented statistics (sentiment icons, scores, contract expiration/strike, moneyness, volume/OI ratios, and detection flags) cause screen readers to stop dozens of times per item. Wrapping the card in `Semantics(container: true, button: true, label: ..., excludeSemantics: true)` unifies the entire trade flow entry into a single comprehensive, actionable screen reader announcement.
 **Action:** Wrap dense financial flow list cards in `Semantics(container: true, button: true, label: ..., excludeSemantics: true)` combining symbol, sentiment, premium, contract terms, moneyness, and flags.
+
+## 2026-04-10 - Unified Screen Reader Semantics & Tap Binding for Trader Profile Cards
+**Learning:** List items containing disjointed profile details (avatar, username, location/contact, follower count, reputation tier icon/badge) cause multiple fragmented screen reader stops unless wrapped in `Semantics(container: true, button: showNavigation, enabled: showNavigation, label: ..., hint: ..., onTap: onTapHandler, excludeSemantics: true)`. Crucially, when `excludeSemantics: true` is used on a `Semantics` wrapper, `onTap` must be passed directly to the `Semantics` widget itself so screen reader double-tap gestures activate the item's action.
+**Action:** Always bind `onTap` to `Semantics` whenever `excludeSemantics: true` is set on interactive card containers so screen reader tap gestures execute properly.
