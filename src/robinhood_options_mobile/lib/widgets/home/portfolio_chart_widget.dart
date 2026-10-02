@@ -217,7 +217,15 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
         close = lastHistorical.adjustedCloseEquity!;
 
         changeInPeriod = close - open;
-        changePercentInPeriod = (close / open) - 1;
+        if (changeInPeriod.abs() < 0.005) {
+          changeInPeriod = 0.0;
+        }
+        changePercentInPeriod = open > 0 ? (close / open) - 1 : 0.0;
+        if (changePercentInPeriod.isNaN ||
+            changePercentInPeriod.isInfinite ||
+            changePercentInPeriod.abs() < 0.00005) {
+          changePercentInPeriod = 0.0;
+        }
 
         var provider = Provider.of<PortfolioHistoricalsSelectionStore>(context,
             listen: false);
@@ -286,11 +294,20 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             open = firstHistorical!.adjustedOpenEquity!;
             if (provider.selection != null) {
               changeInPeriod = provider.selection!.adjustedCloseEquity! - open;
-              changePercentInPeriod =
-                  provider.selection!.adjustedCloseEquity! / open - 1;
+              changePercentInPeriod = open > 0
+                  ? provider.selection!.adjustedCloseEquity! / open - 1
+                  : 0.0;
             } else {
               changeInPeriod = close - open;
-              changePercentInPeriod = (close / open) - 1;
+              changePercentInPeriod = open > 0 ? (close / open) - 1 : 0.0;
+            }
+            if (changeInPeriod.abs() < 0.005) {
+              changeInPeriod = 0.0;
+            }
+            if (changePercentInPeriod.isNaN ||
+                changePercentInPeriod.isInfinite ||
+                changePercentInPeriod.abs() < 0.00005) {
+              changePercentInPeriod = 0.0;
             }
             final date = formatCompactDateTimeWithHour.format(
                 provider.selection != null
@@ -314,10 +331,20 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             var selection = value.selection;
             if (selection != null) {
               changeInPeriod = selection.adjustedCloseEquity! - open;
-              changePercentInPeriod = selection.adjustedCloseEquity! / open - 1;
+              changePercentInPeriod = open > 0
+                  ? selection.adjustedCloseEquity! / open - 1
+                  : 0.0;
             } else {
               changeInPeriod = close - open;
-              changePercentInPeriod = close / open - 1;
+              changePercentInPeriod = open > 0 ? close / open - 1 : 0.0;
+            }
+            if (changeInPeriod.abs() < 0.005) {
+              changeInPeriod = 0.0;
+            }
+            if (changePercentInPeriod.isNaN ||
+                changePercentInPeriod.isInfinite ||
+                changePercentInPeriod.abs() < 0.00005) {
+              changePercentInPeriod = 0.0;
             }
             String? returnText = widget.brokerageUser.getDisplayText(
                 changeInPeriod,

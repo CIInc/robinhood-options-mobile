@@ -62,6 +62,7 @@ import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
+import 'package:robinhood_options_mobile/widgets/tab_navigation.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 
 //const routeHome = '/';
@@ -1194,6 +1195,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         analytics: widget.analytics,
         observer: widget.observer,
         onLogin: _openLogin,
+        onTabChanged: _onPageChanged,
         //onUserChanged: _handleUserChanged,
         //onAccountsChanged: _handleAccountChanged
       ),
@@ -1265,43 +1267,45 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       ),
       */
       // drawer: userStore.items.isEmpty ? null : _buildDrawer(userStore),
-      body: // userStore.items.isEmpty ||
-          message != null
-              ? CustomScrollView(
-                  slivers: [
-                    ExpandedSliverAppBar(
-                      title: Text(Constants.appTitle),
-                      auth: auth,
-                      firestoreService: _firestoreService,
-                      automaticallyImplyLeading: false,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      user: userStore.currentUser,
-                      firestoreUser: user,
-                      userDocRef: userDoc,
-                      service: service,
+      body: TabNavigation(
+        onPageChanged: _onPageChanged,
+        child: message != null
+            ? CustomScrollView(
+                slivers: [
+                  ExpandedSliverAppBar(
+                    title: Text(Constants.appTitle),
+                    auth: auth,
+                    firestoreService: _firestoreService,
+                    automaticallyImplyLeading: false,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
+                    user: userStore.currentUser,
+                    firestoreUser: user,
+                    userDocRef: userDoc,
+                    service: service,
+                  ),
+                  SliverFillRemaining(
+                    child: WelcomeWidget(
+                      message: message,
+                      onLogin: onLogin ?? _openLogin,
+                      onExploreDemo: () async {
+                        final user = BrokerageUser(
+                            BrokerageSource.demo, "Demo Account", null, null);
+                        userStore.addOrUpdate(user);
+                        userStore.setCurrentUserIndex(
+                            userStore.items.indexOf(user));
+                        await userStore.save();
+                      },
                     ),
-                    SliverFillRemaining(
-                      child: WelcomeWidget(
-                        message: message,
-                        onLogin: onLogin ?? _openLogin,
-                        onExploreDemo: () async {
-                          final user = BrokerageUser(
-                              BrokerageSource.demo, "Demo Account", null, null);
-                          userStore.addOrUpdate(user);
-                          userStore.setCurrentUserIndex(
-                              userStore.items.indexOf(user));
-                          await userStore.save();
-                        },
-                      ),
-                    ),
-                  ],
-                )
-              : PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: tabPages,
-                ),
+                  ),
+                ],
+              )
+            : PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: tabPages,
+              ),
+      ),
       bottomNavigationBar: NavigationBar(
         // backgroundColor: Colors.black.withValues(alpha: 0.05),
         height:

@@ -159,11 +159,13 @@ class HomePage extends StatefulWidget {
     required this.user,
     required this.userDoc,
     this.onLogin,
+    this.onTabChanged,
     //required this.onUserChanged,
     //required this.onAccountsChanged
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final ValueChanged<int>? onTabChanged;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   //final ValueChanged<RobinhoodUser?> onUserChanged;
@@ -2005,6 +2007,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       final filteredOptions = optionStore.items
                           .where((p) => _matchesAccount(p.account, account))
                           .toList();
+                      final dayPnLData = _calcDayPnL(account);
                       final alerts = PortfolioAlertService.buildAlerts(
                         instrumentPositions: filteredStocks,
                         optionPositions: filteredOptions,
@@ -2014,6 +2017,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 .toList(),
                         account: account,
                         totalEquity: _totalEquity(context, account: account),
+                        dayPnL: dayPnLData.$1,
+                        dayPnLPercent: dayPnLData.$2,
+                        riskCircuitBreakerConfig:
+                            widget.user?.riskCircuitBreakerConfig,
+                        automatedDripConfig: widget.user?.automatedDripConfig,
                         // The full metrics suite only runs once the user opens
                         // Performance, so feed the alert rules the one figure
                         // the overview computes for itself.
@@ -2248,6 +2256,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           _loadMarketIndices();
         });
       },
+      onTabChanged: widget.onTabChanged,
     );
   }
 
@@ -2356,11 +2365,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     for (final alert in alerts) {
       if (alert.severity == PortfolioAlertSeverity.positive) continue;
       switch (alert.target) {
+        case PortfolioAlertTarget.instrument:
         case PortfolioAlertTarget.positions:
         case PortfolioAlertTarget.optionPositions:
           flagged.add(PortfolioSection.positions);
+        case PortfolioAlertTarget.dividends:
         case PortfolioAlertTarget.performance:
           flagged.add(PortfolioSection.performance);
+        case PortfolioAlertTarget.pdtMonitor:
         case PortfolioAlertTarget.risk:
         case PortfolioAlertTarget.zeroDteRadar:
         case PortfolioAlertTarget.earningsIvCrush:
@@ -2368,6 +2380,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         case PortfolioAlertTarget.ivSurface:
         case PortfolioAlertTarget.deltaNeutral:
           flagged.add(PortfolioSection.risk);
+        case PortfolioAlertTarget.newsIntelligence:
         case PortfolioAlertTarget.insights:
         case PortfolioAlertTarget.congressionalTrading:
           flagged.add(PortfolioSection.insights);
@@ -2375,14 +2388,78 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           if (!isPaper) {
             flagged.add(PortfolioSection.taxes);
           }
+        case PortfolioAlertTarget.optionDefense:
+        case PortfolioAlertTarget.dripSettings:
         case PortfolioAlertTarget.strategies:
         case PortfolioAlertTarget.rebalance:
           flagged.add(PortfolioSection.strategies);
+        case PortfolioAlertTarget.search:
         case PortfolioAlertTarget.none:
           break;
       }
     }
     return flagged;
+  }
+
+  (double?, double?) _calcDayPnL(Account? targetAccount) {
+    final portfolioStore =
+        Provider.of<PortfolioStore>(context, listen: false);
+    final portfolio = portfolioStore.items.firstWhereOrNull(
+      (p) =>
+          targetAccount != null &&
+          (p.account == targetAccount.accountNumber ||
+              p.account == targetAccount.url ||
+              (targetAccount.accountNumber.isNotEmpty &&
+                  p.account.contains(targetAccount.accountNumber))),
+    );
+
+    final totalValue = portfolio?.equity ??
+        targetAccount?.totalValue ??
+        _totalEquity(context, account: targetAccount) ??
+        targetAccount?.portfolioCash ??
+        0.0;
+
+    double? changeToday;
+    double? changePercentToday;
+
+    if (portfolio != null &&
+        portfolio.equityPreviousClose != null &&
+        portfolio.equityPreviousClose! > 0 &&
+        portfolio.equity != null) {
+      final prevClose = portfolio.equityPreviousClose!;
+      final diff = portfolio.equity! - prevClose;
+      changeToday = diff;
+      changePercentToday = diff / prevClose;
+    } else {
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final stocks = stockStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      final options = optionStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      double sumToday = 0.0;
+      bool hasToday = false;
+      for (final s in stocks) {
+        sumToday += s.gainLossToday;
+        hasToday = true;
+      }
+      for (final o in options) {
+        if (o.changeToday != 0) {
+          sumToday += o.changeToday;
+          hasToday = true;
+        }
+      }
+      if (hasToday && totalValue > 0) {
+        changeToday = sumToday;
+        final base = totalValue - sumToday;
+        if (base > 0) {
+          changePercentToday = sumToday / base;
+        }
+      }
+    }
+    return (changeToday, changePercentToday);
   }
 
   void _updateFuturesPositions([List<dynamic>? accounts]) async {

@@ -82,6 +82,10 @@ class FidelityService implements IBrokerageService {
   @override
   String redirectUrl = 'manual';
 
+  final http.Client? httpClient;
+
+  FidelityService({this.httpClient});
+
   // --- IBrokerageService Implementation (Stubs for Manual Service) ---
 
   @override
@@ -538,6 +542,7 @@ class FidelityService implements IBrokerageService {
 
     try {
       // Map symbols to Fidelity format
+      final Map<String, String> fidToOriginal = {};
       final fidSymbols = symbols.map((s) {
         var fidS = s;
         if (s.startsWith("^")) {
@@ -556,16 +561,25 @@ class FidelityService implements IBrokerageService {
         }
         if (sUpper == "BTC-USD" || sUpper == "BTCUSD") fidS = "BTC/USD";
         if (sUpper == "ETH-USD" || sUpper == "ETHUSD") fidS = "ETH/USD";
+        fidToOriginal[fidS.toUpperCase()] = s;
+        fidToOriginal[s.toUpperCase()] = s;
         return fidS;
       }).join(",");
 
       final url = "https://fastquote.fidelity.com/service/quote/json?"
           "productid=embeddedquotes&symbols=${Uri.encodeComponent(fidSymbols)}";
 
-      final resp = await http.get(Uri.parse(url), headers: {
-        "Referer": "https://www.fidelity.com/",
-        "Origin": "https://www.fidelity.com",
-      }).timeout(const Duration(seconds: 10));
+      final client = httpClient;
+      final resp = await (client != null
+              ? client.get(Uri.parse(url), headers: {
+                  "Referer": "https://www.fidelity.com/",
+                  "Origin": "https://www.fidelity.com",
+                })
+              : http.get(Uri.parse(url), headers: {
+                  "Referer": "https://www.fidelity.com/",
+                  "Origin": "https://www.fidelity.com",
+                }))
+          .timeout(const Duration(seconds: 10));
 
       if (resp.statusCode != 200) {
         throw Exception('Fidelity API returned status ${resp.statusCode}');
@@ -596,23 +610,53 @@ class FidelityService implements IBrokerageService {
         }
       }
 
-      final quotesData = data['QUOTES'] as List<dynamic>?;
-      if (quotesData == null || quotesData.isEmpty) {
+      final rawQuotes = data['QUOTES'];
+      if (rawQuotes == null) {
         return [];
       }
 
       final quotes = <Quote>[];
-      for (final quoteData in quotesData) {
-        try {
-          if (quoteData is Map<String, dynamic>) {
-            final symbol = quoteData['symbol'] as String?;
-            if (symbol != null && symbol.isNotEmpty) {
-              final quote = _parseFidelityQuote(symbol, quoteData);
-              quotes.add(quote);
+      if (rawQuotes is Map) {
+        for (final entry in rawQuotes.entries) {
+          try {
+            final key = entry.key.toString();
+            final quoteData = entry.value;
+            if (quoteData is Map<String, dynamic>) {
+              final rawSymbol = (quoteData['SYMBOL'] ??
+                      quoteData['REQUEST_SYMBOL'] ??
+                      quoteData['symbol'] ??
+                      key)
+                  .toString();
+              final symbol = fidToOriginal[rawSymbol.toUpperCase()] ??
+                  fidToOriginal[key.toUpperCase()] ??
+                  rawSymbol;
+              if (symbol.isNotEmpty) {
+                final quote = _parseFidelityQuote(symbol, quoteData);
+                quotes.add(quote);
+              }
             }
+          } catch (e) {
+            debugPrint('Error parsing quote entry ${entry.key}: $e');
           }
-        } catch (e) {
-          debugPrint('Error parsing quote data: $e');
+        }
+      } else if (rawQuotes is List) {
+        for (final quoteData in rawQuotes) {
+          try {
+            if (quoteData is Map<String, dynamic>) {
+              final rawSymbol = (quoteData['SYMBOL'] ??
+                      quoteData['REQUEST_SYMBOL'] ??
+                      quoteData['symbol'])
+                  ?.toString();
+              if (rawSymbol != null && rawSymbol.isNotEmpty) {
+                final symbol =
+                    fidToOriginal[rawSymbol.toUpperCase()] ?? rawSymbol;
+                final quote = _parseFidelityQuote(symbol, quoteData);
+                quotes.add(quote);
+              }
+            }
+          } catch (e) {
+            debugPrint('Error parsing quote data: $e');
+          }
         }
       }
 
@@ -625,20 +669,38 @@ class FidelityService implements IBrokerageService {
 
   /// Parses Fidelity quote data into a Robinhood Quote object.
   Quote _parseFidelityQuote(String symbol, dynamic quoteData) {
-    // Fidelity quote response has QUOTE array with bid/ask/last data
     final quote = quoteData is Map<String, dynamic> ? quoteData : {};
 
-    final bidPrice = _parseDouble(quote['bidPrice']);
-    final bidSize = _parseInt(quote['bidSize']);
-    final askPrice = _parseDouble(quote['askPrice']);
-    final askSize = _parseInt(quote['askSize']);
-    final lastPrice = _parseDouble(quote['lastPrice']) ??
-        _parseDouble(quote['bidPrice']) ??
-        _parseDouble(quote['askPrice']) ??
+    final bidPrice = _parseDouble(
+        quote['BID_PRICE'] ?? quote['bidPrice'] ?? quote['bid']);
+    final bidSize = _parseInt(quote['BID_SIZE'] ?? quote['bidSize']);
+    final askPrice = _parseDouble(
+        quote['ASK_PRICE'] ?? quote['askPrice'] ?? quote['ask']);
+    final askSize = _parseInt(quote['ASK_SIZE'] ?? quote['askSize']);
+    final lastPrice = _parseDouble(quote['LAST_PRICE'] ??
+            quote['lastPrice'] ??
+            quote['last'] ??
+            quote['BID_PRICE'] ??
+            quote['bidPrice'] ??
+            quote['ASK_PRICE'] ??
+            quote['askPrice']) ??
         0.0;
-    final previousClose = _parseDouble(quote['openPrice']) ??
-        _parseDouble(quote['lastPrice']) ??
+    final previousClose = _parseDouble(quote['PREVIOUS_CLOSE'] ??
+            quote['PREV_CLOSE_PRICE'] ??
+            quote['previousClose'] ??
+            quote['OPEN_PRICE'] ??
+            quote['openPrice'] ??
+            quote['LAST_PRICE'] ??
+            quote['lastPrice']) ??
         0.0;
+    final previousCloseDate = _parseFidelityDate(quote['PREV_CLOSE_DATE'] ??
+        quote['previous_close_date'] ??
+        quote['previousCloseDate']);
+    final tradingHalted =
+        quote['TRADING_HALT_CODE']?.toString().toUpperCase() == 'Y' ||
+            quote['tradingHalted'] == true;
+    final cusip = quote['CUSIP'] ?? quote['cusip'];
+    final instrumentId = cusip is String && cusip.isNotEmpty ? cusip : symbol;
 
     return Quote(
       symbol: symbol,
@@ -650,22 +712,45 @@ class FidelityService implements IBrokerageService {
       lastExtendedHoursTradePrice: null,
       previousClose: previousClose,
       adjustedPreviousClose: previousClose,
-      previousCloseDate: null,
-      tradingHalted: false,
+      previousCloseDate: previousCloseDate,
+      tradingHalted: tradingHalted,
       hasTraded: true,
       lastTradePriceSource: 'fidelity',
       updatedAt: DateTime.now(),
       instrument: 'https://api.robinhood.com/instruments/$symbol/',
-      instrumentId: symbol,
+      instrumentId: instrumentId,
     );
+  }
+
+  DateTime? _parseFidelityDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) {
+      if (value.contains('/')) {
+        final parts = value.split('/');
+        if (parts.length == 3) {
+          final month = int.tryParse(parts[0]);
+          final day = int.tryParse(parts[1]);
+          final year = int.tryParse(parts[2]);
+          if (month != null && day != null && year != null) {
+            return DateTime(year, month, day);
+          }
+        }
+      }
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   /// Helper to safely parse double from dynamic value
   double? _parseDouble(dynamic value) {
     if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final sanitized = value.replaceAll(',', '').trim();
+      if (sanitized.isEmpty || sanitized == 'NaN') return null;
+      return double.tryParse(sanitized);
+    }
     return null;
   }
 
@@ -673,8 +758,13 @@ class FidelityService implements IBrokerageService {
   int _parseInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
-    if (value is double) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final sanitized = value.replaceAll(',', '').trim();
+      return int.tryParse(sanitized) ??
+          double.tryParse(sanitized)?.toInt() ??
+          0;
+    }
     return 0;
   }
 

@@ -534,20 +534,37 @@ class BrokerageUser {
   String getDisplayText(double value, {DisplayValue? displayValue}) {
     String opTrailingText = '';
     switch (displayValue ?? this.displayValue) {
-      case DisplayValue.lastPrice:
-      case DisplayValue.marketValue:
-      case DisplayValue.totalCost:
       case DisplayValue.todayReturn:
       case DisplayValue.totalReturn:
-        opTrailingText = value.abs() != 0.0 && value.abs() < 0.00005
-            ? formatPrecise8Currency.format(value)
-            : (value.abs() != 0.0 && value.abs() < 0.005
-                ? formatPrecise4Currency.format(value)
-                : formatCurrency.format(value));
+        // Returns are always standard currency (2 decimal places)
+        opTrailingText =
+            formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        break;
+      case DisplayValue.lastPrice:
+        if (value.abs() >= 0.00000001 && value.abs() < 0.00005) {
+          opTrailingText = formatPrecise8Currency.format(value);
+        } else if (value.abs() >= 0.00005 && value.abs() < 0.005) {
+          opTrailingText = formatPrecise4Currency.format(value);
+        } else {
+          opTrailingText =
+              formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        }
+        break;
+      case DisplayValue.marketValue:
+      case DisplayValue.totalCost:
+        if (value.abs() >= 0.00005 && value.abs() < 0.005) {
+          opTrailingText = formatPrecise4Currency.format(value);
+        } else {
+          opTrailingText =
+              formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        }
         break;
       case DisplayValue.todayReturnPercent:
       case DisplayValue.totalReturnPercent:
-        opTrailingText = formatPercentage.format(value);
+        final pct = (value.isNaN || value.isInfinite || value.abs() < 0.00005)
+            ? 0.0
+            : value;
+        opTrailingText = formatPercentage.format(pct);
         break;
       default:
     }

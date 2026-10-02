@@ -40,6 +40,7 @@ class PortfolioSectionContext {
   final Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
   final ChartDateSpan? benchmarkChartDateSpanFilter;
   final void Function(ChartDateSpan)? onBenchmarkFilterChanged;
+  final void Function(int tabIndex)? onTabChanged;
 
   const PortfolioSectionContext({
     required this.brokerageUser,
@@ -60,5 +61,6 @@ class PortfolioSectionContext {
     this.futureMarketIndexHistoricalsRussell2000,
     this.benchmarkChartDateSpanFilter,
     this.onBenchmarkFilterChanged,
+    this.onTabChanged,
   });
 }

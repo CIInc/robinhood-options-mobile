@@ -160,6 +160,8 @@ class PortfolioAlertService {
           detail: config.tripReason ??
               'Risk circuit breaker cooling-off period active. Orders are temporarily blocked to protect capital.',
           target: PortfolioAlertTarget.risk,
+          category: 'Risk',
+          actionLabel: 'Risk Controls',
         ),
       );
     } else if (config.isTripped) {
@@ -172,6 +174,8 @@ class PortfolioAlertService {
           detail: config.tripReason ??
               'Trading execution locked by autonomous risk guardrails.',
           target: PortfolioAlertTarget.risk,
+          category: 'Risk',
+          actionLabel: 'Risk Controls',
         ),
       );
     } else if (dayPnL != null &&
@@ -192,6 +196,8 @@ class PortfolioAlertService {
                 'Current day loss of -\$${loss.toStringAsFixed(2)} is near your \$${config.maxDailyLossAmount!.toStringAsFixed(2)} circuit breaker threshold.',
             metric: '-\$${loss.toStringAsFixed(0)}',
             target: PortfolioAlertTarget.risk,
+            category: 'Risk',
+            actionLabel: 'Risk Controls',
           ),
         );
       }
@@ -214,6 +220,8 @@ class PortfolioAlertService {
                   'Frequent order cancellations detected in the last ${config.rapidCancelWindowMinutes}m. Slow down execution to prevent automated cooling-off suspension.',
               metric: '$activeCancels/${config.maxRapidCancels}',
               target: PortfolioAlertTarget.risk,
+              category: 'Risk',
+              actionLabel: 'Risk Controls',
             ),
           );
         }
@@ -232,7 +240,9 @@ class PortfolioAlertService {
             detail:
                 'Maintain disciplined position sizing (\$${config.baselineTradeSize!.toStringAsFixed(0)} baseline). Avoid sizing up to recover losses.',
             metric: '${config.currentConsecutiveLosses}L',
-            target: PortfolioAlertTarget.risk,
+            target: PortfolioAlertTarget.insights,
+            category: 'Risk',
+            actionLabel: 'Trading Coach',
           ),
         );
       }
@@ -265,6 +275,9 @@ class PortfolioAlertService {
                 'Immediate deposit or liquidation required$dueStr. ${call.reason ?? call.description ?? "Deposit cash or sell marginable positions to meet margin requirement."}',
             metric: call.formattedAmount,
             target: PortfolioAlertTarget.risk,
+            category: 'Margin',
+            actionLabel: 'Margin Health',
+            payload: call,
           ),
         );
       }
@@ -296,6 +309,9 @@ class PortfolioAlertService {
                 'Immediate deposit or position liquidation is required to meet margin maintenance.',
             metric: _currency.format(deficitAmt),
             target: PortfolioAlertTarget.risk,
+            category: 'Margin',
+            actionLabel: 'Margin Health',
+            payload: marginHealth,
           ),
         );
       } else if (marginHealth.status == MarginHealthStatus.critical ||
@@ -311,6 +327,9 @@ class PortfolioAlertService {
                 'Only ${_currency.format(marginHealth.marginBuffer)} buffer remains before maintenance liquidation triggers.',
             metric: _percent.format(marginHealth.marginBufferPercentage),
             target: PortfolioAlertTarget.risk,
+            category: 'Margin',
+            actionLabel: 'Margin Health',
+            payload: marginHealth,
           ),
         );
       } else if (marginHealth.status == MarginHealthStatus.warning ||
@@ -326,6 +345,9 @@ class PortfolioAlertService {
                 'Margin buffer is ${_currency.format(marginHealth.marginBuffer)}. Market pullbacks could trigger a margin call.',
             metric: _percent.format(marginHealth.marginBufferPercentage),
             target: PortfolioAlertTarget.risk,
+            category: 'Margin',
+            actionLabel: 'Margin Health',
+            payload: marginHealth,
           ),
         );
       }
@@ -358,6 +380,9 @@ class PortfolioAlertService {
               'Account is flagged as PDT with equity under \$25,000. Day trading is restricted.',
           metric: _currency.format(equity),
           target: PortfolioAlertTarget.risk,
+          category: 'PDT',
+          actionLabel: 'PDT Monitor',
+          payload: dayTradeSummary,
         ),
       ];
     }
@@ -374,6 +399,9 @@ class PortfolioAlertService {
                 'Executing another day trade will designate your account as a Pattern Day Trader under FINRA Rule 4210.',
             metric: '${dayTradeSummary.activeDayTradeCount} / 3 used',
             target: PortfolioAlertTarget.risk,
+            category: 'PDT',
+            actionLabel: 'PDT Monitor',
+            payload: dayTradeSummary,
           ),
         ];
       } else if (dayTradeSummary.riskLevel == PdtRiskLevel.warning) {
@@ -387,6 +415,9 @@ class PortfolioAlertService {
                 'You have 1 day trade available before reaching the FINRA PDT threshold.',
             metric: '${dayTradeSummary.activeDayTradeCount} / 3 used',
             target: PortfolioAlertTarget.risk,
+            category: 'PDT',
+            actionLabel: 'PDT Monitor',
+            payload: dayTradeSummary,
           ),
         ];
       }
@@ -420,6 +451,10 @@ class PortfolioAlertService {
                 '${symbols.join(', ')} loss disallowed by IRS Rule 1091 and deferred to cost basis.',
             metric: _currency.format(totalDisallowed),
             target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Tax Lots',
+            symbol: symbols.isNotEmpty ? symbols.first : null,
+            payload: disallowed,
           ),
         );
       }
@@ -441,6 +476,10 @@ class PortfolioAlertService {
                 'Avoid repurchasing ${symbols.join(', ')} to preserve tax loss deductions.',
             metric: '${minDays}d left',
             target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Tax Lots',
+            symbol: symbols.isNotEmpty ? symbols.first : null,
+            payload: activeWindows,
           ),
         );
       }
@@ -475,6 +514,10 @@ class PortfolioAlertService {
                 : 'Harvestable losses detected across your holdings.',
             metric: _currency.format(totalLoss.abs()),
             target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Harvest Loss',
+            symbol: suggestions.isNotEmpty ? suggestions.first.symbol : null,
+            payload: suggestions,
           ),
         );
       }
@@ -500,6 +543,10 @@ class PortfolioAlertService {
                 'Hold ${topApproaching.symbol} for ${topApproaching.daysUntilLongTerm}d to unlock preferential long-term capital gains tax rates.',
             metric: '+${_currency.format(totalSavings)} savings',
             target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Tax Lots',
+            symbol: topApproaching.symbol,
+            payload: topApproaching,
           ),
         );
       }
@@ -544,6 +591,10 @@ class PortfolioAlertService {
         detail: 'A single holding drives an outsized share of your returns.',
         metric: _percent.format(topWeight),
         target: PortfolioAlertTarget.risk,
+        category: 'Allocation',
+        actionLabel: 'Rebalance',
+        symbol: ranked.first.key,
+        payload: ranked.first,
       ),
     ];
   }
@@ -566,7 +617,10 @@ class PortfolioAlertService {
         title: '${_percent.format(weight)} of assets in cash',
         detail: 'Uninvested cash is not tracking the market. Rebalance?',
         metric: _currency.format(cash),
-        target: PortfolioAlertTarget.rebalance,
+        target: PortfolioAlertTarget.search,
+        category: 'Allocation',
+        actionLabel: 'Deploy Cash',
+        payload: cash,
       ),
     ];
   }
@@ -585,20 +639,25 @@ class PortfolioAlertService {
 
     final mover = movers.first;
     final isGain = mover.gainLossToday >= 0;
+    final sym = mover.instrumentObj!.symbol;
     return [
       PortfolioAlert(
-        id: 'mover-${mover.instrumentObj!.symbol}',
+        id: 'mover-$sym',
         severity: isGain
             ? PortfolioAlertSeverity.positive
             : PortfolioAlertSeverity.warning,
         icon: isGain ? Icons.trending_up : Icons.trending_down,
-        title: '${mover.instrumentObj!.symbol} ${isGain ? 'moved up' : 'fell'} '
+        title: '$sym ${isGain ? 'moved up' : 'fell'} '
             '${_percent.format(mover.gainLossPercentToday.abs())} today',
         detail: isGain
             ? 'Your largest contributor to today\'s gain.'
             : 'Your largest detractor from today\'s return.',
         metric: _currency.format(mover.gainLossToday),
         target: PortfolioAlertTarget.positions,
+        category: 'Movers',
+        actionLabel: 'View $sym',
+        symbol: sym,
+        payload: mover,
       ),
     ];
   }
@@ -622,6 +681,8 @@ class PortfolioAlertService {
             ? 'Review which positions are dragging on relative return.'
             : 'Your allocation is outperforming the benchmark.',
         target: PortfolioAlertTarget.performance,
+        category: 'Performance',
+        actionLabel: 'Performance',
       ));
     }
 
@@ -636,6 +697,8 @@ class PortfolioAlertService {
         title: 'Down ${_percent.format(currentDrawdown.abs())} from peak',
         detail: 'The portfolio has not recovered its previous high.',
         target: PortfolioAlertTarget.risk,
+        category: 'Performance',
+        actionLabel: 'Risk Score',
       ));
     }
 
@@ -655,6 +718,8 @@ class PortfolioAlertService {
         detail: 'Swings are materially wider than the benchmark.',
         metric: _percent.format(volatility),
         target: PortfolioAlertTarget.risk,
+        category: 'Performance',
+        actionLabel: 'Volatility',
       ));
     }
 
@@ -677,6 +742,10 @@ class PortfolioAlertService {
             'Reinvested \$${tx.dividendAmount.toStringAsFixed(2)} for ${tx.sharesPurchased.toStringAsFixed(3)} shares at \$${tx.executionPrice.toStringAsFixed(2)}.',
         metric: '\$${tx.dividendAmount.toStringAsFixed(2)}',
         target: PortfolioAlertTarget.positions,
+        category: 'Income',
+        actionLabel: 'DRIP Setup',
+        symbol: tx.symbol,
+        payload: tx,
       ));
     }
 
@@ -692,6 +761,10 @@ class PortfolioAlertService {
             'Price \$${tx.executionPrice.toStringAsFixed(2)} is above threshold (\$${tx.thresholdPrice?.toStringAsFixed(2) ?? 'Target'}). \$${tx.dividendAmount.toStringAsFixed(2)} held in cash.',
         metric: '\$${tx.dividendAmount.toStringAsFixed(2)}',
         target: PortfolioAlertTarget.rebalance,
+        category: 'Income',
+        actionLabel: 'DRIP Setup',
+        symbol: tx.symbol,
+        payload: tx,
       ));
     }
 
@@ -714,6 +787,10 @@ class PortfolioAlertService {
             detail: radar.summary,
             metric: '${radar.squeezeProbability.toStringAsFixed(0)}%',
             target: PortfolioAlertTarget.zeroDteRadar,
+            symbol: radar.symbol,
+            category: '0DTE Squeeze',
+            actionLabel: 'Analyze Radar',
+            payload: {'symbol': radar.symbol, 'result': radar},
           ),
         );
       } else if (radar.riskLevel == GammaSqueezeRiskLevel.high) {
@@ -726,6 +803,10 @@ class PortfolioAlertService {
             detail: radar.summary,
             metric: '${radar.squeezeProbability.toStringAsFixed(0)}%',
             target: PortfolioAlertTarget.zeroDteRadar,
+            symbol: radar.symbol,
+            category: '0DTE Squeeze',
+            actionLabel: 'Analyze Radar',
+            payload: {'symbol': radar.symbol, 'result': radar},
           ),
         );
       }
@@ -754,6 +835,10 @@ class PortfolioAlertService {
                 'Options pricing implies a ±${summary.averageImpliedMovePct}% move vs. historical actual of ±${summary.averageActualMovePct}%. Historical post-earnings IV drops ${summary.averageIvCrushPct}%. Protect long unhedged options.',
             metric: '${summary.crushProbabilityScore.toStringAsFixed(0)}%',
             target: PortfolioAlertTarget.earningsIvCrush,
+            symbol: analysis.symbol,
+            category: 'Earnings',
+            actionLabel: 'IV Crush Analysis',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (summary.riskTier == EarningsIvCrushRiskTier.high) {
@@ -767,6 +852,10 @@ class PortfolioAlertService {
                 'Options historically overpriced in ${summary.overpricingRatePct}% of past quarters. Historical seller win rate favors straddle/condor selling over unhedged buying.',
             metric: '${summary.crushProbabilityScore.toStringAsFixed(0)}%',
             target: PortfolioAlertTarget.earningsIvCrush,
+            symbol: analysis.symbol,
+            category: 'Earnings',
+            actionLabel: 'IV Crush Analysis',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       }
@@ -965,6 +1054,10 @@ class PortfolioAlertService {
               '${holdingStr}Scheduled to announce earnings today$timingDetail$estimateStr. High binary risk of price gap and IV crush at the release.',
           metric: 'Today',
           target: PortfolioAlertTarget.earningsIvCrush,
+          symbol: symbol,
+          category: 'Earnings',
+          actionLabel: 'IV Crush Analysis',
+          payload: {'symbol': symbol, 'event': event},
         ));
       } else if (days == 1) {
         // 1 DTE: Reports Tomorrow
@@ -977,6 +1070,10 @@ class PortfolioAlertService {
               '${holdingStr}Scheduled to report earnings tomorrow$timingDetail$estimateStr. Review unhedged exposure or consider delta-neutral and IV crush strategies.',
           metric: '1d',
           target: PortfolioAlertTarget.earningsIvCrush,
+          symbol: symbol,
+          category: 'Earnings',
+          actionLabel: 'IV Crush Analysis',
+          payload: {'symbol': symbol, 'event': event},
         ));
       } else {
         // 2 to 7 Days: Reporting Soon
@@ -990,6 +1087,10 @@ class PortfolioAlertService {
               '${holdingStr}Scheduled announcement on $dateStr$timingDetail$estimateStr. Volatility and options extrinsic value typically expand ahead of earnings.',
           metric: '${days}d',
           target: PortfolioAlertTarget.earningsIvCrush,
+          symbol: symbol,
+          category: 'Earnings',
+          actionLabel: 'IV Crush Analysis',
+          payload: {'symbol': symbol, 'event': event},
         ));
       }
     }
@@ -1149,6 +1250,10 @@ class PortfolioAlertService {
                 ? '\$${payoutAmount.toStringAsFixed(2)}'
                 : 'Ex-Div Today',
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         } else if (exDays == 1) {
           // 1 DTE: Ex-Dividend Tomorrow
@@ -1161,6 +1266,10 @@ class PortfolioAlertService {
                 'Ex-dividend date is tomorrow. Hold through today\'s close to qualify for the ${event.formattedRate ?? 'upcoming'} dividend.',
             metric: 'Tomorrow',
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         } else if (exDays >= 2 && exDays <= 7) {
           // 2-7 DTE: Upcoming Ex-Dividend
@@ -1174,6 +1283,10 @@ class PortfolioAlertService {
                 'Ex-dividend date on $dateStr${event.formattedRate != null ? ' (${event.formattedRate})' : ''}. Hold shares to ensure dividend eligibility.',
             metric: '${exDays}d',
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         }
       }
@@ -1200,6 +1313,10 @@ class PortfolioAlertService {
                 : '$payoutStr $actionWord$reinvestStr.',
             metric: payoutStr,
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         } else if (payDays >= 1 && payDays <= 7) {
           // 1-7 DTE: Upcoming Scheduled Payment
@@ -1213,6 +1330,10 @@ class PortfolioAlertService {
                 'Scheduled payout of $payoutStr on $dateStr${sharesStr != null ? ' for $sharesStr' : ''}.',
             metric: payoutStr,
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         } else if (payDays >= -2 && payDays < 0 && event.isPaid) {
           // Paid within last 48 hours
@@ -1225,6 +1346,10 @@ class PortfolioAlertService {
                 '$payoutStr paid${sharesStr != null ? ' for your $sharesStr' : ''}${event.isReinvested ? ' (DRIP reinvested)' : ''}.',
             metric: payoutStr,
             target: PortfolioAlertTarget.performance,
+            symbol: sym,
+            category: 'Dividends',
+            actionLabel: 'View Dividends',
+            payload: {'symbol': sym, 'event': event},
           ));
         }
       }
@@ -1403,6 +1528,10 @@ class PortfolioAlertService {
           detail: detail,
           metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
           target: PortfolioAlertTarget.insights,
+          symbol: sym,
+          category: 'News',
+          actionLabel: 'News Intel',
+          payload: {'symbol': sym, 'intel': intel},
         );
       }
 
@@ -1437,6 +1566,10 @@ class PortfolioAlertService {
           detail: detail,
           metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
           target: PortfolioAlertTarget.insights,
+          symbol: sym,
+          category: 'News',
+          actionLabel: 'News Intel',
+          payload: {'symbol': sym, 'intel': intel},
         );
       }
 
@@ -1461,6 +1594,10 @@ class PortfolioAlertService {
             detail: detail,
             metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
             target: PortfolioAlertTarget.insights,
+            symbol: sym,
+            category: 'News',
+            actionLabel: 'News Intel',
+            payload: {'symbol': sym, 'intel': intel},
           );
         } else if (intel.sentimentLabel == NewsSentimentLabel.veryBullish ||
             intel.overallSentiment > 80.0) {
@@ -1481,6 +1618,10 @@ class PortfolioAlertService {
             detail: detail,
             metric: '${intel.overallSentiment.toStringAsFixed(0)}/100',
             target: PortfolioAlertTarget.insights,
+            symbol: sym,
+            category: 'News',
+            actionLabel: 'News Intel',
+            payload: {'symbol': sym, 'intel': intel},
           );
         }
       }
@@ -1571,6 +1712,10 @@ class PortfolioAlertService {
               '$politician ($affiliation) disclosed a $actionStr (${trade.amount}) in $sym, which is held in your portfolio.',
           metric: '$actionStr ${trade.amount}',
           target: PortfolioAlertTarget.congressionalTrading,
+          symbol: sym,
+          category: 'Congress',
+          actionLabel: 'Congress Trades',
+          payload: {'symbol': sym, 'trade': trade},
         ),
       );
     }
@@ -1685,6 +1830,10 @@ class PortfolioAlertService {
                 'Held in portfolio ($sharesStr). Elevated trading volume combined with a sharp decline signals strong institutional distribution.',
             metric: '${volMultiple.toStringAsFixed(1)}x vol',
             target: PortfolioAlertTarget.positions,
+            symbol: sym,
+            category: 'Activity',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
           );
         }
         // Confluence: High-volume breakout
@@ -1699,6 +1848,10 @@ class PortfolioAlertService {
                 'Held in portfolio ($sharesStr). Strong volume expansion validates upward price momentum.',
             metric: '${volMultiple.toStringAsFixed(1)}x vol',
             target: PortfolioAlertTarget.positions,
+            symbol: sym,
+            category: 'Activity',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
           );
         }
         // Extreme Unusual Volume (standalone volume multiple >= 2.5x without heavy directional move)
@@ -1713,6 +1866,10 @@ class PortfolioAlertService {
                 'Held in portfolio ($sharesStr). Trading volume of ${_compactNumber(currentVol)} is ${volMultiple.toStringAsFixed(1)}x typical daily volume (${_compactNumber(avgVol)}), signaling upcoming catalyst or heavy repositioning.',
             metric: '${volMultiple.toStringAsFixed(1)}x vol',
             target: PortfolioAlertTarget.positions,
+            symbol: sym,
+            category: 'Activity',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
           );
         }
       }
@@ -1730,6 +1887,10 @@ class PortfolioAlertService {
                 'Held in portfolio ($sharesStr). Price fell sharply today with ${_currency.format(gainLossToday.abs())} unrealized decline. Review position stop-losses.',
             metric: '-${_percent.format(gainLossPct.abs())}',
             target: PortfolioAlertTarget.positions,
+            symbol: sym,
+            category: 'Activity',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
           );
         } else if (gainLossPct >= 0.06) {
           candidate = PortfolioAlert(
@@ -1742,6 +1903,10 @@ class PortfolioAlertService {
                 'Held in portfolio ($sharesStr). Price rallied significantly today with +${_currency.format(gainLossToday.abs())} unrealized gain.',
             metric: '+${_percent.format(gainLossPct)}',
             target: PortfolioAlertTarget.positions,
+            symbol: sym,
+            category: 'Activity',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
           );
         }
       }
@@ -1797,6 +1962,10 @@ class PortfolioAlertService {
                     'Held in portfolio ($contractsStr). Today\'s contract volume of ${_compactNumber(optVol.toDouble())} exceeds open interest of ${_compactNumber(oi.toDouble())} (${ratio.toStringAsFixed(1)}x), signaling heavy institutional positioning.',
                 metric: '${ratio.toStringAsFixed(1)}x OI',
                 target: PortfolioAlertTarget.optionPositions,
+                symbol: sym,
+                category: 'Activity',
+                actionLabel: 'View Options',
+                payload: {'symbol': sym, 'position': pos},
               ),
             );
           }
@@ -1932,6 +2101,10 @@ class PortfolioAlertService {
                 'Implied volatility (${(metrics.currentIv * 100).toStringAsFixed(1)}%) is trading at historical extremes vs. realized movement. High risk of mean-reverting IV collapse.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
             target: PortfolioAlertTarget.volatilityCone,
+            symbol: analysis.symbol,
+            category: 'Volatility',
+            actionLabel: 'Volatility Cone',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (regime == VolatilityRegime.expensive) {
@@ -1946,6 +2119,10 @@ class PortfolioAlertService {
                 'Options trade above the 75th percentile of historical realized movement. Positive Variance Risk Premium favors credit collection structures.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
             target: PortfolioAlertTarget.volatilityCone,
+            symbol: analysis.symbol,
+            category: 'Volatility',
+            actionLabel: 'Volatility Cone',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (regime == VolatilityRegime.cheap) {
@@ -1960,6 +2137,10 @@ class PortfolioAlertService {
                 'Options trade in the bottom quartile of historical movement. Option purchase and calendar spreads offer high leverage at minimal extrinsic cost.',
             metric: '${metrics.ivRank.toStringAsFixed(0)}% IVR',
             target: PortfolioAlertTarget.volatilityCone,
+            symbol: analysis.symbol,
+            category: 'Volatility',
+            actionLabel: 'Volatility Cone',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       }
@@ -1987,6 +2168,10 @@ class PortfolioAlertService {
                 'Short-term options (${(metrics.atmShortTermIv * 100).toStringAsFixed(1)}%) trade at a sharp premium to back months (${(metrics.atmLongTermIv * 100).toStringAsFixed(1)}%). Indicates acute catalyst or stress.',
             metric: '${(metrics.atmShortTermIv * 100).toStringAsFixed(0)}% IV',
             target: PortfolioAlertTarget.ivSurface,
+            symbol: analysis.symbol,
+            category: 'IV Surface',
+            actionLabel: '3D Surface',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (metrics.hasArbitrage) {
@@ -2000,6 +2185,10 @@ class PortfolioAlertService {
                 '${metrics.arbitrageCount} potential calendar or butterfly spread pricing discrepancies detected across expiration tenors.',
             metric: '${metrics.arbitrageCount} Spreads',
             target: PortfolioAlertTarget.ivSurface,
+            symbol: analysis.symbol,
+            category: 'IV Surface',
+            actionLabel: '3D Surface',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (metrics.regime == IvSurfaceRegime.extremePutSkew) {
@@ -2014,6 +2203,10 @@ class PortfolioAlertService {
             metric:
                 '+${(metrics.riskReversal25D * 100).toStringAsFixed(0)}% Skew',
             target: PortfolioAlertTarget.ivSurface,
+            symbol: analysis.symbol,
+            category: 'IV Surface',
+            actionLabel: '3D Surface',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       }
@@ -2085,6 +2278,10 @@ class PortfolioAlertService {
             detail: analysis.rebalanceSuggestion.summaryText,
             metric: deltaStr,
             target: PortfolioAlertTarget.deltaNeutral,
+            symbol: analysis.symbol,
+            category: 'Hedging',
+            actionLabel: 'Rebalance Delta',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       } else if (analysis.driftStatus == DeltaDriftStatus.mildDrift) {
@@ -2097,6 +2294,10 @@ class PortfolioAlertService {
             detail: analysis.rebalanceSuggestion.summaryText,
             metric: deltaStr,
             target: PortfolioAlertTarget.deltaNeutral,
+            symbol: analysis.symbol,
+            category: 'Hedging',
+            actionLabel: 'Rebalance Delta',
+            payload: {'symbol': analysis.symbol, 'analysis': analysis},
           ),
         );
       }
@@ -2201,6 +2402,10 @@ class PortfolioAlertService {
             target: isShort
                 ? PortfolioAlertTarget.strategies
                 : PortfolioAlertTarget.optionPositions,
+            symbol: symbol,
+            category: 'Expirations',
+            actionLabel: isShort ? 'Manage Defense' : 'View Options',
+            payload: {'symbol': symbol, 'position': pos, 'isShort': isShort},
           ),
         );
       } else if (daysToExpiration == 1) {
@@ -2231,6 +2436,10 @@ class PortfolioAlertService {
             target: isShort
                 ? PortfolioAlertTarget.strategies
                 : PortfolioAlertTarget.optionPositions,
+            symbol: symbol,
+            category: 'Expirations',
+            actionLabel: isShort ? 'Manage Defense' : 'View Options',
+            payload: {'symbol': symbol, 'position': pos, 'isShort': isShort},
           ),
         );
       } else {
@@ -2254,6 +2463,10 @@ class PortfolioAlertService {
             target: isShort
                 ? PortfolioAlertTarget.strategies
                 : PortfolioAlertTarget.optionPositions,
+            symbol: symbol,
+            category: 'Expirations',
+            actionLabel: isShort ? 'Manage Defense' : 'View Options',
+            payload: {'symbol': symbol, 'position': pos, 'isShort': isShort},
           ),
         );
       }

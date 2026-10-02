@@ -199,7 +199,8 @@ void main() {
 
       final alert = alerts.firstWhere((a) => a.id == 'high-cash');
       expect(alert.severity, PortfolioAlertSeverity.info);
-      expect(alert.target, PortfolioAlertTarget.rebalance);
+      expect(alert.target, PortfolioAlertTarget.search);
+      expect(alert.actionLabel, 'Deploy Cash');
       expect(alert.title, contains('82%'));
     });
 

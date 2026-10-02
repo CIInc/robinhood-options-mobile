@@ -75,25 +75,46 @@ the page instead, so the trade-bearing rows inside it stay disabled.
 
 ## Action Center
 
-`PortfolioAlertService` is a rules engine producing `PortfolioAlert` values —
-data, not widgets, so the overview can rank, cap, and summarize them. Rules
+`PortfolioAlertService` is a comprehensive rules engine producing `PortfolioAlert` values —
+data, not widgets, so the overview can rank, filter, cap, and summarize them. Rules
 degrade independently: those needing computed analytics are skipped when the
 metrics have not been calculated, so the overview renders from the position
 stores alone on first paint.
 
-| Rule | Source | Severity |
-|---|---|---|
-| Tax-loss opportunities | `TaxOptimizationService` | critical in season, else warning |
-| Concentration | position weights | critical >30%, warning >20% |
-| High cash | account cash / equity | info >30% |
-| Largest daily mover | position day P/L | positive or warning, >5% move |
-| Benchmark delta | `PortfolioBenchmarkService` | warning when trailing >2% |
-| Drawdown | analytics metrics | critical >20% |
-| Volatility vs benchmark | analytics metrics | warning at 1.5× |
+Alerts include rich contextual metadata (`symbol`, `category`, `actionLabel`, `payload`)
+and route through `PortfolioNavigator.openAlert`.
 
-Alerts sort most-severe-first and route through `PortfolioNavigator`, which is
-also what the Browse grid uses — so a tapped alert and a tapped tile always land
-on the same screen.
+### Alert Coverage
+
+| Rule | Source | Severity | Contextual Destination |
+|---|---|---|---|
+| 0DTE Gamma Squeeze Imminent | `ZeroDteSqueezeRadarService` | critical / warning | `ZeroDteSqueezeRadarWidget` (symbol-specific) |
+| Earnings IV Crush Risk | `EarningsIvCrushService` | critical / warning / info | `EarningsIvCrushWidget` (symbol-specific) |
+| Earnings Calendar (0-7d) | Robinhood JSON / Crush | critical / warning / info | `EarningsIvCrushWidget` (symbol-specific) |
+| Volatility Cone & IV Rank | `VolatilityConeService` | warning / info / positive | `VolatilityConeWidget` (symbol-specific) |
+| 3D Volatility Surface & Inversion | `IvSurfaceService` | warning / info | `IvSurface3dWidget` (symbol-specific) |
+| Delta Drift Hedging | `DeltaNeutralService` | warning / info | `DeltaNeutralBuilderWidget` (symbol-specific) |
+| Congressional Stock Trades | `CongressTradingService` | warning / info / positive | `CongressTradingDashboardWidget` (symbol-preloaded) |
+| High-Impact News & Shifts | `NewsIntelligenceService` | critical / warning / positive | `NewsIntelligenceWidget` (symbol-specific) |
+| Day Trade Limit / PDT Risk | `DayTradeSummary` | critical / warning | `DayTradeMonitorWidget` |
+| Risk Circuit Breaker Trip | `RiskCircuitBreakerConfig` | critical | `RiskSectionPage` |
+| Tax-loss opportunities | `TaxOptimizationService` | critical in season, else warning | `TaxOptimizationWidget` |
+| Concentration | position weights | critical >30%, warning >20% | `RiskSectionPage` |
+| Ex-Dividend & Payable Reminders | `DividendStore` / events | warning / info / positive | `IncomeTransactionsWidget` (symbol-filtered) |
+| Automated DRIP Idle Cash | `AutomatedDripConfig` | info | `AutomatedDripSettingsWidget` |
+| Margin Health / Call Warning | Account margin state | critical / warning | `RiskSectionPage` |
+| Options Imminent Expiration | Option positions & Greeks | critical / warning / info | `OptionPositionsPageWidget` (symbol-filtered) |
+| Heavy-Volume Selloff / Breakout | Equity quotes & fundamentals | critical / warning / positive | `InstrumentWidget` (symbol-specific) |
+| Unusual Option Volume / OI | Option market data | critical / warning | `OptionPositionsPageWidget` (symbol-filtered) |
+
+### Action Center UI & Interactions
+
+The `ActionCenterWidget` provides:
+- **Interactive Category Filter Chips**: `All`, `High Priority`, and dynamic chips for active alert categories (`0DTE Squeeze`, `Earnings`, `Dividends`, `Volatility`, `Hedging`, `News`, `Congress`, etc.).
+- **Contextual Direct Actions**: Explicit action triggers (`Analyze Radar →`, `IV Crush Analysis →`, `View TSLA →`, `Volatility Cone →`) routing straight to deep-dive screens.
+- **Symbol Badges & Category Tags**: Instant visual scanning of impacted tickers and topics.
+- **Triage & Dismiss with Undo**: Close button removes handled alerts with an undo SnackBar action, plus an all-clear card with a `Reset` action.
+- **Collapsible Layout**: Preserves a 3-item default collapsed state with an expandable "Show all X more" / "Show less" toggle.
 
 ## Benchmark on first paint
 
