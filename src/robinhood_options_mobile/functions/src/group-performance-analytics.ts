@@ -157,7 +157,8 @@ async function getMemberMetrics(memberId: string, startDate: Date | null,
 }
 
 export const getGroupPerformanceAnalytics = onCall(async (request) => {
-  if (!request.auth) {
+  // SECURITY: Require authentication and valid user ID
+  if (!request.auth || !request.auth.uid) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
   const groupId = request.data?.groupId;
