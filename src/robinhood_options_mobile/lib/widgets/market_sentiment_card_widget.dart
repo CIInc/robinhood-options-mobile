@@ -19,6 +19,7 @@ class MarketSentimentCardWidget extends StatelessWidget {
   final GenerativeService generativeService;
   final model_user.User? user;
   final DocumentReference<model_user.User>? userDocRef;
+  final Future<SentimentData>? sentimentDataFuture;
 
   const MarketSentimentCardWidget(
     this.brokerageUser,
@@ -29,6 +30,7 @@ class MarketSentimentCardWidget extends StatelessWidget {
     required this.generativeService,
     required this.user,
     required this.userDocRef,
+    this.sentimentDataFuture,
   });
 
   @override
@@ -38,7 +40,8 @@ class MarketSentimentCardWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: FutureBuilder<SentimentData>(
-        future: sentimentService.getMarketSentiment(forceRefresh: false),
+        future: sentimentDataFuture ??
+            sentimentService.getMarketSentiment(forceRefresh: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoadingCard(context);
@@ -52,181 +55,189 @@ class MarketSentimentCardWidget extends StatelessWidget {
           final label = data.sentimentLabel.toUpperCase();
           final formattedTime = _formatTimestamp(data.timestamp);
 
-          return Card(
-            elevation: 2,
-            shadowColor: color.withValues(alpha: 0.3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: color.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SentimentAnalysisDashboardWidget(
-                      brokerageUser: brokerageUser,
-                      service: service,
-                      analytics: analytics,
-                      observer: observer,
-                      generativeService: generativeService,
-                      user: user,
-                      userDocRef: userDocRef,
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      color.withValues(alpha: 0.05),
-                      Theme.of(context).cardColor,
-                    ],
-                  ),
+          return Semantics(
+            container: true,
+            button: true,
+            label:
+                'Market Sentiment: ${data.sentimentLabel}, score ${data.score.toInt()} out of 100, $formattedTime. ${data.summary}',
+            hint: 'Double tap to view detailed sentiment analysis',
+            excludeSemantics: true,
+            child: Card(
+              elevation: 2,
+              shadowColor: color.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: color.withValues(alpha: 0.3),
+                  width: 1,
                 ),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.insights,
-                                size: 18,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant),
-                            const SizedBox(width: 8),
-                            Text(
-                              "MARKET SENTIMENT",
-                              style: TextStyle(
-                                fontSize: 12,
-                                letterSpacing: 1.0,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.access_time,
-                                size: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.4)),
-                            const SizedBox(width: 4),
-                            Text(
-                              formattedTime,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.4),
-                              ),
-                            ),
-                          ],
-                        ),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SentimentAnalysisDashboardWidget(
+                        brokerageUser: brokerageUser,
+                        service: service,
+                        analytics: analytics,
+                        observer: observer,
+                        generativeService: generativeService,
+                        user: user,
+                        userDocRef: userDocRef,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(alpha: 0.05),
+                        Theme.of(context).cardColor,
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Gauge
-                        SizedBox(
-                          height: 60,
-                          width: 60,
-                          child: Stack(
-                            alignment: Alignment.center,
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
                             children: [
-                              CustomPaint(
-                                size: const Size(60, 60),
-                                painter: _SentimentGaugePainter(
-                                  score: data.score,
-                                  color: color,
-                                  backgroundColor: Theme.of(context)
+                              Icon(Icons.insights,
+                                  size: 18,
+                                  color: Theme.of(context)
                                       .colorScheme
-                                      .surfaceContainerHighest,
+                                      .onSurfaceVariant),
+                              const SizedBox(width: 8),
+                              Text(
+                                "MARKET SENTIMENT",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  letterSpacing: 1.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                               ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    data.score.toInt().toString(),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time,
+                                  size: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.4)),
+                              const SizedBox(width: 4),
+                              Text(
+                                formattedTime,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Gauge
+                          SizedBox(
+                            height: 60,
+                            width: 60,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CustomPaint(
+                                  size: const Size(60, 60),
+                                  painter: _SentimentGaugePainter(
+                                    score: data.score,
+                                    color: color,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                  ),
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      data.score.toInt().toString(),
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: color,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Label and Summary
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    label,
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       color: color,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Label and Summary
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(
-                                  label,
+                                const SizedBox(height: 8),
+                                Text(
+                                  data.summary,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: color,
+                                    fontSize: 13,
+                                    height: 1.2,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.8),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                data.summary,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  height: 1.2,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface
-                                      .withValues(alpha: 0.8),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Icon(Icons.chevron_right,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.5)),
-                      ],
-                    ),
-                  ],
+                          Icon(Icons.chevron_right,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.5)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
