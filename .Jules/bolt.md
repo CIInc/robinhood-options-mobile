@@ -29,3 +29,7 @@
 ## 2026-04-01 - O(1) Space Scalar Evaluation for ATR and Typical Price On-The-Fly CCI
 **Learning:** `evaluateATR` delegated to `computeATRArray` and accumulated full-series array allocations (`fullATRSeries`, `trueRanges`, `atrValues`), adding 19.7 µs/op per bar. Similarly, `evaluateCCI` and `evaluateCustomIndicator` allocated temporary `typicalPrices` arrays on every call.
 **Action:** Refactor `evaluateATR` to track running ATR sums and counts directly in scalar variables (reducing runtime by ~73%), and accept direct HLC arrays in `computeCCI` to calculate typical prices on-the-fly without intermediate array allocations.
+
+## 2026-04-01 - Scalar Evaluation for Bollinger Bands and Keltner Squeeze Detection
+**Learning:** `evaluateBollingerBands` was delegating to `computeBollingerBandsArray` and `computeKeltnerChannelsArray` to evaluate a single bar's Bollinger Bands and TTM squeeze conditions. Generating full series arrays of 500+ elements on every evaluation step added ~70.0 µs/op and created heavy GC allocation churn in backtests.
+**Action:** Refactor `evaluateBollingerBands` to call scalar `computeBollingerBands` and `computeKeltnerChannels` directly with index boundaries, reducing execution time by ~88% (~8.2 µs/op).
