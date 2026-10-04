@@ -2,6 +2,8 @@
 
 This preserves the detailed research and earlier working release plan. The [executive recommendation](stock-and-options-provider-recommendation.md) is the current decision brief and supersedes earlier packaging recommendations here.
 
+The newer [Intrinio code/API audit](intrinio-code-api-compatibility-audit.md) supersedes the delayed-options uncertainty below: the current help center lists delayed options in the core bundle. Verify that entitlement and display rights before budgeting an add-on; the audit also identifies paper-service implementation gaps.
+
 # Stock and options market-data recommendation for RealizeAlpha
 
 Research date: October 4, 2026. Prices are USD. Published prices below were checked against provider websites; custom quotes, exchange charges, taxes, infrastructure, and engineering costs are excluded unless explicitly stated. No paid subscriptions or vendor outreach were performed.

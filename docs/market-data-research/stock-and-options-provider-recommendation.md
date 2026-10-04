@@ -8,6 +8,8 @@ Reviewed October 4, 2026. All prices are USD.
 
 Use Twelve Data for the first release if its smallest commercial plan meets our needs. Evaluate Intrinio when adding options; replace the first feed where practical rather than paying for both. For live trading, use each connected customer's entitled broker data. A costly company-wide live feed is not a prerequisite for this path.
 
+The [code/API compatibility audit](intrinio-code-api-compatibility-audit.md) finds Intrinio suitable for a focused paper MVP after integration, with gaps for the full app. Its help center now lists delayed options in Startup: test that included feed before buying an upgrade. Paper option discovery and history currently have empty implementations.
+
 Keep the product simple: **Free, Plus and Pro**. Sell better practice and analysis tools through subscriptions. Keep basic account access, order status and cancellation available without a premium subscription.
 
 ## Release heatmap
@@ -21,7 +23,7 @@ Keep the product simple: **Free, Plus and Pro**. Sell better practice and analys
 | Watchlists, charts and trade history | 🟩 | 🟩 | 🟩 | 🟩 |
 | Options paper trading | ⬜ | 🟨 Long calls/puts first | 🟨 Estimated fills | 🟨 Estimated fills |
 | Options contract selection and Greeks | ⬜ | 🟨 Validate provider coverage | 🟨 Same paper scope | 🟨 Broker data for eligible users |
-| Realistic paper spreads and liquidity | 🟨 Simplified fills | 🟨 Model-based fills | 🟨 Separate feed upgrade | 🟨 Separate feed upgrade |
+| Paper spreads and liquidity estimates | 🟨 Simplified fills | 🟨 Test bundled delayed spreads | 🟨 Same paper scope | 🟨 Same paper scope |
 | Approved broker connection | ⬜ | ⬜ | 🟩 One broker | 🟩 Same broker |
 | Live stock/ETF orders | ⬜ | ⬜ | 🟩 User-confirmed | 🟩 |
 | Live option orders | ⬜ | ⬜ | ⬜ | 🟨 Eligible accounts, basic orders |
@@ -55,11 +57,11 @@ Use Apple/Google billing for the proposed paid digital tools, subject to applica
 | Decision | Tradeoff | When to upgrade |
 | --- | --- | --- |
 | Basic stock feed | Prices may cover part of the market; fills are estimates | Customers need more realistic trading practice |
-| Synthetic options prices | Do not reproduce actual spreads or available liquidity | Paid demand supports a quoted delayed exchange feed |
+| Synthetic or delayed options prices | Synthetic marks lack actual spreads; delayed quotes lag the market and neither guarantees fills | Test Startup's listed delayed options first; quote only missing capabilities |
 | One live broker | Customers must use the supported broker and have required permissions | Demand justifies a second integration |
 | Defer advanced analytics | No verified sweeps, market-wide GEX or autonomous trading at launch | A specific paid feature can fund its data and support costs |
 
-If realistic options simulation becomes essential, request a focused delayed exchange-data quote before buying a broad live stack. Keep all simulated prices and fills on the same market timeline. Live broker quotes do not automatically improve paper data for unrelated users.
+Intrinio's [included-products guidance](https://help.intrinio.com/what-products-are-included-in-my-intrinio-plan) lists 15-minute delayed options, although its main plan summary explicitly lists only delayed stocks. Verify account access and commercial display rights during the trial. Keep simulated option and underlying prices on the same market timeline. Live broker quotes do not automatically improve paper data for unrelated users.
 
 ## When to move to the next release
 
