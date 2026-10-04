@@ -168,6 +168,7 @@ class _PortfolioGreeksCardState extends State<PortfolioGreeksCard> {
               FilterChip(
                 label: Text(b),
                 selected: _selectedBenchmark == b,
+                tooltip: 'Select $b benchmark',
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 onSelected: (selected) {
