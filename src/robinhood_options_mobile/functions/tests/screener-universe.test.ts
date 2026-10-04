@@ -1,4 +1,8 @@
-import { normalizeScreenerRecord } from "../src/screener-universe";
+import { HttpsError } from "firebase-functions/v2/https";
+import {
+  normalizeScreenerRecord,
+  seedScreenerUniverseCall,
+} from "../src/screener-universe";
 
 describe("normalizeScreenerRecord", () => {
   it("maps Twelve Data fields to screener fields", () => {
@@ -49,6 +53,36 @@ describe("normalizeScreenerRecord", () => {
       exchange: "",
       sector: "",
       industry: "",
+    });
+  });
+});
+
+describe("seedScreenerUniverseCall Security Checks", () => {
+  it("rejects unauthenticated caller", async () => {
+    const request = {
+      auth: null,
+      data: {},
+    };
+
+    const callFn = () => (seedScreenerUniverseCall as any).run(request);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  it("rejects non-admin caller", async () => {
+    const request = {
+      auth: { uid: "user123", token: { role: "user" } },
+      data: {},
+    };
+
+    const callFn = () => (seedScreenerUniverseCall as any).run(request);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "permission-denied",
     });
   });
 });
