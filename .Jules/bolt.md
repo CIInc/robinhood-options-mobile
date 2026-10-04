@@ -29,3 +29,7 @@
 ## 2026-04-01 - O(1) Space Scalar Evaluation for ATR and Typical Price On-The-Fly CCI
 **Learning:** `evaluateATR` delegated to `computeATRArray` and accumulated full-series array allocations (`fullATRSeries`, `trueRanges`, `atrValues`), adding 19.7 µs/op per bar. Similarly, `evaluateCCI` and `evaluateCustomIndicator` allocated temporary `typicalPrices` arrays on every call.
 **Action:** Refactor `evaluateATR` to track running ATR sums and counts directly in scalar variables (reducing runtime by ~73%), and accept direct HLC arrays in `computeCCI` to calculate typical prices on-the-fly without intermediate array allocations.
+
+## 2026-10-04 - Zero-Allocation Chart Pattern Recognition in detectChartPattern
+**Learning:** Chart pattern detection (`detectChartPattern`) in technical indicator evaluation loops allocated temporary sub-arrays on every evaluation step (`windowPrices.slice(-30)`, `volumes.slice(-30)`, `peaks.slice(-3).map()`, `windowPrices.slice(-20)`), creating millions of transient array allocations and GC overhead in backtesting and signal generation loops.
+**Action:** Evaluate price window bounds, linear regression slope, volume moving averages, peak/trough extraction, and flag consolidation ranges using index offset arithmetic on existing window arrays without `slice()` allocations.
