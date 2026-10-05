@@ -66,28 +66,39 @@ interface AlphaDiscoveryRequest {
 // --- Helper Functions ---
 
 /**
- * Calculates Pearson correlation coefficient between two arrays.
- * Ignores indices where either value is null/NaN.
+ * Calculates Pearson correlation coefficient between two arrays over indices.
+ * Performance optimization: Operates directly over target indices to avoid
+ * allocating intermediate filtered arrays (`validIndices.map(...)`) and
+ * counting non-nulls via `.filter(...)`.
  * @param {Array<number|null>} x First array of values
  * @param {Array<number|null>} y Second array of values
- * @return {number|null} Pearson correlation coefficient or null if invalid
+ * @param {number[]} indices Target indices to evaluate
+ * @return {object} Result object containing correlation and count
  */
-function calculateCorrelation(
+function calculateCorrelationIndexed(
   x: (number | null)[],
-  y: (number | null)[]
-): number | null {
+  y: (number | null)[],
+  indices: number[]
+): { correlation: number | null; count: number } {
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
   let sumX2 = 0;
   let sumY2 = 0;
   let n = 0;
+  let count = 0;
 
-  for (let i = 0; i < x.length; i++) {
-    const xi = x[i];
-    const yi = y[i];
+  for (let k = 0; k < indices.length; k++) {
+    const idx = indices[k];
+    const xi = x[idx];
+    const yi = y[idx];
 
-    if (xi !== null && yi !== null && !isNaN(xi) && !isNaN(yi)) {
+    if (xi !== null && xi !== undefined && !isNaN(xi)) {
+      count++;
+    }
+
+    if (xi !== null && yi !== null && xi !== undefined && yi !== undefined &&
+      !isNaN(xi) && !isNaN(yi)) {
       sumX += xi;
       sumY += yi;
       sumXY += xi * yi;
@@ -97,15 +108,15 @@ function calculateCorrelation(
     }
   }
 
-  if (n < 2) return null;
+  if (n < 2) return { correlation: null, count };
 
   const numerator = n * sumXY - sumX * sumY;
   const denominator = Math.sqrt(
     (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)
   );
 
-  if (denominator === 0) return 0;
-  return numerator / denominator;
+  if (denominator === 0) return { correlation: 0, count };
+  return { correlation: numerator / denominator, count };
 }
 
 /**
@@ -132,13 +143,17 @@ function calculateForwardReturns(
 
 /**
  * Computes ADX array locally since library only returns last value.
+ * Performance optimization: Computes initial Wilder's smoothing sum via
+ * an index loop (avoiding `src.slice(0, period).reduce(...)`) and constructs
+ * the padded ADX result directly into a single pre-allocated array (avoiding
+ * `[...Array(padding).fill(null), ...adxNormalized]`).
  * @param {number[]} highs High prices
  * @param {number[]} lows Low prices
  * @param {number[]} closes Close prices
  * @param {number} period ADX period
  * @return {Array<number|null>} Array of ADX values
  */
-function computeADXArrayLocal(
+export function computeADXArrayLocal(
   highs: number[],
   lows: number[],
   closes: number[],
@@ -166,10 +181,13 @@ function computeADXArrayLocal(
     tr.push(trueRange);
   }
 
-  // 2. Wilder's Smoothing
+  // 2. Wilder's Smoothing without array slicing
   const smooth = (src: number[]) => {
     const output: number[] = [];
-    let sum = src.slice(0, period).reduce((a, b) => a + b, 0);
+    let sum = 0;
+    for (let i = 0; i < period; i++) {
+      sum += src[i];
+    }
     output.push(sum);
     for (let i = period; i < src.length; i++) {
       sum = sum - (sum / period) + src[i];
@@ -197,17 +215,17 @@ function computeADXArrayLocal(
 
   const adxRaw = smooth(dx);
 
-  // Create final array aligned with input size
-  // Steps lost data:
-  // - 1 index lost at step 1 (diffs)
-  // - (period - 1) indices lost at step 2 (first smoothing)
-  // - (period - 1) indices lost at step 3 (final adx smoothing)
-
-  // Total padding = N - ADX length = 2*period - 1.
+  // Create final array aligned with input size in O(1) extra space
   const padding = closes.length - adxRaw.length;
-  // Normalize ADX (Wilder's Smoothing is a Sum in this impl, need Average)
-  const adxNormalized = adxRaw.map((v) => v / period);
-  return [...Array(padding).fill(null), ...adxNormalized];
+  const result: (number | null)[] = new Array(closes.length);
+  for (let i = 0; i < padding; i++) {
+    result[i] = null;
+  }
+  for (let i = 0; i < adxRaw.length; i++) {
+    result[padding + i] = adxRaw[i] / period;
+  }
+
+  return result;
 }
 
 /**
@@ -713,18 +731,18 @@ export const discoverAlphaFactors = onCall({
             continue;
           }
 
-          // 2e. Apply Filter and Compute Correlation
-          const filteredValues = validIndices.map((idx) => values[idx]);
-          const filteredReturns = validIndices.map((idx) =>
-            forwardReturns[idx]);
-
-          const ic = calculateCorrelation(filteredValues, filteredReturns);
+          // 2e. Apply Filter and Compute Correlation in a single pass
+          const { correlation: ic, count } = calculateCorrelationIndexed(
+            values,
+            forwardReturns,
+            validIndices
+          );
 
           if (ic !== null) {
             results[j].symbolBreakdown.push({
               symbol,
               correlation: ic,
-              count: filteredValues.filter((v) => v !== null).length,
+              count,
             });
           }
         }

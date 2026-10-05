@@ -1,4 +1,5 @@
 import {
+  computeADXArrayLocal,
   computeCCIArrayLocal,
   computeMFIArrayLocal,
 } from "../src/alpha-factor-discovery";
@@ -44,6 +45,39 @@ describe("Alpha Factor Discovery - Local Indicator Functions", () => {
       const result = computeCCIArrayLocal(highs, lows, closes, 5);
 
       expect(result[4]).toBe(0);
+    });
+  });
+
+  describe("computeADXArrayLocal", () => {
+    it("should return nulls if history is shorter than period * 2", () => {
+      const highs = [10, 11, 12, 13, 14];
+      const lows = [8, 9, 10, 11, 12];
+      const closes = [9, 10, 11, 12, 13];
+
+      const result = computeADXArrayLocal(highs, lows, closes, 5);
+
+      expect(result).toHaveLength(5);
+      expect(result.every((v) => v === null)).toBe(true);
+    });
+
+    it("should compute valid ADX values for standard price series", () => {
+      const n = 20;
+      const period = 5;
+      const highs = Array.from({ length: n }, (_, i) => 10 + i * 1.5 + (i % 2));
+      const lows = Array.from({ length: n }, (_, i) => 8 + i * 1.5 - (i % 2));
+      const closes = Array.from({ length: n }, (_, i) => 9 + i * 1.5);
+
+      const result = computeADXArrayLocal(highs, lows, closes, period);
+
+      expect(result).toHaveLength(n);
+      const expectedPadding = 2 * period - 1;
+      for (let i = 0; i < expectedPadding; i++) {
+        expect(result[i]).toBeNull();
+      }
+      for (let i = expectedPadding; i < n; i++) {
+        expect(typeof result[i]).toBe("number");
+        expect(Number.isFinite(result[i])).toBe(true);
+      }
     });
   });
 

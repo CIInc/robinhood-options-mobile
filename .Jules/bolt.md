@@ -29,3 +29,7 @@
 ## 2026-04-01 - O(1) Space Scalar Evaluation for ATR and Typical Price On-The-Fly CCI
 **Learning:** `evaluateATR` delegated to `computeATRArray` and accumulated full-series array allocations (`fullATRSeries`, `trueRanges`, `atrValues`), adding 19.7 µs/op per bar. Similarly, `evaluateCCI` and `evaluateCustomIndicator` allocated temporary `typicalPrices` arrays on every call.
 **Action:** Refactor `evaluateATR` to track running ATR sums and counts directly in scalar variables (reducing runtime by ~73%), and accept direct HLC arrays in `computeCCI` to calculate typical prices on-the-fly without intermediate array allocations.
+
+## 2026-04-02 - Single-Pass Indexed Correlation and Array Allocation Elimination in Alpha Factor Discovery
+**Learning:** Evaluating factors across multi-asset universes in `discoverAlphaFactors` was allocating 3 temporary arrays (`validIndices.map(...)` x2 + `.filter(...)`) per factor per symbol to correlate values against forward returns over target date windows, creating thousands of transient array allocations. Additionally, `computeADXArrayLocal` was slicing input arrays in Wilder's smoothing and spreading padded null arrays.
+**Action:** Implement `calculateCorrelationIndexed` to compute Pearson correlation and valid factor count directly over target index masks in a single pass, and refactor ADX smoothing loops to use index summation and pre-sized result arrays.
