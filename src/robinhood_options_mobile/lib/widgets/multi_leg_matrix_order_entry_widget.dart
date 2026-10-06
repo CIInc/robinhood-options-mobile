@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/multi_leg_order_entry.dart';
 import 'package:robinhood_options_mobile/model/option_strategy.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
 /// A multi-column matrix order entry widget designed for widescreen, landscape,
 /// and tablet layouts, allowing options traders to construct and execute multi-leg strategies
@@ -13,6 +16,9 @@ class MultiLegMatrixOrderEntryWidget extends StatefulWidget {
   final VoidCallback? onCollapse;
   final Function(MultiLegOrderEntry)? onOrderSubmitted;
   final bool isCollapsible;
+  final IBrokerageService? service;
+  final BrokerageUser? user;
+  final Account? account;
 
   const MultiLegMatrixOrderEntryWidget({
     super.key,
@@ -21,6 +27,9 @@ class MultiLegMatrixOrderEntryWidget extends StatefulWidget {
     this.onCollapse,
     this.onOrderSubmitted,
     this.isCollapsible = true,
+    this.service,
+    this.user,
+    this.account,
   });
 
   @override
@@ -41,8 +50,12 @@ class _MultiLegMatrixOrderEntryWidgetState
     'Bull Put Spread',
     'Bear Call Spread',
     'Long Straddle',
+    'Short Straddle',
     'Long Strangle',
+    'Short Strangle',
     'Iron Condor',
+    'Call Calendar Spread',
+    'Put Calendar Spread',
     'Single Option',
     'Custom Multi-Leg',
   ];
@@ -109,8 +122,20 @@ class _MultiLegMatrixOrderEntryWidgetState
             spotPrice: _spotPrice,
           );
           break;
+        case 'Short Straddle':
+          _order = MultiLegOrderEntry.shortStraddle(
+            symbol: widget.instrument.symbol,
+            spotPrice: _spotPrice,
+          );
+          break;
         case 'Long Strangle':
           _order = MultiLegOrderEntry.strangle(
+            symbol: widget.instrument.symbol,
+            spotPrice: _spotPrice,
+          );
+          break;
+        case 'Short Strangle':
+          _order = MultiLegOrderEntry.shortStrangle(
             symbol: widget.instrument.symbol,
             spotPrice: _spotPrice,
           );
@@ -119,6 +144,20 @@ class _MultiLegMatrixOrderEntryWidgetState
           _order = MultiLegOrderEntry.ironCondor(
             symbol: widget.instrument.symbol,
             spotPrice: _spotPrice,
+          );
+          break;
+        case 'Call Calendar Spread':
+          _order = MultiLegOrderEntry.calendarSpread(
+            symbol: widget.instrument.symbol,
+            spotPrice: _spotPrice,
+            type: LegType.call,
+          );
+          break;
+        case 'Put Calendar Spread':
+          _order = MultiLegOrderEntry.calendarSpread(
+            symbol: widget.instrument.symbol,
+            spotPrice: _spotPrice,
+            type: LegType.put,
           );
           break;
         case 'Single Option':
@@ -862,17 +901,68 @@ class _MultiLegMatrixOrderEntryWidgetState
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(ctx).pop();
                 widget.onOrderSubmitted?.call(_order);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Multi-leg ${_order.strategyName} simulated order submitted!',
+
+                if (widget.service != null && widget.user != null) {
+                  try {
+                    final defaultAccount = widget.account ??
+                        Account(
+                          '',
+                          0,
+                          widget.user!.userName ?? 'default',
+                          'margin',
+                          0,
+                          'option_level_2',
+                          0,
+                          0,
+                          0,
+                        );
+                    final legs = _order.toBrokerageLegs();
+                    final price = _order.limitPrice ?? _order.absNetPremium;
+                    final direction = _order.isCredit ? 'credit' : 'debit';
+                    await widget.service!.placeMultiLegOptionsOrder(
+                      widget.user!,
+                      defaultAccount,
+                      legs,
+                      direction,
+                      price,
+                      _order.quantity,
+                      type: _order.orderType.toLowerCase(),
+                      timeInForce: _order.timeInForce.toLowerCase(),
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Multi-leg ${_order.strategyName} order submitted successfully!',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error placing multi-leg order: $e'),
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Multi-leg ${_order.strategyName} simulated order submitted!',
+                      ),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  );
+                }
               },
               child: const Text('Confirm Order'),
             ),

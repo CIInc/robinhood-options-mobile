@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/multi_leg_spread_builder_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/option_collateral_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -639,6 +640,22 @@ class _InstrumentOptionChainWidgetState
             tooltip: 'Filter Options',
             onPressed: () {
               _showFilterDialog(context);
+            }),
+        IconButton(
+            key: const ValueKey('spread-builder-appbar-btn'),
+            icon: const Icon(Icons.layers_outlined),
+            tooltip: 'Multi-Leg Spread Builder',
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (ctx) => MultiLegSpreadBuilderSheet(
+                  instrument: instrument,
+                  service: widget.service,
+                  user: widget.brokerageUser,
+                ),
+              );
             }),
         IconButton(
             icon: const Icon(Icons.shield_outlined),

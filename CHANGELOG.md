@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.55.1] - 2026-10-02
+**Multi-Leg Order Entry Templates, Spread Builder & Behavioral Guardrails ([docs](docs/multi-leg-spread-builder.md))**
+
+- **Multi-Leg Order Templates & Spread Builder (`MultiLegSpreadBuilderSheet`, `MultiLegMatrixOrderEntryWidget`, `MultiLegOrderEntry`, [docs](docs/multi-leg-spread-builder.md)):**
+  - **Structural Strategy Templates**: 1-tap pre-configured order pads for Vertical Spreads (Bull Call, Bear Put, Bull Put, Bear Call), Straddles (Long & Short), Strangles (Long & Short), Iron Condors, and Calendar Spreads (Call & Put), alongside free-form Custom Multi-Leg construction.
+  - **Real-Time Net Debit/Credit Calculation**: Dynamic summation of signed premiums across up to 4 legs, displaying direction (`NET CREDIT` or `NET DEBIT`) and total estimated cash requirements.
+  - **Max Risk/Reward & Breakeven Analytics**: Built-in pricing and payoff models computing exact maximum potential profit, defined maximum risk, and single or dual breakeven price points.
+  - **Interactive Leg Configuration**: Long/Short and Call/Put segmented toggles, smart strike steppers adapted to spot price step increments, per-leg expiration date picker, mark premiums, and position multipliers.
+  - **Brokerage Submission & Confirmation Pad**: Native multi-leg order execution supporting Schwab (`BUY_TO_OPEN`/`SELL_TO_OPEN`) and Robinhood legs via `IBrokerageService.placeMultiLegOptionsOrder`, complete with pre-submission confirmation dialog and error handling.
+  - **Option Chain Quick Launch**: Integrated Spread Builder launcher action (`spread-builder-appbar-btn`) directly within `OptionChainWidget`.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/multi_leg_spread_builder_test.dart` covering model calculations, JSON serialization, brokerage leg formatting, widget rendering, template transitions, and order submission.
+
 ## [0.55.0] - 2026-09-30
 **Guest Paper Account Migration, Streamlined Auth, Profile Feature Availability & Systematic Performance ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195), [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196))**
 

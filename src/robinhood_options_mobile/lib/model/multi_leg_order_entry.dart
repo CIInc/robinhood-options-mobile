@@ -9,6 +9,9 @@ class MultiLegOrderLeg {
   DateTime expirationDate;
   int ratio;
   double premium; // mark price per share
+  String? optionId;
+  String? optionUrl;
+  String? optionSymbol;
 
   MultiLegOrderLeg({
     required this.id,
@@ -18,6 +21,9 @@ class MultiLegOrderLeg {
     required this.expirationDate,
     this.ratio = 1,
     this.premium = 0.0,
+    this.optionId,
+    this.optionUrl,
+    this.optionSymbol,
   });
 
   MultiLegOrderLeg copyWith({
@@ -28,6 +34,9 @@ class MultiLegOrderLeg {
     DateTime? expirationDate,
     int? ratio,
     double? premium,
+    String? optionId,
+    String? optionUrl,
+    String? optionSymbol,
   }) {
     return MultiLegOrderLeg(
       id: id ?? this.id,
@@ -37,6 +46,9 @@ class MultiLegOrderLeg {
       expirationDate: expirationDate ?? this.expirationDate,
       ratio: ratio ?? this.ratio,
       premium: premium ?? this.premium,
+      optionId: optionId ?? this.optionId,
+      optionUrl: optionUrl ?? this.optionUrl,
+      optionSymbol: optionSymbol ?? this.optionSymbol,
     );
   }
 
@@ -51,6 +63,27 @@ class MultiLegOrderLeg {
     return sign * premium * ratio;
   }
 
+  /// Formats this leg into a map suitable for [IBrokerageService.placeMultiLegOptionsOrder].
+  Map<String, dynamic> toBrokerageLeg({
+    String? defaultOptionUrl,
+    String? defaultSymbol,
+  }) {
+    final effectiveOptionUrl = optionUrl ??
+        defaultOptionUrl ??
+        (optionId != null
+            ? 'https://api.robinhood.com/options/instruments/$optionId/'
+            : '');
+    final effectiveSymbol = optionSymbol ?? defaultSymbol ?? '';
+    return {
+      'side': isBuy ? 'buy' : 'sell',
+      'position_effect': 'open',
+      'ratio_quantity': ratio,
+      if (effectiveOptionUrl.isNotEmpty) 'option': effectiveOptionUrl,
+      if (effectiveSymbol.isNotEmpty) 'symbol': effectiveSymbol,
+      'instruction': isBuy ? 'BUY_TO_OPEN' : 'SELL_TO_OPEN',
+    };
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'action': action.name,
@@ -59,6 +92,9 @@ class MultiLegOrderLeg {
         'expirationDate': expirationDate.toIso8601String(),
         'ratio': ratio,
         'premium': premium,
+        if (optionId != null) 'optionId': optionId,
+        if (optionUrl != null) 'optionUrl': optionUrl,
+        if (optionSymbol != null) 'optionSymbol': optionSymbol,
       };
 
   factory MultiLegOrderLeg.fromJson(Map<String, dynamic> json) {
@@ -79,6 +115,9 @@ class MultiLegOrderLeg {
           : DateTime.now().add(const Duration(days: 30)),
       ratio: json['ratio'] as int? ?? 1,
       premium: (json['premium'] as num?)?.toDouble() ?? 0.0,
+      optionId: json['optionId'] as String?,
+      optionUrl: json['optionUrl'] as String?,
+      optionSymbol: json['optionSymbol'] as String?,
     );
   }
 }
@@ -168,6 +207,9 @@ class MultiLegOrderEntry {
         // Iron Condor is a credit strategy: max profit is net credit collected
         return absNetPremium * 100.0;
 
+      case StrategyType.calendar:
+        return isDebit ? (absNetPremium * 1.5 * 100.0) : (absNetPremium * 100.0);
+
       case StrategyType.straddle:
       case StrategyType.strangle:
         // Long straddle/strangle: unlimited upside profit
@@ -208,6 +250,9 @@ class MultiLegOrderEntry {
           return ((strikeDiff - absNetPremium) * 100.0)
               .clamp(0.0, double.infinity);
         }
+
+      case StrategyType.calendar:
+        return isDebit ? absNetPremium * 100.0 : null;
 
       case StrategyType.ironCondor:
         if (legs.length != 4) return null;
@@ -297,6 +342,14 @@ class MultiLegOrderEntry {
         }
         return [];
 
+      case StrategyType.calendar:
+        if (legs.isEmpty) return [];
+        final strike = legs.first.strike;
+        return [
+          (strike - absNetPremium * 1.2).clamp(0.0, double.infinity),
+          strike + absNetPremium * 1.2,
+        ];
+
       case StrategyType.straddle:
       case StrategyType.shortStraddle:
         if (legs.length != 2) return [];
@@ -334,15 +387,61 @@ class MultiLegOrderEntry {
   String get riskRewardRatio {
     final profit = maxProfitPerContract;
     final loss = maxLossPerContract;
-    if (profit == null && loss != null)
+    if (profit == null && loss != null) {
       return 'Unlimited / \$${loss.toStringAsFixed(0)}';
-    if (profit != null && loss == null)
+    }
+    if (profit != null && loss == null) {
       return '\$${profit.toStringAsFixed(0)} / Unlimited';
+    }
     if (profit != null && loss != null && loss > 0) {
       final ratio = profit / loss;
       return '1 : ${ratio.toStringAsFixed(2)}';
     }
     return 'Custom';
+  }
+
+  /// Converts all legs into brokerage-compatible leg maps for [IBrokerageService.placeMultiLegOptionsOrder].
+  List<Map<String, dynamic>> toBrokerageLegs({
+    String Function(MultiLegOrderLeg leg)? urlResolver,
+    String Function(MultiLegOrderLeg leg)? symbolResolver,
+  }) {
+    return legs.map((leg) {
+      final url = urlResolver?.call(leg);
+      final sym = symbolResolver?.call(leg);
+      return leg.toBrokerageLeg(defaultOptionUrl: url, defaultSymbol: sym);
+    }).toList();
+  }
+
+  Map<String, dynamic> toJson() => {
+        'symbol': symbol,
+        'underlyingPrice': underlyingPrice,
+        'strategyType': strategyType.name,
+        'strategyName': strategyName,
+        'legs': legs.map((l) => l.toJson()).toList(),
+        'quantity': quantity,
+        'orderType': orderType,
+        'limitPrice': limitPrice,
+        'timeInForce': timeInForce,
+      };
+
+  factory MultiLegOrderEntry.fromJson(Map<String, dynamic> json) {
+    return MultiLegOrderEntry(
+      symbol: json['symbol'] as String? ?? '',
+      underlyingPrice: (json['underlyingPrice'] as num?)?.toDouble() ?? 0.0,
+      strategyType: StrategyType.values.firstWhere(
+        (e) => e.name == json['strategyType'],
+        orElse: () => StrategyType.vertical,
+      ),
+      strategyName: json['strategyName'] as String? ?? 'Custom Multi-Leg',
+      legs: (json['legs'] as List<dynamic>?)
+              ?.map((e) => MultiLegOrderLeg.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      quantity: json['quantity'] as int? ?? 1,
+      orderType: json['orderType'] as String? ?? 'Limit',
+      limitPrice: (json['limitPrice'] as num?)?.toDouble(),
+      timeInForce: json['timeInForce'] as String? ?? 'gtc',
+    );
   }
 
   // Preset Strategy Factory Methods
@@ -531,6 +630,42 @@ class MultiLegOrderEntry {
     );
   }
 
+  /// Short Straddle (Credit): Sell ATM Call & Sell ATM Put
+  factory MultiLegOrderEntry.shortStraddle({
+    required String symbol,
+    required double spotPrice,
+    DateTime? expiration,
+  }) {
+    final exp = expiration ?? DateTime.now().add(const Duration(days: 30));
+    final strikeStep = _resolveStrikeStep(spotPrice);
+    final atmStrike = _roundToStep(spotPrice, strikeStep);
+
+    return MultiLegOrderEntry(
+      symbol: symbol,
+      underlyingPrice: spotPrice,
+      strategyType: StrategyType.shortStraddle,
+      strategyName: 'Short Straddle',
+      legs: [
+        MultiLegOrderLeg(
+          id: 'leg_sstd_c',
+          action: LegAction.sell,
+          type: LegType.call,
+          strike: atmStrike,
+          expirationDate: exp,
+          premium: spotPrice * 0.035,
+        ),
+        MultiLegOrderLeg(
+          id: 'leg_sstd_p',
+          action: LegAction.sell,
+          type: LegType.put,
+          strike: atmStrike,
+          expirationDate: exp,
+          premium: spotPrice * 0.035,
+        ),
+      ],
+    );
+  }
+
   /// Long Strangle: Buy OTM Put & OTM Call
   factory MultiLegOrderEntry.strangle({
     required String symbol,
@@ -568,6 +703,43 @@ class MultiLegOrderEntry {
     );
   }
 
+  /// Short Strangle (Credit): Sell OTM Put & Sell OTM Call
+  factory MultiLegOrderEntry.shortStrangle({
+    required String symbol,
+    required double spotPrice,
+    DateTime? expiration,
+  }) {
+    final exp = expiration ?? DateTime.now().add(const Duration(days: 30));
+    final strikeStep = _resolveStrikeStep(spotPrice);
+    final putStrike = _roundToStep(spotPrice * 0.95, strikeStep);
+    final callStrike = _roundToStep(spotPrice * 1.05, strikeStep);
+
+    return MultiLegOrderEntry(
+      symbol: symbol,
+      underlyingPrice: spotPrice,
+      strategyType: StrategyType.shortStrangle,
+      strategyName: 'Short Strangle',
+      legs: [
+        MultiLegOrderLeg(
+          id: 'leg_sstg_p',
+          action: LegAction.sell,
+          type: LegType.put,
+          strike: putStrike,
+          expirationDate: exp,
+          premium: spotPrice * 0.018,
+        ),
+        MultiLegOrderLeg(
+          id: 'leg_sstg_c',
+          action: LegAction.sell,
+          type: LegType.call,
+          strike: callStrike,
+          expirationDate: exp,
+          premium: spotPrice * 0.018,
+        ),
+      ],
+    );
+  }
+
   /// Iron Condor (Credit): Buy low put, sell mid put, sell mid call, buy high call
   factory MultiLegOrderEntry.ironCondor({
     required String symbol,
@@ -593,7 +765,7 @@ class MultiLegOrderEntry {
           type: LegType.put,
           strike: longPut,
           expirationDate: exp,
-          premium: spotPrice * 0.01,
+          premium: spotPrice * 0.003,
         ),
         MultiLegOrderLeg(
           id: 'leg_ic_sp',
@@ -601,7 +773,7 @@ class MultiLegOrderEntry {
           type: LegType.put,
           strike: shortPut,
           expirationDate: exp,
-          premium: spotPrice * 0.022,
+          premium: spotPrice * 0.007,
         ),
         MultiLegOrderLeg(
           id: 'leg_ic_sc',
@@ -609,7 +781,7 @@ class MultiLegOrderEntry {
           type: LegType.call,
           strike: shortCall,
           expirationDate: exp,
-          premium: spotPrice * 0.022,
+          premium: spotPrice * 0.007,
         ),
         MultiLegOrderLeg(
           id: 'leg_ic_lc',
@@ -617,7 +789,56 @@ class MultiLegOrderEntry {
           type: LegType.call,
           strike: longCall,
           expirationDate: exp,
-          premium: spotPrice * 0.01,
+          premium: spotPrice * 0.003,
+        ),
+      ],
+    );
+  }
+
+  /// Calendar Spread (Time Spread): Sell front-month option, buy back-month option at same strike
+  factory MultiLegOrderEntry.calendarSpread({
+    required String symbol,
+    required double spotPrice,
+    LegType type = LegType.call,
+    double? strike,
+    DateTime? nearExpiration,
+    DateTime? farExpiration,
+    double? nearPremium,
+    double? farPremium,
+  }) {
+    final strikeStep = _resolveStrikeStep(spotPrice);
+    final targetStrike = strike ?? _roundToStep(spotPrice, strikeStep);
+    final nearExp =
+        nearExpiration ?? DateTime.now().add(const Duration(days: 14));
+    final farExp =
+        farExpiration ?? DateTime.now().add(const Duration(days: 45));
+    final nearPrem =
+        nearPremium ?? (spotPrice * (type == LegType.call ? 0.02 : 0.018));
+    final farPrem =
+        farPremium ?? (spotPrice * (type == LegType.call ? 0.038 : 0.035));
+
+    return MultiLegOrderEntry(
+      symbol: symbol,
+      underlyingPrice: spotPrice,
+      strategyType: StrategyType.calendar,
+      strategyName:
+          '${type == LegType.call ? 'Call' : 'Put'} Calendar Spread',
+      legs: [
+        MultiLegOrderLeg(
+          id: 'leg_cal_short',
+          action: LegAction.sell,
+          type: type,
+          strike: targetStrike,
+          expirationDate: nearExp,
+          premium: nearPrem,
+        ),
+        MultiLegOrderLeg(
+          id: 'leg_cal_long',
+          action: LegAction.buy,
+          type: type,
+          strike: targetStrike,
+          expirationDate: farExp,
+          premium: farPrem,
         ),
       ],
     );
@@ -651,6 +872,21 @@ class MultiLegOrderEntry {
           premium: spotPrice * 0.03,
         ),
       ],
+    );
+  }
+
+  /// Custom Multi-Leg option order
+  factory MultiLegOrderEntry.custom({
+    required String symbol,
+    required double spotPrice,
+    List<MultiLegOrderLeg>? legs,
+  }) {
+    return MultiLegOrderEntry(
+      symbol: symbol,
+      underlyingPrice: spotPrice,
+      strategyType: StrategyType.custom,
+      strategyName: 'Custom Multi-Leg',
+      legs: legs ?? [],
     );
   }
 
