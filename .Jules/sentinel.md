@@ -1,3 +1,8 @@
+## 2025-03-14 - Missing Authentication and Role Authorization on Ad-Hoc Agentic Trading Cron Function
+**Vulnerability:** `agenticTradingCronInvoke` in `agentic-trading-cron.ts` was exported as an HTTP `onRequest` function without authentication or authorization checks. Anyone on the public internet could trigger an ad-hoc run scanning all symbols, invoking Gemini LLM and Twelve Data APIs, and writing signals to Firestore.
+**Learning:** Ad-hoc cron or administrative trigger functions exposed via HTTP without `request.auth` and custom claim checks (`role === "admin"`) expose the system to Denial of Wallet / DoS attacks and unauthorized data mutation.
+**Prevention:** Always implement ad-hoc cron triggers as `onCall` functions and enforce `if (!request.auth || !request.auth.uid)` and `request.auth.token?.role === "admin"` before executing batch operations or API integrations.
+
 ## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
 **Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
 **Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.
