@@ -2,8 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.55.1] - 2026-10-02
-**Multi-Leg Order Entry Templates, Spread Builder & Behavioral Guardrails ([docs](docs/multi-leg-spread-builder.md))**
+## [0.55.1] - 2026-10-06
+**Autonomous Risk Copilot, Multi-Leg Spread Builder, AI Trade Post-Mortem & Behavioral Tilt Safeguards ([docs](docs/agentic-risk-copilot.md), [docs](docs/multi-leg-spread-builder.md), [docs](docs/trade-post-mortem.md), [docs](docs/risk-circuit-breakers.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#198](https://github.com/CIInc/robinhood-options-mobile/pull/198), [#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202))**
+
+- **Autonomous Agentic Risk Copilot (`RiskCopilotService`, `RiskCopilotWidget`, `AgenticRiskCopilotCard`, `risk_copilot_model.dart`, [docs](docs/agentic-risk-copilot.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Continuous Background Portfolio Monitoring**: Autonomous risk engine evaluating overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges in real time.
+  - **Interactive Copilot Dashboard & Cards**: Embedded `AgenticRiskCopilotCard` in Portfolio Risk section and dedicated full-screen `RiskCopilotWidget` with factor sensitivities, stress scenarios, and automated hedge recommendations.
+  - **Portfolio Navigation Integration**: Seamless deep linking from Action Center alerts and `PortfolioNavigator.openSection` into the Copilot dashboard.
+  - **Automated Test Coverage**: Comprehensive test suite in `test/risk_copilot_service_test.dart` validating calculations, hazard detection, and hedge suggestions.
 
 - **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger (`TradePostMortemAnalysis`, `TradePostMortemSheet`, `analyzeTradePostMortem`, [docs](docs/trade-post-mortem.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
   - **Automated Diagnostic Evaluation**: Objective post-trade evaluation of closed stock and option positions, computing execution score (0–100), letter grade (A–F), and outcome verdict (`goodWin`, `badWin`, `goodLoss`, `badLoss`, `breakEven`, `scratch`) to eliminate outcome bias.
@@ -22,6 +28,38 @@ All notable changes to this project will be documented in this file.
   - **Brokerage Submission & Confirmation Pad**: Native multi-leg order execution supporting Schwab (`BUY_TO_OPEN`/`SELL_TO_OPEN`) and Robinhood legs via `IBrokerageService.placeMultiLegOptionsOrder`, complete with pre-submission confirmation dialog and error handling.
   - **Option Chain Quick Launch**: Integrated Spread Builder launcher action (`spread-builder-appbar-btn`) directly within `OptionChainWidget`.
   - **Automated Test Coverage**: Added comprehensive test suite in `test/multi_leg_spread_builder_test.dart` covering model calculations, JSON serialization, brokerage leg formatting, widget rendering, template transitions, and order submission.
+
+- **In-App Behavioral Tilt & Overtrading Safeguards (`RiskCircuitBreakerService`, `RiskCircuitBreakerSettingsWidget`, `RiskCircuitBreakerConfig`, [docs](docs/risk-circuit-breakers.md), [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - **Software-Based Behavioral Tilt Detection**: Pure software heuristics analyzing rapid cancel/replace loops, revenge-trading sizing spikes, and consecutive losses to prompt mandatory cooling-off pauses without intrusive platform health permissions.
+  - **Order Entry Gating**: Actively gates order submission in `TradeOptionWidget` and `PositionOrderWidget` when circuit breakers trip.
+  - **Action Center Alert Integration**: Alerts for impending threshold breaches and tripped circuit breaker statuses in `PortfolioAlertService`.
+  - **Automated Test Coverage**: Dedicated unit and widget tests in `test/risk_circuit_breaker_test.dart` and `test/risk_circuit_breaker_widget_test.dart`.
+
+- **Action Center Enhancements & Context-First Deep-Linking (`ActionCenterWidget`, `PortfolioAlertService`, `PortfolioNavigator`, [docs](docs/portfolio-redesign.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - **Advanced Filtering & UX**: Horizontal category chips, contextual ticker pills, inline action buttons, swipe and quick dismissal with undo support, and all-clear states.
+  - **Deepened Analytical Routing**: Direct routing across 0DTE squeeze radar, earnings IV crush, volatility cone, 3D IV surface, delta hedging, unusual activity, and congressional trading to exact analytical screens.
+  - **Day P&L Alert Integration**: Account-aware day P&L alerts integrated into `PortfolioAlertService`.
+  - **Automated Test Coverage**: Dedicated tests in `test/action_center_test.dart`, `test/brokerage_user_display_text_test.dart`, and `test/deploy_cash_navigation_test.dart`.
+
+- **Paper Trading Store Streams & Order Enhancements (`PaperTradingStore`, `PaperService`, `InstrumentWidget`):**
+  - Added live stream subscriptions for pending and executed stock and option orders (`streamStockOrders`, `streamOptionOrders`).
+  - Contextual suppression and clean handling of tax sections and strategies in simulated paper mode.
+  - Added test coverage in `test/paper_trading_pending_orders_test.dart` and `test/full_paper_trading_test.dart`.
+
+- **Algorithmic Indicator Performance ($O(1)$ Space & Scalar Calculations, [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)):**
+  - Optimized `evaluateBollingerBands` to call scalar computations instead of full-series array generators, reducing execution time from 65.2 µs/op to 7.6 µs/op (~8.6x speedup) and eliminating heap allocations per bar ([#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)).
+  - Optimized `evaluateATR` and `computeCCI` in `functions/src/technical-indicators.ts` to execute in single-pass $O(1)$ space without intermediate typical price or range array allocations ([#197](https://github.com/CIInc/robinhood-options-mobile/pull/197)).
+
+- **Assistive Accessibility & Screen Reader Semantics ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)):**
+  - Wrapped `UserListTile` in consolidated accessible `Semantics` providing natural spoken screen reader summaries of user metadata ([#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)).
+  - Added `semanticsLabel` to `AnimatedPriceText` for unambiguous currency readout ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199)).
+
+- **Backend Security & Callable Authentication Hardening ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)):**
+  - Enforced mandatory `request.auth` verification on news intelligence and market data quotes callable endpoints (`market-data.ts`, `news-intelligence.ts`).
+
+- **Market Data Provider Research & Strategy Documentation:**
+  - Added comprehensive market data provider evaluations and Intrinio recommendation research in `docs/market-data-research/`.
+
 
 ## [0.55.0] - 2026-09-30
 **Guest Paper Account Migration, Streamlined Auth, Profile Feature Availability & Systematic Performance ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195), [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196))**

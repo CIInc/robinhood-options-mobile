@@ -5,6 +5,7 @@
 - Ability to make better trades.
 - **[Price Targets](price-targets.md):** AI-driven price target recommendations with confidence scoring and rationale.
 - **[AI Devil's Advocate & Trade Thesis Stress Tester](devils-advocate.md):** Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades.
+- **[AI Trade Post-Mortem & Behavioral Journal Auto-Tagger](trade-post-mortem.md):** Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and psychological antidotes with 1-tap emotion journal tagging.
 - Enhanced portfolio management with advanced analytics.
 - Simplified trading for beginners with guided workflows.
 - Centralized view for stocks, options, and crypto assets.
@@ -43,6 +44,7 @@
 - **[Inverse Copying & Exit Strategies](copy-trading.md):** Contrarian copy mode and automated risk management (TP/SL) for copied trades.
 - **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
 - **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
+- **[Multi-Leg Order Entry Templates & Spread Builder](multi-leg-spread-builder.md):** 1-tap pre-configured structural order pads for Vertical Spreads, Straddles, Strangles, Iron Condors, and Calendar Spreads with real-time net debit/credit and risk/reward analytics.
 - **[Options Strategy Roll Assistant](options-strategy-roll-assistant.md):** 1-tap rolling wizard for covered calls, cash-secured puts, and spreads with real-time net credit/debit, breakeven updates, Greeks shift comparison, and multi-leg order execution.
 - **[Multi-Leg Options Defense & Roll Playbook](options-defense-and-roll-playbook.md):** Automated threat detection engine and tactical advisory playbook for tested options positions, short legs, and credit spreads with 1-tap transfer to the Roll Assistant.
 - **[Landscape Charting & Multi-Column Matrix View](landscape-chart-matrix.md):** Full-width widescreen charting mode with collapsible multi-leg order entry for tablet and mobile devices.
@@ -84,6 +86,7 @@
 - **[Congress & Political Trading Tracker](congress-trading-tracker.md):** Real-time monitoring and smart alerts for congressional STOCK Act filings, filing lag metrics, and portfolio overlap matching across stocks and options.
 - **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
 - **[Autonomous Account Risk Circuit Breakers & Tilt Guardrails](risk-circuit-breakers.md):** User-configurable automated account protection against emotional and revenge trading with daily loss limits, portfolio drawdown tracking, margin buffer cushion, and mandatory cooling-off order lockouts.
+- **[Autonomous Agentic Risk Copilot](agentic-risk-copilot.md):** Continuous background and portfolio monitoring service evaluating overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges.
 - **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg and multi-leg option order placement, and **Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`)** for sub-second Level 1 equity/option quotes, Greeks, order/account activity notifications, live chart streaming, and futures/forex feeds.
 - **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
 - **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags, alerts, a notifications feed, and structured definition, detection-reason, and recommendation guidance.
