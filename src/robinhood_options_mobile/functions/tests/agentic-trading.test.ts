@@ -8,6 +8,9 @@ jest.mock("firebase-admin/firestore", () => ({
       set: jest.fn(async () => ({})),
       update: jest.fn(async () => ({})),
     })),
+    collection: jest.fn(() => ({
+      listDocuments: jest.fn(async () => []),
+    })),
   }),
   FieldValue: {
     serverTimestamp: () => "TIMESTAMP",
@@ -26,6 +29,7 @@ import {
   initiateTradeProposal,
   seedAgenticTrading,
 } from "../src/agentic-trading";
+import { agenticTradingCronInvoke } from "../src/agentic-trading-cron";
 
 describe("agentic-trading callable functions auth checks", () => {
   test("initiateTradeProposal rejects unauthenticated request", async () => {
@@ -82,6 +86,48 @@ describe("agentic-trading callable functions auth checks", () => {
     expect(response).toMatchObject({
       status: "success",
       totalProcessed: 1,
+    });
+  });
+
+  test("agenticTradingCronInvoke rejects unauthenticated request", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: {},
+    };
+
+    const callFn = () =>
+      (agenticTradingCronInvoke as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  test("agenticTradingCronInvoke rejects non-admin request", async () => {
+    const nonAdminRequest = {
+      auth: { uid: "user123", token: { role: "user" } },
+      data: {},
+    };
+
+    const callFn = () => (agenticTradingCronInvoke as any).run(nonAdminRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+  });
+
+  test("agenticTradingCronInvoke allows admin request", async () => {
+    const adminRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {},
+    };
+
+    const response = await (agenticTradingCronInvoke as any).run(adminRequest);
+    expect(response).toMatchObject({
+      processedCount: 0,
+      errorCount: 0,
     });
   });
 });
