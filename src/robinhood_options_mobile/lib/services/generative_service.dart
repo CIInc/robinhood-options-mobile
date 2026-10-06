@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
 import 'package:robinhood_options_mobile/model/devils_advocate_model.dart';
+import 'package:robinhood_options_mobile/model/trade_post_mortem_model.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/gamma_exposure_model.dart';
@@ -528,6 +529,70 @@ Follow the table with a strategic breakdown:
       }
     } catch (e) {
       debugPrint("Error stress testing trade thesis: $e");
+    }
+    return null;
+  }
+
+  Future<TradePostMortemAnalysis?> analyzeTradePostMortem({
+    required String symbol,
+    String tradeType = 'Stock',
+    String side = 'Sell / Exit',
+    double? entryPrice,
+    double? exitPrice,
+    double? realizedPnl,
+    double? realizedPnlPercent,
+    String? entryThesis,
+    String? exitReason,
+    String? holdingPeriod,
+    String? orderHistory,
+  }) async {
+    try {
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'analyzeTradePostMortem',
+      );
+      final resp = await callable.call(<String, dynamic>{
+        'symbol': symbol,
+        'tradeType': tradeType,
+        'side': side,
+        if (entryPrice != null) 'entryPrice': entryPrice,
+        if (exitPrice != null) 'exitPrice': exitPrice,
+        if (realizedPnl != null) 'realizedPnl': realizedPnl,
+        if (realizedPnlPercent != null)
+          'realizedPnlPercent': realizedPnlPercent,
+        if (entryThesis != null && entryThesis.isNotEmpty)
+          'entryThesis': entryThesis,
+        if (exitReason != null && exitReason.isNotEmpty)
+          'exitReason': exitReason,
+        if (holdingPeriod != null && holdingPeriod.isNotEmpty)
+          'holdingPeriod': holdingPeriod,
+        if (orderHistory != null && orderHistory.isNotEmpty)
+          'orderHistory': orderHistory,
+      });
+
+      String? responseText;
+      if (resp.data != null) {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          responseText =
+              (resp.data["candidates"][0]["content"]["parts"] as List)
+                  .map((e) => e["text"])
+                  .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          responseText = (resp.data["response"]["candidates"][0]["content"]
+                  ["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      }
+
+      if (responseText != null) {
+        responseText = responseText
+            .replaceAll(RegExp(r'^```json\s*'), '')
+            .replaceAll(RegExp(r'\s*```$'), '');
+        final json = jsonDecode(responseText);
+        return TradePostMortemAnalysis.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint("Error analyzing trade post-mortem: $e");
     }
     return null;
   }

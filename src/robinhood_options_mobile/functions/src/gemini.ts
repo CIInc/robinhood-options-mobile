@@ -516,3 +516,161 @@ export const stressTestTradeThesis = https.onCall(
     };
   });
 
+export const analyzeTradePostMortem = https.onCall(
+  { secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to perform trade post-mortem analysis.",
+      );
+    }
+    logger.info(request.data, { structuredData: true });
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError("unavailable", "GEMINI_API_KEY not found.");
+    }
+    const symbol = request.data.symbol;
+    if (!symbol) {
+      throw new https.HttpsError(
+        "invalid-argument",
+        "The function must be called with a 'symbol' argument.",
+      );
+    }
+
+    const tradeType = (request.data.tradeType || "Stock").trim();
+    const side = (request.data.side || "Sell / Exit").trim();
+    const entryPrice = request.data.entryPrice != null ?
+      Number(request.data.entryPrice) : null;
+    const exitPrice = request.data.exitPrice != null ?
+      Number(request.data.exitPrice) : null;
+    const realizedPnl = request.data.realizedPnl != null ?
+      Number(request.data.realizedPnl) : null;
+    const realizedPnlPercent = request.data.realizedPnlPercent != null ?
+      Number(request.data.realizedPnlPercent) : null;
+    const entryThesis = request.data.entryThesis ?
+      String(request.data.entryThesis).trim() : "";
+    const exitReason = request.data.exitReason ?
+      String(request.data.exitReason).trim() : "";
+    const holdingPeriod = request.data.holdingPeriod ?
+      String(request.data.holdingPeriod).trim() : "";
+    const orderHistory = request.data.orderHistory ?
+      String(request.data.orderHistory).trim() : "";
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    const primaryModel = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
+
+    const prompt = `
+    You are an elite institutional trading psychologist, quantitative risk director, and behavioral trading coach for RealizeAlpha.
+    Your mission is to perform a rigorous post-mortem analysis on a closed trade to evaluate execution quality, cognitive biases, and strategic alignment against the initial entry thesis.
+
+    Trade Parameters:
+    - Symbol: ${symbol.toUpperCase()}
+    - Asset Type: ${tradeType}
+    - Exit Action: ${side}
+    ${entryPrice != null ? `- Entry Price: $${entryPrice.toFixed(2)}` : ""}
+    ${exitPrice != null ? `- Exit Price: $${exitPrice.toFixed(2)}` : ""}
+    ${realizedPnl != null ? `- Realized P&L: $${realizedPnl.toFixed(2)}` : ""}
+    ${realizedPnlPercent != null ? `- Realized Return: ${realizedPnlPercent.toFixed(2)}%` : ""}
+    ${holdingPeriod ? `- Holding Period / Duration: ${holdingPeriod}` : ""}
+    ${entryThesis ? `- Original Entry Thesis: "${entryThesis}"` : "- Original Entry Thesis: (None specified / discretionary)"}
+    ${exitReason ? `- Trader's Stated Exit Reason: "${exitReason}"` : "- Exit Reason: (Discretionary close / stop triggered)"}
+    ${orderHistory ? `- Associated Execution Flow: ${orderHistory}` : ""}
+
+    Conduct an in-depth post-mortem and provide:
+    1. An Execution Quality Score (0 to 100):
+       - 80-100: "Flawless Execution" (Disciplined plan execution regardless of outcome)
+       - 60-79: "Acceptable Execution" (Minor timing or sizing imperfections)
+       - 40-59: "Suboptimal Execution" (Hesitation, premature exit, or chased entry)
+       - 0-39: "Disciplined Failure / Tilt" (FOMO entry, revenge exit, ignored stops)
+    2. An Execution Grade: "A", "B", "C", "D", or "F".
+    3. An Outcome Verdict: Categorize the trade outcome:
+       - "Good Win" (Process followed, positive outcome)
+       - "Bad Win" (Lucky outcome, flawed process / rules broken)
+       - "Good Loss" (Disciplined loss, stop adhered to, good risk/reward)
+       - "Bad Loss" (Disciplined failure, revenge trade, or oversized loser)
+    4. Thesis Alignment Score (0 to 100): Did the actual trade play out the way the thesis predicted?
+    5. Primary Cognitive Biases Detected (1 to 3 items):
+       - Bias name (e.g., "FOMO / Chasing", "Disposition Effect", "Loss Aversion", "Revenge Trading", "Overconfidence", "Anchoring", "Premature Profit Taking", "None Detected")
+       - Severity ("Low", "Moderate", "High", "Critical")
+       - Evidence from the trade prices, duration, or thesis
+       - Actionable Antidote / Behavioral Rx
+    6. Execution Flaws (0 to 3 items): Specific mechanical flaws (e.g., "Slippage on Market Exit", "Held Past Invalidation Point", "No Hard Stop Placed", "Oversized Sizing Spikes") with severity ("High", "Medium", "Low")
+    7. Tactical Lessons Learned: 2-3 concise, bulleted rules for future trades.
+    8. Recommended Journal Tags: 3-5 tags for automatic behavioral tagging (e.g. ["#LossAversion", "#GoodLoss", "#EarningsTrade", "#StoppedOut", "#RuleFollowed"]).
+    9. Coach Summary: 2-3 sentences synthesizing the diagnostic takeaway in an encouraging but uncompromising tone.
+
+    Return the response in strict JSON format matching this schema:
+    {
+      "symbol": "${symbol.toUpperCase()}",
+      "execution_score": number,
+      "execution_grade": "A" | "B" | "C" | "D" | "F",
+      "outcome_verdict": "Good Win" | "Bad Win" | "Good Loss" | "Bad Loss",
+      "thesis_alignment_score": number,
+      "detected_biases": [
+        {
+          "name": string,
+          "severity": "Low" | "Moderate" | "High" | "Critical",
+          "evidence": string,
+          "mitigation": string
+        }
+      ],
+      "execution_flaws": [
+        {
+          "title": string,
+          "description": string,
+          "severity": "High" | "Medium" | "Low"
+        }
+      ],
+      "tactical_lessons": [
+        string
+      ],
+      "auto_tags": [
+        string
+      ],
+      "coach_summary": string
+    }
+    `;
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          maxOutputTokens: 1400,
+          temperature: 0.2,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in analyzeTradePostMortem, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json",
+            maxOutputTokens: 1400,
+            temperature: 0.2,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
+  });
+
+

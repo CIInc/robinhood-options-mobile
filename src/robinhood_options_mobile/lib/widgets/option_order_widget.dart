@@ -18,6 +18,7 @@ import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.d
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_post_mortem_sheet.dart';
 
 class OptionOrderWidget extends StatefulWidget {
   const OptionOrderWidget(
@@ -139,6 +140,37 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
         snap: false,
         pinned: true,
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.psychology_alt),
+            tooltip: "AI Trade Post-Mortem",
+            onPressed: () {
+              final firstLeg = widget.optionOrder.legs.isNotEmpty
+                  ? widget.optionOrder.legs.first
+                  : null;
+              final holdingDuration = widget.optionOrder.updatedAt != null &&
+                      widget.optionOrder.createdAt != null
+                  ? "${widget.optionOrder.updatedAt!.difference(widget.optionOrder.createdAt!).inMinutes} min"
+                  : null;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TradePostMortemSheet(
+                    symbol: widget.optionOrder.chainSymbol,
+                    tradeType: 'Option',
+                    side: widget.optionOrder.direction,
+                    entryPrice: widget.optionOrder.price,
+                    exitPrice: instrument.quoteObj?.lastTradePrice,
+                    holdingPeriod: holdingDuration,
+                    orderHistory: "Option strategy: ${widget.optionOrder.strategy}, direction: ${widget.optionOrder.direction}, strike: ${firstLeg?.strikePrice}, type: ${firstLeg?.optionType}, state: ${widget.optionOrder.state}",
+                    userDoc: widget.userDocRef,
+                    generativeService: widget.generativeService,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
         flexibleSpace: FlexibleSpaceBar(
             title: SingleChildScrollView(
                 child: Wrap(

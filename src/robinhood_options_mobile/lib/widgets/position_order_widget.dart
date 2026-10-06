@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.d
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_post_mortem_sheet.dart';
 
 class PositionOrderWidget extends StatefulWidget {
   const PositionOrderWidget(
@@ -114,6 +115,29 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         floating: false,
         snap: false,
         pinned: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.psychology_alt),
+            tooltip: "AI Trade Post-Mortem",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TradePostMortemSheet(
+                    symbol: positionOrder.instrumentObj!.symbol,
+                    tradeType: 'Stock',
+                    side: positionOrder.side,
+                    entryPrice: positionOrder.averagePrice ?? positionOrder.price,
+                    exitPrice: positionOrder.instrumentObj?.quoteObj?.lastTradePrice,
+                    orderHistory: "Order side: ${positionOrder.side}, type: ${positionOrder.type}, state: ${positionOrder.state}, quantity: ${positionOrder.quantity}",
+                    userDoc: widget.userDocRef,
+                    generativeService: widget.generativeService,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
         flexibleSpace: FlexibleSpaceBar(
           title: SingleChildScrollView(
               child: Wrap(

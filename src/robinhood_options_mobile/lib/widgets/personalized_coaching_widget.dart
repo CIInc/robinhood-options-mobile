@@ -29,6 +29,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/model/whale_watch.dart';
 import 'package:robinhood_options_mobile/model/trading_psychology_model.dart';
 import 'package:robinhood_options_mobile/widgets/trading_psychology_widgets.dart';
+import 'package:robinhood_options_mobile/widgets/trade_post_mortem_sheet.dart';
 
 class PersonalizedCoachingWidget extends StatefulWidget {
   final IBrokerageService service;
@@ -1843,19 +1844,58 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                       ),
                                   ],
                                 ),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(
-                                        "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13)),
-                                    Text(
-                                        "${t['quantity']} ${isStock ? 'sh' : 'cts'}",
-                                        style: const TextStyle(
-                                            fontSize: 11, color: Colors.grey)),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                            "\$${double.tryParse(t['price'].toString())?.toStringAsFixed(2) ?? t['price']}",
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13)),
+                                        Text(
+                                            "${t['quantity']} ${isStock ? 'sh' : 'cts'}",
+                                            style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey)),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.psychology_alt,
+                                          size: 18,
+                                          color: Colors.purpleAccent),
+                                      tooltip: "AI Trade Post-Mortem",
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                TradePostMortemSheet(
+                                              symbol: t['symbol'] ?? '',
+                                              tradeType: isStock
+                                                  ? 'Stock'
+                                                  : 'Option',
+                                              side: t['side']?.toString() ??
+                                                  t['direction']?.toString() ??
+                                                  'Exit',
+                                              entryPrice: double.tryParse(
+                                                  t['price'].toString()),
+                                              orderHistory:
+                                                  "Trade ${t['symbol']} type ${t['order_type']}, state ${t['state']}",
+                                              userDoc: widget.userDoc,
+                                              generativeService:
+                                                  widget.generativeService,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
                               );

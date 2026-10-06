@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [0.55.1] - 2026-10-02
 **Multi-Leg Order Entry Templates, Spread Builder & Behavioral Guardrails ([docs](docs/multi-leg-spread-builder.md))**
 
+- **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger (`TradePostMortemAnalysis`, `TradePostMortemSheet`, `analyzeTradePostMortem`, [docs](docs/trade-post-mortem.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Automated Diagnostic Evaluation**: Objective post-trade evaluation of closed stock and option positions, computing execution score (0–100), letter grade (A–F), and outcome verdict (`goodWin`, `badWin`, `goodLoss`, `badLoss`, `breakEven`, `scratch`) to eliminate outcome bias.
+  - **Behavioral Bias Taxonomy & Cognitive Antidotes**: Detects cognitive biases including Disposition Effect, FOMO, Revenge Trading, Loss Aversion, Sunk Cost, Anchoring, and Overconfidence, paired with concrete actionable psychological counter-measures.
+  - **Execution Flaws & Tactical Lessons**: Pinpoints execution mistakes (premature exit, late exit, excessive slippage, position sizing violations) with severity classifications and corrective guidelines.
+  - **Firestore Emotion Journal Auto-Tagger**: 1-tap automated tagging into the trader's Firestore `users/{uid}/emotion_logs` collection with standardized categorization hashtags (`#PostMortem`, `#LossAversion`, ticker tags, etc.).
+  - **Cross-Screen Launch Points**: Integrated launch actions from `PositionOrderWidget` (stock order review), `OptionOrderWidget` (option order review), and `PersonalizedCoachingWidget` (AI trading coach activity stream).
+  - **Backend Gemini 3.1 Flash-Lite Function**: Added `analyzeTradePostMortem` Firebase callable function with mandatory `request.auth` verification and fallback to `gemini-2.5-flash-lite`.
+  - **Automated Test Coverage**: Added comprehensive test suites in `test/trade_post_mortem_model_test.dart` (models, score/grade colors, JSON round-trip), `test/trade_post_mortem_sheet_test.dart` (UI rendering and fake Firestore journal saving), and `functions/tests/gemini.test.ts` (unauthenticated and validation rejections).
+
 - **Multi-Leg Order Templates & Spread Builder (`MultiLegSpreadBuilderSheet`, `MultiLegMatrixOrderEntryWidget`, `MultiLegOrderEntry`, [docs](docs/multi-leg-spread-builder.md)):**
   - **Structural Strategy Templates**: 1-tap pre-configured order pads for Vertical Spreads (Bull Call, Bear Put, Bull Put, Bear Call), Straddles (Long & Short), Strangles (Long & Short), Iron Condors, and Calendar Spreads (Call & Put), alongside free-form Custom Multi-Leg construction.
   - **Real-Time Net Debit/Credit Calculation**: Dynamic summation of signed premiums across up to 4 legs, displaying direction (`NET CREDIT` or `NET DEBIT`) and total estimated cash requirements.

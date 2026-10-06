@@ -20,6 +20,7 @@ import {
   generateContent25,
   analyzePriceTargets,
   stressTestTradeThesis,
+  analyzeTradePostMortem,
 } from "../src/gemini";
 
 describe("Gemini Cloud Functions Security Checks", () => {
@@ -107,6 +108,44 @@ describe("Gemini Cloud Functions Security Checks", () => {
       };
       process.env.GEMINI_API_KEY = "dummy-key";
       const callFn = () => (stressTestTradeThesis as any).run(authReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+  });
+
+  describe("analyzeTradePostMortem", () => {
+    test("rejects unauthenticated requests (null auth)", async () => {
+      const unauthReq = {
+        auth: null,
+        data: { symbol: "NVDA", tradeType: "Stock" },
+      };
+      const callFn = () => (analyzeTradePostMortem as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects unauthenticated requests (undefined auth)", async () => {
+      const unauthReq = {
+        data: { symbol: "NVDA" },
+      };
+      const callFn = () => (analyzeTradePostMortem as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects missing symbol when authenticated", async () => {
+      const authReq = {
+        auth: { uid: "test-user-123" },
+        data: {},
+      };
+      process.env.GEMINI_API_KEY = "dummy-key";
+      const callFn = () => (analyzeTradePostMortem as any).run(authReq);
       await expect(callFn()).rejects.toThrow(HttpsError);
       await expect(callFn()).rejects.toMatchObject({
         code: "invalid-argument",

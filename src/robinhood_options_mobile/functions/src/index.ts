@@ -89,6 +89,7 @@ export const generateContent3 = gemini.generateContent3;
 export const generateContent25 = gemini.generateContent25;
 export const analyzePriceTargets = gemini.analyzePriceTargets;
 export const stressTestTradeThesis = gemini.stressTestTradeThesis;
+export const analyzeTradePostMortem = gemini.analyzeTradePostMortem;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;
 export const seedAgenticTrading = agenticTradingfunc.seedAgenticTrading;

@@ -1111,6 +1111,28 @@ class EmotionJournalView extends StatelessWidget {
                     Theme.of(context).colorScheme.primary.withOpacity(0.1),
               ),
             ],
+            if (log.tags.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: log.tags
+                    .map((tag) => Chip(
+                          label: Text(
+                            tag.startsWith('#') ? tag : '#$tag',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          side: BorderSide.none,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest
+                              .withOpacity(0.6),
+                        ))
+                    .toList(),
+              ),
+            ],
           ],
         ),
       ),
