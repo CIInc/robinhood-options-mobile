@@ -1095,15 +1095,14 @@ export function detectChartPattern(
 
   const lookback = 60; // maximum historical window inspected
   const windowPrices = prices.slice(-Math.min(lookback, prices.length));
-  // Short window for moving averages and breakout checks
-  const recentPrices = windowPrices.slice(-30);
-  const currentPrice = recentPrices[recentPrices.length - 1];
-  const prevPrice = recentPrices[recentPrices.length - 2];
+  const len = prices.length;
+  const currentPrice = prices[len - 1];
+  const prevPrice = prices.length >= 2 ? prices[len - 2] : currentPrice;
 
-  // Moving averages for trend context
-  const ma5 = computeSMA(recentPrices, 5);
-  const ma10 = computeSMA(recentPrices, 10);
-  const ma20 = computeSMA(recentPrices, 20);
+  // Moving averages for trend context calculated directly without array slicing
+  const ma5 = computeSMA(prices, 5, len);
+  const ma10 = computeSMA(prices, 10, len);
+  const ma20 = computeSMA(prices, 20, len);
   if (!ma5 || !ma10 || !ma20) {
     return {
       value: null,
@@ -1114,15 +1113,20 @@ export function detectChartPattern(
 
   // Helper: linear regression slope (simplified) for overall trend direction
   const slope = (() => {
-    const n = recentPrices.length;
+    const n = Math.min(30, prices.length);
+    const offset = prices.length - n;
     const xSum = (n * (n - 1)) / 2;
     const xMean = xSum / n;
-    const yMean = recentPrices.reduce((a, b) => a + b, 0) / n;
+    let sumY = 0;
+    for (let i = offset; i < prices.length; i++) {
+      sumY += prices[i];
+    }
+    const yMean = sumY / n;
     let num = 0;
     let den = 0;
     for (let i = 0; i < n; i++) {
       const x = i;
-      const y = recentPrices[i];
+      const y = prices[offset + i];
       num += (x - xMean) * (y - yMean);
       den += (x - xMean) * (x - xMean);
     }
@@ -1171,9 +1175,13 @@ export function detectChartPattern(
     // Volume confirmation
     let volumeBoost = 0;
     if (volumes && volumes.length >= 30) {
-      const recentVol = volumes.slice(-30);
-      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
-      const lastVol = recentVol[recentVol.length - 1];
+      const vLen = volumes.length;
+      let sumVol = 0;
+      for (let i = vLen - 30; i < vLen; i++) {
+        sumVol += volumes[i];
+      }
+      const avgVol = sumVol / 30;
+      const lastVol = volumes[vLen - 1];
       volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
     }
     patterns.push({
@@ -1865,15 +1873,15 @@ export function evaluateMarketDirection(
     };
   }
 
-  const fastMAs = computeSMAArray(marketPrices, fastPeriod);
-  const slowMAs = computeSMAArray(marketPrices, slowPeriod);
+  const len = marketPrices.length;
+  const fastMA = computeSMA(marketPrices, fastPeriod, len);
+  const slowMA = computeSMA(marketPrices, slowPeriod, len);
 
-  const fastMA = fastMAs[fastMAs.length - 1];
-  const slowMA = slowMAs[slowMAs.length - 1];
-
-  // Previous MAs for crossover detection
-  const fastPrevMA = fastMAs.length >= 2 ? fastMAs[fastMAs.length - 2] : null;
-  const slowPrevMA = slowMAs.length >= 2 ? slowMAs[slowMAs.length - 2] : null;
+  // Previous MAs for crossover detection without allocating full SMA series
+  const fastPrevMA =
+    len > fastPeriod ? computeSMA(marketPrices, fastPeriod, len - 1) : null;
+  const slowPrevMA =
+    len > slowPeriod ? computeSMA(marketPrices, slowPeriod, len - 1) : null;
 
   if (fastMA === null || slowMA === null) {
     return {
@@ -4673,9 +4681,18 @@ export function evaluateCustomIndicator(
           endIndex
         );
       case "OBV": {
-        const obvRes = computeOBV(p, v, endIndex);
-        return obvRes && obvRes.length > 0 ?
-          obvRes[obvRes.length - 1] : null;
+        if (
+          !p || !v || endIndex < 2 ||
+          p.length < endIndex || v.length < endIndex
+        ) {
+          return null;
+        }
+        let obvVal = 0;
+        for (let i = 1; i < endIndex; i++) {
+          if (p[i] > p[i - 1]) obvVal += v[i];
+          else if (p[i] < p[i - 1]) obvVal -= v[i];
+        }
+        return obvVal;
       }
       case "WilliamsR":
         return computeWilliamsR(

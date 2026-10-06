@@ -29,3 +29,7 @@
 ## 2026-04-01 - O(1) Space Scalar Evaluation for ATR and Typical Price On-The-Fly CCI
 **Learning:** `evaluateATR` delegated to `computeATRArray` and accumulated full-series array allocations (`fullATRSeries`, `trueRanges`, `atrValues`), adding 19.7 µs/op per bar. Similarly, `evaluateCCI` and `evaluateCustomIndicator` allocated temporary `typicalPrices` arrays on every call.
 **Action:** Refactor `evaluateATR` to track running ATR sums and counts directly in scalar variables (reducing runtime by ~73%), and accept direct HLC arrays in `computeCCI` to calculate typical prices on-the-fly without intermediate array allocations.
+
+## 2026-04-02 - Non-Allocating Market Direction Evaluation and O(1) Space Scalar OBV
+**Learning:** Evaluating scalar custom OBV indicators was allocating full series arrays (`computeOBV`) on every bar, and `evaluateMarketDirection` was allocating two full SMA series arrays (`computeSMAArray`) for every `evaluateAllIndicators` run just to read the latest 2 elements. This created heavy memory churn and array allocation overhead.
+**Action:** Calculate scalar custom OBV values directly using a scalar loop in O(1) space, and evaluate market direction MAs using index-bounded `computeSMA(..., endIndex)` calls rather than allocating full series arrays.
