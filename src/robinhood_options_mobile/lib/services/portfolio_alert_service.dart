@@ -21,6 +21,8 @@ import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
 import 'package:robinhood_options_mobile/model/news_intelligence.dart';
 import 'package:robinhood_options_mobile/model/congress_trade.dart';
+import 'package:robinhood_options_mobile/model/risk_copilot_model.dart';
+import 'package:robinhood_options_mobile/services/risk_copilot_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
 /// Builds the Action Center feed: the ranked list of things worth acting on
@@ -77,6 +79,7 @@ class PortfolioAlertService {
     List<CongressTrade>? congressTrades,
     double? dayPnL,
     double? dayPnLPercent,
+    RiskCopilotReport? riskCopilotReport,
     DateTime? now,
   }) {
     final alerts = <PortfolioAlert>[];
@@ -84,6 +87,19 @@ class PortfolioAlertService {
 
     alerts.addAll(
         _circuitBreakerAlerts(riskCircuitBreakerConfig, dayPnL, dayPnLPercent));
+    final copilotReport = riskCopilotReport ??
+        ((instrumentPositions.isNotEmpty || optionPositions.isNotEmpty)
+            ? RiskCopilotService.evaluateRiskReport(
+                instrumentPositions: instrumentPositions,
+                optionPositions: optionPositions,
+                totalEquity: totalEquity,
+                earningsCalendarEvents: earningsCalendarEvents,
+                earningsCrushAnalyses: earningsCrushAnalyses,
+                deltaNeutralAnalyses: deltaNeutralAnalyses,
+                now: effectiveNow,
+              )
+            : null);
+    alerts.addAll(_riskCopilotAlerts(copilotReport));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
     alerts.addAll(_optionExpirationAlerts(optionPositions, effectiveNow));
     alerts.addAll(_earningsCalendarAlerts(
@@ -2470,6 +2486,101 @@ class PortfolioAlertService {
           ),
         );
       }
+    }
+
+    return alerts;
+  }
+
+  static List<PortfolioAlert> _riskCopilotAlerts(RiskCopilotReport? report) {
+    if (report == null || !report.hasElevatedRisk) return const [];
+    final alerts = <PortfolioAlert>[];
+
+    // 1. Critical and High gap risk alerts
+    for (final gap in report.gapRisks) {
+      if (gap.severity == RiskCopilotSeverity.critical ||
+          gap.severity == RiskCopilotSeverity.high) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'risk_copilot_gap_${gap.symbol}',
+            severity: gap.severity == RiskCopilotSeverity.critical
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning,
+            icon: Icons.shield_outlined,
+            title: '${gap.symbol} Overnight Gap Hazard',
+            detail: '${gap.warningMessage} Suggestion: ${gap.mitigationAction}.',
+            metric: '-\$${gap.potentialDollarLoss.toStringAsFixed(0)}',
+            target: PortfolioAlertTarget.riskCopilot,
+            symbol: gap.symbol,
+            category: 'Risk Copilot',
+            actionLabel: 'Review Copilot',
+            payload: {'report': report, 'symbol': gap.symbol},
+          ),
+        );
+      }
+    }
+
+    // 2. Critical and High earnings hazards
+    for (final eh in report.earningsHazards) {
+      if (eh.severity == RiskCopilotSeverity.critical ||
+          eh.severity == RiskCopilotSeverity.high) {
+        alerts.add(
+          PortfolioAlert(
+            id: 'risk_copilot_earnings_${eh.symbol}',
+            severity: eh.severity == RiskCopilotSeverity.critical
+                ? PortfolioAlertSeverity.critical
+                : PortfolioAlertSeverity.warning,
+            icon: Icons.event_busy_outlined,
+            title: '${eh.symbol} ${eh.hazardType.label}',
+            detail: '${eh.warningMessage} Action: ${eh.mitigationAction}.',
+            metric: 'In ${eh.daysUntilEarnings}d',
+            target: PortfolioAlertTarget.riskCopilot,
+            symbol: eh.symbol,
+            category: 'Risk Copilot',
+            actionLabel: 'Review Copilot',
+            payload: {'report': report, 'symbol': eh.symbol},
+          ),
+        );
+      }
+    }
+
+    // 3. Severe delta hedges
+    for (final dh in report.deltaHedges) {
+      if (dh.severity == RiskCopilotSeverity.critical) {
+        final deltaSign = dh.netDelta >= 0 ? '+' : '';
+        alerts.add(
+          PortfolioAlert(
+            id: 'risk_copilot_delta_${dh.symbol}',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.tune_rounded,
+            title: '${dh.symbol} Severe Delta Exposure ($deltaSign${dh.netDelta.toStringAsFixed(1)} Δ)',
+            detail: '${dh.hedgeRationale}. Recommended: ${dh.suggestedOptionHedge}.',
+            metric: '$deltaSign${dh.netDelta.toStringAsFixed(1)} Δ',
+            target: PortfolioAlertTarget.riskCopilot,
+            symbol: dh.symbol,
+            category: 'Risk Copilot',
+            actionLabel: 'Hedge Delta',
+            payload: {'report': report, 'symbol': dh.symbol},
+          ),
+        );
+      }
+    }
+
+    // 4. Fallback overall critical alert
+    if (report.overallSeverity == RiskCopilotSeverity.critical && alerts.isEmpty) {
+      alerts.add(
+        PortfolioAlert(
+          id: 'risk_copilot_critical_overview',
+          severity: PortfolioAlertSeverity.critical,
+          icon: Icons.warning_amber_rounded,
+          title: report.statusHeadline,
+          detail: report.summary,
+          metric: '${report.overallScore.toStringAsFixed(0)}/100',
+          target: PortfolioAlertTarget.riskCopilot,
+          category: 'Risk Copilot',
+          actionLabel: 'Review Copilot',
+          payload: {'report': report},
+        ),
+      );
     }
 
     return alerts;

@@ -32,6 +32,8 @@ import 'package:robinhood_options_mobile/widgets/portfolio/positions_section_pag
 import 'package:robinhood_options_mobile/widgets/portfolio/risk_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/strategies_section_page.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
+import 'package:robinhood_options_mobile/widgets/risk_copilot_widget.dart';
+import 'package:robinhood_options_mobile/model/risk_copilot_model.dart';
 import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 import 'package:robinhood_options_mobile/widgets/volatility_cone_widget.dart';
 import 'package:robinhood_options_mobile/widgets/zero_dte_squeeze_radar_widget.dart';
@@ -89,6 +91,8 @@ class PortfolioNavigator {
         return _openIvSurface(context, sectionContext, alert);
       case PortfolioAlertTarget.deltaNeutral:
         return _openDeltaNeutral(context, sectionContext, alert);
+      case PortfolioAlertTarget.riskCopilot:
+        return _openRiskCopilot(context, sectionContext, alert);
       case PortfolioAlertTarget.congressionalTrading:
         return _openCongressionalTrading(context, sectionContext, alert);
       case PortfolioAlertTarget.newsIntelligence:
@@ -316,6 +320,25 @@ class PortfolioNavigator {
           user: sectionContext.appUser,
           brokerageUser: sectionContext.brokerageUser,
           service: sectionContext.service,
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _openRiskCopilot(
+    BuildContext context,
+    PortfolioSectionContext sectionContext,
+    PortfolioAlert alert,
+  ) {
+    final report = alert.payload?['report'] as RiskCopilotReport?;
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RiskCopilotWidget(
+          user: sectionContext.appUser,
+          brokerageUser: sectionContext.brokerageUser,
+          service: sectionContext.service,
+          precomputedReport: report,
         ),
       ),
     );

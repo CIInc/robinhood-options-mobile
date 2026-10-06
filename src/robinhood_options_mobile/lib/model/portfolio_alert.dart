@@ -22,6 +22,7 @@ enum PortfolioAlertTarget {
   dividends,
   instrument,
   optionDefense,
+  riskCopilot,
   search,
   none,
 }

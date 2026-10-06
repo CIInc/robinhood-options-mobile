@@ -2374,6 +2374,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           flagged.add(PortfolioSection.performance);
         case PortfolioAlertTarget.pdtMonitor:
         case PortfolioAlertTarget.risk:
+        case PortfolioAlertTarget.riskCopilot:
         case PortfolioAlertTarget.zeroDteRadar:
         case PortfolioAlertTarget.earningsIvCrush:
         case PortfolioAlertTarget.volatilityCone:

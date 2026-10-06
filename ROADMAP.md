@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** September 30, 2026 · **Current app version:** 0.55.0 (released September 30, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 400
-- **Planned checklist items:** 71
+- **Completed checklist items:** 401
+- **Planned checklist items:** 70
 - **GitHub issues:** 120 total — 34 open and 86 closed (as of September 30, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
@@ -464,7 +464,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 **Autonomous Risk Copilot, Multi-Leg Order Templates & Post-Trade Behavioral Analytics**
 - ✅ **In-App Behavioral Tilt & Overtrading Safeguards:** Pure software-based tilt detection analyzing rapid order cancel/replace loops, revenge-trading sizing spikes, and consecutive losses to prompt cooling-off pauses (replaces complex HealthKit biometrics with zero-permission reliability) ([docs](docs/risk-circuit-breakers.md), [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)).
 - ✅ **Expanded Action Center & Context-First Deep-Linking:** Expanded Action Center with dynamic horizontal category chips, contextual ticker/category pills, inline action buttons, swipe/quick dismissal with undo, and all-clear states. Deepened alert generation across 0DTE squeeze, IV crush, volatility cone, 3D IV surface, delta hedging, unusual activity, and congressional trading with direct routing to exact analytical screens (`ZeroDteSqueezeRadarWidget`, `EarningsIvCrushWidget`, `VolatilityConeWidget`, `IvSurface3dWidget`, `DeltaNeutralBuilderWidget`, `CongressTradingDashboardWidget`, `NewsIntelligenceWidget`, `DayTradeMonitorWidget`, `AutomatedDripSettingsWidget`, `InstrumentWidget`) ([docs](docs/portfolio-redesign.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
-- **Autonomous Agentic Risk Copilot:** Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
+- ✅ **Autonomous Agentic Risk Copilot:** Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges ([docs](docs/agentic-risk-copilot.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - ✅ **Multi-Leg Order Entry Templates & Spread Builder:** Pre-configured structural order pads for Vertical Spreads, Iron Condors, Straddles, Strangles, and Calendar Spreads with real-time net credit/debit calculation across Schwab and Robinhood ([docs](docs/multi-leg-spread-builder.md)).
 - **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger:** Automated post-trade diagnostic analyzing closed trades against entry thesis, tracking cognitive biases (FOMO, disposition effect) and execution mistakes upon position closing ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Performance, Memory & Stream Throttling:** Viewport-aware streaming subscriptions, memory optimization, and background stream pausing for mobile battery efficiency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
@@ -943,7 +943,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
 - [ ] **Unified AI Conviction & Factor Alignment** (v0.56.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Streamlined synthesis combining Gemini 3.1 Flash-Lite, local factor engines, and Devil's Advocate stress tests to generate high-conviction trade ratings - **Medium** (2-3 weeks)
 - [x] **AI Devil's Advocate & Trade Thesis Stress Tester** (v0.54.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades - **Medium** (3-4 weeks)
-- [ ] **Autonomous Agentic Risk Copilot** (v0.55.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges - **Medium** (3-4 weeks)
+- [x] **Autonomous Agentic Risk Copilot** (v0.55.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges - **Medium** (3-4 weeks)
 - [ ] **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger** (v0.55.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and tactical lessons - **Medium** (2-3 weeks)
 - [x] **Autonomous Risk Circuit Breakers** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Hard user-defined limits (max daily loss, drawdown limit, cooling-off trading suspension) that proactively lock execution to protect capital - **Medium** (2-3 weeks)
 

@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_stress_test
 import 'package:robinhood_options_mobile/widgets/portfolio/tail_risk_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/agentic_risk_copilot_card.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
 
 /// "How much risk am I taking?" — the single home for every risk metric.
@@ -93,6 +94,13 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                 RollingStatisticsDashboard(controller: controller),
                 if (healthScore != null)
                   _healthCard(context, healthScore, metrics),
+                AgenticRiskCopilotCard(
+                  positions: store.items,
+                  optionPositions: optionStore.items,
+                  user: ctx.appUser,
+                  brokerageUser: ctx.brokerageUser,
+                  service: ctx.service,
+                ),
                 PortfolioRiskSummaryWidget(positions: store.items),
                 PortfolioGreeksCard(
                   positions: optionStore.items,
