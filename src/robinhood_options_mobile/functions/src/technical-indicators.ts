@@ -3664,11 +3664,15 @@ export function evaluateCCI(
 
 /**
  * Compute Parabolic SAR
+ * Performance optimization: Supports optional `endIndex` parameter to compute
+ * Parabolic SAR up to a specific bar index in O(endIndex) time and O(1) space,
+ * avoiding sub-array allocations (e.g. `.slice(0, endIndex)`).
  * @param {number[]} highs - High prices
  * @param {number[]} lows - Low prices
  * @param {number[]} closes - Close prices
  * @param {number} [startStep=0.02] - Start step (default 0.02)
  * @param {number} [maxStep=0.2] - Max step (default 0.2)
+ * @param {number} [endIndex] - Optional end index (defaults to closes.length)
  * @return {Object|null} SAR value and trend direction
  */
 export function computeParabolicSAR(
@@ -3676,16 +3680,27 @@ export function computeParabolicSAR(
   lows: number[],
   closes: number[],
   startStep = 0.02,
-  maxStep = 0.2
+  maxStep = 0.2,
+  endIndex = closes ? closes.length : 0
 ): { sar: number; isUptrend: boolean } | null {
-  if (!highs || !lows || highs.length < 2) return null;
+  if (
+    !highs ||
+    !lows ||
+    !closes ||
+    endIndex < 2 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex
+  ) {
+    return null;
+  }
 
   let isUptrend = true;
   let ep = highs[0]; // Extreme Point
   let sar = lows[0]; // Starting SAR
   let af = startStep; // Acceleration Factor
 
-  for (let i = 1; i < closes.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     const prevSar = sar;
     sar = prevSar + af * (ep - prevSar);
 
@@ -3732,6 +3747,7 @@ export function computeParabolicSAR(
  * @param {number[]} closes - Close prices
  * @param {number} [step=0.02] - Acceleration factor step (default 0.02)
  * @param {number} [max=0.2] - Max acceleration factor (default 0.2)
+ * @param {number} [endIndex] - Optional end index
  * @return {IndicatorResult} IndicatorResult
  */
 export function evaluateParabolicSAR(
@@ -3739,9 +3755,10 @@ export function evaluateParabolicSAR(
   lows: number[],
   closes: number[],
   step = 0.02,
-  max = 0.2
+  max = 0.2,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  const result = computeParabolicSAR(highs, lows, closes, step, max);
+  const result = computeParabolicSAR(highs, lows, closes, step, max, endIndex);
   if (!result) {
     return {
       value: null,
