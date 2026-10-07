@@ -179,7 +179,8 @@ void main() {
           findsOneWidget);
 
       // Verify Risk Circuit Breakers is rendered under Features
-      expect(find.text('Risk Circuit Breakers'), findsOneWidget);
+      expect(
+          find.text('Risk Circuit Breakers & Tilt Guardrails'), findsOneWidget);
       expect(find.text('Guarded & Active'), findsOneWidget);
 
       // Verify Portfolio & Social Privacy is rendered under Features
