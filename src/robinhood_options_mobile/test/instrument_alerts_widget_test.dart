@@ -307,5 +307,54 @@ void main() {
 
       expect(manageCalled, isTrue);
     });
+
+    testWidgets('provides correct semantics for screen readers',
+        (WidgetTester tester) async {
+      final fakeService = FakeCustomAlertService();
+      final instrument = createTestInstrument('AAPL');
+
+      final alertAAPL = CustomAlert(
+        id: 'alert_aapl_a11y',
+        userId: 'user_1',
+        symbol: 'AAPL',
+        type: AlertType.price,
+        condition: AlertCondition.above,
+        value: 230.50,
+        active: true,
+        createdAt: DateTime(2026, 9, 1),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InstrumentAlertsWidget(
+              instrument: instrument,
+              customAlertService: fakeService,
+            ),
+          ),
+        ),
+      );
+
+      fakeService.emit([alertAAPL]);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(RegExp(r'.*1 active alerts.*')),
+        findsOneWidget,
+      );
+
+      expect(
+        find.bySemanticsLabel(
+          RegExp(
+              r'Custom alert for AAPL: ABOVE \$230\.50, Never triggered, Active'),
+        ),
+        findsOneWidget,
+      );
+
+      expect(
+        find.bySemanticsLabel(RegExp(r'Toggle AAPL alert active state')),
+        findsOneWidget,
+      );
+    });
   });
 }

@@ -178,25 +178,30 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                     ),
                     if (symbolAlerts.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6.0, vertical: 2.0),
-                        decoration: BoxDecoration(
-                          color: activeCount > 0
-                              ? theme.colorScheme.primaryContainer
-                              : theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          activeCount > 0
-                              ? '$activeCount active'
-                              : '${symbolAlerts.length} set',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
+                      Semantics(
+                        label: activeCount > 0
+                            ? '$activeCount active alerts'
+                            : '${symbolAlerts.length} alerts set',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6.0, vertical: 2.0),
+                          decoration: BoxDecoration(
                             color: activeCount > 0
-                                ? theme.colorScheme.onPrimaryContainer
-                                : theme.colorScheme.onSurfaceVariant,
+                                ? theme.colorScheme.primaryContainer
+                                : theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            activeCount > 0
+                                ? '$activeCount active'
+                                : '${symbolAlerts.length} set',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: activeCount > 0
+                                  ? theme.colorScheme.onPrimaryContainer
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ),
@@ -282,99 +287,121 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                   ...symbolAlerts.take(3).map((alert) {
                     final isMultiRule = alert.rules.length > 1;
                     final valueText = _formatAlertValue(alert);
+                    final conditionLabel = isMultiRule
+                        ? ''
+                        : '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ';
+                    final triggeredLabel = alert.lastTriggered != null
+                        ? 'Triggered ${DateFormat.yMMMd().add_jm().format(alert.lastTriggered!)}'
+                        : 'Never triggered';
+                    final semanticLabel =
+                        'Custom alert for ${alert.symbol}: $conditionLabel$valueText, $triggeredLabel, ${alert.active ? "Active" : "Inactive"}';
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => _editAlert(alert),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10.0, vertical: 8.0),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: theme.colorScheme.outlineVariant
-                                  .withValues(alpha: 0.2),
+                      child: Semantics(
+                        container: true,
+                        button: true,
+                        label: semanticLabel,
+                        hint: 'Double tap to edit alert',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => _editAlert(alert),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10.0, vertical: 8.0),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: theme.colorScheme.outlineVariant
+                                    .withValues(alpha: 0.2),
+                              ),
                             ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 14,
-                                backgroundColor:
-                                    theme.colorScheme.surfaceContainerHighest,
-                                child: CustomAlertsWidget.buildIcon(alert.type),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    RichText(
-                                      text: TextSpan(
-                                        style:
-                                            DefaultTextStyle.of(context).style,
-                                        children: [
-                                          if (!isMultiRule)
-                                            TextSpan(
-                                              text:
-                                                  '${alert.condition.name.replaceAll('_', ' ').toUpperCase()} ',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color:
-                                                    theme.colorScheme.secondary,
+                            child: Row(
+                              children: [
+                                ExcludeSemantics(
+                                  child: CircleAvatar(
+                                    radius: 14,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest,
+                                    child: CustomAlertsWidget.buildIcon(
+                                        alert.type),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: ExcludeSemantics(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        RichText(
+                                          text: TextSpan(
+                                            style: DefaultTextStyle.of(context)
+                                                .style,
+                                            children: [
+                                              if (!isMultiRule)
+                                                TextSpan(
+                                                  text: conditionLabel,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: theme
+                                                        .colorScheme.secondary,
+                                                  ),
+                                                ),
+                                              TextSpan(
+                                                text: valueText,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
-                                            ),
-                                          TextSpan(
-                                            text: valueText,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          triggeredLabel,
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      alert.lastTriggered != null
-                                          ? 'Triggered ${DateFormat.yMMMd().add_jm().format(alert.lastTriggered!)}'
-                                          : 'Never triggered',
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        fontSize: 11,
-                                      ),
+                                  ),
+                                ),
+                                Semantics(
+                                  label:
+                                      'Toggle ${alert.symbol} alert active state',
+                                  value: alert.active ? 'Active' : 'Inactive',
+                                  child: Transform.scale(
+                                    scale: 0.8,
+                                    child: Switch(
+                                      value: alert.active,
+                                      onChanged: (val) {
+                                        _service.updateAlert(CustomAlert(
+                                          id: alert.id,
+                                          userId: alert.userId,
+                                          symbol: alert.symbol,
+                                          type: alert.type,
+                                          condition: alert.condition,
+                                          value: alert.value,
+                                          period: alert.period,
+                                          logic: alert.logic,
+                                          rules: alert.rules,
+                                          active: val,
+                                          lastTriggered: alert.lastTriggered,
+                                          createdAt: alert.createdAt,
+                                          deviceToken: alert.deviceToken,
+                                        ));
+                                      },
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                              Transform.scale(
-                                scale: 0.8,
-                                child: Switch(
-                                  value: alert.active,
-                                  onChanged: (val) {
-                                    _service.updateAlert(CustomAlert(
-                                      id: alert.id,
-                                      userId: alert.userId,
-                                      symbol: alert.symbol,
-                                      type: alert.type,
-                                      condition: alert.condition,
-                                      value: alert.value,
-                                      period: alert.period,
-                                      logic: alert.logic,
-                                      rules: alert.rules,
-                                      active: val,
-                                      lastTriggered: alert.lastTriggered,
-                                      createdAt: alert.createdAt,
-                                      deviceToken: alert.deviceToken,
-                                    ));
-                                  },
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -383,29 +410,36 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                   if (symbolAlerts.length > 3)
                     Padding(
                       padding: const EdgeInsets.only(top: 4.0),
-                      child: InkWell(
-                        onTap: _manageAlerts,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 4.0, horizontal: 4.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'View all ${symbolAlerts.length} alerts for ${widget.instrument.symbol}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
+                      child: Semantics(
+                        button: true,
+                        label:
+                            'View all ${symbolAlerts.length} alerts for ${widget.instrument.symbol}',
+                        hint: 'Double tap to manage alerts',
+                        excludeSemantics: true,
+                        child: InkWell(
+                          onTap: _manageAlerts,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 4.0, horizontal: 4.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'View all ${symbolAlerts.length} alerts for ${widget.instrument.symbol}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.chevron_right,
-                                size: 16,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.chevron_right,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
