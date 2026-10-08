@@ -223,7 +223,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Following Activity Feed and Risk Circuit Breakers should be enabled without badges
-      expect(find.widgetWithText(ListTile, 'Risk Circuit Breakers'),
+      expect(
+          find.widgetWithText(
+              ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
           findsOneWidget);
       expect(find.text('Guarded & Active'), findsOneWidget);
 
