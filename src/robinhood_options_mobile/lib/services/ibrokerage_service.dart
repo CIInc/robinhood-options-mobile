@@ -679,8 +679,10 @@ abstract class IBrokerageService {
       null;
 
   /// Annual IRA contribution history, matches, and limits
-  Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
-  Future<RetirementHistory> getRetirementHistoryModel(
-          BrokerageUser user) async =>
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+          {String? accountNumber}) async =>
+      null;
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+          {String? accountNumber}) async =>
       const RetirementHistory();
 }

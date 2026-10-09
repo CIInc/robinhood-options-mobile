@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.56.0] - Unreleased
+**Retirement Planning & Gold Match Maximizer ([docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139))**
+
+- **Retirement Planning & Gold Match Maximizer (`RetirementProjectionCalculator`, `RetirementProjectionCard`, `retirement_projection.dart`, `retirement_widget.dart`, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)):**
+  - **Interactive IRA Compounding Engine**: Year-by-year compounding simulation engine (`RetirementProjectionCalculator`) modeling customizable annual contributions ($1,000–$8,000), retirement horizons (5–40 years), expected annual returns (4%–12%), and starting balances.
+  - **Robinhood Gold 3% Match Optimizer**: Dedicated ROI calculator demonstrating instant Year 1 net cash bonus (after subtracting the $50 annual Gold fee), annual contribution threshold required to break even ($1,666.67/yr), lifetime compounded wealth generated strictly by the 3% match bonus, and the 5-year match retention rule.
+  - **Tax-Advantaged Growth vs. Taxable Drag**: Quantitative comparison analyzing tax-sheltered compounding (Roth tax-free growth and Traditional tax deferral) against taxable brokerage accounts subject to annual dividend/turnover tax drag (~1.5%/yr), providing estimated lifetime tax savings.
+  - **Interactive Mobile UI & Milestone Forecast**: Stacked 3-segment progress bar (Principal, Compounded Growth, Match Wealth), quick-choice preset chips for contributions, horizons, returns, and match tiers, expandable tax comparison card, and 5-year milestone forecast table embedded directly within `RetirementWidget`.
+  - **Traditional IRA Contribution Tracking & Rollover Transparency**:
+    - Resolved `$0.00` contribution display on Traditional IRAs funded via rollovers by integrating Robinhood Bonfire ACATS rollover transfer endpoints (`/acats/`) alongside direct annual ACH contributions (`/retirement/history/`) and match incentives (`/retirement/match/`).
+    - Fixed endpoint query string issue in `RobinhoodService.getRetirementHistory`: removed erroneous `?account_number=` query parameter which caused misrouting on the user-scoped Bonfire endpoint.
+    - Updated navigation and account context routing in `UserWidget` and `RetirementWidget`: automatically selects the user's retirement/IRA account (`741902639`) rather than defaulting to taxable individual accounts (`5QR24141`), with an IRA account switcher dropdown when multiple retirement accounts exist.
+    - Distinctly separated annual IRS contribution room ($0 direct contributed, $7,000 limit remaining for current tax year) from settled rollover assets ($25,334.93 rolled over from Merrill Lynch in 2025).
+    - Fixed "Total Account Value" displaying cash buying power instead of total account value (TAV): resolved total account balance using portfolio equity, account total value, or settled rollover transfers, while adding a distinct "Cash / Buying Power" secondary row when cash differs from total portfolio equity.
+    - Added interactive tax year selector chips allowing users to seamlessly review prior years (2025, 2024) and current tax year progress.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/retirement_projection_test.dart` and `test/retirement_test.dart` validating multi-year compounding formulas, match calculations, Gold fee break-even analysis, Traditional IRA direct and rollover contribution parsing, ACATS rollover handling, multi-account history filtering, and widget rendering.
+
 ## [0.55.1] - 2026-10-06
 **Autonomous Risk Copilot, Multi-Leg Spread Builder, AI Trade Post-Mortem & Behavioral Tilt Safeguards ([docs](docs/agentic-risk-copilot.md), [docs](docs/multi-leg-spread-builder.md), [docs](docs/trade-post-mortem.md), [docs](docs/risk-circuit-breakers.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#198](https://github.com/CIInc/robinhood-options-mobile/pull/198), [#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202))**
 

@@ -14,11 +14,19 @@ RealizeAlpha provides complete multi-account architecture and native retirement 
 - **Multi-Account Selector:** Header dropdown in `SliverAppBarWidget` with custom savings icons (`Icons.savings_outlined`) and distinct badges for `Roth IRA` and `Traditional IRA`.
 - **Filtered Account Stores:** Dedicated getters on `AccountStore` (`store.brokerageAccounts` and `store.retirementAccounts`) for clean separation in UI and metrics aggregators.
 
-### 2. Retirement Contributions & IRS Limits
+### 2. Retirement Contributions, IRS Limits & Gold Match Maximizer
 - **Annual IRS Limit Tracking:** Built-in IRS contribution limits across tax years ($7,000 baseline for 2024–2026, $8,000 for age 50+ catch-up).
+- **Traditional IRA & Direct Contribution Parsing:** Robust extraction of annual contribution amounts from `direct_contributions`, `total_direct_contributions`, or `contribution_amount`, ensuring Traditional IRA direct contributions are never erroneously parsed as $0.00.
+- **Account-Aware Filtering:** Full support for multi-account users with both Traditional and Roth IRAs, filtering contribution records by `accountNumber` and `brokerageAccountType` so accounts are never cross-contaminated.
+- **Interactive Tax Year Selector:** Horizontal choice chips allowing users to seamlessly toggle between the active calendar tax year and prior tax years (e.g. 2026, 2025, 2024) to review past contributions.
+- **Rollover & Transfer Transparency:** Clear visual separation of rollovers (e.g. from 401(k) or 403(b) rollover transfers) from annual direct contributions, explaining that rollovers do not count against the annual $7,000 IRS limit.
+- **Account Total Value Display:** Prominent display of total account portfolio balance alongside annual contribution progress so users immediately see funded balances even when annual direct contributions for the active tax year are $0.00.
 - **Interactive Catch-Up Toggle:** Dynamic switch in `RetirementWidget` toggling standard vs. age 50+ catch-up limits with instant recalculation of remaining headroom and percentage maxed.
 - **Robinhood Retirement Match:** Real-time tracking of bonus match payments (e.g. Robinhood Gold 3% match and standard 1% match) credited directly to the IRA balance.
-- **Multi-Year History Ledger:** Chronological ledger of tax year contributions, match amounts, and progress bars.
+- **Interactive Compounding Projection Calculator:** Multi-year compounding simulation (`RetirementProjectionCalculator`) modeling customizable annual contributions ($1,000–$8,000), investment horizons (5–40 years), starting balance, and expected annual return rates (4%–12%).
+- **Robinhood Gold 3% Match Optimizer:** Dedicated ROI analysis displaying instant year 1 net cash bonus (after subtracting the $50 annual Gold fee), Gold break-even contribution threshold ($1,666.67/yr), lifetime compounded wealth generated strictly by the 3% match, and regulatory 5-year match retention requirements.
+- **Tax-Advantaged Growth vs. Taxable Drag:** Quantitative comparison measuring tax-sheltered compounding against equivalent taxable brokerage accounts subject to annual dividend/turnover tax drag (~1.5%/yr), calculating total estimated lifetime tax savings.
+- **Multi-Year History & Milestone Ledger:** Chronological ledger of tax year contributions, match amounts, and 5-year forecast milestone tables.
 - **IRS Regulatory Disclosures:** Clear guidance on April 15 tax deadlines, combined annual limit rules across Traditional and Roth accounts, and early withdrawal tax penalties.
 
 ### 3. Connected External Agents & OAuth Tokens
@@ -75,9 +83,15 @@ UI Dashboards & Widgets
 
 ### `RetirementWidget` (`lib/widgets/retirement_widget.dart`)
 - Accessible from `UserWidget` under "Banking & Documents" -> "Retirement & IRA".
-- Shows account overview hero card with tax-advantaged badge.
+- Shows account overview hero card with tax-advantaged badge, **Total Account Value (TAV)** (resolved via portfolio equity, account total value, or settled rollover transfers), and distinct **Cash / Buying Power** row when cash balance differs from total portfolio equity.
 - Current tax year linear progress bar with percentage maxed and remaining headroom.
 - Age 50+ catch-up limit toggle switch.
+- **Embedded Retirement Planner & Gold Match Maximizer (`RetirementProjectionCard`):**
+  - Live projected retirement balance headline with 3-segment stacked progress bar (Principal, Compounded Growth, Match Wealth).
+  - Robinhood Gold 3% Match Optimizer callout showing Year 1 net cash bonus (after $50 annual Gold fee), Gold break-even contribution requirement ($1,666.67), compounded match wealth, and 5-year match retention rule.
+  - Interactive sliders and quick-choice chips for annual contributions ($1,000–$8,000), retirement horizon (5–40 years), expected returns (Conservative 6%, Moderate 8%, Aggressive 10%), and match tiers (Gold 3%, Standard 1%, 0%).
+  - Expandable tax-sheltered growth vs. taxable drag comparison demonstrating estimated lifetime tax savings.
+  - Expandable 5-year milestone forecast table.
 - Lifetime total contributions and match earnings cards.
 - Historical contribution cards by tax year with match details.
 

@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/retirement.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/retirement_projection_card.dart';
 
 final _currencyFormat = NumberFormat.simpleCurrency();
 
@@ -27,26 +28,59 @@ class RetirementWidget extends StatefulWidget {
 class _RetirementWidgetState extends State<RetirementWidget> {
   Future<RetirementHistory>? _futureHistory;
   bool _useCatchUpLimit = false;
+  int? _selectedYear;
+  Account? _selectedAccount;
 
   @override
   void initState() {
     super.initState();
+    _selectedAccount = widget.account ??
+        widget.brokerageUser.accounts
+            .where((a) => a.isRetirement)
+            .firstOrNull ??
+        (widget.brokerageUser.accounts.isNotEmpty
+            ? widget.brokerageUser.accounts.first
+            : null);
     _loadData();
   }
 
   void _loadData() {
     setState(() {
-      _futureHistory =
-          widget.service.getRetirementHistoryModel(widget.brokerageUser);
+      _futureHistory = widget.service.getRetirementHistoryModel(
+        widget.brokerageUser,
+        accountNumber: _selectedAccount?.accountNumber,
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final retirementAccounts = widget.brokerageUser.accounts
+        .where((a) => a.isRetirement)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Retirement & IRA'),
         actions: [
+          if (retirementAccounts.length > 1)
+            PopupMenuButton<Account>(
+              tooltip: 'Switch IRA Account',
+              icon: const Icon(Icons.account_balance),
+              onSelected: (acc) {
+                setState(() {
+                  _selectedAccount = acc;
+                  _loadData();
+                });
+              },
+              itemBuilder: (context) => retirementAccounts
+                  .map((acc) => PopupMenuItem<Account>(
+                        value: acc,
+                        child: Text(
+                            '${acc.displayType} (${acc.accountNumber})'),
+                      ))
+                  .toList(),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -84,25 +118,65 @@ class _RetirementWidgetState extends State<RetirementWidget> {
 
           final history = snapshot.data ?? const RetirementHistory();
           final currentYear = DateTime.now().year;
-          final currentContribution =
-              history.contributionForYear(currentYear) ??
-                  history.currentYearContribution ??
-                  (history.contributions.isNotEmpty
-                      ? history.contributions.first
-                      : null);
+
+          // Filter contributions matching current account if available
+          final accountContribs = history.contributionsForAccount(
+            accountType: _selectedAccount?.brokerageAccountType,
+            accountNumber: _selectedAccount?.accountNumber,
+          );
+
+          // Build list of unique available tax years
+          final availableYearsSet = <int>{currentYear};
+          for (final c in accountContribs) {
+            availableYearsSet.add(c.year);
+          }
+          for (final c in history.contributions) {
+            availableYearsSet.add(c.year);
+          }
+          final availableYears = availableYearsSet.toList()
+            ..sort((a, b) => b.compareTo(a));
+
+          final activeYear = _selectedYear ?? currentYear;
+          final activeContribution = history.contributionForYear(
+                activeYear,
+                accountType: _selectedAccount?.brokerageAccountType,
+                accountNumber: _selectedAccount?.accountNumber,
+              ) ??
+              (accountContribs.isNotEmpty ? accountContribs.first : null) ??
+              (history.contributions.isNotEmpty
+                  ? history.contributions.first
+                  : null);
+
+          final rolloverTotal = history.contributions
+              .where((c) => c.rolloverContributions > 0)
+              .fold<double>(0.0, (s, c) => s + c.rolloverContributions);
+          final totalBalance = history.totalValue ??
+              _selectedAccount?.totalValue ??
+              (rolloverTotal > 0 ? rolloverTotal : null) ??
+              _selectedAccount?.portfolioCash;
 
           return RefreshIndicator(
             onRefresh: () async => _loadData(),
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
-                _buildHeaderCard(context, currentContribution),
+                _buildHeaderCard(
+                    context, activeContribution, history, totalBalance),
                 const SizedBox(height: 16),
-                _buildCurrentYearCard(context, currentContribution),
+                _buildYearSelector(context, availableYears, activeYear),
+                const SizedBox(height: 16),
+                _buildContributionCard(
+                    context, activeContribution, activeYear),
                 const SizedBox(height: 16),
                 _buildCatchUpToggle(context),
                 const SizedBox(height: 16),
-                _buildHistorySection(context, history),
+                RetirementProjectionCard(
+                  currentContribution: activeContribution,
+                  initialBalance: totalBalance ?? 10000.0,
+                  initialCatchUp: _useCatchUpLimit,
+                ),
+                const SizedBox(height: 16),
+                _buildHistorySection(context, accountContribs, history),
                 const SizedBox(height: 24),
                 _buildIrsInfoNotice(context),
               ],
@@ -113,72 +187,178 @@ class _RetirementWidgetState extends State<RetirementWidget> {
     );
   }
 
+  Widget _buildYearSelector(
+      BuildContext context, List<int> years, int activeYear) {
+    final currentYear = DateTime.now().year;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: years.map((year) {
+          final isSelected = year == activeYear;
+          final label = year == currentYear ? '$year (Current)' : '$year';
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(label),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _selectedYear = year;
+                  });
+                }
+              },
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildHeaderCard(
-      BuildContext context, RetirementContribution? contrib) {
+      BuildContext context,
+      RetirementContribution? contrib,
+      RetirementHistory history,
+      double? totalBalance) {
     final theme = Theme.of(context);
-    final accountType = widget.account?.displayType ??
-        (contrib?.displayAccountType ?? 'Roth IRA');
+    final isTrad = _selectedAccount?.isTraditionalIra == true ||
+        (contrib?.isTraditional ?? false);
+    final accountType = _selectedAccount?.displayType ??
+        (contrib?.displayAccountType ??
+            (isTrad ? 'Traditional IRA' : 'Roth IRA'));
 
     return Card(
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              foregroundColor: theme.colorScheme.onPrimaryContainer,
-              child: const Icon(Icons.savings, size: 28),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  foregroundColor: theme.colorScheme.onPrimaryContainer,
+                  child: const Icon(Icons.savings, size: 26),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        accountType,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _selectedAccount != null
+                            ? 'Account: ${_selectedAccount!.accountNumber}'
+                            : 'Tax-Advantaged Retirement',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    accountType,
-                    style: theme.textTheme.titleMedium?.copyWith(
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'TAX-ADVANTAGED',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                ),
+                if (contrib?.matchRate != null && contrib!.matchRate > 0)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${(contrib.matchRate * 100).toStringAsFixed(0)}% MATCH',
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (totalBalance != null) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Text(
-                    widget.account != null
-                        ? 'Account: ${widget.account!.accountNumber}'
-                        : 'Tax-Advantaged Retirement',
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    'Total Account Value',
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    _currencyFormat.format(totalBalance),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text(
-                'TAX-ADVANTAGED',
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
+              if (_selectedAccount?.portfolioCash != null &&
+                  _selectedAccount?.portfolioCash != totalBalance) ...[
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Cash / Buying Power',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      _currencyFormat.format(_selectedAccount!.portfolioCash),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
+              ],
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCurrentYearCard(
-      BuildContext context, RetirementContribution? contrib) {
+  Widget _buildContributionCard(
+      BuildContext context, RetirementContribution? contrib, int taxYear) {
     final theme = Theme.of(context);
-    final year = contrib?.year ?? DateTime.now().year;
+    final year = contrib?.year ?? taxYear;
     final contributed = contrib?.contributionAmount ?? 0.0;
     final effectiveLimit = _useCatchUpLimit
         ? (contrib?.catchUpLimit ?? 8000.0)
@@ -189,6 +369,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
         ? (contributed / effectiveLimit).clamp(0.0, 1.0)
         : 0.0;
     final match = contrib?.matchAmount ?? 0.0;
+    final rollover = contrib?.rolloverContributions ?? 0.0;
 
     return Card(
       elevation: 2,
@@ -248,6 +429,74 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                     _currencyFormat.format(effectiveLimit)),
               ],
             ),
+            if (rollover > 0) ...[
+              const Divider(height: 24),
+              Row(
+                children: [
+                  const Icon(Icons.sync_alt, color: Colors.blue, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Rollovers & Transfers: ',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    _currencyFormat.format(rollover),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+              if (contrib?.sourceDescription != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  contrib!.sourceDescription!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.blue.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                'Rollover contributions (e.g. from a 401(k) or brokerage transfer) do not count toward your \$${effectiveLimit.toStringAsFixed(0)} annual IRS limit.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+            if (contributed == 0.0) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: theme.colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        rollover > 0
+                            ? 'Your IRA was funded via rollover. You have ${_currencyFormat.format(remaining)} in available direct contribution room for tax year $year.'
+                            : 'No annual direct contributions recorded for tax year $year. You have ${_currencyFormat.format(remaining)} available to contribute under the IRS limit.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             if (match > 0) ...[
               const Divider(height: 24),
               Row(
@@ -325,9 +574,13 @@ class _RetirementWidgetState extends State<RetirementWidget> {
     );
   }
 
-  Widget _buildHistorySection(BuildContext context, RetirementHistory history) {
+  Widget _buildHistorySection(BuildContext context,
+      List<RetirementContribution> accountContribs, RetirementHistory history) {
     final theme = Theme.of(context);
-    if (history.contributions.isEmpty) {
+    final displayList =
+        accountContribs.isNotEmpty ? accountContribs : history.contributions;
+
+    if (displayList.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -357,7 +610,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        ...history.contributions.map((c) {
+        ...displayList.map((c) {
           final effLimit = _useCatchUpLimit ? c.catchUpLimit : c.limit;
           final pct = effLimit > 0
               ? (c.contributionAmount / effLimit).clamp(0.0, 1.0)
@@ -387,6 +640,11 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                     '${c.displayAccountType} • ${_currencyFormat.format(c.contributionAmount)} of ${_currencyFormat.format(effLimit)}',
                     style: const TextStyle(fontSize: 12),
                   ),
+                  if (c.rolloverContributions > 0)
+                    Text(
+                      'Rollovers: ${_currencyFormat.format(c.rolloverContributions)}${c.sourceDescription != null ? " (${c.sourceDescription})" : ""}',
+                      style: const TextStyle(fontSize: 11, color: Colors.blue),
+                    ),
                   if (c.matchAmount > 0)
                     Text(
                       'Match: ${_currencyFormat.format(c.matchAmount)}',

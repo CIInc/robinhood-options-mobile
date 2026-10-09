@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** October 6, 2026 · **Current app version:** 0.55.1 (released October 6, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 403
-- **Planned checklist items:** 68
+- **Completed checklist items:** 404
+- **Planned checklist items:** 67
 - **GitHub issues:** 121 total — 33 open and 88 closed (as of October 6, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
 
@@ -475,7 +475,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 ### v0.56.0 (Target: Q1 2027)
 **Retirement Planning, SEC EDGAR Expansion & Streamlined AI Conviction**
-- **Retirement Planning & Gold Match Maximizer:** Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization ([Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)).
+- ✅ **Retirement Planning & Gold Match Maximizer:** Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization ([docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)).
 - **SEC EDGAR Filing Expansion (Phase 2):** 10-K/10-Q financial statements parsing, real-time insider filing alerts, and 8-K material catalyst notifications ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
 - **Alert Customization & Multi-Channel Delivery:** Custom sounds, priority notification channels, and granular per-signal alert triggers for price, GEX, and options flow ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
 - **Unified AI Conviction & Factor Alignment:** Lightweight synthesis combining Gemini 3.1 Flash-Lite reasoning with quantitative factor scores and Devil's Advocate stress tests (streamlined from speculative multi-LLM consensus) ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
@@ -899,7 +899,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Corporate Action Split Adjustments** (v0.45.0): Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
 - [x] **Shareholder Say Q&A Engagement** (v0.45.0): Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
 - [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
-- [ ] **Retirement Planning & Gold Match Maximizer** (v0.56.0, [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)): Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization - **Small** (1-2 weeks)
+- [x] **Retirement Planning & Gold Match Maximizer** (v0.56.0, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)): Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization - **Small** (1-2 weeks)
 - [x] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [x] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)) - **Medium** (2-3 weeks)
