@@ -563,8 +563,11 @@ export const analyzeTradePostMortem = https.onCall(
     const primaryModel = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 
     const prompt = `
-    You are an elite institutional trading psychologist, quantitative risk director, and behavioral trading coach for RealizeAlpha.
-    Your mission is to perform a rigorous post-mortem analysis on a closed trade to evaluate execution quality, cognitive biases, and strategic alignment against the initial entry thesis.
+    You are an elite institutional trading psychologist, quantitative risk
+    director, and behavioral trading coach for RealizeAlpha.
+    Your mission is to perform a rigorous post-mortem analysis on a closed trade
+    to evaluate execution quality, cognitive biases, and strategic alignment
+    against the initial entry thesis.
 
     Trade Parameters:
     - Symbol: ${symbol.toUpperCase()}
@@ -573,34 +576,58 @@ export const analyzeTradePostMortem = https.onCall(
     ${entryPrice != null ? `- Entry Price: $${entryPrice.toFixed(2)}` : ""}
     ${exitPrice != null ? `- Exit Price: $${exitPrice.toFixed(2)}` : ""}
     ${realizedPnl != null ? `- Realized P&L: $${realizedPnl.toFixed(2)}` : ""}
-    ${realizedPnlPercent != null ? `- Realized Return: ${realizedPnlPercent.toFixed(2)}%` : ""}
+    ${
+  realizedPnlPercent != null ?
+    `- Realized Return: ${realizedPnlPercent.toFixed(2)}%` :
+    ""
+}
     ${holdingPeriod ? `- Holding Period / Duration: ${holdingPeriod}` : ""}
-    ${entryThesis ? `- Original Entry Thesis: "${entryThesis}"` : "- Original Entry Thesis: (None specified / discretionary)"}
-    ${exitReason ? `- Trader's Stated Exit Reason: "${exitReason}"` : "- Exit Reason: (Discretionary close / stop triggered)"}
+    ${
+  entryThesis ?
+    `- Original Entry Thesis: "${entryThesis}"` :
+    "- Original Entry Thesis: (None specified / discretionary)"
+}
+    ${
+  exitReason ?
+    `- Trader's Stated Exit Reason: "${exitReason}"` :
+    "- Exit Reason: (Discretionary close / stop triggered)"
+}
     ${orderHistory ? `- Associated Execution Flow: ${orderHistory}` : ""}
 
     Conduct an in-depth post-mortem and provide:
     1. An Execution Quality Score (0 to 100):
-       - 80-100: "Flawless Execution" (Disciplined plan execution regardless of outcome)
+       - 80-100: "Flawless Execution" (Disciplined plan execution regardless
+         of outcome)
        - 60-79: "Acceptable Execution" (Minor timing or sizing imperfections)
-       - 40-59: "Suboptimal Execution" (Hesitation, premature exit, or chased entry)
-       - 0-39: "Disciplined Failure / Tilt" (FOMO entry, revenge exit, ignored stops)
+       - 40-59: "Suboptimal Execution" (Hesitation, premature exit, or chased
+         entry)
+       - 0-39: "Disciplined Failure / Tilt" (FOMO entry, revenge exit, ignored
+         stops)
     2. An Execution Grade: "A", "B", "C", "D", or "F".
     3. An Outcome Verdict: Categorize the trade outcome:
        - "Good Win" (Process followed, positive outcome)
        - "Bad Win" (Lucky outcome, flawed process / rules broken)
        - "Good Loss" (Disciplined loss, stop adhered to, good risk/reward)
        - "Bad Loss" (Disciplined failure, revenge trade, or oversized loser)
-    4. Thesis Alignment Score (0 to 100): Did the actual trade play out the way the thesis predicted?
+    4. Thesis Alignment Score (0 to 100): Did the actual trade play out the
+       way the thesis predicted?
     5. Primary Cognitive Biases Detected (1 to 3 items):
-       - Bias name (e.g., "FOMO / Chasing", "Disposition Effect", "Loss Aversion", "Revenge Trading", "Overconfidence", "Anchoring", "Premature Profit Taking", "None Detected")
+       - Bias name (e.g., "FOMO / Chasing", "Disposition Effect",
+         "Loss Aversion", "Revenge Trading", "Overconfidence", "Anchoring",
+         "Premature Profit Taking", "None Detected")
        - Severity ("Low", "Moderate", "High", "Critical")
        - Evidence from the trade prices, duration, or thesis
        - Actionable Antidote / Behavioral Rx
-    6. Execution Flaws (0 to 3 items): Specific mechanical flaws (e.g., "Slippage on Market Exit", "Held Past Invalidation Point", "No Hard Stop Placed", "Oversized Sizing Spikes") with severity ("High", "Medium", "Low")
+    6. Execution Flaws (0 to 3 items): Specific mechanical flaws (e.g.,
+       "Slippage on Market Exit", "Held Past Invalidation Point",
+       "No Hard Stop Placed", "Oversized Sizing Spikes") with severity
+       ("High", "Medium", "Low")
     7. Tactical Lessons Learned: 2-3 concise, bulleted rules for future trades.
-    8. Recommended Journal Tags: 3-5 tags for automatic behavioral tagging (e.g. ["#LossAversion", "#GoodLoss", "#EarningsTrade", "#StoppedOut", "#RuleFollowed"]).
-    9. Coach Summary: 2-3 sentences synthesizing the diagnostic takeaway in an encouraging but uncompromising tone.
+    8. Recommended Journal Tags: 3-5 tags for automatic behavioral tagging
+       (e.g. ["#LossAversion", "#GoodLoss", "#EarningsTrade", "#StoppedOut",
+       "#RuleFollowed"]).
+    9. Coach Summary: 2-3 sentences synthesizing the diagnostic takeaway in
+       an encouraging but uncompromising tone.
 
     Return the response in strict JSON format matching this schema:
     {

@@ -2250,8 +2250,10 @@ export function evaluateBollingerBands(
     };
   }
 
-  // Optimization: Use scalar computeBollingerBands to compute trailing bands directly in O(period) time,
-  // avoiding `computeBollingerBandsArray` and `computeKeltnerChannelsArray` full series array allocations (~8.5x speedup).
+  // Optimization: Use scalar computeBollingerBands to compute trailing bands
+  // directly in O(period) time, avoiding `computeBollingerBandsArray` and
+  // `computeKeltnerChannelsArray` full series array allocations
+  // (~8.5x speedup).
   const bb = computeBollingerBands(prices, period, stdDev);
 
   if (!bb) {
@@ -2290,7 +2292,8 @@ export function evaluateBollingerBands(
   } else {
     // 2. Fallback: Bandwidth Squeeze (bandwidth is lowest in 6 months)
     if (prices.length >= period) {
-      // Find min bandwidth over last 120 bars using scalar computeBollingerBands without array allocations
+      // Find min bandwidth over last 120 bars using scalar
+      // computeBollingerBands without array allocations
       const start = Math.max(period, prices.length - 120);
       let minBandwidth = Number.POSITIVE_INFINITY;
       for (let i = start; i <= prices.length; i++) {
@@ -2354,7 +2357,9 @@ export function evaluateBollingerBands(
   // Need Check previous bandwidth
   let isExpanding = false;
   if (prices.length >= period + 1) {
-    const prevBB = computeBollingerBands(prices, period, stdDev, prices.length - 1);
+    const prevBB = computeBollingerBands(
+      prices, period, stdDev, prices.length - 1
+    );
     if (prevBB) {
       const prevBW = (prevBB.upper - prevBB.lower) / prevBB.middle;
       if (bandwidth > prevBW * 1.05) isExpanding = true;
