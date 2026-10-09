@@ -1,6 +1,7 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 import { performTradeProposal } from "./agentic-trading";
 
@@ -156,13 +157,26 @@ export const agenticTradingCronInvoke = onRequest(
   {
     memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes
+    secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
   },
   async (request, response) => {
-    // logger.info(request.query, { structuredData: true });
-    // Example simple auth gating (adjust to project standards):
-    // if (!request.auth || request.auth.token.admin !== true) {
-    //   throw new HttpsError('permission-denied', 'Admin privileges required');
-    // }
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      response.status(401).json({
+        error: "A Firebase ID token is required (Authorization: Bearer <token>).",
+      });
+      return;
+    }
+
+    const token = authHeader.split("Bearer ")[1];
+    try {
+      await getAuth().verifyIdToken(token);
+    } catch (authError) {
+      logger.warn("Unauthorized invocation attempt on agenticTradingCronInvoke", authError);
+      response.status(401).json({ error: "Invalid authentication token." });
+      return;
+    }
+
     try {
       const result = await runAgenticTradingCron();
       // Send JSON response instead of returning the result
