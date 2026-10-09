@@ -96,23 +96,26 @@ class _AnimatedPriceTextState extends State<AnimatedPriceText>
         ? widget.format!.format(widget.price)
         : widget.price.toString();
 
-    return AnimatedBuilder(
-      animation: _colorAnimation,
-      builder: (context, child) {
-        return Text(
-          text,
-          style: (widget.style ?? const TextStyle()).copyWith(
-            color: _controller.isAnimating
-                ? _colorAnimation.value
-                : widget.style?.color,
-          ),
-          overflow: widget.overflow,
-          textAlign: widget.textAlign,
-          maxLines: widget.maxLines,
-          softWrap: widget.softWrap,
-          semanticsLabel: widget.semanticsLabel,
-        );
-      },
+    return Semantics(
+      liveRegion: true,
+      child: AnimatedBuilder(
+        animation: _colorAnimation,
+        builder: (context, child) {
+          return Text(
+            text,
+            style: (widget.style ?? const TextStyle()).copyWith(
+              color: _controller.isAnimating
+                  ? _colorAnimation.value
+                  : widget.style?.color,
+            ),
+            overflow: widget.overflow,
+            textAlign: widget.textAlign,
+            maxLines: widget.maxLines,
+            softWrap: widget.softWrap,
+            semanticsLabel: widget.semanticsLabel,
+          );
+        },
+      ),
     );
   }
 }
