@@ -15,6 +15,8 @@ import {
   computeStochasticArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
+  evaluateMarketDirection,
+  evaluateStochastic,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -530,6 +532,83 @@ describe("Technical Indicators", () => {
       expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
       expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
       expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+  });
+
+  describe("evaluateMarketDirection", () => {
+    it("should return HOLD for insufficient market data", () => {
+      const prices = [100, 101, 102];
+      const res = evaluateMarketDirection(prices, 10, 30);
+      expect(res.signal).toBe("HOLD");
+      expect(res.value).toBeNull();
+    });
+
+    it("should evaluate uptrend and crossover correctly", () => {
+      const prices: number[] = [];
+      // Create 40 prices with an upward trend
+      for (let i = 0; i < 40; i++) {
+        prices.push(100 + i * 1.5);
+      }
+      const res = evaluateMarketDirection(prices, 10, 30);
+      expect(res.signal).toBe("BUY");
+      expect(res.value).toBeGreaterThan(0);
+    });
+
+    it("should evaluate downtrend correctly", () => {
+      const prices: number[] = [];
+      for (let i = 0; i < 40; i++) {
+        prices.push(200 - i * 2);
+      }
+      const res = evaluateMarketDirection(prices, 10, 30);
+      expect(res.signal).toBe("SELL");
+      expect(res.value).toBeLessThan(0);
+    });
+  });
+
+  describe("evaluateStochastic", () => {
+    it("should return HOLD for insufficient data", () => {
+      const highs = [10, 11, 12];
+      const lows = [8, 9, 10];
+      const closes = [9, 10, 11];
+      const res = evaluateStochastic(highs, lows, closes, 14, 3);
+      expect(res.signal).toBe("HOLD");
+      expect(res.value).toBeNull();
+    });
+
+    it("should evaluate stochastic signals correctly", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + Math.sin(i / 5) * 10;
+        highs.push(base + 2);
+        lows.push(base - 2);
+        closes.push(base + (i % 2 === 0 ? 1 : -1));
+      }
+
+      const res = evaluateStochastic(highs, lows, closes, 14, 3);
+      expect(res.value).not.toBeNull();
+      expect(typeof res.signal).toBe("string");
+      expect(res.metadata).toBeDefined();
+    });
+
+    it("should handle intermediate length arrays without error", () => {
+      // Test length between 20 and 35 bars
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 25; i++) {
+        const base = 100 + i;
+        highs.push(base + 1);
+        lows.push(base - 1);
+        closes.push(base);
+      }
+
+      expect(
+        () => evaluateStochastic(highs, lows, closes, 14, 3)
+      ).not.toThrow();
+      const res = evaluateStochastic(highs, lows, closes, 14, 3);
+      expect(res.value).not.toBeNull();
     });
   });
 });
