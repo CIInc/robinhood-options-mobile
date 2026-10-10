@@ -95,6 +95,32 @@ void main() {
     expect(find.text('TSLA 260327C00220000'), findsOneWidget);
     expect(find.text('OPTION'), findsOneWidget);
 
+    // Verify Semantics labels
+    expect(
+      find.bySemanticsLabel(
+        'Rolling 5-day trade usage meter: 2 of 3 allowed day trades used',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'Account equity progress toward \$25,000 threshold: 72 percent',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'^Day trade: AAPL EQUITY'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'^Day trade: TSLA 260327C00220000 OPTION'),
+      ),
+      findsOneWidget,
+    );
+
     // Verify FAQ accordion
     expect(find.text('FINRA Rule 4210 & PDT Guide'), findsOneWidget);
 
