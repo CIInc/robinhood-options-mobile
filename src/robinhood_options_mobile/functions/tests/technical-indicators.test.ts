@@ -15,6 +15,7 @@ import {
   computeStochasticArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
+  detectChartPattern,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -530,6 +531,48 @@ describe("Technical Indicators", () => {
       expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
       expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
       expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+  });
+
+  describe("detectChartPattern", () => {
+    it("should return HOLD with reason when insufficient prices", () => {
+      const prices = Array.from({ length: 10 }, (_, i) => 100 + i);
+      const res = detectChartPattern(prices);
+      expect(res.signal).toBe("HOLD");
+      expect(res.reason).toContain("Need 30+ bars");
+    });
+
+    it("should detect breakout when price surges above moving averages", () => {
+      // 60 prices, flat up to bar 58, sudden 5% surge on bar 59
+      const prices = Array.from(
+        { length: 60 },
+        (_, i) => (i < 59 ? 100 : 105)
+      );
+      const volumes = Array.from(
+        { length: 60 },
+        (_, i) => (i === 59 ? 5000 : 1000)
+      );
+      const res = detectChartPattern(prices, volumes);
+      expect(res.signal).toBe("BUY");
+      expect(res.reason).toContain("Price Breakout");
+    });
+
+    it("should detect breakdown when price drops below moving averages", () => {
+      // 60 prices, flat up to bar 58, sudden 5% drop on bar 59
+      const prices = Array.from({ length: 60 }, (_, i) => (i < 59 ? 100 : 95));
+      const volumes = Array.from(
+        { length: 60 },
+        (_, i) => (i === 59 ? 5000 : 1000)
+      );
+      const res = detectChartPattern(prices, volumes);
+      expect(res.signal).toBe("SELL");
+      expect(res.reason).toContain("Price Breakdown");
+    });
+
+    it("should return HOLD for flat prices", () => {
+      const prices = Array.from({ length: 60 }, () => 100);
+      const res = detectChartPattern(prices);
+      expect(res.signal).toBe("HOLD");
     });
   });
 });
