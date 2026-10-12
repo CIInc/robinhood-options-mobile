@@ -5665,8 +5665,24 @@ WATCHLIST
     return await getJson(user, url);
   }
 
+  /// Fetches unified payment transfers from PaymentHub
+  /// https://bonfire.robinhood.com/paymenthub/unified_transfers/
+  Future<dynamic> getUnifiedTransfers(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/paymenthub/unified_transfers/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches SDUI contribution breakdown metadata for a specific payment transfer
+  /// https://bonfire.robinhood.com/paymenthub/unified_transfers/{id}/contribution/
+  Future<dynamic> getUnifiedTransferContribution(
+      BrokerageUser user, String transferId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/paymenthub/unified_transfers/$transferId/contribution/";
+    return await getJson(user, url);
+  }
+
   /// Fetches typed RetirementHistory model combining annual direct contributions,
-  /// Robinhood match rate, and ACATS rollovers.
+  /// Robinhood match rate, ACATS rollovers, and PaymentHub unified transfers.
   @override
   Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
       {String? accountNumber}) async {
@@ -5705,7 +5721,59 @@ WATCHLIST
         debugPrint('Error fetching ACATS transfers for retirement: $e');
       }
 
-      // 4. Fetch total account value (TAV) / equity for the retirement account
+      // 4. Fetch unified payment transfers (PaymentHub direct IRA contributions)
+      final List<Map<String, dynamic>> iraTransfers = [];
+      try {
+        final pTransfersRaw = await getUnifiedTransfers(user);
+        final List<dynamic> pTransfers = (pTransfersRaw is Map &&
+                pTransfersRaw['results'] is List)
+            ? pTransfersRaw['results'] as List
+            : (pTransfersRaw is List ? pTransfersRaw : const []);
+
+        for (final t in pTransfers) {
+          if (t is! Map) continue;
+          final origId = t['originating_account_id']?.toString();
+          final recId = t['receiving_account_id']?.toString();
+          final destId = t['details'] is Map
+              ? t['details']['dest_account_id']?.toString()
+              : null;
+          final origType =
+              t['originating_account_type']?.toString().toLowerCase() ?? '';
+          final destType = t['details'] is Map
+              ? t['details']['dest_account_type']?.toString().toLowerCase() ?? ''
+              : '';
+
+          final matchesAccount = (effectiveAccountNumber != null &&
+                  (origId == effectiveAccountNumber ||
+                      recId == effectiveAccountNumber ||
+                      destId == effectiveAccountNumber)) ||
+              (effectiveAccountNumber == null &&
+                  (origType.contains('ira') || destType.contains('ira')));
+
+          final state = (t['state'] ?? '').toString().toLowerCase();
+          if (matchesAccount && (state == 'completed' || state == 'settled')) {
+            final transferCopy = Map<String, dynamic>.from(t);
+            final transferId = t['id']?.toString();
+            if (transferId != null && transferId.isNotEmpty) {
+              try {
+                final contribJson =
+                    await getUnifiedTransferContribution(user, transferId);
+                if (contribJson is Map) {
+                  transferCopy['contribution_details'] = contribJson;
+                }
+              } catch (e) {
+                debugPrint(
+                    'Error fetching contribution details for transfer $transferId: $e');
+              }
+            }
+            iraTransfers.add(transferCopy);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching unified transfers for retirement: $e');
+      }
+
+      // 5. Fetch total account value (TAV) / equity for the retirement account
       double? tav = targetAccount?.totalValue;
       if (effectiveAccountNumber != null) {
         // Probe 1: /portfolios/$effectiveAccountNumber/
@@ -5766,6 +5834,8 @@ WATCHLIST
           'match_rate': matchData['match_rate'],
         if (acatsData is Map && acatsData['results'] != null)
           'acats': acatsData['results'],
+        if (iraTransfers.isNotEmpty)
+          'unified_transfers': iraTransfers,
       };
 
       return RetirementHistory.fromJson(combined);

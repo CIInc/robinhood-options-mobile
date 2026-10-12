@@ -392,5 +392,243 @@ void main() {
       expect(find.text('Cash / Buying Power'), findsOneWidget);
       expect(find.text('\$450.21'), findsOneWidget);
     });
+
+    testWidgets('renders Transfers & Contributions when retirement history includes unified transfers', (tester) async {
+      final user = BrokerageUser(
+        BrokerageSource.demo,
+        'demo_user',
+        null,
+        null,
+      );
+
+      final traditionalAccount = Account.fromJson({
+        'account_number': '741902639',
+        'type': 'cash',
+        'brokerage_account_type': 'ira_traditional',
+        'total_value': '25326.80',
+        'portfolio_cash': '450.21',
+      });
+
+      final mockHistory = RetirementHistory.fromJson({
+        'account_number': '741902639',
+        'account_type': 'ira_traditional',
+        'total_value': 25326.80,
+        'match_rate': 0.03,
+        'unified_transfers': [
+          {
+            'id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
+            'amount': '1000.00',
+            'direction': 'pull',
+            'state': 'completed',
+            'created_at': '2026-09-25T23:14:45Z',
+            'contribution_details': {
+              'payment_transfer_id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
+              'rows': [
+                {'label': 'Contribution type', 'value': 'New IRA Contribution'},
+                {'label': 'Tax year', 'value': '2026'},
+                {'label': 'Match percentage', 'value': '3%'},
+                {'label': 'Total match amount', 'value': '\$30.00'},
+              ],
+            },
+          },
+          {
+            'id': '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7',
+            'amount': '2000.00',
+            'direction': 'pull',
+            'state': 'completed',
+            'created_at': '2026-09-15T01:08:46Z',
+            'contribution_details': {
+              'payment_transfer_id': '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7',
+              'rows': [
+                {'label': 'Contribution type', 'value': 'New IRA Contribution'},
+                {'label': 'Tax year', 'value': '2026'},
+                {'label': 'Match percentage', 'value': '3%'},
+                {'label': 'Total match amount', 'value': '\$60.00'},
+              ],
+            },
+          },
+        ],
+        'acats': [
+          {
+            'id': 'acat_2025_01',
+            'phase': 'settled',
+            'rhs_account_number': '741902639',
+            'settlement_date': '2025-06-15T12:00:00Z',
+            'contra_broker_name': 'Merrill Lynch',
+            'market_value': '25334.93',
+          },
+        ],
+      });
+
+      final service = DemoService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RetirementWidget(
+            brokerageUser: user,
+            service: service,
+            account: traditionalAccount,
+            futureHistory: Future.value(mockHistory),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Total contributed shows $3,000.00
+      expect(find.text('\$3,000.00'), findsWidgets);
+
+      // Remaining shows $4,000.00
+      expect(find.text('\$4,000.00'), findsOneWidget);
+
+      // Transfers & Contributions header is displayed
+      expect(find.text('Transfers & Contributions'), findsOneWidget);
+      expect(find.text('2 records'), findsOneWidget);
+
+      // Both individual transfer entries are rendered
+      expect(find.text('New IRA Contribution'), findsNWidgets(2));
+      expect(find.text('\$1,000.00'), findsOneWidget);
+      expect(find.text('\$2,000.00'), findsOneWidget);
+
+      // Robinhood Gold Match is rendered
+      expect(find.text('Robinhood Match Earned: '), findsOneWidget);
+      expect(find.text('\$90.00'), findsWidgets);
+      expect(find.text(' (3% Gold Match)'), findsOneWidget);
+    });
+  });
+
+  group('RetirementTransaction & Unified Transfers Model Tests', () {
+    test('parses SDUI contribution rows from paymenthub contribution endpoint', () {
+      final sduiJson = {
+        'id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
+        'amount': '1000.00',
+        'direction': 'pull',
+        'state': 'completed',
+        'created_at': '2026-09-25T23:14:45.406284-04:00',
+        'originating_account_type': 'rhs_traditional_ira',
+        'contribution_details': {
+          'payment_transfer_id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
+          'rows': [
+            {
+              'sdui_component_type': 'DATA_ROW_STACKED',
+              'label': 'Contribution type',
+              'value': 'New IRA Contribution',
+            },
+            {
+              'sdui_component_type': 'DATA_ROW_STACKED',
+              'label': 'Tax year',
+              'value': '2026',
+            },
+            {
+              'sdui_component_type': 'DATA_ROW_STACKED',
+              'label': 'Match percentage',
+              'value': '3%',
+            },
+            {
+              'sdui_component_type': 'DATA_ROW_STACKED',
+              'label': 'Total match amount',
+              'value': '\$30.00',
+            },
+          ],
+        },
+      };
+
+      final tx = RetirementTransaction.fromJson(sduiJson);
+
+      expect(tx.id, '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b');
+      expect(tx.title, 'New IRA Contribution');
+      expect(tx.amount, 1000.0);
+      expect(tx.matchAmount, 30.0);
+      expect(tx.matchRate, 0.03);
+      expect(tx.taxYear, 2026);
+      expect(tx.status, 'completed');
+      expect(tx.formattedAmount, '\$1,000.00');
+      expect(tx.formattedMatchAmount, '\$30.00');
+    });
+
+    test('falls back to details.enoki_amount when contribution_details absent', () {
+      final transferJson = {
+        'id': '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7',
+        'amount': '2000.00',
+        'created_at': '2026-09-15T01:08:46Z',
+        'details': {
+          'enoki_amount': {
+            'amount': '60',
+            'currency_code': 'USD',
+          },
+        },
+      };
+
+      final tx = RetirementTransaction.fromJson(transferJson);
+
+      expect(tx.id, '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7');
+      expect(tx.amount, 2000.0);
+      expect(tx.matchAmount, 60.0);
+      expect(tx.matchRate, 0.03); // 60 / 2000 = 0.03
+      expect(tx.taxYear, 2026);
+    });
+
+    test('synthesizes multiple unified transfers into RetirementHistory', () {
+      final historyJson = {
+        'account_number': '741902639',
+        'account_type': 'ira_traditional',
+        'match_rate': 0.03,
+        'results': [], // empty legacy endpoint
+        'unified_transfers': [
+          {
+            'id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
+            'amount': '1000.00',
+            'created_at': '2026-09-25T23:14:45Z',
+            'contribution_details': {
+              'rows': [
+                {'label': 'Contribution type', 'value': 'New IRA Contribution'},
+                {'label': 'Tax year', 'value': '2026'},
+                {'label': 'Match percentage', 'value': '3%'},
+                {'label': 'Total match amount', 'value': '\$30.00'},
+              ],
+            },
+          },
+          {
+            'id': '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7',
+            'amount': '2000.00',
+            'created_at': '2026-09-15T01:08:46Z',
+            'contribution_details': {
+              'rows': [
+                {'label': 'Contribution type', 'value': 'New IRA Contribution'},
+                {'label': 'Tax year', 'value': '2026'},
+                {'label': 'Match percentage', 'value': '3%'},
+                {'label': 'Total match amount', 'value': '\$60.00'},
+              ],
+            },
+          },
+        ],
+        'acats': [
+          {
+            'phase': 'settled',
+            'settlement_date': '2025-06-01T00:00:00Z',
+            'contra_broker_name': 'Chase',
+            'market_value': '25334.93',
+          },
+        ],
+      };
+
+      final history = RetirementHistory.fromJson(historyJson);
+
+      expect(history.totalContributions, 3000.0);
+      expect(history.totalMatch, 90.0);
+
+      final c2026 = history.contributionForYear(2026);
+      expect(c2026, isNotNull);
+      expect(c2026!.contributionAmount, 3000.0);
+      expect(c2026.matchAmount, 90.0);
+      expect(c2026.matchRate, 0.03);
+      expect(c2026.remainingLimit, 4000.0);
+      expect(c2026.transactions.length, 2);
+
+      final c2025 = history.contributionForYear(2025);
+      expect(c2025, isNotNull);
+      expect(c2025!.rolloverContributions, 25334.93);
+      expect(c2025.sourceDescription, 'Rollover from Chase');
+    });
   });
 }

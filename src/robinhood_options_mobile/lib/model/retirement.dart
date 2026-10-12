@@ -19,6 +19,145 @@ const Map<int, double> kIrsIraCatchUpLimits = {
   2026: 8000.0,
 };
 
+/// Represents an individual retirement account transaction (e.g. IRA contribution or match).
+class RetirementTransaction {
+  final String id;
+  final String title;
+  final double amount;
+  final double matchAmount;
+  final double matchRate;
+  final int taxYear;
+  final DateTime? date;
+  final String status;
+  final String? accountType;
+  final String? description;
+
+  const RetirementTransaction({
+    required this.id,
+    this.title = 'IRA Contribution',
+    required this.amount,
+    this.matchAmount = 0.0,
+    this.matchRate = 0.0,
+    required this.taxYear,
+    this.date,
+    this.status = 'completed',
+    this.accountType,
+    this.description,
+  });
+
+  String get formattedAmount => _currencyFormat.format(amount);
+  String get formattedMatchAmount => _currencyFormat.format(matchAmount);
+
+  factory RetirementTransaction.fromJson(dynamic json) {
+    if (json is! Map) {
+      return RetirementTransaction(
+        id: '',
+        amount: 0.0,
+        taxYear: DateTime.now().year,
+      );
+    }
+
+    final id = json['id']?.toString() ??
+        json['payment_transfer_id']?.toString() ??
+        '';
+    final amount = parseDouble(json['amount'] ?? json['net_amount']) ?? 0.0;
+
+    String title = json['title']?.toString() ?? 'IRA Contribution';
+    int? parsedTaxYear = int.tryParse(json['tax_year']?.toString() ?? '');
+    double matchAmt = parseDouble(json['match_amount']) ?? 0.0;
+    double matchRate = parseDouble(json['match_rate']) ?? 0.0;
+
+    // Check enoki_amount in details (internal Robinhood match metadata)
+    if (json['details'] is Map) {
+      final details = json['details'] as Map;
+      if (details['enoki_amount'] is Map) {
+        final enokiAmt = parseDouble(details['enoki_amount']['amount']);
+        if (enokiAmt != null && enokiAmt > 0) {
+          matchAmt = enokiAmt;
+        }
+      }
+    }
+
+    // Check contribution_details SDUI rows from PaymentHub /contribution/ endpoint
+    if (json['contribution_details'] is Map) {
+      final cDetails = json['contribution_details'] as Map;
+      final rows = cDetails['rows'];
+      if (rows is List) {
+        for (final row in rows) {
+          if (row is! Map) continue;
+          final label = row['label']?.toString().toLowerCase();
+          final val = row['value']?.toString();
+          if (val == null) continue;
+
+          if (label == 'contribution type') {
+            title = val;
+          } else if (label == 'tax year') {
+            parsedTaxYear = int.tryParse(val);
+          } else if (label == 'match percentage') {
+            final clean = val.replaceAll('%', '').trim();
+            final rateVal = double.tryParse(clean);
+            if (rateVal != null) {
+              matchRate = rateVal > 0.05 ? rateVal / 100.0 : rateVal;
+            }
+          } else if (label == 'total match amount' || label == 'match amount') {
+            final clean = val.replaceAll('\$', '').replaceAll(',', '').trim();
+            final matchVal = double.tryParse(clean);
+            if (matchVal != null) {
+              matchAmt = matchVal;
+            }
+          }
+        }
+      }
+    }
+
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      try {
+        return DateTime.parse(value.toString());
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final date =
+        parseDate(json['created_at'] ?? json['completed_at'] ?? json['date']);
+    parsedTaxYear ??= date?.year ?? DateTime.now().year;
+
+    if (matchRate == 0.0 && amount > 0 && matchAmt > 0) {
+      matchRate = (matchAmt / amount);
+    }
+
+    return RetirementTransaction(
+      id: id,
+      title: title,
+      amount: amount,
+      matchAmount: matchAmt,
+      matchRate: matchRate,
+      taxYear: parsedTaxYear,
+      date: date,
+      status: (json['state'] ?? json['status'] ?? 'completed').toString(),
+      accountType: json['originating_account_type']?.toString(),
+      description: json['description']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'amount': amount,
+      'match_amount': matchAmount,
+      'match_rate': matchRate,
+      'tax_year': taxYear,
+      if (date != null) 'date': date!.toIso8601String(),
+      'status': status,
+      if (accountType != null) 'account_type': accountType,
+      if (description != null) 'description': description,
+    };
+  }
+}
+
 /// Represents an annual IRA contribution breakdown, match, and IRS limit for a specific year.
 class RetirementContribution {
   final int year;
@@ -36,6 +175,7 @@ class RetirementContribution {
   final DateTime? updatedAt;
   final String status;
   final String? sourceDescription;
+  final List<RetirementTransaction> transactions;
 
   const RetirementContribution({
     required this.year,
@@ -53,6 +193,7 @@ class RetirementContribution {
     this.updatedAt,
     this.status = 'active',
     this.sourceDescription,
+    this.transactions = const [],
   });
 
   factory RetirementContribution.fromJson(dynamic json) {
@@ -123,6 +264,13 @@ class RetirementContribution {
         json['account']?.toString() ??
         json['rhs_account_number']?.toString();
 
+    final txList = <RetirementTransaction>[];
+    if (json['transactions'] is List) {
+      for (final tx in json['transactions']) {
+        txList.add(RetirementTransaction.fromJson(tx));
+      }
+    }
+
     return RetirementContribution(
       year: parsedYear,
       accountType: parsedAccountType,
@@ -141,6 +289,7 @@ class RetirementContribution {
       sourceDescription: json['source_description']?.toString() ??
           json['contra_broker_name']?.toString() ??
           json['description']?.toString(),
+      transactions: txList,
     );
   }
 
@@ -189,6 +338,8 @@ class RetirementContribution {
       if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       'status': status,
       if (sourceDescription != null) 'source_description': sourceDescription,
+      if (transactions.isNotEmpty)
+        'transactions': transactions.map((t) => t.toJson()).toList(),
     };
   }
 }
@@ -312,6 +463,79 @@ class RetirementHistory {
             catchUpLimit: kIrsIraCatchUpLimits[transferYear] ?? 8000.0,
             status: 'settled',
             sourceDescription: 'Rollover from $contraBroker',
+          ));
+        }
+      }
+    }
+
+    // Process unified transfers (PaymentHub direct IRA contributions and match)
+    if (json is Map && json['unified_transfers'] is List) {
+      final transfers = json['unified_transfers'] as List;
+      final Map<int, List<RetirementTransaction>> yearTransactions = {};
+      for (final t in transfers) {
+        final tx = RetirementTransaction.fromJson(t);
+        if (tx.amount <= 0 && tx.matchAmount <= 0) continue;
+        yearTransactions.putIfAbsent(tx.taxYear, () => []).add(tx);
+      }
+
+      for (final entry in yearTransactions.entries) {
+        final txYear = entry.key;
+        final txList = entry.value;
+        txList.sort((a, b) =>
+            (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)));
+
+        final totalYearAmount =
+            txList.fold<double>(0.0, (sum, tx) => sum + tx.amount);
+        final totalYearMatch =
+            txList.fold<double>(0.0, (sum, tx) => sum + tx.matchAmount);
+        final yearMatchRate = txList.isNotEmpty && txList.first.matchRate > 0
+            ? txList.first.matchRate
+            : matchRate;
+
+        final existingIndex = items.indexWhere((c) => c.year == txYear);
+        if (existingIndex >= 0) {
+          final existing = items[existingIndex];
+          final contribAmt = existing.contributionAmount > 0
+              ? existing.contributionAmount
+              : totalYearAmount;
+          final matchAmt = existing.matchAmount > 0
+              ? existing.matchAmount
+              : totalYearMatch;
+
+          items[existingIndex] = RetirementContribution(
+            year: existing.year,
+            accountType: existing.accountType,
+            accountNumber: existing.accountNumber ?? acctNum,
+            contributionAmount: contribAmt,
+            matchAmount: matchAmt,
+            matchRate:
+                existing.matchRate > 0 ? existing.matchRate : yearMatchRate,
+            directContributions: contribAmt,
+            rolloverContributions: existing.rolloverContributions,
+            conversions: existing.conversions,
+            limit: existing.limit,
+            catchUpLimit: existing.catchUpLimit,
+            createdAt: existing.createdAt ?? txList.first.date,
+            updatedAt: existing.updatedAt,
+            status: existing.status,
+            sourceDescription: existing.sourceDescription,
+            transactions: [...existing.transactions, ...txList],
+          );
+        } else {
+          items.add(RetirementContribution(
+            year: txYear,
+            accountType: accountType,
+            accountNumber: acctNum,
+            contributionAmount: totalYearAmount,
+            matchAmount: totalYearMatch,
+            matchRate: yearMatchRate,
+            directContributions: totalYearAmount,
+            rolloverContributions: 0.0,
+            limit: kIrsIraLimits[txYear] ?? 7000.0,
+            catchUpLimit: kIrsIraCatchUpLimits[txYear] ?? 8000.0,
+            status: 'completed',
+            createdAt: txList.first.date,
+            transactions: txList,
           ));
         }
       }

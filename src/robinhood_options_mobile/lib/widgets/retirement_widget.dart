@@ -13,12 +13,14 @@ class RetirementWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final Account? account;
+  final Future<RetirementHistory>? futureHistory;
 
   const RetirementWidget({
     super.key,
     required this.brokerageUser,
     required this.service,
     this.account,
+    this.futureHistory,
   });
 
   @override
@@ -46,10 +48,11 @@ class _RetirementWidgetState extends State<RetirementWidget> {
 
   void _loadData() {
     setState(() {
-      _futureHistory = widget.service.getRetirementHistoryModel(
-        widget.brokerageUser,
-        accountNumber: _selectedAccount?.accountNumber,
-      );
+      _futureHistory = widget.futureHistory ??
+          widget.service.getRetirementHistoryModel(
+            widget.brokerageUser,
+            accountNumber: _selectedAccount?.accountNumber,
+          );
     });
   }
 
@@ -500,30 +503,107 @@ class _RetirementWidgetState extends State<RetirementWidget> {
             if (match > 0) ...[
               const Divider(height: 24),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Icon(Icons.star, color: Colors.amber, size: 20),
                   const SizedBox(width: 8),
-                  Text(
-                    'Robinhood Match Earned: ',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    _currencyFormat.format(match),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                  Expanded(
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Robinhood Match Earned: ',
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          _currencyFormat.format(match),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        if (contrib != null && contrib.matchRate > 0)
+                          Text(
+                            ' (${(contrib.matchRate * 100).toStringAsFixed(0)}% Gold Match)',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  if (contrib != null && contrib.matchRate > 0)
-                    Text(
-                      ' (${(contrib.matchRate * 100).toStringAsFixed(0)}% Gold Match)',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                 ],
               ),
+            ],
+            if (contrib != null && contrib.transactions.isNotEmpty) ...[
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transfers & Contributions',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${contrib.transactions.length} record${contrib.transactions.length == 1 ? '' : 's'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...contrib.transactions.map((tx) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor: Colors.green.withValues(alpha: 0.15),
+                        child: const Icon(Icons.arrow_downward,
+                            color: Colors.green, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tx.title,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              [
+                                if (tx.date != null)
+                                  DateFormat.yMMMd().format(tx.date!),
+                                if (tx.matchAmount > 0)
+                                  'Match: ${_currencyFormat.format(tx.matchAmount)}${tx.matchRate > 0 ? " (${(tx.matchRate * 100).toStringAsFixed(0)}%)" : ""}',
+                              ].join(' • '),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        _currencyFormat.format(tx.amount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
             ],
           ],
         ),
@@ -615,16 +695,32 @@ class _RetirementWidgetState extends State<RetirementWidget> {
           final pct = effLimit > 0
               ? (c.contributionAmount / effLimit).clamp(0.0, 1.0)
               : 0.0;
+          final isSelected = c.year == _selectedYear;
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 6.0),
+            shape: isSelected
+                ? RoundedRectangleBorder(
+                    side: BorderSide(color: theme.colorScheme.primary, width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  )
+                : null,
             child: ListTile(
+              onTap: () {
+                setState(() {
+                  _selectedYear = c.year;
+                });
+              },
               leading: CircleAvatar(
-                backgroundColor: theme.colorScheme.secondaryContainer,
+                backgroundColor: isSelected
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.secondaryContainer,
+                foregroundColor: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onSecondaryContainer,
                 child: Text(
                   c.year.toString().substring(2),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSecondaryContainer,
                   ),
                 ),
               ),
@@ -640,6 +736,15 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                     '${c.displayAccountType} • ${_currencyFormat.format(c.contributionAmount)} of ${_currencyFormat.format(effLimit)}',
                     style: const TextStyle(fontSize: 12),
                   ),
+                  if (c.transactions.isNotEmpty)
+                    Text(
+                      '${c.transactions.length} contribution transfer${c.transactions.length == 1 ? '' : 's'}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   if (c.rolloverContributions > 0)
                     Text(
                       'Rollovers: ${_currencyFormat.format(c.rolloverContributions)}${c.sourceDescription != null ? " (${c.sourceDescription})" : ""}',
@@ -667,7 +772,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
               ),
               trailing: pct >= 1.0
                   ? const Icon(Icons.check_circle, color: Colors.green)
-                  : null,
+                  : const Icon(Icons.chevron_right, size: 20),
             ),
           );
         }),

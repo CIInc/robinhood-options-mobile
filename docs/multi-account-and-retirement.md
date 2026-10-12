@@ -16,10 +16,13 @@ RealizeAlpha provides complete multi-account architecture and native retirement 
 
 ### 2. Retirement Contributions, IRS Limits & Gold Match Maximizer
 - **Annual IRS Limit Tracking:** Built-in IRS contribution limits across tax years ($7,000 baseline for 2024–2026, $8,000 for age 50+ catch-up).
-- **Traditional IRA & Direct Contribution Parsing:** Robust extraction of annual contribution amounts from `direct_contributions`, `total_direct_contributions`, or `contribution_amount`, ensuring Traditional IRA direct contributions are never erroneously parsed as $0.00.
+- **PaymentHub Unified Transfers Integration:** Full support for modern Robinhood PaymentHub endpoints (`/paymenthub/unified_transfers/` and `/paymenthub/unified_transfers/{id}/contribution/`), capturing direct IRA contributions and 3% Gold matches when legacy `/retirement/history/` is empty.
+- **SDUI Contribution Metadata Parsing:** Deep parsing of SDUI stacked data rows for contribution type, tax year, match percentage, and match dollar amount, with automated fallback to transfer details (`enoki_amount`).
+- **Individual Contribution & Transfer Ledger:** Displays individual transfer records (`RetirementTransaction`) under "Transfers & Contributions", including date, contribution type, amount, and match percentage/amount.
+- **Traditional IRA & Direct Contribution Parsing:** Robust extraction of annual contribution amounts from direct contributions, total direct contributions, or unified payment transfers, ensuring Traditional IRA contributions are never erroneously parsed as $0.00.
 - **Account-Aware Filtering:** Full support for multi-account users with both Traditional and Roth IRAs, filtering contribution records by `accountNumber` and `brokerageAccountType` so accounts are never cross-contaminated.
-- **Interactive Tax Year Selector:** Horizontal choice chips allowing users to seamlessly toggle between the active calendar tax year and prior tax years (e.g. 2026, 2025, 2024) to review past contributions.
-- **Rollover & Transfer Transparency:** Clear visual separation of rollovers (e.g. from 401(k) or 403(b) rollover transfers) from annual direct contributions, explaining that rollovers do not count against the annual $7,000 IRS limit.
+- **Interactive Tax Year Selector:** Horizontal choice chips allowing users to seamlessly toggle between the active calendar tax year and prior tax years (e.g. 2026, 2025, 2024) to review past contributions, with interactive selection from history list tiles.
+- **Rollover & Transfer Transparency:** Clear visual separation of rollovers (e.g. from 401(k) or 403(b) rollover transfers via ACATS) from annual direct contributions, explaining that rollovers do not count against the annual $7,000 IRS limit.
 - **Account Total Value Display:** Prominent display of total account portfolio balance alongside annual contribution progress so users immediately see funded balances even when annual direct contributions for the active tax year are $0.00.
 - **Interactive Catch-Up Toggle:** Dynamic switch in `RetirementWidget` toggling standard vs. age 50+ catch-up limits with instant recalculation of remaining headroom and percentage maxed.
 - **Robinhood Retirement Match:** Real-time tracking of bonus match payments (e.g. Robinhood Gold 3% match and standard 1% match) credited directly to the IRA balance.
@@ -52,6 +55,9 @@ Robinhood / Brokerage APIs
   ├── /accounts/
   ├── /phoenix/accounts/unified
   ├── /retirement/history/
+  ├── /paymenthub/unified_transfers/
+  │     └── .../{id}/contribution/ (SDUI Metadata)
+  ├── /acats/
   ├── /rhy/accounts/
   ├── /oauth2/list_external_tokens/
   ├── /oauth2/revoke_token/
@@ -60,18 +66,20 @@ Robinhood / Brokerage APIs
             │
             ▼
 IBrokerageService
-  ├── getAccounts()               ──► List<Account>
-  ├── getRetirementHistoryModel() ──► RetirementHistory
-  ├── getSpendingAccountModel()   ──► SpendingAccount?
-  ├── getExternalTokensModel()    ──► List<ExternalToken>
-  ├── revokeExternalToken()       ──► Future<bool>
-  ├── getNotificationStackModel() ──► List<NotificationItem>
-  └── getInboxThreadsModel()      ──► List<NotificationItem>
+  ├── getAccounts()                     ──► List<Account>
+  ├── getRetirementHistoryModel()       ──► RetirementHistory
+  ├── getUnifiedTransfers()             ──► List<dynamic>
+  ├── getUnifiedTransferContribution()  ──► Map<String, dynamic>
+  ├── getSpendingAccountModel()         ──► SpendingAccount?
+  ├── getExternalTokensModel()          ──► List<ExternalToken>
+  ├── revokeExternalToken()             ──► Future<bool>
+  ├── getNotificationStackModel()       ──► List<NotificationItem>
+  └── getInboxThreadsModel()            ──► List<NotificationItem>
             │
             ▼
 UI Dashboards & Widgets
   ├── SliverAppBarWidget (Multi-account switcher with IRA tags & savings icons)
-  ├── RetirementWidget (Contribution progress, IRS limits, match tracker, history)
+  ├── RetirementWidget (Contribution progress, IRS limits, match tracker, history, individual transfers)
   ├── ConnectedAgentsWidget (Connected apps, permissions, revoke access)
   ├── NotificationCenterWidget (Category chips, stack cards, announcements)
   └── UserWidget (Settings entry points under Banking & Documents)
