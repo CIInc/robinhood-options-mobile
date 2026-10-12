@@ -116,6 +116,55 @@ export function computeBlackScholesGamma(
 }
 
 /**
+ * Calculate Black-Scholes gamma and scaled dollar GEX for an option contract.
+ * Shared scalar helper ensuring single-source default assumptions and zero
+ * logic drift between strike-level GEX and spot sensitivity evaluations.
+ * @param {object} opt - Option contract.
+ * @param {Date | undefined} defaultExpiration - Fallback expiration date.
+ * @param {number} spotPrice - Spot price.
+ * @param {number} riskFreeRate - Risk-free interest rate.
+ * @param {number} nowMs - Current timestamp in ms.
+ * @return {{ gamma: number, oi: number, gex: number }} Computed gamma, OI, GEX.
+ */
+function calculateOptionGammaExposure(
+  opt: {
+    strike: number;
+    impliedVolatility?: number;
+    openInterest?: number;
+    expiration?: Date | number;
+  },
+  defaultExpiration: Date | undefined,
+  spotPrice: number,
+  riskFreeRate: number,
+  nowMs: number
+): { gamma: number; oi: number; gex: number } {
+  const strike = opt.strike;
+  if (!strike || strike <= 0) return { gamma: 0, oi: 0, gex: 0 };
+
+  let expirationMs: number | null = null;
+  const rawExp = opt.expiration ?? defaultExpiration;
+  if (rawExp) {
+    expirationMs = rawExp instanceof Date ?
+      rawExp.getTime() :
+      rawExp as number;
+  }
+  const T = expirationMs ?
+    Math.max((expirationMs - nowMs) / (365 * 24 * 60 * 60 * 1000), 0.001) :
+    0.05;
+
+  const sigma = opt.impliedVolatility || 0;
+  const effectiveSigma = sigma > 0 ? sigma : 0.3; // fallback to 30% IV
+
+  const gamma = computeBlackScholesGamma(
+    spotPrice, strike, T, riskFreeRate, effectiveSigma
+  );
+  const oi = opt.openInterest || 0;
+  const gex = scaleGammaExposure(gamma, oi, spotPrice);
+
+  return { gamma, oi, gex };
+}
+
+/**
  * Compute GEX for each strike from options chain data.
  * @param {object} options - Options chain data
  * @param {number} spotPrice - Current underlying price
@@ -162,25 +211,9 @@ export function computeGEXByStrike(
     const strike = opt.strike;
     if (!strike || strike <= 0) return;
 
-    // Compute time to expiration in years
-    let expirationMs: number | null = null;
-    const rawExp = opt.expiration ?? defaultExpiration;
-    if (rawExp) {
-      expirationMs = rawExp instanceof Date ?
-        rawExp.getTime() :
-        rawExp as number;
-    }
-    const T = expirationMs ?
-      Math.max((expirationMs - now) / (365 * 24 * 60 * 60 * 1000), 0.001) :
-      0.05;
-
-    const sigma = (opt.impliedVolatility || 0);
-    const effectiveSigma = sigma > 0 ? sigma : 0.3; // fallback to 30% IV
-
-    const gamma = computeBlackScholesGamma(
-      spotPrice, strike, T, riskFreeRate, effectiveSigma
+    const { gamma, oi } = calculateOptionGammaExposure(
+      opt, defaultExpiration, spotPrice, riskFreeRate, now
     );
-    const oi = opt.openInterest || 0;
 
     if (!strikeMap.has(strike)) {
       strikeMap.set(strike, {
@@ -344,6 +377,10 @@ export function findMaxGammaStrike(
 
 /**
  * Helper to compute total Net GEX at a specific hypothetical spot price.
+ * Performance Optimization: Directly accumulates call and put GEX in O(N)
+ * time and O(1) space, avoiding Map allocations, strike level object
+ * creations, array allocations, and sort passes from computeGEXByStrike.
+ * Uses shared calculateOptionGammaExposure helper to prevent logic drift.
  * @param {any} optionsChain - Options chain object.
  * @param {number} spotPrice - Spot price to evaluate at.
  * @param {number} riskFreeRate - Risk-free interest rate.
@@ -354,23 +391,29 @@ function computeTotalNetGexAtSpot(
   spotPrice: number,
   riskFreeRate: number
 ): number {
+  if (!spotPrice || spotPrice <= 0) return 0;
+  const now = Date.now();
   let totalCallGEX = 0;
   let totalPutGEX = 0;
+
   for (const expiration of optionsChain.options || []) {
-    const levels = computeGEXByStrike(
-      {
-        calls: expiration.calls || [],
-        puts: expiration.puts || [],
-        expirationDate: expiration.expirationDate,
-      },
-      spotPrice,
-      riskFreeRate
-    );
-    for (const level of levels) {
-      totalCallGEX += level.callGEX;
-      totalPutGEX += level.putGEX;
+    const defaultExp = expiration.expirationDate;
+
+    // Process calls
+    for (const call of expiration.calls || []) {
+      totalCallGEX += calculateOptionGammaExposure(
+        call, defaultExp, spotPrice, riskFreeRate, now
+      ).gex;
+    }
+
+    // Process puts
+    for (const put of expiration.puts || []) {
+      totalPutGEX += calculateOptionGammaExposure(
+        put, defaultExp, spotPrice, riskFreeRate, now
+      ).gex;
     }
   }
+
   return totalCallGEX - totalPutGEX;
 }
 
