@@ -292,7 +292,8 @@ void main() {
       }
     });
 
-    test('systematic autoTrade accepts a HOLD signal when the enabled indicator is BUY',
+    test(
+        'systematic autoTrade accepts a HOLD signal when the enabled indicator is BUY',
         () async {
       provider.loadConfigFromUser(null);
       provider.config.autoTradeEnabled = true;
@@ -427,6 +428,19 @@ void main() {
       }
 
       expect(provider.pendingOrders.map((o) => o['symbol']), ['NEW']);
+    });
+
+    test('rejectOrder resolves a stale order by firestoreId before symbol',
+        () async {
+      provider.pendingOrders.addAll([
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'first'},
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'},
+      ]);
+
+      await provider.rejectOrder(
+          {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'});
+
+      expect(provider.pendingOrders.map((o) => o['firestoreId']), ['first']);
     });
 
     test('autoTrade logs a rejected trade proposal once', () async {

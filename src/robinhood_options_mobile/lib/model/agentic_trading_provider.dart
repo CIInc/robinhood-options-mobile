@@ -653,14 +653,18 @@ class AgenticTradingProvider with ChangeNotifier {
   Future<void> _saveAutomatedBuyTradesToFirestore(
       DocumentReference? userDocRef) {
     _pendingTradeSaves++;
-    final run = _tradesSaveQueue.then((_) =>
-        _writeAutomatedBuyTrades(userDocRef).timeout(
-            const Duration(seconds: 20),
-            onTimeout: () => _log('⏱️ Saving automated buy trades timed out')));
-    _tradesSaveQueue = run.catchError((_) {}).whenComplete(() {
+    final write =
+        _tradesSaveQueue.then((_) => _writeAutomatedBuyTrades(userDocRef));
+    // The caller stops waiting early, but the queue only advances once the write
+    // ends (or a long cap), so a slow write never overlaps the next one.
+    _tradesSaveQueue = write
+        .timeout(const Duration(minutes: 2))
+        .catchError((_) {})
+        .whenComplete(() {
       _pendingTradeSaves--;
     });
-    return run;
+    return write.timeout(const Duration(seconds: 20),
+        onTimeout: () => _log('⏱️ Saving automated buy trades timed out'));
   }
 
   Future<void> _writeAutomatedBuyTrades(DocumentReference? userDocRef) async {
@@ -1555,7 +1559,8 @@ class AgenticTradingProvider with ChangeNotifier {
                 continue;
               }
               if (!buySymbolsThisCycle.add(symbol.toUpperCase())) {
-                _log('⏭️ Skipping BUY for $symbol: already proposed this cycle');
+                _log(
+                    '⏭️ Skipping BUY for $symbol: already proposed this cycle');
                 continue;
               }
             }
@@ -1884,8 +1889,12 @@ class AgenticTradingProvider with ChangeNotifier {
     final firestoreId = order['firestoreId'];
     final symbol = (order['symbol'] as String?)?.toUpperCase();
     final action = (order['action'] as String?)?.toUpperCase();
+    if (firestoreId != null) {
+      for (final o in _pendingOrders) {
+        if (o['firestoreId'] == firestoreId) return o;
+      }
+    }
     for (final o in _pendingOrders) {
-      if (firestoreId != null && o['firestoreId'] == firestoreId) return o;
       if ((o['symbol'] as String?)?.toUpperCase() == symbol &&
           (o['action'] as String?)?.toUpperCase() == action) {
         return o;
@@ -2553,11 +2562,11 @@ class AgenticTradingProvider with ChangeNotifier {
       // time-based and technical exits, or a large batch, become one summary.
       const maxIndividualPushes = 3;
       final summaries = exitSummaries.values.toList();
-      final individual =
-          summaries.where((s) => s['type'] != 'other').toList();
+      final individual = summaries.where((s) => s['type'] != 'other').toList();
       final sendIndividually = individual.length <= maxIndividualPushes;
-      final grouped =
-          sendIndividually ? summaries.where((s) => s['type'] == 'other') : summaries;
+      final grouped = sendIndividually
+          ? summaries.where((s) => s['type'] == 'other')
+          : summaries;
 
       if (sendIndividually) {
         for (final summary in individual) {
