@@ -1,3 +1,8 @@
+## 2025-03-14 - Missing Bearer Token Authentication on Ad-Hoc Cron HTTP onRequest Function
+**Vulnerability:** `agenticTradingCronInvoke` in `agentic-trading-cron.ts` was an HTTP `onRequest` Cloud Function that allowed unauthenticated public HTTP requests to trigger agentic trading proposals across all Firestore market charts.
+**Learning:** Unlike `onCall` Cloud Functions which automatically attach `request.auth`, Firebase v2 `onRequest` Cloud Functions do not populate `request.auth`. Authentication must be explicitly implemented by extracting the `Authorization: Bearer <idToken>` header and validating it with `getAuth().verifyIdToken()`.
+**Prevention:** Always verify `Authorization` Bearer tokens and check admin claims (`decodedToken.role === "admin" || decodedToken.admin === true`) on HTTP `onRequest` functions that trigger administrative or heavy-compute processes.
+
 ## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
 **Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
 **Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.

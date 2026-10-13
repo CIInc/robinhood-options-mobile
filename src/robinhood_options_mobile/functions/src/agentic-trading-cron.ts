@@ -1,6 +1,7 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 import { performTradeProposal } from "./agentic-trading";
 
@@ -151,22 +152,34 @@ export const agenticTradingCron = onSchedule(
 
 // Callable function to trigger the cron logic ad-hoc
 // (e.g., from dashboard or admin tooling).
-// Optional: add auth/role checks before execution.
 export const agenticTradingCronInvoke = onRequest(
   {
     memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes
   },
   async (request, response) => {
-    // logger.info(request.query, { structuredData: true });
-    // Example simple auth gating (adjust to project standards):
-    // if (!request.auth || request.auth.token.admin !== true) {
-    //   throw new HttpsError('permission-denied', 'Admin privileges required');
-    // }
+    // SECURITY: Validate authentication and admin authorization
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      response.status(401).json({ error: "Unauthorized: Missing Bearer token" });
+      return;
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      if (decodedToken.role !== "admin" && decodedToken.admin !== true) {
+        response.status(403).json({ error: "Forbidden: Admin privileges required" });
+        return;
+      }
+    } catch (authErr) {
+      logger.error("Authentication failed for ad-hoc cron invocation", authErr);
+      response.status(401).json({ error: "Unauthorized: Invalid token" });
+      return;
+    }
+
     try {
       const result = await runAgenticTradingCron();
-      // Send JSON response instead of returning the result
-      // to satisfy onRequest signature (void | Promise<void>)
       response.json(result);
     } catch (err) {
       logger.error("Ad-hoc cron invocation failed", err);
