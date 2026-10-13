@@ -1,4 +1,7 @@
-import { normalizeScreenerRecord } from "../src/screener-universe";
+import {
+  normalizeScreenerRecord,
+  seedScreenerUniverseCall,
+} from "../src/screener-universe";
 
 describe("normalizeScreenerRecord", () => {
   it("maps Twelve Data fields to screener fields", () => {
@@ -50,5 +53,48 @@ describe("normalizeScreenerRecord", () => {
       sector: "",
       industry: "",
     });
+  });
+});
+
+describe("seedScreenerUniverseCall security", () => {
+  it("throws unauthenticated error when request.auth is missing", async () => {
+    const wrapped = seedScreenerUniverseCall.run ?
+      (req: any) => seedScreenerUniverseCall.run(req) :
+      (seedScreenerUniverseCall as any);
+
+    await expect(
+      wrapped({ data: {}, auth: null } as any)
+    ).rejects.toThrow("Authentication is required.");
+  });
+
+  it("throws permission-denied error when user is not an admin", async () => {
+    const wrapped = seedScreenerUniverseCall.run ?
+      (req: any) => seedScreenerUniverseCall.run(req) :
+      (seedScreenerUniverseCall as any);
+
+    await expect(
+      wrapped({
+        data: {},
+        auth: { uid: "user123", token: { role: "user" } },
+      } as any)
+    ).rejects.toThrow("Admin role is required to seed screener universe.");
+  });
+
+  it("permits execution when user is an admin", async () => {
+    const wrapped = seedScreenerUniverseCall.run ?
+      (req: any) => seedScreenerUniverseCall.run(req) :
+      (seedScreenerUniverseCall as any);
+
+    process.env.TWELVE_DATA_API_KEY = "test_api_key";
+
+    try {
+      await wrapped({
+        data: { symbols: [] },
+        auth: { uid: "admin123", token: { role: "admin" } },
+      } as any);
+    } catch (err: any) {
+      expect(err.message).not.toContain("Admin role is required");
+      expect(err.message).not.toContain("Authentication is required");
+    }
   });
 });

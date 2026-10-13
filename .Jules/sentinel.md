@@ -1,3 +1,8 @@
+## 2025-03-14 - Missing Admin Role Authorization on Screener Universe Seeding Function
+**Vulnerability:** `seedScreenerUniverseCall` in `screener-universe.ts` checked `request.auth` but lacked role-based access control (`request.auth.token?.role === "admin"`). Any standard authenticated user could trigger bulk Twelve Data API data ingestion and overwrite `instrument` documents in Firestore.
+**Learning:** Administrative batch seeding functions configured with long execution timeouts (`540s`), high memory (`1GiB`), and third-party API secrets (`TWELVE_DATA_API_KEY`) must enforce custom claim admin role authorization in addition to basic authentication.
+**Prevention:** Always verify `if (request.auth.token?.role !== "admin")` at the beginning of administrative dataset seeding callable Cloud Functions.
+
 ## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
 **Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
 **Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.
