@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/main.dart';
@@ -661,8 +662,8 @@ class _AgenticTradingSettingsWidgetState
   String _orderKey(Map<String, dynamic> order) =>
       '${order['symbol']}_${order['action']}';
 
-  Future<void> _rejectOrder(AgenticTradingProvider provider,
-      Map<String, dynamic> order) async {
+  Future<void> _rejectOrder(
+      AgenticTradingProvider provider, Map<String, dynamic> order) async {
     final key = _orderKey(order);
     if (!_busyOrders.add(key)) return;
     setState(() {});
@@ -722,6 +723,17 @@ class _AgenticTradingSettingsWidgetState
       return;
     }
 
+    final symbol = (order['symbol'] as String).toUpperCase();
+    final heldQuantity = isPaperMode
+        ? paperTradingStore.positions
+            .where((p) => p.instrumentObj?.symbol.toUpperCase() == symbol)
+            .fold<double>(0, (total, p) => total + (p.quantity ?? 0))
+        : Provider.of<InstrumentPositionStore>(context, listen: false)
+            .items
+            .where((p) => p.instrumentObj?.symbol.toUpperCase() == symbol)
+            .fold<double>(0, (total, p) => total + (p.quantity ?? 0));
+
+    final messenger = ScaffoldMessenger.of(context);
     final approved = await provider.approveOrder(
       order,
       brokerageUser: brokerageUser,
@@ -729,9 +741,10 @@ class _AgenticTradingSettingsWidgetState
       brokerageService: widget.service,
       userDocRef: widget.userDocRef,
       paperTradingStore: paperTradingStore,
+      heldQuantity: heldQuantity,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
+    messenger
       ..clearSnackBars()
       ..showSnackBar(SnackBar(
         content: Text(approved

@@ -667,6 +667,19 @@ class AgenticTradingProvider with ChangeNotifier {
         onTimeout: () => _log('⏱️ Saving automated buy trades timed out'));
   }
 
+  /// Stable document id for a tracked trade, so saves upsert instead of re-adding.
+  static String automatedTradeDocId(Map<String, dynamic> trade) {
+    final raw = '${trade['symbol']}_${trade['timestamp']}_'
+        '${trade['initialQuantity'] ?? trade['quantity']}_${trade['entryPrice']}';
+    return raw.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  }
+
+  List<Map<String, dynamic>> get automatedBuyTrades => _automatedBuyTrades;
+
+  @visibleForTesting
+  Future<void> saveAutomatedBuyTrades(DocumentReference? userDocRef) =>
+      _saveAutomatedBuyTradesToFirestore(userDocRef);
+
   Future<void> _writeAutomatedBuyTrades(DocumentReference? userDocRef) async {
     if (userDocRef == null) {
       _log('⚠️ Cannot save automated buy trades: userDocRef is null');
@@ -676,14 +689,19 @@ class AgenticTradingProvider with ChangeNotifier {
     try {
       // Store in a subcollection under the user document
       final tradesCollection = userDocRef.collection('automated_buy_trades');
-      final firestore = FirebaseFirestore.instance;
+      final firestore = userDocRef.firestore;
 
-      // Replace the stored trades with the current state in batched writes
+      // Upsert by stable id, then delete what is no longer tracked. Writing
+      // before deleting means an interrupted save can leave a stale trade
+      // behind but never loses a tracked one.
       final timer = Stopwatch()..start();
       final existingDocs = await tradesCollection.get();
       _log(
           '🔎 automated_buy_trades: ${existingDocs.docs.length} stored docs read in ${timer.elapsedMilliseconds}ms');
-      final trades = List<Map<String, dynamic>>.of(_automatedBuyTrades);
+      final desired = <String, Map<String, dynamic>>{
+        for (final trade in List<Map<String, dynamic>>.of(_automatedBuyTrades))
+          automatedTradeDocId(trade): trade,
+      };
       var batch = firestore.batch();
       var operations = 0;
       Future<void> flush() async {
@@ -693,12 +711,13 @@ class AgenticTradingProvider with ChangeNotifier {
         operations = 0;
       }
 
-      for (final doc in existingDocs.docs) {
-        batch.delete(doc.reference);
+      for (final entry in desired.entries) {
+        batch.set(tradesCollection.doc(entry.key), entry.value);
         if (++operations >= 400) await flush();
       }
-      for (final trade in trades) {
-        batch.set(tradesCollection.doc(), trade);
+      for (final doc in existingDocs.docs) {
+        if (desired.containsKey(doc.id)) continue;
+        batch.delete(doc.reference);
         if (++operations >= 400) await flush();
       }
       await flush();
@@ -744,6 +763,10 @@ class AgenticTradingProvider with ChangeNotifier {
             trade.containsKey('timestamp') &&
             trade['timestamp'] is String;
       }).toList();
+      // Stored copies can briefly coexist (legacy random ids and stable ids).
+      final seenIds = <String>{};
+      _automatedBuyTrades
+          .removeWhere((trade) => !seenIds.add(automatedTradeDocId(trade)));
 
       // _log(
       //     '📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
@@ -1252,6 +1275,22 @@ class AgenticTradingProvider with ChangeNotifier {
           'processedSignals': processedSignals,
         };
       }
+
+      // Pending BUYs queued before a position opened would stack a second entry.
+      final staleBuys = _pendingOrders
+          .where((o) =>
+              (o['action'] as String?)?.toUpperCase() == 'BUY' &&
+              ((portfolioState[o['symbol']]?['quantity'] as num?) ?? 0) > 0)
+          .toList();
+      for (final stale in staleBuys) {
+        _log(
+            '\u23ed\ufe0f Dropped pending BUY for ${stale['symbol']}: position already held');
+        _pendingOrders.remove(stale);
+        if (userDocRef != null) {
+          unawaited(_removePendingOrderFromFirestore(userDocRef, stale));
+        }
+      }
+      if (staleBuys.isNotEmpty) notifyListeners();
 
       // Get enabled indicators from config
       final enabledIndicators = _config.strategyConfig.enabledIndicators;
@@ -1904,6 +1943,8 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Approves a pending order and executes it. Returns true if it was executed.
+  /// [heldQuantity] is the caller's current holding of the order's symbol; a BUY
+  /// for a symbol already held is dropped instead of stacking a second entry.
   Future<bool> approveOrder(
     Map<String, dynamic> staleOrder, {
     required dynamic brokerageUser,
@@ -1911,10 +1952,23 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic brokerageService,
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
+    double? heldQuantity,
   }) async {
     final order = _findPendingOrder(staleOrder);
     if (order == null) {
       _log('❌ Order not found in pending list');
+      return false;
+    }
+
+    if ((order['action'] as String?)?.toUpperCase() == 'BUY' &&
+        (heldQuantity ?? 0) > 0) {
+      _log(
+          '⏭️ Dropped pending BUY for ${order['symbol']}: position already held');
+      _pendingOrders.remove(order);
+      if (userDocRef != null) {
+        unawaited(_removePendingOrderFromFirestore(userDocRef, order));
+      }
+      notifyListeners();
       return false;
     }
 
@@ -2507,12 +2561,20 @@ class AgenticTradingProvider with ChangeNotifier {
                             'symbol': symbol,
                             'quantity': 0,
                             'profitLoss': 0.0,
+                            'lots': 0,
+                            'winningLots': 0,
                             'price': currentPrice,
                           });
+                  final lotPnL = (currentPrice - entryPrice) * quantityToSell;
                   summary['quantity'] =
                       (summary['quantity'] as int) + quantityToSell;
-                  summary['profitLoss'] = (summary['profitLoss'] as double) +
-                      (currentPrice - entryPrice) * quantityToSell;
+                  summary['profitLoss'] =
+                      (summary['profitLoss'] as double) + lotPnL;
+                  summary['lots'] = (summary['lots'] as int) + 1;
+                  if (lotPnL >= 0) {
+                    summary['winningLots'] =
+                        (summary['winningLots'] as int) + 1;
+                  }
                 }
 
                 _analytics.logEvent(
@@ -2583,15 +2645,17 @@ class AgenticTradingProvider with ChangeNotifier {
       if (grouped.isNotEmpty) {
         final pnl = grouped.fold<double>(
             0, (total, s) => total + (s['profitLoss'] as double));
-        final wins =
-            grouped.where((s) => (s['profitLoss'] as double) >= 0).length;
+        final trades =
+            grouped.fold<int>(0, (total, s) => total + (s['lots'] as int));
+        final wins = grouped.fold<int>(
+            0, (total, s) => total + (s['winningLots'] as int));
         _sendTradeNotification(
           userDocRef,
           'daily_summary',
           dailyStats: {
-            'totalTrades': grouped.length,
+            'totalTrades': trades,
             'wins': wins,
-            'losses': grouped.length - wins,
+            'losses': trades - wins,
             'totalPnL': pnl,
           },
         );
