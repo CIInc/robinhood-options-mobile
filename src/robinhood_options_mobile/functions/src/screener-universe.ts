@@ -288,6 +288,12 @@ export const seedScreenerUniverseCall = onCall({
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Authentication is required.");
   }
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admin users can seed the screener universe."
+    );
+  }
   const inputSymbols = request.data?.symbols;
   const symbols = Array.isArray(inputSymbols) ? inputSymbols : ALL_STOCKS;
   const apiKey = process.env.TWELVE_DATA_API_KEY;
