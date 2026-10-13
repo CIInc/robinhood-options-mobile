@@ -2,8 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.56.0] - Unreleased
-**Retirement Planning & Gold Match Maximizer ([docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139))**
+## [0.56.0] - 2026-10-12
+**Retirement Planning & Gold Match Maximizer, Auto-Trade Reliability & Paper Ledger Repair ([docs](docs/multi-account-and-retirement.md), [docs](docs/multi-indicator-trading.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139), [#234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [#235](https://github.com/CIInc/robinhood-options-mobile/pull/235))**
+
+- **Auto-Trade Reliability, Notification Throttling & Paper Ledger Repair (`AgenticTradingProvider`, `trade-signal-notifications.ts`, `paper-ledger-repair.ts`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Signal Matching Fix**: Auto-trading now matches stored signals by the user's enabled indicators (stored signals are scored with default indicators), accepts HOLD overall signals when every enabled indicator is BUY, and logs the number of signals fetched plus a warning when the query hits its 200-document cap.
+  - **Exit Oversell Protection**: The exit monitor is re-entrancy guarded and caps sells to the shares actually held, preventing duplicate tracked lots from selling one position repeatedly and opening phantom paper shorts.
+  - **No Stacked Entries**: BUY proposals are skipped for symbols already held or already proposed in the same cycle; stale pending BUYs for held symbols are cleared each cycle and re-checked on approve.
+  - **Ordered, Upsert-Based Trade Saves**: Tracked automated buy trades are written in order using stable document ids (sets before deletes), removing the delete-then-add duplication; pending orders are resolved by Firestore id.
+  - **Approve Flow**: Approve and Reject show progress, results and a plain-language description of the order, and no longer hang on slow Firestore acknowledgements.
+  - **Notification Throttling**: Exit notifications are batched per symbol with a single summary push for large batches ("Auto-Trade Summary" counts exits); trade-signal pushes have a per-user 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes (extra signals are still saved in-app); a push that reaches no device releases its cooldown; iOS no longer shows a duplicate in-app toast for foreground pushes.
+  - **Paper Ledger Repair (Admin)**: Added admin-only callables `repairPaperLedger` (removes net-short stock positions and reverses their credited cash, with a negative-cash guard) and `voidPaperPhantomFills` (archives short-related fills to `paper_orders_voided`). Both default to dry run, require explicit user ids to apply, and write audit records.
+  - **UI & Platform Fixes**: Position bar charts now show negative values; action SnackBars auto-dismiss (`persist: false`); macOS builds start without AdMob/HomeWidget or notification-permission failures and include the network entitlement.
+  - **Automated Test Coverage**: Added provider tests for HOLD acceptance, re-buy guard, pending-order cleanup, id resolution and upsert saves, plus functions tests for the repair and void planners.
 
 - **Retirement Planning & Gold Match Maximizer (`RetirementProjectionCalculator`, `RetirementProjectionCard`, `retirement_projection.dart`, `retirement_widget.dart`, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)):**
   - **Interactive IRA Compounding Engine**: Year-by-year compounding simulation engine (`RetirementProjectionCalculator`) modeling customizable annual contributions ($1,000–$8,000), retirement horizons (5–40 years), expected annual returns (4%–12%), and starting balances.

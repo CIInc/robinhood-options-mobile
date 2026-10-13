@@ -1137,6 +1137,15 @@ The system now supports **Custom Indicators**, allowing users to extend the anal
 - **Weighting:** Custom indicators can be assigned weights to influence the Signal Strength score.
 - **Flexibility:** Enables the implementation of proprietary or niche trading strategies.
 
+## Auto-Trade Safeguards (v0.56.0)
+
+- **Signal matching:** Stored signals are scored with the default indicators, so when only some indicators are enabled the provider queries by the enabled indicators and filters by age and symbol on the client. HOLD overall signals are accepted when every enabled indicator is BUY; SELL is rejected. The cycle logs how many signals were fetched and warns when the query reaches its 200-document cap.
+- **Entries:** A BUY is skipped when the symbol is already held or was already proposed in the same cycle. Pending BUYs for held symbols are cleared each cycle and re-checked when you approve.
+- **Exits:** The exit monitor does not run concurrently and never sells more shares than the position holds; tracked lots with no shares left are dropped. Exit notifications are batched per symbol, with one summary push for large batches.
+- **Persistence:** Tracked trades in `automated_buy_trades` are saved in order with stable document ids, so a save is an upsert followed by deletion of untracked documents.
+- **Push limits:** Trade-signal pushes use a 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes per user; throttled signals are still saved in the in-app feed, and a push that reaches no device releases its cooldown.
+- **Paper ledger repair (admin only):** `repairPaperLedger` removes net-short stock positions and reverses their credited cash (refusing negative cash unless `allowNegativeCash` is set), and `voidPaperPhantomFills` archives short-related fills to `paper_orders_voided`. Both require the `admin` claim, default to dry run, need explicit user ids to apply, and write audit records under `paper_repairs`.
+
 ## Support
 
 For questions or issues:
