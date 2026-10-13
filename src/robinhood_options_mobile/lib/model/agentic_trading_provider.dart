@@ -467,6 +467,11 @@ class AgenticTradingProvider with ChangeNotifier {
           sortBy: 'signalStrength',
           interval: _config.strategyConfig.interval,
         );
+        // fetchSignals reads at most 200 docs, so a full page may hide matching signals.
+        if (tradeSignals.length >= 200) {
+          _log(
+              '\u26a0\ufe0f Signal query hit its 200-document cap; some signals matching the enabled indicators may be missing');
+        }
         final cutoffMs = startDate.millisecondsSinceEpoch;
         tradeSignals = tradeSignals.where((s) {
           final ts = (s['timestamp'] as num?)?.toInt();
