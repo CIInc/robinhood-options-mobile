@@ -285,8 +285,15 @@ export const seedScreenerUniverseCall = onCall({
   timeoutSeconds: 540,
   memory: "1GiB",
 }, async (request) => {
-  if (!request.auth) {
+  // SECURITY: Require authentication and admin role for bulk screener seeding
+  if (!request.auth || !request.auth.uid) {
     throw new HttpsError("unauthenticated", "Authentication is required.");
+  }
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admin users can seed the screener universe."
+    );
   }
   const inputSymbols = request.data?.symbols;
   const symbols = Array.isArray(inputSymbols) ? inputSymbols : ALL_STOCKS;
