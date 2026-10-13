@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.1] - 2026-10-13
+**User Profile Saves No Longer Overwrite Trading Settings ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **User Profile Saves No Longer Overwrite Trading Settings (`FirestoreService.updateUser`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of Reverting Settings**: `updateUser` wrote the entire `User` object, including `agenticTradingConfig` and `futuresTradingConfig`, to the user document. Any code path holding an older `User` instance (brokerage sync, risk circuit breakers, notification settings, investment profile, DRIP, sign-in) silently replaced the saved auto-trade config, reverting toggles, Take Profit, and the signal interval.
+  - **Fix**: `updateUser` no longer writes the two trading configs; they are saved only by their own settings paths (`AgenticTradingProvider.updateConfig` and the futures equivalent).
+  - **Automated Test Coverage**: Added `test/firestore_service_update_user_test.dart`, which saves a config directly, then calls `updateUser` with a stale user and verifies the saved Take Profit and interval survive.
+
 ## [0.57.0] - 2026-10-13
 **Auto-Trade Settings Persistence & Signal Re-Evaluation ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
 
