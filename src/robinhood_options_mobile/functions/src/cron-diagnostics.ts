@@ -1,8 +1,39 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 
 const db = getFirestore();
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("cronDiagnostics authorization check failed", e);
+    return false;
+  }
+}
 
 /**
  * Diagnostic endpoint to check cron job configuration and Firestore data
@@ -11,6 +42,13 @@ const db = getFirestore();
  * Usage: https://us-central1-<project-id>.cloudfunctions.net/cronDiagnostics
  */
 export const cronDiagnostics = onRequest(async (request, response) => {
+  if (!(await isAuthorizedAdmin(request.headers.authorization))) {
+    response.status(401).json({
+      error: "Unauthorized: Admin privileges required.",
+    });
+    return;
+  }
+
   logger.info("Running cron diagnostics...");
 
   try {
