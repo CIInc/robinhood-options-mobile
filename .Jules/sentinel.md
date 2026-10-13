@@ -1,3 +1,8 @@
+## 2025-03-14 - Missing Role-Based Authorization on Screener Universe Seeding Function
+**Vulnerability:** `seedScreenerUniverseCall` in `screener-universe.ts` was an `onCall` Cloud Function with 1GiB memory, 540s timeout, and batch write privileges to the `instrument` Firestore collection that only checked `request.auth`, allowing any non-admin authenticated user to trigger heavy background processing and consume Twelve Data API credits.
+**Learning:** Seeding and maintenance callable functions in Firebase v2 `onCall` require both `request.auth` and `request.auth.token?.role === "admin"` authorization checks to prevent regular users from triggering bulk database mutations and quota depletion.
+**Prevention:** Always verify `request.auth.token?.role === "admin"` at the beginning of all batch seeding and administrative setup callable functions.
+
 ## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
 **Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
 **Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.
