@@ -165,6 +165,21 @@ export const voidPaperPhantomFills = onCall({
 
     const refs = phantom.map((o) => String(o.id));
     const byId = new Map(phantom.map((o) => [String(o.id), o]));
+
+    // Clean the embedded history first: a rerun after a failed batch still
+    // finds the remaining fills, but would not revisit this step.
+    const accountRef = userRef.collection("paper_account").doc("main");
+    const voidedIds = new Set(refs);
+    await db.runTransaction(async (tx) => {
+      const account = await tx.get(accountRef);
+      if (!account.exists) return;
+      const history: any[] = Array.isArray(account.data()?.history) ?
+        account.data()?.history : [];
+      tx.update(accountRef, {
+        history: history.filter((h) => !voidedIds.has(String(h?.id))),
+      });
+    });
+
     for (let offset = 0; offset < refs.length; offset += 200) {
       const batch = db.batch();
       for (const id of refs.slice(offset, offset + 200)) {
@@ -180,15 +195,6 @@ export const voidPaperPhantomFills = onCall({
       await batch.commit();
     }
 
-    const accountRef = userRef.collection("paper_account").doc("main");
-    const account = await accountRef.get();
-    const history: any[] = Array.isArray(account.data()?.history) ?
-      account.data()?.history : [];
-    const voidedIds = new Set(refs);
-    await accountRef.update({
-      history: history.filter((h) => !voidedIds.has(String(h?.id))),
-    });
-
     logger.info("Voided phantom paper fills", summary);
     results.push(summary);
   }
@@ -197,9 +203,26 @@ export const voidPaperPhantomFills = onCall({
 });
 
 /**
+ * Refuses a repair that would leave the account with negative cash.
+ * @param {PaperRepairPlan} plan The planned change.
+ * @param {boolean} allowNegativeCash Explicit admin override.
+ */
+export function assertRepairAllowed(
+  plan: PaperRepairPlan,
+  allowNegativeCash: boolean
+): void {
+  if (plan.wouldGoNegative && !allowNegativeCash) {
+    throw new Error(
+      "Repair would leave negative cash; pass allowNegativeCash to override."
+    );
+  }
+}
+
+/**
  * Admin callable. Input: { dryRun?: boolean (default true), uids?: string[],
- * symbols?: string[] }. A dry run scans every paper account and reports the
- * affected ones. Applying needs a non-empty uids list.
+ * symbols?: string[], allowNegativeCash?: boolean }. A dry run scans every
+ * paper account and reports the affected ones. Applying needs a non-empty
+ * uids list.
  */
 export const repairPaperLedger = onCall({
   memory: "512MiB",
@@ -223,6 +246,7 @@ export const repairPaperLedger = onCall({
     request.data.uids.filter((u: unknown) => typeof u === "string") : [];
   const symbols: string[] = Array.isArray(request.data?.symbols) ?
     request.data.symbols.filter((s: unknown) => typeof s === "string") : [];
+  const allowNegativeCash = request.data?.allowNegativeCash === true;
 
   if (!dryRun && uids.length === 0) {
     throw new HttpsError(
@@ -259,6 +283,7 @@ export const repairPaperLedger = onCall({
         const account = snapshot.data() ?? {};
         const plan = planPaperRepair(account, symbols);
         if (plan.shorts.length === 0) return null;
+        assertRepairAllowed(plan, allowNegativeCash);
 
         const removed = new Set(plan.shorts.map((s) => s.symbol));
         const positions: any[] = Array.isArray(account.positions) ?

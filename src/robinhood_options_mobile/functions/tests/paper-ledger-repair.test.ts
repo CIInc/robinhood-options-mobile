@@ -6,10 +6,31 @@ jest.mock("firebase-admin/firestore", () => ({
 }));
 
 import {
+  assertRepairAllowed,
   planPaperRepair,
   planVoidPhantomFills,
   repairPaperLedger,
 } from "../src/paper-ledger-repair";
+
+describe("assertRepairAllowed", () => {
+  const plan = (cashAfter: number) => ({
+    cashBefore: 100,
+    cashAfter,
+    shorts: [],
+    wouldGoNegative: cashAfter < 0,
+  });
+
+  test("allows a repair that keeps cash non-negative", () => {
+    expect(() => assertRepairAllowed(plan(10), false)).not.toThrow();
+  });
+
+  test("refuses negative cash unless overridden", () => {
+    expect(() => assertRepairAllowed(plan(-5), false)).toThrow(
+      "negative cash"
+    );
+    expect(() => assertRepairAllowed(plan(-5), true)).not.toThrow();
+  });
+});
 
 describe("planVoidPhantomFills", () => {
   const fill = (symbol: string, detail: string, type = "STOCK") =>
