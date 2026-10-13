@@ -33,3 +33,7 @@
 ## 2026-04-01 - Scalar Bollinger Bands Evaluation without Full-Series Array Allocations
 **Learning:** `evaluateBollingerBands` allocated full-series arrays (`computeBollingerBandsArray` and `computeKeltnerChannelsArray`) on every single evaluation call in `evaluateAllIndicators`. In backtesting loops and automated trading cycles over 500+ bars, this generated thousands of transient array objects for every candle evaluated, taking ~65.2 µs/op.
 **Action:** Replace `computeBollingerBandsArray` and `computeKeltnerChannelsArray` in `evaluateBollingerBands` with scalar helpers `computeBollingerBands` and `computeKeltnerChannels`, evaluating trailing bandwidth squeeze using index-bounded scalar calls. This speeds up `evaluateBollingerBands` by ~8.6x (from 65.2 µs/op down to 7.6 µs/op) and eliminates full-series array allocations per bar.
+
+## 2026-04-02 - Eliminating Array Allocations in Event Study Rolling Risk Statistics
+**Learning:** In event study analysis across 2,500 daily price points (10y historical dataset), `calculateRollingStats` allocated transient sub-arrays on every single step via `benchmark.map([point.timestamp, point.close])` and `.slice()`, `.map()`, and `.reduce()` inside the rolling window loop. This generated over 7,400 transient array allocations and 220,000+ element copies per execution, causing unnecessary memory churn and GC pressure.
+**Action:** Populate Map lookup directly and calculate rolling sums, means, covariance, and variances using index-bounded loops over `pairedReturns` without creating temporary sub-arrays.
