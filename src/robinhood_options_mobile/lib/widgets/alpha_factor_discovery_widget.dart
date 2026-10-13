@@ -1846,6 +1846,7 @@ class _AlphaFactorDiscoveryWidgetState
                     content:
                         Text("$sym Correlation: ${corr.toStringAsFixed(4)}"),
                     duration: const Duration(seconds: 2),
+                    persist: false,
                     action: SnackBarAction(label: 'Dismiss', onPressed: () {}),
                   ));
                 },

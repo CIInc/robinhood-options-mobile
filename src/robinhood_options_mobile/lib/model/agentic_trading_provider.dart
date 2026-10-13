@@ -71,6 +71,8 @@ class AgenticTradingProvider with ChangeNotifier {
       false; // Extended visual state (persists for 3s)
   Timer? _autoTradingVisualTimer;
   Timer? _autoTradeTimer;
+  DocumentReference? _autoTradeUserDocRef;
+  bool _isMonitoringExits = false;
   DateTime? _lastAutoTradeTime;
   int _dailyTradeCount = 0;
   DateTime? _dailyTradeCountResetDate;
@@ -274,6 +276,9 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic brokerageService,
     DocumentReference? userDocRef,
   }) {
+    // The timer outlives the first call, which can happen before the user doc loads.
+    _autoTradeUserDocRef = userDocRef;
+
     // Prevent duplicate timers
     if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
       // _log('🤖 Auto-trade timer already running, skipping start');
@@ -292,7 +297,7 @@ class AgenticTradingProvider with ChangeNotifier {
       await runAutoTradeCycle(
         context: context,
         brokerageService: brokerageService,
-        userDocRef: userDocRef,
+        userDocRef: _autoTradeUserDocRef,
       );
     });
 
@@ -444,7 +449,37 @@ class AgenticTradingProvider with ChangeNotifier {
       // or marked as HOLD but with high confidence.
       final isReasoningMode = _config.tradingMode == TradingMode.reasoning;
 
-      if (symbols != null && symbols.isNotEmpty) {
+      final enabledIndicatorMap = _config.strategyConfig.enabledIndicators;
+      final activeIndicatorKeys = enabledIndicatorMap.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toList();
+      // Stored signals are scored with every default indicator, so a custom indicator subset can't be matched on the overall signal or strength.
+      final matchByIndicators = !isReasoningMode &&
+          activeIndicatorKeys.isNotEmpty &&
+          activeIndicatorKeys.length < enabledIndicatorMap.length;
+
+      if (matchByIndicators) {
+        tradeSignals = await tradeSignalsProvider.fetchSignals(
+          indicatorFilters: activeIndicatorKeys.length == 1
+              ? {activeIndicatorKeys.first: 'BUY'}
+              : null,
+          sortBy: 'signalStrength',
+          interval: _config.strategyConfig.interval,
+        );
+        // fetchSignals reads at most 200 docs, so a full page may hide matching signals.
+        if (tradeSignals.length >= 200) {
+          _log(
+              '\u26a0\ufe0f Signal query hit its 200-document cap; some signals matching the enabled indicators may be missing');
+        }
+        final cutoffMs = startDate.millisecondsSinceEpoch;
+        tradeSignals = tradeSignals.where((s) {
+          final ts = (s['timestamp'] as num?)?.toInt();
+          if (ts == null || ts < cutoffMs) return false;
+          return symbols == null ||
+              symbols.contains((s['symbol'] as String?)?.toUpperCase());
+        }).toList();
+      } else if (symbols != null && symbols.isNotEmpty) {
         tradeSignals = await tradeSignalsProvider.fetchSignals(
           signalType: isReasoningMode ? null : 'BUY',
           minSignalStrength: isReasoningMode ? 40 : minStrengthFilter,
@@ -464,6 +499,13 @@ class AgenticTradingProvider with ChangeNotifier {
           interval: _config.strategyConfig.interval,
         );
       }
+
+      final fetchError = tradeSignalsProvider.lastFetchSignalsError;
+      if (fetchError != null) {
+        _log('❌ Signal query failed: $fetchError');
+      }
+      _log(
+          '📡 Fetched ${tradeSignals.length} signals (${matchByIndicators ? "by enabled indicators" : "overall BUY"})');
 
       // Filter out already processed signals (deduplication)
       final originalCount = tradeSignals.length;
@@ -609,8 +651,41 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Save automated buy trades to Firestore
+  // Saves run one at a time; overlapping delete-then-add cycles duplicated every tracked trade.
+  Future<void> _tradesSaveQueue = Future.value();
+  int _pendingTradeSaves = 0;
+
   Future<void> _saveAutomatedBuyTradesToFirestore(
-      DocumentReference? userDocRef) async {
+      DocumentReference? userDocRef) {
+    _pendingTradeSaves++;
+    final write =
+        _tradesSaveQueue.then((_) => _writeAutomatedBuyTrades(userDocRef));
+    // The caller stops waiting early, but the queue only advances once the write
+    // ends (or a long cap), so a slow write never overlaps the next one.
+    _tradesSaveQueue = write
+        .timeout(const Duration(minutes: 2))
+        .catchError((_) {})
+        .whenComplete(() {
+      _pendingTradeSaves--;
+    });
+    return write.timeout(const Duration(seconds: 20),
+        onTimeout: () => _log('⏱️ Saving automated buy trades timed out'));
+  }
+
+  /// Stable document id for a tracked trade, so saves upsert instead of re-adding.
+  static String automatedTradeDocId(Map<String, dynamic> trade) {
+    final raw = '${trade['symbol']}_${trade['timestamp']}_'
+        '${trade['initialQuantity'] ?? trade['quantity']}_${trade['entryPrice']}';
+    return raw.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  }
+
+  List<Map<String, dynamic>> get automatedBuyTrades => _automatedBuyTrades;
+
+  @visibleForTesting
+  Future<void> saveAutomatedBuyTrades(DocumentReference? userDocRef) =>
+      _saveAutomatedBuyTradesToFirestore(userDocRef);
+
+  Future<void> _writeAutomatedBuyTrades(DocumentReference? userDocRef) async {
     if (userDocRef == null) {
       _log('⚠️ Cannot save automated buy trades: userDocRef is null');
       return;
@@ -619,20 +694,41 @@ class AgenticTradingProvider with ChangeNotifier {
     try {
       // Store in a subcollection under the user document
       final tradesCollection = userDocRef.collection('automated_buy_trades');
+      final firestore = userDocRef.firestore;
 
-      // Clear existing trades first (we'll replace with current state)
+      // Upsert by stable id, then delete what is no longer tracked. Writing
+      // before deleting means an interrupted save can leave a stale trade
+      // behind but never loses a tracked one.
+      final timer = Stopwatch()..start();
       final existingDocs = await tradesCollection.get();
-      for (final doc in existingDocs.docs) {
-        await doc.reference.delete();
+      _log(
+          '🔎 automated_buy_trades: ${existingDocs.docs.length} stored docs read in ${timer.elapsedMilliseconds}ms');
+      final desired = <String, Map<String, dynamic>>{
+        for (final trade in List<Map<String, dynamic>>.of(_automatedBuyTrades))
+          automatedTradeDocId(trade): trade,
+      };
+      var batch = firestore.batch();
+      var operations = 0;
+      Future<void> flush() async {
+        if (operations == 0) return;
+        await batch.commit();
+        batch = firestore.batch();
+        operations = 0;
       }
 
-      // Save current automated buy trades
-      for (final trade in _automatedBuyTrades) {
-        await tradesCollection.add(trade);
+      for (final entry in desired.entries) {
+        batch.set(tradesCollection.doc(entry.key), entry.value);
+        if (++operations >= 400) await flush();
       }
+      for (final doc in existingDocs.docs) {
+        if (desired.containsKey(doc.id)) continue;
+        batch.delete(doc.reference);
+        if (++operations >= 400) await flush();
+      }
+      await flush();
 
       _log(
-          '💾 Saved ${_automatedBuyTrades.length} automated buy trades to Firestore');
+          '💾 Saved ${_automatedBuyTrades.length} automated buy trades to Firestore in ${timer.elapsedMilliseconds}ms');
       _analytics.logEvent(
         name: 'agentic_trading_trades_saved',
         parameters: {'count': _automatedBuyTrades.length},
@@ -653,6 +749,8 @@ class AgenticTradingProvider with ChangeNotifier {
       _log('⚠️ Cannot load automated buy trades: userDocRef is null');
       return;
     }
+    // A reload would overwrite in-memory changes the server hasn't acknowledged yet.
+    if (_pendingTradeSaves > 0) return;
 
     try {
       final tradesCollection = userDocRef.collection('automated_buy_trades');
@@ -670,6 +768,10 @@ class AgenticTradingProvider with ChangeNotifier {
             trade.containsKey('timestamp') &&
             trade['timestamp'] is String;
       }).toList();
+      // Stored copies can briefly coexist (legacy random ids and stable ids).
+      final seenIds = <String>{};
+      _automatedBuyTrades
+          .removeWhere((trade) => !seenIds.add(automatedTradeDocId(trade)));
 
       // _log(
       //     '📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
@@ -1179,6 +1281,22 @@ class AgenticTradingProvider with ChangeNotifier {
         };
       }
 
+      // Pending BUYs queued before a position opened would stack a second entry.
+      final staleBuys = _pendingOrders
+          .where((o) =>
+              (o['action'] as String?)?.toUpperCase() == 'BUY' &&
+              ((portfolioState[o['symbol']]?['quantity'] as num?) ?? 0) > 0)
+          .toList();
+      for (final stale in staleBuys) {
+        _log(
+            '\u23ed\ufe0f Dropped pending BUY for ${stale['symbol']}: position already held');
+        _pendingOrders.remove(stale);
+        if (userDocRef != null) {
+          unawaited(_removePendingOrderFromFirestore(userDocRef, stale));
+        }
+      }
+      if (staleBuys.isNotEmpty) notifyListeners();
+
       // Get enabled indicators from config
       final enabledIndicators = _config.strategyConfig.enabledIndicators;
       final activeIndicators = enabledIndicators.entries
@@ -1208,9 +1326,9 @@ class AgenticTradingProvider with ChangeNotifier {
         // as long as the signal has basic technical merit (already filtered by fetchSignals)
         if (isReasoningMode) {
           isAccepted = true;
-        } else if (signal['signal']?.toString().toUpperCase() != 'BUY') {
-          rejectionReason =
-              'Signal is ${signal['signal'] ?? 'unknown'}, not BUY';
+        } else if (signal['signal']?.toString().toUpperCase() == 'SELL') {
+          // HOLD is allowed: stored signals are scored with default indicators, not the user's.
+          rejectionReason = 'Signal is SELL, not BUY';
         } else {
           // Check if all enabled indicators agree with BUY signal
           final multiIndicatorResult =
@@ -1423,6 +1541,9 @@ class AgenticTradingProvider with ChangeNotifier {
       double estimatedBuyingPower =
           (portfolioState['buyingPower'] as num?)?.toDouble() ?? 0.0;
 
+      // One entry per symbol: signals exist per interval and may repeat a symbol.
+      final buySymbolsThisCycle = <String>{};
+
       for (final item in validProposals) {
         if (item == null) continue;
 
@@ -1461,6 +1582,31 @@ class AgenticTradingProvider with ChangeNotifier {
               _log(
                   '⚠️ Invalid proposal for $symbol: Action=$action, Quantity=$quantity');
               continue;
+            }
+
+            // RiskGuard treats a SELL as a short, so only sell what is actually held.
+            if (action.toUpperCase() == 'SELL') {
+              final heldQuantity =
+                  (portfolioState[symbol]?['quantity'] as num?) ?? 0;
+              if (heldQuantity <= 0) {
+                _log('⏭️ Skipping SELL for $symbol: no position held');
+                continue;
+              }
+            }
+
+            // Never stack a new entry on top of an open position.
+            if (action.toUpperCase() == 'BUY') {
+              final heldQuantity =
+                  (portfolioState[symbol]?['quantity'] as num?) ?? 0;
+              if (heldQuantity > 0) {
+                _log('⏭️ Skipping BUY for $symbol: position already held');
+                continue;
+              }
+              if (!buySymbolsThisCycle.add(symbol.toUpperCase())) {
+                _log(
+                    '⏭️ Skipping BUY for $symbol: already proposed this cycle');
+                continue;
+              }
             }
 
             // Check buying power for parallel execution safety
@@ -1781,18 +1927,54 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
-  /// Approves a pending order and executes it
-  Future<void> approveOrder(
-    Map<String, dynamic> order, {
+  /// Pending orders are rebuilt from Firestore on reload, so a UI-held map can be stale.
+  Map<String, dynamic>? _findPendingOrder(Map<String, dynamic> order) {
+    if (_pendingOrders.contains(order)) return order;
+    final firestoreId = order['firestoreId'];
+    final symbol = (order['symbol'] as String?)?.toUpperCase();
+    final action = (order['action'] as String?)?.toUpperCase();
+    if (firestoreId != null) {
+      for (final o in _pendingOrders) {
+        if (o['firestoreId'] == firestoreId) return o;
+      }
+    }
+    for (final o in _pendingOrders) {
+      if ((o['symbol'] as String?)?.toUpperCase() == symbol &&
+          (o['action'] as String?)?.toUpperCase() == action) {
+        return o;
+      }
+    }
+    return null;
+  }
+
+  /// Approves a pending order and executes it. Returns true if it was executed.
+  /// [heldQuantity] is the caller's current holding of the order's symbol; a BUY
+  /// for a symbol already held is dropped instead of stacking a second entry.
+  Future<bool> approveOrder(
+    Map<String, dynamic> staleOrder, {
     required dynamic brokerageUser,
     required dynamic account,
     required dynamic brokerageService,
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
+    double? heldQuantity,
   }) async {
-    if (!_pendingOrders.contains(order)) {
+    final order = _findPendingOrder(staleOrder);
+    if (order == null) {
       _log('❌ Order not found in pending list');
-      return;
+      return false;
+    }
+
+    if ((order['action'] as String?)?.toUpperCase() == 'BUY' &&
+        (heldQuantity ?? 0) > 0) {
+      _log(
+          '⏭️ Dropped pending BUY for ${order['symbol']}: position already held');
+      _pendingOrders.remove(order);
+      if (userDocRef != null) {
+        unawaited(_removePendingOrderFromFirestore(userDocRef, order));
+      }
+      notifyListeners();
+      return false;
     }
 
     final symbol = order['symbol'] as String;
@@ -1807,7 +1989,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       if (!isPaperMode && brokerageService == null) {
         _log('❌ Cannot approve real order without brokerage service');
-        return;
+        return false;
       }
 
       _log(
@@ -1870,18 +2052,20 @@ class AgenticTradingProvider with ChangeNotifier {
             ),
           });
           if (userDocRef != null) {
-            await _saveAutomatedBuyTradesToFirestore(userDocRef);
+            // Firestore queues the write locally; waiting for the server ack stalls the UI.
+            unawaited(_saveAutomatedBuyTradesToFirestore(userDocRef));
           }
         }
 
         // Remove from pending
         _pendingOrders.remove(order);
         if (userDocRef != null) {
-          await _removePendingOrderFromFirestore(userDocRef, order);
+          unawaited(_removePendingOrderFromFirestore(userDocRef, order));
         }
         notifyListeners();
 
         _log('✅ Approved order executed for $symbol');
+        return true;
       } else {
         _log(
             '❌ Approved order failed for $symbol: ${orderResponse.statusCode}');
@@ -1889,12 +2073,14 @@ class AgenticTradingProvider with ChangeNotifier {
     } catch (e) {
       _log('❌ Error executing approved order for $symbol: $e');
     }
+    return false;
   }
 
   /// Rejects a pending order
-  Future<void> rejectOrder(Map<String, dynamic> order,
+  Future<void> rejectOrder(Map<String, dynamic> staleOrder,
       {DocumentReference? userDocRef}) async {
-    if (_pendingOrders.contains(order)) {
+    final order = _findPendingOrder(staleOrder);
+    if (order != null) {
       _pendingOrders.remove(order);
       if (userDocRef != null) {
         await _removePendingOrderFromFirestore(userDocRef, order);
@@ -1926,6 +2112,17 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
   }) async {
+    // Overlapping runs would both see the same tracked trade and exit it twice.
+    if (_isMonitoringExits) {
+      _log('⏭️ Exit monitor already running, skipping');
+      return {
+        'success': false,
+        'exitsExecuted': 0,
+        'message': 'Exit monitor already running',
+        'exits': [],
+      };
+    }
+    _isMonitoringExits = true;
     try {
       // Validate required parameters
       if (brokerageUser == null ||
@@ -1963,6 +2160,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
       final executedExits = <Map<String, dynamic>>[];
       final tradesToRemove = <Map<String, dynamic>>[];
+      // Shares still held per symbol, shared by every tracked lot of that symbol.
+      final remainingBySymbol = <String, int>{};
+      final exitSummaries = <String, Map<String, dynamic>>{};
 
       // Create a map for faster position lookup
       final positionMap = {for (var p in positions) p.instrumentObj?.symbol: p};
@@ -2004,8 +2204,8 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      // Check each automated buy trade
-      for (final buyTrade in _automatedBuyTrades) {
+      // Check each automated buy trade (copy: other cycles add trades while this awaits)
+      for (final buyTrade in List.of(_automatedBuyTrades)) {
         try {
           final symbol = buyTrade['symbol'] as String?;
           final buyQuantity = buyTrade['quantity'] as int?;
@@ -2250,6 +2450,15 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           if (shouldExit) {
+            // Never sell more than the position still holds.
+            final heldQuantity = remainingBySymbol.putIfAbsent(
+                symbol, () => (position.quantity ?? 0).floor());
+            if (heldQuantity <= 0) {
+              tradesToRemove.add(buyTrade);
+              continue;
+            }
+            if (quantityToSell > heldQuantity) quantityToSell = heldQuantity;
+
             // Get instrument data
             final instrument = await _getInstrument(
                 brokerageService, brokerageUser, instrumentStore, symbol);
@@ -2297,6 +2506,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 };
 
                 executedExits.add(exitRecord);
+                remainingBySymbol[symbol] = heldQuantity - quantityToSell;
                 _autoTradeHistory.insert(0, exitRecord);
                 _addTradeToHistoryFirestore(exitRecord, userDocRef);
 
@@ -2336,26 +2546,40 @@ class AgenticTradingProvider with ChangeNotifier {
                       '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
                 }
 
-                // Send notification based on exit type
-                final isTakeProfit = exitReason.contains('Take Profit');
-                if (isTakeProfit && _config.notifyOnTakeProfit) {
-                  _sendTradeNotification(
-                    userDocRef,
-                    'take_profit',
-                    symbol: symbol,
-                    quantity: quantityToSell,
-                    price: currentPrice,
-                    profitLoss: (currentPrice - entryPrice) * quantityToSell,
-                  );
-                } else if (!isTakeProfit && _config.notifyOnStopLoss) {
-                  _sendTradeNotification(
-                    userDocRef,
-                    'stop_loss',
-                    symbol: symbol,
-                    quantity: quantityToSell,
-                    price: currentPrice,
-                    profitLoss: (currentPrice - entryPrice) * quantityToSell,
-                  );
+                // Batch exits per symbol so many lots send one notification
+                final type = exitReason.contains('Take Profit')
+                    ? 'take_profit'
+                    : (exitReason.startsWith('Stop Loss') ||
+                            exitReason.startsWith('Trailing Stop'))
+                        ? 'stop_loss'
+                        : 'other';
+                final notifyEnabled = switch (type) {
+                  'take_profit' => _config.notifyOnTakeProfit,
+                  'stop_loss' => _config.notifyOnStopLoss,
+                  _ => _config.notifyOnTakeProfit || _config.notifyOnStopLoss,
+                };
+                if (notifyEnabled) {
+                  final summary = exitSummaries.putIfAbsent(
+                      '${type}_$symbol',
+                      () => {
+                            'type': type,
+                            'symbol': symbol,
+                            'quantity': 0,
+                            'profitLoss': 0.0,
+                            'lots': 0,
+                            'winningLots': 0,
+                            'price': currentPrice,
+                          });
+                  final lotPnL = (currentPrice - entryPrice) * quantityToSell;
+                  summary['quantity'] =
+                      (summary['quantity'] as int) + quantityToSell;
+                  summary['profitLoss'] =
+                      (summary['profitLoss'] as double) + lotPnL;
+                  summary['lots'] = (summary['lots'] as int) + 1;
+                  if (lotPnL >= 0) {
+                    summary['winningLots'] =
+                        (summary['winningLots'] as int) + 1;
+                  }
                 }
 
                 _analytics.logEvent(
@@ -2401,7 +2625,47 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      // Remove completed/closed trades from tracking (use removeWhere for efficiency)
+      // Few stop-loss/take-profit exits get their own push; market-close,
+      // time-based and technical exits, or a large batch, become one summary.
+      const maxIndividualPushes = 3;
+      final summaries = exitSummaries.values.toList();
+      final individual = summaries.where((s) => s['type'] != 'other').toList();
+      final sendIndividually = individual.length <= maxIndividualPushes;
+      final grouped = sendIndividually
+          ? summaries.where((s) => s['type'] == 'other')
+          : summaries;
+
+      if (sendIndividually) {
+        for (final summary in individual) {
+          _sendTradeNotification(
+            userDocRef,
+            summary['type'] as String,
+            symbol: summary['symbol'] as String,
+            quantity: summary['quantity'] as int,
+            price: summary['price'] as double,
+            profitLoss: summary['profitLoss'] as double,
+          );
+        }
+      }
+      if (grouped.isNotEmpty) {
+        final pnl = grouped.fold<double>(
+            0, (total, s) => total + (s['profitLoss'] as double));
+        final trades =
+            grouped.fold<int>(0, (total, s) => total + (s['lots'] as int));
+        final wins = grouped.fold<int>(
+            0, (total, s) => total + (s['winningLots'] as int));
+        _sendTradeNotification(
+          userDocRef,
+          'daily_summary',
+          dailyStats: {
+            'totalTrades': trades,
+            'wins': wins,
+            'losses': trades - wins,
+            'totalPnL': pnl,
+          },
+        );
+      }
+
       if (tradesToRemove.isNotEmpty) {
         _automatedBuyTrades
             .removeWhere((trade) => tradesToRemove.contains(trade));
@@ -2435,6 +2699,8 @@ class AgenticTradingProvider with ChangeNotifier {
         'message': 'Monitoring failed: ${e.toString()}',
         'exits': [],
       };
+    } finally {
+      _isMonitoringExits = false;
     }
   }
 

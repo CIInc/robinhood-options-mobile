@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -121,8 +122,11 @@ void main() async {
     FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
   }
 
-  // AdMob - web not supported
-  if (!kIsWeb) {
+  // AdMob and home widgets only have Android/iOS implementations; elsewhere
+  // the unhandled MissingPluginException aborts main() before runApp.
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS)) {
     await MobileAds.instance.initialize();
     await HomeWidget.setAppGroupId(HomeWidgetService.appGroupId);
   }

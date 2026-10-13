@@ -216,12 +216,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   Future<void> setupInteractedMessage() async {
     // Request permission for notifications
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+    } catch (e) {
+      // Throws on unsigned/debug desktop builds; the rest of the setup must still run.
+      debugPrint('Notification permission request failed: $e');
+    }
 
     // Request permissions for local notifications on Android 13+
     if (Platform.isAndroid) {
@@ -238,7 +243,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     const InitializationSettings initializationSettings =
         InitializationSettings(
             android: initializationSettingsAndroid,
-            iOS: initializationSettingsDarwin);
+            iOS: initializationSettingsDarwin,
+            macOS: initializationSettingsDarwin);
     await flutterLocalNotificationsPlugin.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse:
@@ -268,13 +274,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     // Listen for messages while app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // iOS already shows a system banner while foregrounded (see auth.dart).
+      if (!kIsWeb && Platform.isIOS) return;
       if (message.notification != null) {
         if (message.data['imageUrl'] != null ||
             message.notification?.android?.imageUrl != null) {
           _showRichNotification(message);
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            // Replace rather than queue, so a burst of pushes shows only the latest toast.
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
               SnackBar(
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -290,6 +301,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                 ),
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 4),
+                persist: false,
                 action: SnackBarAction(
                   label: 'View',
                   onPressed: () => _handleMessage(message),

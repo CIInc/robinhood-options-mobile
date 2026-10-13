@@ -726,6 +726,9 @@ class TradeSignalsProvider with ChangeNotifier {
     return query;
   }
 
+  /// Error from the most recent [fetchSignals] call, or null if it succeeded.
+  String? lastFetchSignalsError;
+
   Future<List<Map<String, dynamic>>> fetchSignals({
     String? signalType,
     List<String>? indicators,
@@ -740,6 +743,7 @@ class TradeSignalsProvider with ChangeNotifier {
     String sortBy = 'signalStrength',
     int limit = 200,
   }) async {
+    lastFetchSignalsError = null;
     try {
       final effectiveInterval = interval ?? selectedInterval;
       final query = _buildQuery(
@@ -783,6 +787,7 @@ class TradeSignalsProvider with ChangeNotifier {
       return signals;
     } catch (e) {
       debugPrint('Error fetching signals: $e');
+      lastFetchSignalsError = e.toString();
       return [];
     }
   }

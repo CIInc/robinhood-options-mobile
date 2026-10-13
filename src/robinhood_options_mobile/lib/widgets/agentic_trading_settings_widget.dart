@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/main.dart';
@@ -47,6 +48,8 @@ class _AgenticTradingSettingsWidgetState
     extends State<AgenticTradingSettingsWidget> {
   final _formKey = GlobalKey<FormState>();
   final GlobalKey _entryStrategiesKey = GlobalKey();
+  // Pending orders currently being approved or rejected, keyed by symbol and action.
+  final Set<String> _busyOrders = {};
   late TextEditingController _tradeQuantityController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
@@ -656,8 +659,44 @@ class _AgenticTradingSettingsWidgetState
     }
   }
 
-  void _approveOrder(BuildContext context, AgenticTradingProvider provider,
-      Map<String, dynamic> order) async {
+  String _orderKey(Map<String, dynamic> order) =>
+      '${order['symbol']}_${order['action']}';
+
+  Future<void> _rejectOrder(
+      AgenticTradingProvider provider, Map<String, dynamic> order) async {
+    final key = _orderKey(order);
+    if (!_busyOrders.add(key)) return;
+    setState(() {});
+    try {
+      await provider.rejectOrder(order, userDocRef: widget.userDocRef);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text('Rejected ${order['action']} ${order['symbol']}'),
+          behavior: SnackBarBehavior.floating,
+        ));
+    } finally {
+      _busyOrders.remove(key);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _approveOrder(BuildContext context,
+      AgenticTradingProvider provider, Map<String, dynamic> order) async {
+    final key = _orderKey(order);
+    if (!_busyOrders.add(key)) return;
+    setState(() {});
+    try {
+      await _placeApprovedOrder(context, provider, order);
+    } finally {
+      _busyOrders.remove(key);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _placeApprovedOrder(BuildContext context,
+      AgenticTradingProvider provider, Map<String, dynamic> order) async {
     final brokerageUserStore =
         Provider.of<BrokerageUserStore>(context, listen: false);
     final accountStore = Provider.of<AccountStore>(context, listen: false);
@@ -684,14 +723,35 @@ class _AgenticTradingSettingsWidgetState
       return;
     }
 
-    await provider.approveOrder(
+    final symbol = (order['symbol'] as String).toUpperCase();
+    final heldQuantity = isPaperMode
+        ? paperTradingStore.positions
+            .where((p) => p.instrumentObj?.symbol.toUpperCase() == symbol)
+            .fold<double>(0, (total, p) => total + (p.quantity ?? 0))
+        : Provider.of<InstrumentPositionStore>(context, listen: false)
+            .items
+            .where((p) => p.instrumentObj?.symbol.toUpperCase() == symbol)
+            .fold<double>(0, (total, p) => total + (p.quantity ?? 0));
+
+    final messenger = ScaffoldMessenger.of(context);
+    final approved = await provider.approveOrder(
       order,
       brokerageUser: brokerageUser,
       account: account,
       brokerageService: widget.service,
       userDocRef: widget.userDocRef,
       paperTradingStore: paperTradingStore,
+      heldQuantity: heldQuantity,
     );
+    if (!mounted) return;
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(approved
+            ? 'Approved ${order['action']} ${order['symbol']}'
+            : "Couldn't approve ${order['symbol']}. See the Activity Log."),
+        behavior: SnackBarBehavior.floating,
+      ));
   }
 
   void _addCustomIndicator() async {
@@ -3002,22 +3062,36 @@ class _AgenticTradingSettingsWidgetState
                     ),
                   ],
                   const SizedBox(height: 12),
+                  Text(
+                    'Approve places a ${agenticTradingProvider.config.paperTradingMode ? 'paper ' : ''}'
+                    '${order['action']} order for ${order['quantity']} ${order['symbol']}'
+                    '${order['price'] is num ? ' at about \$${(order['price'] as num).toStringAsFixed(2)}' : ''}.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () async {
-                          await agenticTradingProvider.rejectOrder(order,
-                              userDocRef: widget.userDocRef);
-                        },
+                        onPressed: _busyOrders.contains(_orderKey(order))
+                            ? null
+                            : () => _rejectOrder(agenticTradingProvider, order),
                         child: const Text('Reject'),
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: () {
-                          _approveOrder(context, agenticTradingProvider, order);
-                        },
-                        child: const Text('Approve'),
+                        onPressed: _busyOrders.contains(_orderKey(order))
+                            ? null
+                            : () => _approveOrder(
+                                context, agenticTradingProvider, order),
+                        child: _busyOrders.contains(_orderKey(order))
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Approve'),
                       ),
                     ],
                   ),

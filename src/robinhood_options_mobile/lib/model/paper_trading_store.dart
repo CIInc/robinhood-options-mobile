@@ -720,7 +720,7 @@ class PaperTradingStore extends ChangeNotifier {
         'pendingOrders': _pendingOrders.map((o) => o.toJson()).toList(),
         'history': _history,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }).timeout(const Duration(seconds: 10));
     } catch (e) {
       debugPrint("Error saving paper account: $e");
     }

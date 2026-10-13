@@ -292,6 +292,49 @@ void main() {
       }
     });
 
+    test(
+        'systematic autoTrade accepts a HOLD signal when the enabled indicator is BUY',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.systematic;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        enabledIndicators: {'macd': true},
+      );
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'AAPL',
+              'signal': 'HOLD',
+              'currentPrice': 150.0,
+              'multiIndicatorResult': {
+                'signalStrength': 55,
+                'indicators': {
+                  'macd': {'signal': 'BUY'},
+                },
+              },
+            },
+          ],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+
+        final processedSignals =
+            result['processedSignals'] as List<Map<String, dynamic>>;
+        expect(processedSignals.single['processedStatus'], 'Accepted');
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
     test('strict entry accepts a custom-only strategy when all rules are green',
         () async {
       provider.loadConfigFromUser(null);
@@ -346,6 +389,129 @@ void main() {
       } finally {
         MarketHours.testTime = null;
       }
+    });
+
+    test('autoTrade does not queue a BUY for a held or repeated symbol',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.requireApproval = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      Map<String, dynamic> signal(String symbol, String interval) => {
+            'symbol': symbol,
+            'interval': interval,
+            'currentPrice': 100.0,
+          };
+
+      try {
+        await provider.autoTrade(
+          tradeSignals: [
+            signal('HELD', '1d'),
+            signal('NEW', '15m'),
+            signal('NEW', '1h'),
+          ],
+          tradeSignalsProvider: ApprovingTradeSignalsProvider(),
+          portfolioState: {
+            'buyingPower': 10000.0,
+            'HELD': {'quantity': 5, 'price': 100.0},
+          },
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+
+      expect(provider.pendingOrders.map((o) => o['symbol']), ['NEW']);
+    });
+
+    test('rejectOrder resolves a stale order by firestoreId before symbol',
+        () async {
+      provider.pendingOrders.addAll([
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'first'},
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'},
+      ]);
+
+      await provider.rejectOrder(
+          {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'});
+
+      expect(provider.pendingOrders.map((o) => o['firestoreId']), ['first']);
+    });
+
+    test('approveOrder drops a BUY for a symbol that is now held', () async {
+      provider.pendingOrders.add({
+        'symbol': 'AAPL',
+        'action': 'BUY',
+        'quantity': 3,
+        'price': 100.0,
+      });
+
+      final approved = await provider.approveOrder(
+        provider.pendingOrders.first,
+        brokerageUser: null,
+        account: null,
+        brokerageService: null,
+        heldQuantity: 5,
+      );
+
+      expect(approved, isFalse);
+      expect(provider.pendingOrders, isEmpty);
+    });
+
+    test('autoTrade clears pending BUYs for symbols already held', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+      provider.pendingOrders.addAll([
+        {'symbol': 'HELD', 'action': 'BUY'},
+        {'symbol': 'NEW', 'action': 'BUY'},
+      ]);
+
+      try {
+        await provider.autoTrade(
+          tradeSignals: [],
+          tradeSignalsProvider: null,
+          portfolioState: {
+            'HELD': {'quantity': 5, 'price': 100.0},
+          },
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+
+      expect(provider.pendingOrders.map((o) => o['symbol']), ['NEW']);
+    });
+
+    test('saving tracked trades upserts by stable id and drops untracked docs',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final collection = userRef.collection('automated_buy_trades');
+      await collection.doc('legacy-random-id').set({'symbol': 'OLD'});
+
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 3,
+        'initialQuantity': 3,
+        'entryPrice': 100.0,
+        'timestamp': '2026-10-12T14:00:00.000',
+      };
+      provider.automatedBuyTrades.add(trade);
+
+      await provider.saveAutomatedBuyTrades(userRef);
+      await provider.saveAutomatedBuyTrades(userRef);
+
+      final ids = (await collection.get()).docs.map((d) => d.id).toList();
+      expect(ids, [AgenticTradingProvider.automatedTradeDocId(trade)]);
     });
 
     test('autoTrade logs a rejected trade proposal once', () async {

@@ -268,6 +268,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   final ScrollController _scrollController = ScrollController();
   PaperTradingStore? _paperStore;
+  bool _refreshingPaperQuotes = false;
+  String? _lastPaperQuoteRefreshKey;
 
   _HomePageState();
 
@@ -1550,6 +1552,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     for (final position in _paperStore!.optionPositions) {
       optionStore.add(position);
     }
+
+    _refreshMissingPaperQuotes();
+  }
+
+  void _refreshMissingPaperQuotes() {
+    final store = _paperStore;
+    final service = widget.service;
+    final user = widget.brokerageUser;
+    if (store == null || service == null || user == null) return;
+
+    final missing = store.positions
+        .where(
+            (p) => p.instrumentObj != null && p.instrumentObj!.quoteObj == null)
+        .map((p) => p.instrumentObj!.symbol)
+        .toList()
+      ..sort();
+    if (missing.isEmpty) return;
+
+    // Skip repeats so a symbol with no available quote can't loop refresh -> notify -> sync.
+    final key = missing.join(',');
+    if (_refreshingPaperQuotes || key == _lastPaperQuoteRefreshKey) return;
+    _refreshingPaperQuotes = true;
+    _lastPaperQuoteRefreshKey = key;
+    store
+        .refreshQuotes(service, Provider.of<QuoteStore>(context, listen: false),
+            Provider.of<OptionInstrumentStore>(context, listen: false), user)
+        .whenComplete(() => _refreshingPaperQuotes = false);
   }
 
   /*

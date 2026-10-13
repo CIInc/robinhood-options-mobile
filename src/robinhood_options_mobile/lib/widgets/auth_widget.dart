@@ -124,7 +124,10 @@ class _AuthGateState extends State<AuthGate> {
     const bool isIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
     if (withSilentVerificationSMSMFA && !kIsWeb && !isIntegrationTest) {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
-      messaging.requestPermission();
+      // Throws on unsigned/debug desktop builds; it is not awaited, so it must not go unhandled.
+      messaging.requestPermission().then<void>((_) {}).catchError((Object e) {
+        debugPrint('Notification permission request failed: $e');
+      });
     }
 
     if (!kIsWeb && Platform.isMacOS) {
