@@ -423,6 +423,7 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Dismissed: ${alert.title}'),
+                    persist: false,
                     action: SnackBarAction(
                       label: 'Undo',
                       onPressed: () {

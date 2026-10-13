@@ -1235,6 +1235,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Joined ${group.name}'),
+            persist: false,
             action: SnackBarAction(
               label: 'View',
               onPressed: () {

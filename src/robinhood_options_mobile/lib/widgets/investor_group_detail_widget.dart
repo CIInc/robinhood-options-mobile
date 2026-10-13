@@ -2626,6 +2626,7 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('Unable to share group'),
+              persist: false,
               action: SnackBarAction(
                 label: 'Dismiss',
                 onPressed: () =>
