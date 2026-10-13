@@ -15,6 +15,7 @@ import {
   computeStochasticArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
+  computeParabolicSAR,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -530,6 +531,33 @@ describe("Technical Indicators", () => {
       expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
       expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
       expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+  });
+
+  describe("computeParabolicSAR", () => {
+    it("should respect endIndex parameter without array slicing", () => {
+      const highs = [10, 11, 12, 13, 14, 15, 14, 13, 12, 11];
+      const lows = [8, 9, 10, 11, 12, 13, 12, 11, 10, 9];
+      const closes = [9, 10, 11, 12, 13, 14, 13, 12, 11, 10];
+
+      const fullResult = computeParabolicSAR(highs, lows, closes);
+      const slicedResult = computeParabolicSAR(
+        highs.slice(0, 5),
+        lows.slice(0, 5),
+        closes.slice(0, 5)
+      );
+      const endIndexResult = computeParabolicSAR(
+        highs,
+        lows,
+        closes,
+        0.02,
+        0.2,
+        5
+      );
+
+      expect(endIndexResult).not.toBeNull();
+      expect(endIndexResult).toEqual(slicedResult);
+      expect(endIndexResult).not.toEqual(fullResult);
     });
   });
 });
