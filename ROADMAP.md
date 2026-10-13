@@ -46,7 +46,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** October 12, 2026 · **Current app version:** 0.56.0 (released October 12, 2026)
 
 ### Quick Stats
-- **Completed checklist items:** 404
+- **Completed checklist items:** 405
 - **Planned checklist items:** 67
 - **GitHub issues:** 121 total — 34 open and 87 closed (as of October 12, 2026)
 - **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
@@ -677,6 +677,7 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] **Advanced GEX Orchestrator** (v0.37.0): AI-aligned regime filtering for signals
 - [x] **Trade Signals Widget**:
     - [x] Dedicated home screen widget for viewing and filtering real-time signals
+- [x] **Auto-Trade Reliability & Paper Ledger Repair** (v0.56.0, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [PR #235](https://github.com/CIInc/robinhood-options-mobile/pull/235)): Indicator-based signal matching, exit oversell protection, no stacked entries for held symbols, ordered upsert-based trade saves, push throttling, and admin-only paper ledger repair callables
 
 ### Quantitative Research
 - [x] **Alpha Factor Discovery** ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
