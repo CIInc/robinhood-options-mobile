@@ -1,3 +1,8 @@
+## 2025-03-14 - Unprotected `onRequest` HTTP Cron Invocation Endpoint
+**Vulnerability:** `agenticTradingCronInvoke` in `agentic-trading-cron.ts` was an HTTP `onRequest` Cloud Function that invoked market scanning and Gemini LLM trade proposal generation across all chart documents without verifying user authentication. Any public HTTP request could trigger multi-symbol batch execution and exhaust `TWELVE_DATA_API_KEY` and `GEMINI_API_KEY` quotas.
+**Learning:** `onRequest` Cloud Functions wrapping scheduled or background cron processes are publicly exposed HTTP endpoints unless explicitly protected with Bearer ID token verification (`getAuth().verifyIdToken()`).
+**Prevention:** Always verify the `Authorization: Bearer <token>` header in all `onRequest` endpoints before executing high-memory, long-running batch or AI/market-data workflow triggers.
+
 ## 2025-03-13 - Missing Authentication on News Intelligence and Market Data Callable Functions
 **Vulnerability:** `getNewsIntelligence` and `getWatchlistNewsIntelligence` in `news-intelligence.ts` and `getQuotesCall` in `market-data.ts` were `onCall` Cloud Functions that lacked `request.auth` checks. Unauthenticated callers could invoke these endpoints to execute database operations (`instrument_news` collection) and query Twelve Data market quotes API secrets.
 **Learning:** Firebase v2 `onCall` functions default to unauthenticated access. Market data proxy endpoints and news sentiment aggregation functions writing or reading Firestore documents must enforce authentication checks to prevent unauthorized access and API quota consumption.
