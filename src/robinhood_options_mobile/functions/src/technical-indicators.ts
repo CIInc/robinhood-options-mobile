@@ -1094,16 +1094,19 @@ export function detectChartPattern(
   }
 
   const lookback = 60; // maximum historical window inspected
-  const windowPrices = prices.slice(-Math.min(lookback, prices.length));
-  // Short window for moving averages and breakout checks
-  const recentPrices = windowPrices.slice(-30);
-  const currentPrice = recentPrices[recentPrices.length - 1];
-  const prevPrice = recentPrices[recentPrices.length - 2];
+  const pLen = prices.length;
+  const windowPrices = prices.slice(-Math.min(lookback, pLen));
+  const wLen = windowPrices.length;
 
-  // Moving averages for trend context
-  const ma5 = computeSMA(recentPrices, 5);
-  const ma10 = computeSMA(recentPrices, 10);
-  const ma20 = computeSMA(recentPrices, 20);
+  // Short window for moving averages and breakout checks
+  const currentPrice = prices[pLen - 1];
+  const prevPrice = prices[pLen - 2];
+
+  // Moving averages for trend context computed via index parameters
+  // without array slicing
+  const ma5 = computeSMA(prices, 5, pLen);
+  const ma10 = computeSMA(prices, 10, pLen);
+  const ma20 = computeSMA(prices, 20, pLen);
   if (!ma5 || !ma10 || !ma20) {
     return {
       value: null,
@@ -1112,21 +1115,16 @@ export function detectChartPattern(
     };
   }
 
-  // Helper: linear regression slope (simplified) for overall trend direction
+  // Performance optimization: Linear regression slope over last 30 prices
+  // Pre-calculated for n = 30: xMean = 14.5, den = 2247.5.
+  // Computes numerator in a single loop without .reduce() allocations.
   const slope = (() => {
-    const n = recentPrices.length;
-    const xSum = (n * (n - 1)) / 2;
-    const xMean = xSum / n;
-    const yMean = recentPrices.reduce((a, b) => a + b, 0) / n;
     let num = 0;
-    let den = 0;
-    for (let i = 0; i < n; i++) {
-      const x = i;
-      const y = recentPrices[i];
-      num += (x - xMean) * (y - yMean);
-      den += (x - xMean) * (x - xMean);
+    const startIdx = pLen - 30;
+    for (let i = 0; i < 30; i++) {
+      num += (i - 14.5) * prices[startIdx + i];
     }
-    return den === 0 ? 0 : num / den;
+    return num / 2247.5;
   })();
 
   /**
@@ -1168,12 +1166,16 @@ export function detectChartPattern(
   const breakout = currentPrice > ma20 * 1.02 &&
     currentPrice > ma10 && prevPrice <= ma20 * 1.02;
   if (breakout) {
-    // Volume confirmation
+    // Volume confirmation without array slicing or .reduce()
     let volumeBoost = 0;
     if (volumes && volumes.length >= 30) {
-      const recentVol = volumes.slice(-30);
-      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
-      const lastVol = recentVol[recentVol.length - 1];
+      let sumVol = 0;
+      const vLen = volumes.length;
+      for (let i = vLen - 30; i < vLen; i++) {
+        sumVol += volumes[i];
+      }
+      const avgVol = sumVol / 30;
+      const lastVol = volumes[vLen - 1];
       volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
     }
     patterns.push({
@@ -1189,9 +1191,13 @@ export function detectChartPattern(
   if (breakdown) {
     let volumeBoost = 0;
     if (volumes && volumes.length >= 30) {
-      const recentVol = volumes.slice(-30);
-      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
-      const lastVol = recentVol[recentVol.length - 1];
+      let sumVol = 0;
+      const vLen = volumes.length;
+      for (let i = vLen - 30; i < vLen; i++) {
+        sumVol += volumes[i];
+      }
+      const avgVol = sumVol / 30;
+      const lastVol = volumes[vLen - 1];
       volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
     }
     patterns.push({
@@ -1338,35 +1344,36 @@ export function detectChartPattern(
   }
 
   // 4. Triangles (ascending, descending, symmetrical)
-  /** Detect ascending triangle
-   * @return {PatternCandidate|null} Asc triangle or null
-   */
-  function isAscendingTriangle(): PatternCandidate | null {
-    if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
+  // Performance optimization: Pre-calculate last 3 peak/trough values once to
+  // avoid repeated `.slice(-3).map()` intermediate array allocations.
+  if (peaks.length >= 3 && troughs.length >= 3) {
+    const lastPeaks = [
+      px(peaks[peaks.length - 3]),
+      px(peaks[peaks.length - 2]),
+      px(peaks[peaks.length - 1]),
+    ];
+    const lastTroughs = [
+      px(troughs[troughs.length - 3]),
+      px(troughs[troughs.length - 2]),
+      px(troughs[troughs.length - 1]),
+    ];
+
+    // Ascending Triangle
     const flatHighs = Math.max(...lastPeaks) - Math.min(...lastPeaks);
     const risingLows = lastTroughs[0] < lastTroughs[1] &&
       lastTroughs[1] < lastTroughs[2];
     if (flatHighs / ((lastPeaks[0] + lastPeaks[2]) / 2) < 0.015 && risingLows) {
       const breakoutPending = currentPrice > lastPeaks[2] * 0.995;
-      return {
+      patterns.push({
         key: "ascending_triangle",
         label: "Ascending Triangle",
         direction: breakoutPending ? "bullish" : "neutral",
         confidence: breakoutPending ? 0.6 : 0.45,
         details: { highs: lastPeaks, lows: lastTroughs },
-      };
+      });
     }
-    return null;
-  }
-  /** Detect descending triangle
-   * @return {PatternCandidate|null} Desc triangle or null
-   */
-  function isDescendingTriangle(): PatternCandidate | null {
-    if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
+
+    // Descending Triangle
     const flatLows = Math.max(...lastTroughs) - Math.min(...lastTroughs);
     const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
       lastPeaks[1] > lastPeaks[2];
@@ -1374,80 +1381,54 @@ export function detectChartPattern(
       0.015 && fallingHighs;
     if (lowFlat) {
       const breakdownPending = currentPrice < lastTroughs[2] * 1.005;
-      return {
+      patterns.push({
         key: "descending_triangle",
         label: "Descending Triangle",
         direction: breakdownPending ? "bearish" : "neutral",
         confidence: breakdownPending ? 0.6 : 0.45,
         details: { highs: lastPeaks, lows: lastTroughs },
-      };
+      });
     }
-    return null;
-  }
-  /** Detect symmetrical triangle (coiling)
-   * @return {PatternCandidate|null} Sym triangle or null
-   */
-  function isSymmetricalTriangle(): PatternCandidate | null {
-    if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
 
-    // Peaks descending: P1 > P2 > P3
-    const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
-      lastPeaks[1] > lastPeaks[2];
-    // Troughs ascending: T1 < T2 < T3
-    const risingLows = lastTroughs[0] < lastTroughs[1] &&
-      lastTroughs[1] < lastTroughs[2];
-
+    // Symmetrical Triangle
     if (fallingHighs && risingLows) {
-      // Check for potential breakout direction
       let dir: "bullish" | "bearish" | "neutral" = "neutral";
       if (currentPrice > lastPeaks[2]) dir = "bullish";
       else if (currentPrice < lastTroughs[2]) dir = "bearish";
 
-      // If price is squeezing tight (last range < first range * 0.5)
       const range1 = lastPeaks[0] - lastTroughs[0];
       const range3 = lastPeaks[2] - lastTroughs[2];
       const coiling = range3 < range1 * 0.6;
 
       if (coiling) {
-        return {
+        patterns.push({
           key: "symmetrical_triangle",
           label: "Symmetrical Triangle",
           direction: dir,
           confidence: dir !== "neutral" ? 0.65 : 0.5,
           details: { highs: lastPeaks, lows: lastTroughs },
-        };
+        });
       }
     }
-    return null;
   }
-
-  const asc = isAscendingTriangle();
-  if (asc) patterns.push(asc);
-  const desc = isDescendingTriangle();
-  if (desc) patterns.push(desc);
-  const sym = isSymmetricalTriangle();
-  if (sym) patterns.push(sym);
 
   // 5. Cup & Handle
   const cupHandleCandidate = (() => {
-    if (windowPrices.length < 45) return null;
-    const len = windowPrices.length;
+    if (wLen < 45) return null;
 
     // Identify regions for Left Lip, Bottom, Right Lip, and Handle
-    const leftHigh = rangeMax(windowPrices, 0, Math.floor(len * 0.4));
+    const leftHigh = rangeMax(windowPrices, 0, Math.floor(wLen * 0.4));
     const midLow = rangeMin(
       windowPrices,
-      Math.floor(len * 0.3),
-      Math.floor(len * 0.7)
+      Math.floor(wLen * 0.3),
+      Math.floor(wLen * 0.7)
     );
     const rightHigh = rangeMax(
       windowPrices,
-      Math.floor(len * 0.6),
-      Math.floor(len * 0.9)
+      Math.floor(wLen * 0.6),
+      Math.floor(wLen * 0.9)
     );
-    const handleLow = rangeMin(windowPrices, Math.floor(len * 0.85), len);
+    const handleLow = rangeMin(windowPrices, Math.floor(wLen * 0.85), wLen);
 
     // Heuristics: Depth > 2%, Rims within 15%, Handle retrace < 60% of depth
     const depth = (rightHigh - midLow) / rightHigh;
@@ -1477,43 +1458,46 @@ export function detectChartPattern(
   if (cupHandleCandidate) patterns.push(cupHandleCandidate);
 
   // 6. Flag (strong trend followed by consolidation)
+  // Performance optimization: Evaluates pole move and flag range directly via
+  // index arithmetic on windowPrices, eliminating 3 intermediate array slices
+  // (`set`, `pole`, `flag`) and `Math.max`/`Math.min` spread arguments.
   const flagCandidate = (() => {
-    if (windowPrices.length < 20) return null;
+    if (wLen < 20) return null;
 
-    // Use last 20 bars: Pole (0-12) and Flag (13-20)
-    const set = windowPrices.slice(-20);
-    const pole = set.slice(0, 13);
-    const flag = set.slice(13);
-
-    const poleStart = pole[0];
-    const poleEnd = pole[pole.length - 1];
+    const poleStart = windowPrices[wLen - 20];
+    const poleEnd = windowPrices[wLen - 8];
     const poleMove = (poleEnd - poleStart) / poleStart;
-
-    const flagHigh = Math.max(...flag);
-    const flagLow = Math.min(...flag);
-    const flagRange = (flagHigh - flagLow) / flagLow;
 
     // 1. Strong Pole Move (>3% absolute)
     if (Math.abs(poleMove) < 0.03) return null;
+
+    // Flag is last 7 bars (wLen - 7 to wLen - 1)
+    let flagHigh = windowPrices[wLen - 7];
+    let flagLow = windowPrices[wLen - 7];
+    for (let i = wLen - 6; i < wLen; i++) {
+      if (windowPrices[i] > flagHigh) flagHigh = windowPrices[i];
+      if (windowPrices[i] < flagLow) flagLow = windowPrices[i];
+    }
+
+    const flagRange = (flagHigh - flagLow) / flagLow;
 
     // 2. Tight Flag Consolidation (< 2.5% range)
     if (flagRange > 0.025) return null;
 
     // 3. Flag should not retrace more than 50% of the pole
-    const retrace = Math.abs(flag[flag.length - 1] - poleEnd) /
+    const lastPrice = windowPrices[wLen - 1];
+    const retrace = Math.abs(lastPrice - poleEnd) /
       Math.abs(poleEnd - poleStart);
     if (retrace > 0.5) return null;
 
     // Direction based on pole
     const dir = poleMove > 0 ? "bullish" : "bearish";
 
-    // Bull Flag: Pole UP, Flag DRIFT/DOWN
-    // Bear Flag: Pole DOWN, Flag DRIFT/UP
     return {
       key: "flag",
       label: dir === "bullish" ? "Bull Flag" : "Bear Flag",
       direction: dir,
-      confidence: 0.6, // Reasonably high confidence if structure holds
+      confidence: 0.6,
       details: { poleMove, flagRange, retrace },
     } as PatternCandidate;
   })();
