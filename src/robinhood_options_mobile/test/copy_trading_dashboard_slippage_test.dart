@@ -104,6 +104,17 @@ void main() {
       expect(find.text('Fill Quality Distribution'), findsOneWidget);
       expect(find.text('Latency Breakdown'), findsOneWidget);
       expect(find.text('Slippage by Leader'), findsOneWidget);
+
+      // Verify Semantics for Fill Quality breakdown
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label ==
+                  'Fill quality breakdown: 1 favorable, 0 exact, 1 unfavorable',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }
