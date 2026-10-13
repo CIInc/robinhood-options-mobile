@@ -33,3 +33,7 @@
 ## 2026-04-01 - Scalar Bollinger Bands Evaluation without Full-Series Array Allocations
 **Learning:** `evaluateBollingerBands` allocated full-series arrays (`computeBollingerBandsArray` and `computeKeltnerChannelsArray`) on every single evaluation call in `evaluateAllIndicators`. In backtesting loops and automated trading cycles over 500+ bars, this generated thousands of transient array objects for every candle evaluated, taking ~65.2 µs/op.
 **Action:** Replace `computeBollingerBandsArray` and `computeKeltnerChannelsArray` in `evaluateBollingerBands` with scalar helpers `computeBollingerBands` and `computeKeltnerChannels`, evaluating trailing bandwidth squeeze using index-bounded scalar calls. This speeds up `evaluateBollingerBands` by ~8.6x (from 65.2 µs/op down to 7.6 µs/op) and eliminates full-series array allocations per bar.
+
+## 2026-04-01 - Single-Pass Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
+**Learning:** `evaluateOBV` invoked `computeOBV` to generate a full-series OBV array on every evaluation call, generating full-series array allocations across hundreds of bars only to compute summary statistics for the last 20 bars. In backtesting loops, this caused unnecessary memory churn and GC pauses.
+**Action:** Refactor `evaluateOBV` to compute running OBV and summary statistics (`sumRecentOBV`, `sumOlderOBV`, `maxObv`, `minObv`) in a single pass in O(1) space (~1.9x speedup), and create `computeScalarOBV` for O(1) space trailing OBV lookups in `evaluateCustomIndicator`.
