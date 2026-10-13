@@ -332,37 +332,42 @@ class CopyTradeSlippageCard extends StatelessWidget {
     required Color color,
   }) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.dividerColor.withAlpha(50),
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $value, $subtitle',
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.dividerColor.withAlpha(50),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 11,
-              color: Colors.grey,
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -376,46 +381,52 @@ class CopyTradeSlippageCard extends StatelessWidget {
     final neutralFlex = (summary.neutralTradesCount * 1000 ~/ total);
     final unfavorableFlex = (summary.unfavorableTradesCount * 1000 ~/ total);
 
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 10,
-            child: Row(
-              children: [
-                if (favorableFlex > 0)
-                  Expanded(
-                    flex: favorableFlex,
-                    child: Container(color: Colors.green),
-                  ),
-                if (neutralFlex > 0)
-                  Expanded(
-                    flex: neutralFlex,
-                    child: Container(color: Colors.blue),
-                  ),
-                if (unfavorableFlex > 0)
-                  Expanded(
-                    flex: unfavorableFlex,
-                    child: Container(color: Colors.orange),
-                  ),
-              ],
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label:
+          'Fill quality distribution: ${summary.favorableTradesCount} favorable, ${summary.neutralTradesCount} exact, ${summary.unfavorableTradesCount} unfavorable',
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (favorableFlex > 0)
+                    Expanded(
+                      flex: favorableFlex,
+                      child: Container(color: Colors.green),
+                    ),
+                  if (neutralFlex > 0)
+                    Expanded(
+                      flex: neutralFlex,
+                      child: Container(color: Colors.blue),
+                    ),
+                  if (unfavorableFlex > 0)
+                    Expanded(
+                      flex: unfavorableFlex,
+                      child: Container(color: Colors.orange),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildLegendItem(
-                'Favorable: ${summary.favorableTradesCount}', Colors.green),
-            _buildLegendItem(
-                'Exact: ${summary.neutralTradesCount}', Colors.blue),
-            _buildLegendItem('Unfavorable: ${summary.unfavorableTradesCount}',
-                Colors.orange),
-          ],
-        ),
-      ],
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildLegendItem(
+                  'Favorable: ${summary.favorableTradesCount}', Colors.green),
+              _buildLegendItem(
+                  'Exact: ${summary.neutralTradesCount}', Colors.blue),
+              _buildLegendItem('Unfavorable: ${summary.unfavorableTradesCount}',
+                  Colors.orange),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -104,6 +104,18 @@ void main() {
       expect(find.text('Fill Quality Distribution'), findsOneWidget);
       expect(find.text('Latency Breakdown'), findsOneWidget);
       expect(find.text('Slippage by Leader'), findsOneWidget);
+
+      // Accessibility Semantics verification
+      expect(
+        find.bySemanticsLabel('Avg Latency: 103 ms, Median: 103ms'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+          'Fill quality distribution: 1 favorable, 0 exact, 1 unfavorable',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }
