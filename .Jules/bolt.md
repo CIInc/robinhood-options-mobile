@@ -33,3 +33,7 @@
 ## 2026-04-01 - Scalar Bollinger Bands Evaluation without Full-Series Array Allocations
 **Learning:** `evaluateBollingerBands` allocated full-series arrays (`computeBollingerBandsArray` and `computeKeltnerChannelsArray`) on every single evaluation call in `evaluateAllIndicators`. In backtesting loops and automated trading cycles over 500+ bars, this generated thousands of transient array objects for every candle evaluated, taking ~65.2 µs/op.
 **Action:** Replace `computeBollingerBandsArray` and `computeKeltnerChannelsArray` in `evaluateBollingerBands` with scalar helpers `computeBollingerBands` and `computeKeltnerChannels`, evaluating trailing bandwidth squeeze using index-bounded scalar calls. This speeds up `evaluateBollingerBands` by ~8.6x (from 65.2 µs/op down to 7.6 µs/op) and eliminates full-series array allocations per bar.
+
+## 2026-04-02 - Direct Scalar GEX Spot Sensitivity Evaluation
+**Learning:** `computeTotalNetGexAtSpot` was delegating to `computeGEXByStrike` for each of the 4 spot-shift scenarios (-2%, -1%, +1%, +2%), creating intermediate Maps, thousands of strike-level objects, and sorted arrays per expiration block only to compute scalar net sum totals.
+**Action:** Extract a shared `calculateOptionGammaExposure` contract-level scalar helper to eliminate logic drift, and accumulate call and put dollar GEX directly in `computeTotalNetGexAtSpot` in O(N) time and O(1) auxiliary space without intermediate Maps, objects, or sorting passes.
