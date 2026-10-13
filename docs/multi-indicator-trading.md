@@ -1146,6 +1146,12 @@ The system now supports **Custom Indicators**, allowing users to extend the anal
 - **Push limits:** Trade-signal pushes use a 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes per user; throttled signals are still saved in the in-app feed, and a push that reaches no device releases its cooldown.
 - **Paper ledger repair (admin only):** `repairPaperLedger` removes net-short stock positions and reverses their credited cash (refusing negative cash unless `allowNegativeCash` is set), and `voidPaperPhantomFills` archives short-related fills to `paper_orders_voided`. Both require the `admin` claim, default to dry run, need explicit user ids to apply, and write audit records under `paper_repairs`.
 
+## Settings Persistence & Signal Re-Evaluation (v0.57.0)
+
+- **Saved settings stay saved:** Entry and exit toggles, Take Profit, Stop Loss, and the 15 Min / 1 Hour / 1 Day interval are written to the `agenticTradingConfig` field on your Firestore user document and also to the in-memory `User` object. The settings screen keeps the `User` object in sync with every provider config change, and the navigation shell loads the stored config once per user instance, so a rebuild or reopening of the screen no longer reverts your edits.
+- **Rule changes re-evaluate signals:** The auto-trader remembers which signals it has already processed so it does not re-propose them every cycle. That memory is cleared whenever the active indicators, require-all-green, minimum signal strength, interval, symbol filter, custom indicators, or trading mode change, so signals rejected under the old rules are evaluated again.
+- **Activity Log diagnostics:** A cycle that accepts no signals logs its top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is logged instead of failing silently. Pressing **Clear** in the Activity Log also forgets processed signals.
+
 ## Support
 
 For questions or issues:

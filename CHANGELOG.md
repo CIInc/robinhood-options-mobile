@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.0] - 2026-10-13
+**Auto-Trade Settings Persistence & Signal Re-Evaluation ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Settings Persistence & Signal Re-Evaluation (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, `AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Settings No Longer Revert**: Entry and exit toggles, Take Profit, Stop Loss, and other auto-trade settings were saved to Firestore but not to the in-memory `User` object, so the next rebuild or reopening of the settings screen reloaded the old values. The settings screen now keeps the `User` object in sync with every config change, and the navigation shell loads the stored config once per user instead of on every rebuild.
+  - **Interval Selector Saves**: The 15 Min / 1 Hour / 1 Day selector now writes its choice to the auto-trade config; previously the shared save rebuilt the config from the old interval.
+  - **Rejected Signals Are Re-Evaluated**: Signals that were rejected under old entry rules are no longer skipped as duplicates after you change the active indicators, require-all-green, minimum strength, interval, symbol filter, custom indicators, or trading mode.
+  - **Clearer Activity Log**: When a cycle accepts no signals it logs the top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is reported instead of being silent.
+  - **Startup Warnings Removed**: The first build pass no longer logs false `userDocRef is null` warnings for pending orders, trade history, and tracked trades; those load once the user document exists.
+
 ## [0.56.0] - 2026-10-12
 **Retirement Planning & Gold Match Maximizer, Auto-Trade Reliability & Paper Ledger Repair ([docs](docs/multi-account-and-retirement.md), [docs](docs/multi-indicator-trading.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139), [#234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [#235](https://github.com/CIInc/robinhood-options-mobile/pull/235))**
 
