@@ -134,6 +134,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       FlutterLocalNotificationsPlugin();
   BrokerageUser? _lastUser;
   String? _lastAuthUserUid;
+  bool _tradingConfigsLoaded = false;
+  User? _tradingConfigUser;
 
   IBrokerageService _getService(BrokerageUser user) {
     return user.source == BrokerageSource.robinhood
@@ -286,28 +288,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             ScaffoldMessenger.of(context)
               ..clearSnackBars()
               ..showSnackBar(
-              SnackBar(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (message.notification!.title != null)
-                      Text(message.notification!.title!,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    if (message.notification!.body != null)
-                      Text(message.notification!.body!,
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ],
+                SnackBar(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.notification!.title != null)
+                        Text(message.notification!.title!,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      if (message.notification!.body != null)
+                        Text(message.notification!.body!,
+                            maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 4),
+                  persist: false,
+                  action: SnackBarAction(
+                    label: 'View',
+                    onPressed: () => _handleMessage(message),
+                  ),
                 ),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 4),
-                persist: false,
-                action: SnackBarAction(
-                  label: 'View',
-                  onPressed: () => _handleMessage(message),
-                ),
-              ),
-            );
+              );
           }
         }
       }
@@ -821,14 +824,25 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             final agenticProvider =
                 Provider.of<AgenticTradingProvider>(context, listen: false);
-            agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+            // Settings edits update the provider and Firestore but not this User
+            // object, so reloading on every rebuild would revert them.
+            final reloadConfigs =
+                !_tradingConfigsLoaded || !identical(_tradingConfigUser, user);
+            _tradingConfigsLoaded = true;
+            _tradingConfigUser = user;
+            if (reloadConfigs) {
+              agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+            }
 
-            // Load automated buy trades from Firestore
-            agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
-            // Load auto-trade history from Firestore
-            agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-            // Load pending orders from Firestore
-            agenticProvider.loadPendingOrdersFromFirestore(userDoc);
+            // The first build pass runs before the user document reference exists.
+            if (userDoc != null) {
+              // Load automated buy trades from Firestore
+              agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+              // Load auto-trade history from Firestore
+              agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+              // Load pending orders from Firestore
+              agenticProvider.loadPendingOrdersFromFirestore(userDoc);
+            }
 
             // Start auto-trade timer via provider (prevents duplicate starts)
             if (service != null) {
@@ -841,9 +855,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             final futuresProvider =
                 Provider.of<FuturesAutoTradingProvider>(context, listen: false);
-            futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
-            futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-            futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+            if (reloadConfigs) {
+              futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
+            }
+            if (userDoc != null) {
+              futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+              futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+            }
 
             if (service != null) {
               futuresProvider.startAutoTradeTimer(
@@ -1304,8 +1322,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                         final user = BrokerageUser(
                             BrokerageSource.demo, "Demo Account", null, null);
                         userStore.addOrUpdate(user);
-                        userStore.setCurrentUserIndex(
-                            userStore.items.indexOf(user));
+                        userStore
+                            .setCurrentUserIndex(userStore.items.indexOf(user));
                         await userStore.save();
                       },
                     ),

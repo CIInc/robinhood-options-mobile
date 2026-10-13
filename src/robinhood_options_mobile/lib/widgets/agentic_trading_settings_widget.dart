@@ -90,10 +90,21 @@ class _AgenticTradingSettingsWidgetState
   final ScrollController _intervalScrollController = ScrollController();
   bool _hasScrolledToTemplate = false;
   // final Map<String, bool> _switchValues = {};
+  AgenticTradingProvider? _configProvider;
+
+  // Most edits call updateConfig directly; reopening this screen reloads from
+  // widget.user, so it must track the provider or the edits revert.
+  void _syncUserConfig() {
+    widget.user.agenticTradingConfig = _configProvider?.config;
+  }
 
   @override
   void initState() {
     super.initState();
+
+    _configProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false)
+          ..addListener(_syncUserConfig);
 
     if (widget.initialSection == 'entryStrategies') {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -238,6 +249,7 @@ class _AgenticTradingSettingsWidgetState
 
   @override
   void dispose() {
+    _configProvider?.removeListener(_syncUserConfig);
     _tradeQuantityController.dispose();
     _maxPositionSizeController.dispose();
     _maxPortfolioConcentrationController.dispose();
@@ -627,7 +639,8 @@ class _AgenticTradingSettingsWidgetState
 
   void _saveSettings() async {
     // Only validate, don't show snackbar for auto-saves
-    if (!_formKey.currentState!.validate()) {
+    if (!(_formKey.currentState?.validate() ?? true)) {
+      debugPrint('Auto-trade settings not saved: a field failed validation');
       return;
     }
 
@@ -3382,7 +3395,13 @@ class _AgenticTradingSettingsWidgetState
                   setState(() {
                     _interval = newSelection.first;
                   });
-                  _saveSettings();
+                  final provider = Provider.of<AgenticTradingProvider>(context,
+                      listen: false);
+                  final newConfig = _createFullConfigFromSettings(provider,
+                      baseConfig: provider.config.copyWith(
+                          strategyConfig: provider.config.strategyConfig
+                              .copyWith(interval: _interval)));
+                  provider.updateConfig(newConfig, widget.userDocRef);
                 },
               ),
             ),

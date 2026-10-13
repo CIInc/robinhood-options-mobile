@@ -628,7 +628,32 @@ class AgenticTradingProvider with ChangeNotifier {
       _config = AgenticTradingConfig(strategyConfig: TradeStrategyConfig());
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
     }
+    _forgetProcessedSignalsIfRulesChanged();
     notifyListeners();
+  }
+
+  String? _signalRulesSignature;
+
+  /// Signals rejected under old entry rules must be re-evaluated under new ones.
+  void _forgetProcessedSignalsIfRulesChanged() {
+    final s = _config.strategyConfig;
+    final signature = [
+      s.enabledIndicators.entries
+          .where((e) => e.value)
+          .map((e) => e.key)
+          .toList()
+        ..sort(),
+      s.requireAllIndicatorsGreen,
+      s.minSignalStrength,
+      s.interval,
+      s.symbolFilter,
+      s.customIndicators.map((c) => c.id).toList(),
+      _config.tradingMode,
+    ].join('|');
+    if (_signalRulesSignature != null && _signalRulesSignature != signature) {
+      _processedSignalTimestamps.clear();
+    }
+    _signalRulesSignature = signature;
   }
 
   /// Update configuration and save to User document
@@ -637,11 +662,13 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference userDocRef,
   ) async {
     _config = newConfig;
+    _forgetProcessedSignalsIfRulesChanged();
 
     try {
       await userDocRef.update({'agenticTradingConfig': newConfig.toJson()});
       _analytics.logEvent(name: 'agentic_trading_config_updated');
     } catch (e) {
+      _log('❌ Failed to save auto-trade settings: $e');
       _analytics.logEvent(
         name: 'agentic_trading_config_update_failed',
         parameters: {'error': e.toString()},
@@ -1471,6 +1498,20 @@ class AgenticTradingProvider with ChangeNotifier {
       if (buySignals.isEmpty) {
         // _log('📭 No BUY signals available matching enabled indicators');
         _log('📭 No BUY signals matching criteria');
+        final reasonCounts = <String, int>{};
+        for (final s in processedSignals) {
+          final reason = (s['rejectionReason'] as String?)
+              ?.replaceAll(RegExp(r'\d+(\.\d+)?'), '#');
+          if (reason != null) {
+            reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
+          }
+        }
+        final topReasons = reasonCounts.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        if (topReasons.isNotEmpty) {
+          _log(
+              '🔍 Rejected: ${topReasons.take(3).map((e) => '${e.value}× ${e.key}').join('; ')}');
+        }
         _isAutoTrading = false;
         _scheduleVisualStateReset();
         notifyListeners();
