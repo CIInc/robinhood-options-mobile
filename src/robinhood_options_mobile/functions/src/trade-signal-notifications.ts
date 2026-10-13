@@ -17,6 +17,61 @@ import { getMessaging } from "firebase-admin/messaging";
 const db = getFirestore();
 const messaging = getMessaging();
 
+// Same symbol, interval and action is not re-notified within this window.
+const SIGNAL_COOLDOWN_MS = 60 * 60 * 1000;
+// Max pushes per user per window; extra signals are still saved in-app.
+const PUSH_WINDOW_MS = 15 * 60 * 1000;
+const MAX_PUSHES_PER_WINDOW = 5;
+
+type PushSlot = "send" | "cooldown" | "capped";
+
+/**
+ * Decide whether a signal may buzz the user, recording the attempt atomically
+ * so concurrent signal triggers share one counter.
+ * @param {string} userId The user ID
+ * @param {TradeSignal} signal The trade signal
+ * @return {Promise<PushSlot>} send, cooldown (skip entirely) or capped
+ */
+async function reservePushSlot(
+  userId: string,
+  signal: TradeSignal
+): Promise<PushSlot> {
+  const stateCol = db.collection("user").doc(userId)
+    .collection("signal_notification_state");
+  const key = `${signal.symbol}_${signal.interval || "1d"}_${signal.signal}`
+    .replace(/\//g, "_");
+  const signalRef = stateCol.doc(key);
+  const windowRef = stateCol.doc("_window");
+
+  return db.runTransaction(async (tx) => {
+    const [signalSnap, windowSnap] = await Promise.all([
+      tx.get(signalRef),
+      tx.get(windowRef),
+    ]);
+    const now = Date.now();
+
+    const lastSentAt = signalSnap.data()?.lastSentAt as number | undefined;
+    if (lastSentAt && now - lastSentAt < SIGNAL_COOLDOWN_MS) {
+      return "cooldown";
+    }
+
+    let windowStart = windowSnap.data()?.windowStart as number | undefined;
+    let count = (windowSnap.data()?.count as number | undefined) ?? 0;
+    if (!windowStart || now - windowStart >= PUSH_WINDOW_MS) {
+      windowStart = now;
+      count = 0;
+    }
+
+    tx.set(signalRef, { lastSentAt: now });
+    if (count >= MAX_PUSHES_PER_WINDOW) {
+      tx.set(windowRef, { windowStart, count });
+      return "capped";
+    }
+    tx.set(windowRef, { windowStart, count: count + 1 });
+    return "send";
+  });
+}
+
 /**
  * Interface for indicator result
  */
@@ -215,6 +270,17 @@ async function sendTradeSignalNotification(
       return;
     }
 
+    const pushSlot = await reservePushSlot(userId, signal);
+    if (pushSlot === "cooldown") {
+      logger.info("Signal notification skipped - cooldown active", {
+        userId,
+        symbol: signal.symbol,
+        signal: signal.signal,
+        interval: signal.interval,
+      });
+      return;
+    }
+
     // Prepare notification
     const intervalLabel = getIntervalLabel(signal.interval);
     const action = signal.signal;
@@ -302,53 +368,55 @@ async function sendTradeSignalNotification(
     // t=SYMBOL, ty=c (candle), ta=0 (no advanced TA), p=d (daily), s=l (large)
     const imageUrl = `https://charts2.finviz.com/chart.ashx?t=${signal.symbol}&ty=c&ta=0&p=d&s=l`;
 
-    // Send notification to all user devices
-    const response = await messaging.sendEachForMulticast({
-      tokens: fcmTokens,
-      notification: {
-        title: title,
-        body: bodyWithConfidence,
-        imageUrl: imageUrl,
-      },
-      data: {
-        type: "trade_signal",
-        symbol: signal.symbol,
-        signal: signal.signal,
-        interval: signal.interval || "1d",
-        price: price?.toString() || "",
-        confidence: confidence?.toString() || "",
-        timestamp: signal.timestamp.toString(),
-        imageUrl: imageUrl,
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-      },
-      android: {
-        priority: "high",
+    // Send notification to all user devices (unless the push cap was hit,
+    // in which case it is only saved to the in-app history below)
+    const response = pushSlot === "capped" ? null :
+      await messaging.sendEachForMulticast({
+        tokens: fcmTokens,
         notification: {
-          channelId: "trade_signals",
-          priority: "high",
-          sound: "default",
-          clickAction: "FLUTTER_NOTIFICATION_CLICK",
-          // Group notifications by symbol
-          // tag: signal.symbol,
+          title: title,
+          body: bodyWithConfidence,
           imageUrl: imageUrl,
         },
-      },
-      apns: {
-        payload: {
-          aps: {
-            "sound": "default",
-            "badge": 1,
-            "category": "TRADE_SIGNAL",
-            // Group notifications by symbol on iOS
-            // "threadId": signal.symbol,
-            "mutable-content": 1,
+        data: {
+          type: "trade_signal",
+          symbol: signal.symbol,
+          signal: signal.signal,
+          interval: signal.interval || "1d",
+          price: price?.toString() || "",
+          confidence: confidence?.toString() || "",
+          timestamp: signal.timestamp.toString(),
+          imageUrl: imageUrl,
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "trade_signals",
+            priority: "high",
+            sound: "default",
+            clickAction: "FLUTTER_NOTIFICATION_CLICK",
+            // Group notifications by symbol
+            // tag: signal.symbol,
+            imageUrl: imageUrl,
           },
         },
-        fcmOptions: {
-          imageUrl: imageUrl,
+        apns: {
+          payload: {
+            aps: {
+              "sound": "default",
+              "badge": 1,
+              "category": "TRADE_SIGNAL",
+              // Group notifications by symbol on iOS
+              // "threadId": signal.symbol,
+              "mutable-content": 1,
+            },
+          },
+          fcmOptions: {
+            imageUrl: imageUrl,
+          },
         },
-      },
-    });
+      });
 
     // Store notification in Firestore history if successfully sent
     // (or at least attempted). We store it even if push fails so user can
@@ -385,12 +453,13 @@ async function sendTradeSignalNotification(
       symbol: signal.symbol,
       signal: signal.signal,
       interval: signal.interval,
-      successCount: response.successCount,
-      failureCount: response.failureCount,
+      pushSuppressed: response === null,
+      successCount: response?.successCount,
+      failureCount: response?.failureCount,
     });
 
     // Log any failures
-    if (response.failureCount > 0) {
+    if (response && response.failureCount > 0) {
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           logger.error("Failed to send notification", {

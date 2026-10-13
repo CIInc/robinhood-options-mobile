@@ -365,13 +365,13 @@ function buildNotificationContent(data: NotificationRequest): {
         `${winRate}% win) | ` +
         `${totalPnL >= 0 ? "📈 +" : "📉 "}$${totalPnL.toFixed(2)}`;
       return {
-        title: `${prefix}📊 Daily Auto-Trade Summary`,
+        title: `${prefix}📊 Auto-Trade Summary`,
         body,
       };
     }
     return {
-      title: `${prefix}📊 Daily Auto-Trade Summary`,
-      body: "Your daily trading summary is ready to view.",
+      title: `${prefix}📊 Auto-Trade Summary`,
+      body: "Your auto-trade summary is ready to view.",
     };
   }
 
