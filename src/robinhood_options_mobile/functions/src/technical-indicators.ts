@@ -1865,15 +1865,17 @@ export function evaluateMarketDirection(
     };
   }
 
-  const fastMAs = computeSMAArray(marketPrices, fastPeriod);
-  const slowMAs = computeSMAArray(marketPrices, slowPeriod);
-
-  const fastMA = fastMAs[fastMAs.length - 1];
-  const slowMA = slowMAs[slowMAs.length - 1];
+  // Performance optimization: evaluate SMA values using scalar computeSMA
+  // calls in O(period) time and O(1) space, avoiding computeSMAArray
+  // full-series allocations.
+  const fastMA = computeSMA(marketPrices, fastPeriod);
+  const slowMA = computeSMA(marketPrices, slowPeriod);
 
   // Previous MAs for crossover detection
-  const fastPrevMA = fastMAs.length >= 2 ? fastMAs[fastMAs.length - 2] : null;
-  const slowPrevMA = slowMAs.length >= 2 ? slowMAs[slowMAs.length - 2] : null;
+  const fastPrevMA = marketPrices.length > fastPeriod ?
+    computeSMA(marketPrices, fastPeriod, marketPrices.length - 1) : null;
+  const slowPrevMA = marketPrices.length > slowPeriod ?
+    computeSMA(marketPrices, slowPeriod, marketPrices.length - 1) : null;
 
   if (fastMA === null || slowMA === null) {
     return {
@@ -2437,16 +2439,16 @@ export function evaluateStochastic(
     };
   }
 
-  // Optimized to use Array computation once
-  const stochArray = computeStochasticArray(
+  // Performance optimization: evaluate current %K/%D using scalar
+  // computeStochastic in O(kPeriod * dPeriod) time and O(1) space, avoiding
+  // computeStochasticArray full-series allocations.
+  const stoch = computeStochastic(
     highs,
     lows,
     closes,
     kPeriod,
     dPeriod
   );
-
-  const stoch = stochArray[stochArray.length - 1];
 
   if (!stoch) {
     return {
@@ -2462,18 +2464,33 @@ export function evaluateStochastic(
 
   // Detect crossovers
   let prevStoch: { k: number; d: number } | null = null;
-  if (stochArray.length >= 2) {
-    prevStoch = stochArray[stochArray.length - 2];
+  if (closes.length > kPeriod) {
+    prevStoch = computeStochastic(
+      highs,
+      lows,
+      closes,
+      kPeriod,
+      dPeriod,
+      closes.length - 1
+    );
   }
 
   // --- NEW: Divergence Detection ---
   let divergence: "bullish" | "bearish" | null = null;
 
-  // Need at least ~20 bars for divergence check
-  if (stochArray.length >= 20) {
+  // Need at least 20 valid stochastic bars for divergence check
+  const minRequiredForDivergence = kPeriod + dPeriod + 18;
+  if (closes.length >= minRequiredForDivergence) {
     const lookback = 20;
-    const recentStoch = stochArray.slice(-lookback);
+    const startIdx = closes.length - lookback;
+    const recentStoch: ({ k: number; d: number } | null)[] = [];
     const recentPrices = closes.slice(-lookback);
+
+    for (let i = startIdx + 1; i <= closes.length; i++) {
+      recentStoch.push(
+        computeStochastic(highs, lows, closes, kPeriod, dPeriod, i)
+      );
+    }
 
     // Find K troughs (< 30) for bullish divergence
     const troughs: number[] = [];
@@ -2491,14 +2508,18 @@ export function evaluateStochastic(
     if (troughs.length >= 2) {
       const t2 = troughs[troughs.length - 1]; // Most recent
       const t1 = troughs[troughs.length - 2]; // Previous
-      const k2 = recentStoch[t2]!.k;
-      const k1 = recentStoch[t1]!.k;
-      const p2 = recentPrices[t2];
-      const p1 = recentPrices[t1];
+      const stoch2 = recentStoch[t2];
+      const stoch1 = recentStoch[t1];
+      if (stoch2 && stoch1) {
+        const k2 = stoch2.k;
+        const k1 = stoch1.k;
+        const p2 = recentPrices[t2];
+        const p1 = recentPrices[t1];
 
-      // Higher Low in Stochastic + Lower Low in Price
-      if (k2 > k1 && p2 < p1) {
-        divergence = "bullish";
+        // Higher Low in Stochastic + Lower Low in Price
+        if (k2 > k1 && p2 < p1) {
+          divergence = "bullish";
+        }
       }
     }
 
@@ -2518,14 +2539,18 @@ export function evaluateStochastic(
     if (peaks.length >= 2) {
       const p2 = peaks[peaks.length - 1];
       const p1 = peaks[peaks.length - 2];
-      const k2 = recentStoch[p2]!.k;
-      const k1 = recentStoch[p1]!.k;
-      const price2 = recentPrices[p2];
-      const price1 = recentPrices[p1];
+      const stoch2 = recentStoch[p2];
+      const stoch1 = recentStoch[p1];
+      if (stoch2 && stoch1) {
+        const k2 = stoch2.k;
+        const k1 = stoch1.k;
+        const price2 = recentPrices[p2];
+        const price1 = recentPrices[p1];
 
-      // Lower High in Stochastic + Higher High in Price
-      if (k2 < k1 && price2 > price1) {
-        divergence = "bearish";
+        // Lower High in Stochastic + Higher High in Price
+        if (k2 < k1 && price2 > price1) {
+          divergence = "bearish";
+        }
       }
     }
   }
