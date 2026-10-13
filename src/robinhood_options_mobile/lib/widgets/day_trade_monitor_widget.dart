@@ -254,33 +254,39 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              children: List.generate(4, (index) {
-                final isFourth = index == 3;
-                final isFilled = index < usedTrades;
-                Color segColor;
-                if (isFourth) {
-                  segColor = isFilled ? Colors.purple : Colors.red.shade300;
-                } else if (isFilled) {
-                  segColor = statusColor;
-                } else {
-                  segColor = theme.colorScheme.surfaceContainerHighest;
-                }
+            Semantics(
+              container: true,
+              excludeSemantics: true,
+              label:
+                  'Rolling 5-day trade usage meter: $usedTrades of 3 allowed day trades used',
+              child: Row(
+                children: List.generate(4, (index) {
+                  final isFourth = index == 3;
+                  final isFilled = index < usedTrades;
+                  Color segColor;
+                  if (isFourth) {
+                    segColor = isFilled ? Colors.purple : Colors.red.shade300;
+                  } else if (isFilled) {
+                    segColor = statusColor;
+                  } else {
+                    segColor = theme.colorScheme.surfaceContainerHighest;
+                  }
 
-                return Expanded(
-                  child: Container(
-                    height: 12,
-                    margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
-                    decoration: BoxDecoration(
-                      color: segColor,
-                      borderRadius: BorderRadius.circular(6),
-                      border: isFourth && !isFilled
-                          ? Border.all(color: Colors.red.shade400, width: 1.5)
-                          : null,
+                  return Expanded(
+                    child: Container(
+                      height: 12,
+                      margin: EdgeInsets.only(right: index < 3 ? 6 : 0),
+                      decoration: BoxDecoration(
+                        color: segColor,
+                        borderRadius: BorderRadius.circular(6),
+                        border: isFourth && !isFilled
+                            ? Border.all(color: Colors.red.shade400, width: 1.5)
+                            : null,
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                }),
+              ),
             ),
             const SizedBox(height: 8),
             Row(
@@ -387,14 +393,20 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
               ],
             ),
             const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                isExempt ? Colors.green : theme.colorScheme.primary,
+            Semantics(
+              container: true,
+              excludeSemantics: true,
+              label:
+                  'Account equity progress toward \$25,000 threshold: ${(progress * 100).toStringAsFixed(0)} percent',
+              child: LinearProgressIndicator(
+                value: progress,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isExempt ? Colors.green : theme.colorScheme.primary,
+                ),
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(4),
               ),
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
             ),
             const SizedBox(height: 8),
             Row(
@@ -659,10 +671,36 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
     final remainingDays = trade.remainingTradingDays;
     final isExpired = trade.isExpired;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
+    final rollOffText = isExpired
+        ? 'Expired'
+        : (remainingDays == 1
+            ? 'Rolls off today'
+            : 'Rolls off in $remainingDays days');
+    final formattedDate = _dateFormat.format(trade.timestamp);
+    final formattedTime = _timeFormat.format(trade.timestamp);
+    final dropOffDateText = DateFormat('MMM d').format(trade.dropOffDate);
+
+    final detailsString = [
+      if (trade.quantity != null)
+        '${trade.quantity} ${isOption ? 'contracts' : 'shares'}',
+      if (trade.price != null) 'at ${_currencyFormat.format(trade.price)}',
+      if (trade.direction != null) trade.direction!.replaceAll('_', ' '),
+    ].join(' ');
+
+    final semanticsLabel =
+        'Day trade: ${trade.symbol} ${trade.type.toUpperCase()}'
+        '${detailsString.isNotEmpty ? '. $detailsString' : ''}'
+        '. Placed on $formattedDate at $formattedTime'
+        '. $rollOffText on $dropOffDateText';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticsLabel,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: isOption
@@ -764,8 +802,9 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRegulatoryFaq(BuildContext context) {
     return Card(
