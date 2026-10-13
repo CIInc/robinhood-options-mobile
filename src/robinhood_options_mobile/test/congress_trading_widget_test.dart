@@ -128,4 +128,55 @@ void main() {
     expect(find.textContaining('Showing '), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+      'renders unified screen reader semantics for congressional trades',
+      (WidgetTester tester) async {
+    final snapshot = CongressTradingSnapshot(
+      symbol: 'NVDA',
+      trades: [sampleTrade],
+      portfolioOverlap: true,
+      overlappingSymbols: ['NVDA'],
+      totalTrades: 1,
+      totalPurchases: 1000001.0,
+      totalSales: 0.0,
+      netPurchases: 1000001.0,
+      updatedAt: DateTime(2026, 9, 24),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: CongressTradingWidget(
+              symbol: 'NVDA',
+              preloadedSnapshot: snapshot,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final widgetSemantics = find.bySemanticsLabel(RegExp(
+      r'Rep\. Nancy Pelosi, D-CA-11, House, Owner: Spouse\. Purchase of \$1,000,001 - \$5,000,000\.',
+    ));
+    expect(widgetSemantics, findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CongressTradingDashboardWidget(
+          preloadedSnapshot: snapshot,
+          userPortfolioSymbols: const ['NVDA'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dashboardSemantics = find.bySemanticsLabel(RegExp(
+      r'Held in your portfolio\. Rep\. Nancy Pelosi, D-CA-11, House, Owner: Spouse\. Purchase of NVDA, NVIDIA Corporation, amount \$1,000,001 - \$5,000,000\.',
+    ));
+    expect(dashboardSemantics, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
