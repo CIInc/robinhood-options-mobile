@@ -25,25 +25,68 @@ const MAX_PUSHES_PER_WINDOW = 5;
 
 type PushSlot = "send" | "cooldown" | "capped";
 
+interface PushReservation {
+  slot: PushSlot;
+  previousLastSentAt?: number;
+}
+
+/**
+ * Undo a reservation after a push that reached no device, so a failed send
+ * doesn't suppress the next signal for the cooldown period.
+ * @param {string} userId The user ID
+ * @param {TradeSignal} signal The trade signal
+ * @param {PushReservation} reservation What reservePushSlot returned
+ */
+async function releasePushSlot(
+  userId: string,
+  signal: TradeSignal,
+  reservation: PushReservation
+): Promise<void> {
+  const stateCol = db.collection("user").doc(userId)
+    .collection("signal_notification_state");
+  const signalRef = stateCol.doc(pushStateKey(signal));
+  const windowRef = stateCol.doc("_window");
+  await db.runTransaction(async (tx) => {
+    const windowSnap = await tx.get(windowRef);
+    if (reservation.previousLastSentAt === undefined) {
+      tx.delete(signalRef);
+    } else {
+      tx.set(signalRef, { lastSentAt: reservation.previousLastSentAt });
+    }
+    const count = (windowSnap.data()?.count as number | undefined) ?? 0;
+    if (windowSnap.exists && count > 0) {
+      tx.update(windowRef, { count: count - 1 });
+    }
+  });
+}
+
+/**
+ * Firestore document key for a signal's cooldown state.
+ * @param {TradeSignal} signal The trade signal
+ * @return {string} The document id
+ */
+function pushStateKey(signal: TradeSignal): string {
+  return `${signal.symbol}_${signal.interval || "1d"}_${signal.signal}`
+    .replace(/\//g, "_");
+}
+
 /**
  * Decide whether a signal may buzz the user, recording the attempt atomically
  * so concurrent signal triggers share one counter.
  * @param {string} userId The user ID
  * @param {TradeSignal} signal The trade signal
- * @return {Promise<PushSlot>} send, cooldown (skip entirely) or capped
+ * @return {Promise<PushReservation>} send, cooldown (skip entirely) or capped
  */
 async function reservePushSlot(
   userId: string,
   signal: TradeSignal
-): Promise<PushSlot> {
+): Promise<PushReservation> {
   const stateCol = db.collection("user").doc(userId)
     .collection("signal_notification_state");
-  const key = `${signal.symbol}_${signal.interval || "1d"}_${signal.signal}`
-    .replace(/\//g, "_");
-  const signalRef = stateCol.doc(key);
+  const signalRef = stateCol.doc(pushStateKey(signal));
   const windowRef = stateCol.doc("_window");
 
-  return db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx): Promise<PushReservation> => {
     const [signalSnap, windowSnap] = await Promise.all([
       tx.get(signalRef),
       tx.get(windowRef),
@@ -52,7 +95,7 @@ async function reservePushSlot(
 
     const lastSentAt = signalSnap.data()?.lastSentAt as number | undefined;
     if (lastSentAt && now - lastSentAt < SIGNAL_COOLDOWN_MS) {
-      return "cooldown";
+      return { slot: "cooldown" };
     }
 
     let windowStart = windowSnap.data()?.windowStart as number | undefined;
@@ -65,10 +108,10 @@ async function reservePushSlot(
     tx.set(signalRef, { lastSentAt: now });
     if (count >= MAX_PUSHES_PER_WINDOW) {
       tx.set(windowRef, { windowStart, count });
-      return "capped";
+      return { slot: "capped", previousLastSentAt: lastSentAt };
     }
     tx.set(windowRef, { windowStart, count: count + 1 });
-    return "send";
+    return { slot: "send", previousLastSentAt: lastSentAt };
   });
 }
 
@@ -270,7 +313,8 @@ async function sendTradeSignalNotification(
       return;
     }
 
-    const pushSlot = await reservePushSlot(userId, signal);
+    const reservation = await reservePushSlot(userId, signal);
+    const pushSlot = reservation.slot;
     if (pushSlot === "cooldown") {
       logger.info("Signal notification skipped - cooldown active", {
         userId,
@@ -416,7 +460,15 @@ async function sendTradeSignalNotification(
             imageUrl: imageUrl,
           },
         },
+      }).catch(async (error) => {
+        await releasePushSlot(userId, signal, reservation);
+        throw error;
       });
+
+    // No device got it, so the next signal may try again.
+    if (response && response.successCount === 0) {
+      await releasePushSlot(userId, signal, reservation);
+    }
 
     // Store notification in Firestore history if successfully sent
     // (or at least attempted). We store it even if push fails so user can
