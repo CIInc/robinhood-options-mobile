@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.4] - 2026-10-14
+**Restore Purchases Reports What Happened ([docs](docs/multi-indicator-trading.md))**
+
+- **Restore Purchases Gives Clear Feedback (`SubscriptionService.restorePurchases`, `PaywallWidget`, [docs](docs/multi-indicator-trading.md)):**
+  - **Root Cause**: Restore only asked the App Store to restore and then showed "Checking restored subscription...". When the Apple ID had nothing to restore, or the server rejected the receipt, the outcome went only to the debug log, so the paywall just stayed on screen.
+  - **Fix**: `restorePurchases()` now waits for the store and the server receipt check and returns a `RestoreResult` (`restored`, `nothingToRestore`, `signedOut`, `failed`). The paywall shows that message, for example "This Apple ID has no active subscription to restore." A verified restore still dismisses the paywall through the user document listener. The wait times out after 20 seconds.
+  - **Automated Test Coverage**: Added `test/subscription_restore_result_test.dart` for the three restore outcomes.
+- **Known Limitation**: Restore cannot succeed on a device or simulator whose Apple ID has no purchase; verifying a real restore needs a sandbox or TestFlight build.
+
 ## [0.57.3] - 2026-10-14
 **Auto-Trade Card Stats & Settings Persistence Fixes ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
 

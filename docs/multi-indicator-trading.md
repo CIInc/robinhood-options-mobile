@@ -1156,6 +1156,21 @@ The system now supports **Custom Indicators**, allowing users to extend the anal
 - **Status card counts (v0.57.3):** The **Today** tile counts trades saved in today's history, including exits, so it survives app restarts; it is separate from the daily-limit counter used by the status badge. The **Performance** tile sums each exit's dollar `profitLoss`, which exits now record and which is backfilled from entry and exit prices for older records.
 - **Validation:** A number field autosaves only while every visible field passes validation (for example, Cooldown Period and Daily Trade Limit must be at least 1); an invalid field blocks saving until corrected.
 
+## Pro Subscription & Restoring Purchases (v0.57.4)
+
+Trade-signal notifications and strategy settings are Pro features gated by `PaywallWidget`. **Restore Purchases** sends the App Store receipt to the `verifySubscription` callable, which verifies it with Apple or Google and writes `subscriptionStatus: active` to your user document; the paywall listens to that document and closes once it is active.
+
+`SubscriptionService.restorePurchases()` waits for that check (up to 20 seconds) and returns a `RestoreResult`, which the paywall shows:
+
+| Status | Message |
+| --- | --- |
+| `restored` | Subscription restored. |
+| `nothingToRestore` | No purchases found to restore for this Apple ID. |
+| `signedOut` | Sign in to restore your subscription. |
+| `failed` | Why verification failed, for example "This Apple ID has no active subscription to restore." |
+
+Restore only succeeds for an Apple ID that has bought the subscription. A simulator or device without a purchase reports `nothingToRestore`; test a real restore with a sandbox or TestFlight build.
+
 ## Support
 
 For questions or issues:
