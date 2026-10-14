@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
@@ -111,6 +112,10 @@ class _HistoryPageState extends State<HistoryPage>
   final FirestoreService _firestoreService = FirestoreService();
 
   late final TabController _tabController;
+
+  AgenticTradingProvider? _autoTrade;
+  int _seenExecutedOrders = 0;
+  Timer? _lateFillRefresh;
 
   Stream<List<InstrumentOrder>>? positionOrderStream;
   List<InstrumentOrder>? positionOrders;
@@ -442,6 +447,12 @@ class _HistoryPageState extends State<HistoryPage>
     _tabController = TabController(length: 7, vsync: this);
     widget.analytics.logScreenView(screenName: 'History');
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _autoTrade = Provider.of<AgenticTradingProvider>(context, listen: false)
+        ..addListener(_refreshOrdersAfterAutoTrade);
+      _seenExecutedOrders = _autoTrade!.executedOrderCount;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.brokerageUser != null) {
         final comboStore = Provider.of<ComboOrderStore>(context, listen: false);
         final svc = widget.service ?? _serviceForUser(widget.brokerageUser!);
@@ -485,6 +496,8 @@ class _HistoryPageState extends State<HistoryPage>
 
   @override
   void dispose() {
+    _autoTrade?.removeListener(_refreshOrdersAfterAutoTrade);
+    _lateFillRefresh?.cancel();
     _disposeAggregateStreams();
     _tabController.dispose();
     super.dispose();
@@ -3758,12 +3771,29 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  Future<void> _pullRefresh() async {
+  /// The order streams are created once, so refetch when the auto-trader places an order.
+  void _refreshOrdersAfterAutoTrade() {
+    final executed = _autoTrade?.executedOrderCount ?? 0;
+    if (!mounted || executed == _seenExecutedOrders) return;
+    _seenExecutedOrders = executed;
+    _reloadOrders();
+    // A market order can fill a few seconds after it is placed.
+    _lateFillRefresh?.cancel();
+    _lateFillRefresh = Timer(const Duration(seconds: 15), () {
+      if (mounted) _reloadOrders();
+    });
+  }
+
+  void _reloadOrders() {
     setState(() {
       optionEventStream = null;
       optionOrderStream = null;
       positionOrderStream = null;
     });
+  }
+
+  Future<void> _pullRefresh() async {
+    _reloadOrders();
   }
 
   /*

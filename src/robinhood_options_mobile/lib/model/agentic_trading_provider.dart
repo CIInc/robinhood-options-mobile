@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
@@ -191,6 +192,11 @@ class AgenticTradingProvider with ChangeNotifier {
       _showAutoTradingVisual; // Visual persists 3s after trade
   DateTime? get lastAutoTradeTime => _lastAutoTradeTime;
   int get dailyTradeCount => _dailyTradeCount;
+
+  int _executedOrderCount = 0;
+
+  /// Bumps for every order the auto-trader executes (entries, approvals, exits) so screens can refetch orders.
+  int get executedOrderCount => _executedOrderCount;
   bool get emergencyStopActivated => _emergencyStopActivated;
   List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
   List<Map<String, dynamic>> get pendingOrders => _pendingOrders;
@@ -341,6 +347,8 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       final isPaperMode = _config.paperTradingMode;
+      final executedBeforeCycle = _executedOrderCount;
+      final quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
       // Validate user/account
       if (!isPaperMode &&
@@ -612,6 +620,18 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       } else {
         _log('📊 No positions to monitor for TP/SL');
+      }
+
+      if (!isPaperMode &&
+          currentUser != null &&
+          _executedOrderCount != executedBeforeCycle) {
+        await _refreshStockPositions(
+          brokerageService: brokerageService,
+          brokerageUser: currentUser,
+          store: instrumentPositionStore,
+          instrumentStore: instrumentStore,
+          quoteStore: quoteStore,
+        );
       }
       _log('✅ Auto-trade cycle complete.');
     } catch (e) {
@@ -1110,6 +1130,42 @@ class AgenticTradingProvider with ChangeNotifier {
         'totalPnL': totalPnL,
       },
     );
+  }
+
+  /// getStockPositionStore only adds or updates, so load a scratch store and
+  /// prune the sold-out positions from the shared one.
+  Future<void> _refreshStockPositions({
+    required dynamic brokerageService,
+    required dynamic brokerageUser,
+    required InstrumentPositionStore store,
+    required InstrumentStore instrumentStore,
+    required QuoteStore quoteStore,
+  }) async {
+    try {
+      final fresh = await brokerageService.getStockPositionStore(brokerageUser,
+          InstrumentPositionStore(), instrumentStore, quoteStore);
+      final accountNumbers = <String>{
+        for (final account in brokerageUser.accounts) account.accountNumber,
+      };
+      syncPositions(store, fresh.items, accountNumbers);
+      _log('🔄 Refreshed stock positions after executed orders');
+    } catch (e) {
+      _log('⚠️ Could not refresh stock positions: $e');
+    }
+  }
+
+  /// Replaces [store] contents for [accountNumbers] with [fresh]; other accounts stay untouched.
+  static void syncPositions(InstrumentPositionStore store,
+      Iterable<InstrumentPosition> fresh, Set<String> accountNumbers) {
+    final keep = {
+      for (final p in fresh) '${p.accountNumber}|${p.instrumentId}',
+    };
+    store.removeWhere((p) =>
+        accountNumbers.contains(p.accountNumber) &&
+        !keep.contains('${p.accountNumber}|${p.instrumentId}'));
+    for (final p in fresh) {
+      store.addOrUpdate(p);
+    }
   }
 
   /// Counts history records executed on [day] (local time); unlike
@@ -1869,6 +1925,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 }
 
                 _dailyTradeCount++;
+                _executedOrderCount++;
                 _lastAutoTradeTime = DateTime.now();
 
                 // Track this trade for TP/SL monitoring (only if it's a BUY)
@@ -2114,6 +2171,7 @@ class AgenticTradingProvider with ChangeNotifier {
         }
 
         _dailyTradeCount++;
+        _executedOrderCount++;
         _lastAutoTradeTime = DateTime.now();
 
         // Track BUY trades
@@ -2589,6 +2647,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 };
 
                 executedExits.add(exitRecord);
+                _executedOrderCount++;
                 remainingBySymbol[symbol] = heldQuantity - quantityToSell;
                 _autoTradeHistory.insert(0, exitRecord);
                 _addTradeToHistoryFirestore(exitRecord, userDocRef);

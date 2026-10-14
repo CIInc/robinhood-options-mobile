@@ -74,6 +74,16 @@ class MockAgenticTradingProvider extends ChangeNotifier
   int dailyTradeCount = 0;
 
   @override
+  int executedOrderCount = 0;
+
+  void executeOrder() {
+    executedOrderCount++;
+    notifyListeners();
+  }
+
+  void notifyUnrelatedChange() => notifyListeners();
+
+  @override
   int autoTradeCountdownSeconds = 300;
 
   @override
@@ -84,6 +94,7 @@ class MockBrokerageService extends Fake implements IBrokerageService {
   final List<InstrumentOrder> positionOrders;
   final List<OptionOrder> optionOrders;
   final List<OptionEvent> optionEvents;
+  int positionOrderStreamCalls = 0;
 
   MockBrokerageService({
     this.positionOrders = const [],
@@ -97,8 +108,10 @@ class MockBrokerageService extends Fake implements IBrokerageService {
     InstrumentOrderStore orderStore,
     InstrumentStore instrumentStore, {
     DocumentReference? userDoc,
-  }) =>
-      Stream.value(positionOrders);
+  }) {
+    positionOrderStreamCalls++;
+    return Stream.value(positionOrders);
+  }
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
@@ -196,9 +209,11 @@ void main() {
   Widget buildWidget({
     required IBrokerageService service,
     BrokerageUser? user,
+    MockAgenticTradingProvider? autoTrade,
   }) {
     final brokerageUser =
         user ?? BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
+    final autoTradeProvider = autoTrade ?? MockAgenticTradingProvider();
 
     return MultiProvider(
       providers: [
@@ -218,8 +233,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => PortfolioStore()),
         ChangeNotifierProvider(create: (_) => PortfolioHistoricalsStore()),
         ChangeNotifierProvider(create: (_) => ForexHoldingStore()),
-        ChangeNotifierProvider<AgenticTradingProvider>(
-            create: (_) => MockAgenticTradingProvider()),
+        ChangeNotifierProvider<AgenticTradingProvider>.value(
+            value: autoTradeProvider),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -236,6 +251,47 @@ void main() {
       ),
     );
   }
+
+  group('HistoryPage auto-trade order refresh', () {
+    testWidgets('refetches orders when the auto-trader executes an order',
+        (tester) async {
+      final service = MockBrokerageService();
+      final autoTrade = MockAgenticTradingProvider();
+
+      await tester.pumpWidget(
+          buildWidget(service: service, autoTrade: autoTrade));
+      await tester.pumpAndSettle();
+      final callsBefore = service.positionOrderStreamCalls;
+      expect(callsBefore, greaterThan(0));
+
+      autoTrade.executeOrder();
+      await tester.pumpAndSettle();
+
+      expect(service.positionOrderStreamCalls, greaterThan(callsBefore));
+
+      // A late fill triggers one more refetch after the delay.
+      final callsAfterFirst = service.positionOrderStreamCalls;
+      await tester.pump(const Duration(seconds: 16));
+      await tester.pumpAndSettle();
+      expect(service.positionOrderStreamCalls, greaterThan(callsAfterFirst));
+    });
+
+    testWidgets('does not refetch for unrelated provider notifications',
+        (tester) async {
+      final service = MockBrokerageService();
+      final autoTrade = MockAgenticTradingProvider();
+
+      await tester.pumpWidget(
+          buildWidget(service: service, autoTrade: autoTrade));
+      await tester.pumpAndSettle();
+      final callsBefore = service.positionOrderStreamCalls;
+
+      autoTrade.notifyUnrelatedChange();
+      await tester.pumpAndSettle();
+
+      expect(service.positionOrderStreamCalls, callsBefore);
+    });
+  });
 
   group('HistoryPage Past Positions Tab Tests', () {
     testWidgets('renders all 7 tabs with Past Positions as the 1st tab',

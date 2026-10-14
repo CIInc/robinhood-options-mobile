@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
@@ -910,6 +912,59 @@ void main() {
       final buy = AgenticTradingProvider.withDerivedProfitLoss(
           {'action': 'BUY', 'price': 10.0, 'quantity': 2});
       expect(buy.containsKey('profitLoss'), isFalse);
+    });
+  });
+
+  group('syncPositions', () {
+    InstrumentPosition position(String account, String instrumentId,
+            {String quantity = '1.0000'}) =>
+        InstrumentPosition.fromJson({
+          'url': 'https://api.robinhood.com/positions/$account/$instrumentId/',
+          'instrument': 'https://api.robinhood.com/instruments/$instrumentId/',
+          'account': 'https://api.robinhood.com/accounts/$account/',
+          'account_number': account,
+          'quantity': quantity,
+          'average_buy_price': '10.0000',
+          'avg_cost_affected': false,
+        });
+
+    test('removes sold-out positions and keeps and updates the rest', () {
+      final store = InstrumentPositionStore()
+        ..add(position('A1', 'sold'))
+        ..add(position('A1', 'held', quantity: '1.0000'));
+
+      AgenticTradingProvider.syncPositions(
+          store, [position('A1', 'held', quantity: '5.0000')], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['held']);
+      expect(store.items.single.quantity, 5.0);
+    });
+
+    test('removes everything for an account when nothing is returned', () {
+      final store = InstrumentPositionStore()..add(position('A1', 'sold'));
+
+      AgenticTradingProvider.syncPositions(store, [], {'A1'});
+
+      expect(store.items, isEmpty);
+    });
+
+    test('leaves positions from other accounts untouched', () {
+      final store = InstrumentPositionStore()
+        ..add(position('A1', 'sold'))
+        ..add(position('B2', 'other'));
+
+      AgenticTradingProvider.syncPositions(store, [], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['other']);
+    });
+
+    test('adds newly opened positions', () {
+      final store = InstrumentPositionStore();
+
+      AgenticTradingProvider.syncPositions(
+          store, [position('A1', 'new')], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['new']);
     });
   });
 }
