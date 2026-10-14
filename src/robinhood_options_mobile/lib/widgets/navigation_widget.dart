@@ -135,7 +135,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   BrokerageUser? _lastUser;
   String? _lastAuthUserUid;
   bool _tradingConfigsLoaded = false;
-  User? _tradingConfigUser;
+  bool _tradingConfigsFromUser = false;
+  String? _tradingConfigUid;
 
   IBrokerageService _getService(BrokerageUser user) {
     return user.source == BrokerageSource.robinhood
@@ -824,12 +825,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             final agenticProvider =
                 Provider.of<AgenticTradingProvider>(context, listen: false);
-            // Settings edits update the provider and Firestore but not this User
-            // object, so reloading on every rebuild would revert them.
-            final reloadConfigs =
-                !_tradingConfigsLoaded || !identical(_tradingConfigUser, user);
+            // Settings edits save through the providers and every user snapshot is
+            // a new object, so reload only on first load or when the account changes.
+            final reloadConfigs = !_tradingConfigsLoaded ||
+                _tradingConfigUid != auth.currentUser?.uid ||
+                (!_tradingConfigsFromUser && user != null);
             _tradingConfigsLoaded = true;
-            _tradingConfigUser = user;
+            _tradingConfigsFromUser = user != null;
+            _tradingConfigUid = auth.currentUser?.uid;
             if (reloadConfigs) {
               agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
             }

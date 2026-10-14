@@ -619,8 +619,14 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  bool _hasLoadedConfig = false;
+
+  /// True once a config came from the user document or a settings save.
+  bool get hasLoadedConfig => _hasLoadedConfig;
+
   /// Load configuration from User model
   void loadConfigFromUser(AgenticTradingConfig? agenticTradingConfig) {
+    _hasLoadedConfig = true;
     if (agenticTradingConfig != null) {
       _config = agenticTradingConfig;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_from_user');
@@ -662,6 +668,7 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference userDocRef,
   ) async {
     _config = newConfig;
+    _hasLoadedConfig = true;
     _forgetProcessedSignalsIfRulesChanged();
 
     try {
@@ -848,7 +855,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       _autoTradeHistory.clear();
       _autoTradeHistory.addAll(
-        snapshot.docs.map((doc) => doc.data()),
+        snapshot.docs.map((doc) => withDerivedProfitLoss(doc.data())),
       );
 
       _loadedAutoTradeHistoryPath = userPath;
@@ -1103,6 +1110,40 @@ class AgenticTradingProvider with ChangeNotifier {
         'totalPnL': totalPnL,
       },
     );
+  }
+
+  /// Counts history records executed on [day] (local time); unlike
+  /// [dailyTradeCount] it survives restarts and includes exits.
+  static int countTradesOn(
+      Iterable<Map<String, dynamic>> history, DateTime day) {
+    var count = 0;
+    for (final trade in history) {
+      final ts = trade['timestamp'];
+      final DateTime? dt = switch (ts) {
+        String s => DateTime.tryParse(s)?.toLocal(),
+        int ms => DateTime.fromMillisecondsSinceEpoch(ms),
+        Timestamp t => t.toDate(),
+        _ => null,
+      };
+      if (dt != null &&
+          dt.year == day.year &&
+          dt.month == day.month &&
+          dt.day == day.day) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /// Older exit records stored only prices; derive their dollar P&L.
+  static Map<String, dynamic> withDerivedProfitLoss(
+      Map<String, dynamic> trade) {
+    if (trade['profitLoss'] != null) return trade;
+    final entry = trade['entryPrice'];
+    final exit = trade['exitPrice'];
+    final quantity = trade['quantity'];
+    if (entry is! num || exit is! num || quantity is! num) return trade;
+    return {...trade, 'profitLoss': ((exit - entry) * quantity).toDouble()};
   }
 
   /// Resets daily trade counters (called at start of new trading day)
@@ -2540,6 +2581,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   'quantity': quantityToSell,
                   'entryPrice': entryPrice,
                   'exitPrice': currentPrice,
+                  'profitLoss': (currentPrice - entryPrice) * quantityToSell,
                   'profitLossPercent': profitLossPercent,
                   'reason': exitReason,
                   'orderResponse': orderResponse.body,

@@ -102,9 +102,13 @@ class _AgenticTradingSettingsWidgetState
   void initState() {
     super.initState();
 
-    _configProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false)
-          ..addListener(_syncUserConfig);
+    final provider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    _configProvider = provider..addListener(_syncUserConfig);
+    // Other screens pass a possibly stale User; a loaded provider config is newer.
+    final providerHasConfig = provider.hasLoadedConfig;
+    final initialConfig =
+        providerHasConfig ? provider.config : widget.user.agenticTradingConfig;
 
     if (widget.initialSection == 'entryStrategies') {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -132,14 +136,14 @@ class _AgenticTradingSettingsWidgetState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
-      if (widget.user.agenticTradingConfig != null) {
+      if (!providerHasConfig && widget.user.agenticTradingConfig != null) {
         agenticTradingProvider
             .loadConfigFromUser(widget.user.agenticTradingConfig);
       }
     });
 
-    // Initialize controllers from user's config
-    final config = widget.user.agenticTradingConfig;
+    // Initialize controllers from the newest known config
+    final config = initialConfig;
     final strategy = config?.strategyConfig;
 
     _selectedTemplateId = config?.tradeStrategyTemplateId;
@@ -2416,7 +2420,7 @@ class _AgenticTradingSettingsWidgetState
                             child: _buildSummaryItem(
                               context,
                               'Today',
-                              '${agenticTradingProvider.dailyTradeCount} trades',
+                              '${AgenticTradingProvider.countTradesOn(agenticTradingProvider.autoTradeHistory, DateTime.now())} trades',
                               Icons.today,
                             ),
                           ),

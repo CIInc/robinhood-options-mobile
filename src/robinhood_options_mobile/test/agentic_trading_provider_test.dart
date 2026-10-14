@@ -875,4 +875,41 @@ void main() {
       // dailyLossAmount should be 0
     });
   });
+
+  group('Trade history summary helpers', () {
+    test('countTradesOn counts buys and exits from the given local day', () {
+      final day = DateTime(2026, 10, 14, 15);
+      final history = [
+        {'timestamp': DateTime(2026, 10, 14, 9, 45).toIso8601String()},
+        {'timestamp': DateTime(2026, 10, 14, 14).toIso8601String()},
+        {'timestamp': DateTime(2026, 10, 13, 15).toIso8601String()},
+        {'timestamp': null},
+      ];
+
+      expect(AgenticTradingProvider.countTradesOn(history, day), equals(2));
+      expect(AgenticTradingProvider.countTradesOn([], day), equals(0));
+    });
+
+    test('withDerivedProfitLoss backfills dollar P&L on legacy exits', () {
+      final exit = AgenticTradingProvider.withDerivedProfitLoss({
+        'action': 'SELL',
+        'entryPrice': 100.0,
+        'exitPrice': 95.5,
+        'quantity': 4,
+      });
+
+      expect(exit['profitLoss'], closeTo(-18.0, 1e-9));
+    });
+
+    test('withDerivedProfitLoss keeps recorded P&L and skips buys', () {
+      final recorded = {'profitLoss': 7.5, 'entryPrice': 1, 'exitPrice': 9};
+      expect(
+          AgenticTradingProvider.withDerivedProfitLoss(recorded)['profitLoss'],
+          equals(7.5));
+
+      final buy = AgenticTradingProvider.withDerivedProfitLoss(
+          {'action': 'BUY', 'price': 10.0, 'quantity': 2});
+      expect(buy.containsKey('profitLoss'), isFalse);
+    });
+  });
 }
