@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.3] - 2026-10-14
+**Auto-Trade Card Stats & Settings Persistence Fixes ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Status Card Shows Real Trade Counts and P&L (`AgenticTradingProvider`, `AgenticTradingSettingsWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of "0 trades"**: The Today tile read an in-memory counter that reset on every app launch and ignored exits, while Last Run read the saved history.
+  - **Fix**: Today now counts the trades saved in today's history (buys and exits) via `AgenticTradingProvider.countTradesOn`. The daily trade limit counter and the status badge are unchanged.
+  - **Root Cause of "+$0.00" Performance**: Exit records saved only prices and a percent, but the card and the performance screen sum a dollar `profitLoss`, so every P&L figure was zero.
+  - **Fix**: Exits now record `profitLoss`, and older saved exits are backfilled from their entry and exit prices when history loads (`withDerivedProfitLoss`).
+- **Auto-Trade Settings No Longer Revert When Reopened (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Entry points pass different, sometimes stale `User` objects. Opening settings from one built the fields from it and overwrote the provider's newer config, so values such as Cooldown Period and Daily Trade Limit snapped back. The navigation shell also reloaded the config on every Firestore user snapshot.
+  - **Fix**: Once the provider has a loaded config (`hasLoadedConfig`), the settings screen uses it instead of the `User` object. The shell reloads only on first load, when the signed-in account changes, or when the user document first appears.
+  - **Automated Test Coverage**: Added `test/agentic_trading_settings_persistence_test.dart` (edit, save, reopen with a stale user) and helper tests in `test/agentic_trading_provider_test.dart`.
+- **Known Limitation**: A number field saves only when every visible field is valid; an invalid field blocks autosave silently.
+
 ## [0.57.2] - 2026-10-13
 **Subscription Restore Reliability & Signals-First MVP Planning**
 
