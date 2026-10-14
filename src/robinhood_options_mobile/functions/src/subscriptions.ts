@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret, defineString } from "firebase-functions/params";
+import * as logger from "firebase-functions/logger";
 import { google } from "googleapis";
 import fetch from "node-fetch";
 import * as admin from "firebase-admin";
@@ -67,13 +68,20 @@ async function verifyAppleReceipt(
     data = (await response.json()) as AppleReceiptResponse;
   }
   if (!response.ok || data.status !== 0) {
+    logger.warn("Apple receipt rejected", {
+      appleStatus: data.status,
+      httpStatus: response.status,
+    });
     throw invalidReceipt();
   }
 
-  const transactions = [
+  const allTransactions = [
     ...(data.latest_receipt_info ?? []),
     ...(data.receipt?.in_app ?? []),
-  ].filter((transaction) => transaction.product_id === productId);
+  ];
+  const transactions = allTransactions.filter(
+    (transaction) => transaction.product_id === productId
+  );
   const activeTransaction = transactions
     .map((transaction) => ({
       expiryMillis: Number(transaction.expires_date_ms),
@@ -82,7 +90,17 @@ async function verifyAppleReceipt(
     .filter((transaction) => Number.isFinite(transaction.expiryMillis))
     .sort((left, right) => right.expiryMillis - left.expiryMillis)[0];
 
-  if (!activeTransaction || activeTransaction.expiryMillis <= Date.now()) {
+  if (!activeTransaction) {
+    logger.warn("Apple receipt has no matching subscription", {
+      expectedProductId: productId,
+      receiptProductIds: allTransactions.map((t) => t.product_id),
+    });
+    throw invalidReceipt();
+  }
+  if (activeTransaction.expiryMillis <= Date.now()) {
+    logger.warn("Apple subscription is expired", {
+      expiredAt: new Date(activeTransaction.expiryMillis).toISOString(),
+    });
     throw invalidReceipt();
   }
   return activeTransaction;
