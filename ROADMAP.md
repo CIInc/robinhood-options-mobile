@@ -1065,6 +1065,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 **Revenue Impact:** Medium (enables growth, prevents churn)
 
 #### App Experience
+- [ ] **Signals-First MVP Scope & Admin-Only Beta Rollout** ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)): Define the public launch surface around portfolio overview, instrument search, trade signals, and paper trading; simplify navigation; gate advanced or underdeveloped feature bundles to admins; validate automated-trading safeguards and phased App Store readiness
 - [ ] **Smart Watch App & Wearables**: Apple Watch and Wear OS companion apps with glanceable portfolio P&L, price alerts, and watchlists (v0.57.0+) - **Medium** (2-3 weeks)
 - [x] **iOS Live Activities & Dynamic Island Widget** (v0.50.0, [#160](https://github.com/CIInc/robinhood-options-mobile/issues/160)): Real-time lock screen position tracking, P&L status, and 0DTE trailing stop alerts - **Small** (1-2 weeks)
 - [x] **Offline Mode & Resilient Caching** (v0.50.0, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)): Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync - **Medium** (2-3 weeks)
