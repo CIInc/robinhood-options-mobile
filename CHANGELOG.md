@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.2] - 2026-10-13
+**Subscription Restore Reliability & Signals-First MVP Planning**
+
+- **Paywall Dismissal After Subscription Restore:** The paywall now listens for the server-verified active entitlement on the user's Firestore document and dismisses once it arrives, instead of relying on a fixed delay. Added a regression test for the entitlement update (`test/paywall_widget_test.dart`).
+- **Signals-First MVP Scope:** Added the high-priority admin-only beta and release-readiness plan to the roadmap ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- **iOS Build Stability:** Disabled Flutter's Swift Package Manager auto-migration in `pubspec.yaml` (`enable-swift-package-manager: false`) so iOS builds keep the project's CocoaPods setup instead of rewriting `Podfile.lock` and `project.pbxproj`; refreshed the plugin checksums in `Podfile.lock`.
+
 ## [0.57.1] - 2026-10-13
 **User Profile Saves No Longer Overwrite Trading Settings ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
 
