@@ -74,7 +74,7 @@ export const getSentimentAnalysis = onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error in getSentimentAnalysis", error);
-    throw new Error(`Failed to calculate sentiment: ${error}`);
+    throw new HttpsError("internal", "Failed to calculate sentiment.");
   }
 });
 
