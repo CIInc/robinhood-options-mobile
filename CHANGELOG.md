@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.5] - 2026-10-14
+**Auto-Trade Orders & Positions Refresh Without Restarting ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **History Orders Refresh After Auto-Trades (`AgenticTradingProvider`, `HistoryPage`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: The History tab builds its order streams once and keeps them alive, resetting only on pull-to-refresh or an account change, so orders the auto-trader placed in the background (for example market-close exits) did not appear until the app was force-killed.
+  - **Fix**: `AgenticTradingProvider.executedOrderCount` increments for every executed entry, approved order, and exit. The History tab listens to it and resets its order streams, then refetches once more 15 seconds later to catch late fills. Unrelated provider notifications do not refetch.
+- **Stock Positions Refresh After Auto-Trade Exits (`AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md)):** After a cycle that executes real (non-paper) orders, the shared `InstrumentPositionStore` is reloaded through a scratch store and sold-out positions are pruned (`syncPositions`), limited to the current brokerage user's accounts. `getStockPositionStore` only adds or updates, so sold positions previously stayed listed until a full reload.
+- **Receipt Rejection Logging (`verifySubscription`, [docs](docs/multi-indicator-trading.md)):** `verifyAppleReceipt` now logs why it rejects a receipt (Apple status code, the product IDs in the receipt, or the expiry time), without logging the receipt or shared secret, so a rejected Restore Purchases can be diagnosed. Takes effect when Functions are deployed.
+- **Automated Test Coverage**: Added History refetch tests in `test/history_past_positions_test.dart` and `syncPositions` tests in `test/agentic_trading_provider_test.dart`.
+
 ## [0.57.4] - 2026-10-14
 **Restore Purchases Reports What Happened ([docs](docs/multi-indicator-trading.md))**
 

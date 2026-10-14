@@ -1155,6 +1155,7 @@ The system now supports **Custom Indicators**, allowing users to extend the anal
 - **Reopening settings keeps your edits (v0.57.3):** Other screens open the settings with a possibly stale `User` object. Once the provider has a loaded config (`AgenticTradingProvider.hasLoadedConfig`), the settings screen builds its fields from the provider instead, and the navigation shell reloads configs only on first load, when the signed-in account changes, or when the user document first appears. Cooldown Period, Daily Trade Limit and every other setting stay saved when you leave and return.
 - **Status card counts (v0.57.3):** The **Today** tile counts trades saved in today's history, including exits, so it survives app restarts; it is separate from the daily-limit counter used by the status badge. The **Performance** tile sums each exit's dollar `profitLoss`, which exits now record and which is backfilled from entry and exit prices for older records.
 - **Validation:** A number field autosaves only while every visible field passes validation (for example, Cooldown Period and Daily Trade Limit must be at least 1); an invalid field blocks saving until corrected.
+- **History and positions refresh (v0.57.5):** Orders the auto-trader places in the background, including market-close exits, now appear in the History tab's **Stocks & ETFs** list without restarting the app: it refetches when an order executes and once more 15 seconds later for late fills. After a cycle that executes real orders, the stock positions list is also reloaded and sold-out positions are removed. Paper trading updates its own positions and is unaffected.
 
 ## Pro Subscription & Restoring Purchases (v0.57.4)
 
@@ -1170,6 +1171,8 @@ Trade-signal notifications and strategy settings are Pro features gated by `Payw
 | `failed` | Why verification failed, for example "This Apple ID has no active subscription to restore." |
 
 Restore only succeeds for an Apple ID that has bought the subscription. A simulator or device without a purchase reports `nothingToRestore`; test a real restore with a sandbox or TestFlight build.
+
+If the server rejects a receipt, `verifySubscription` logs the reason (Apple's status code, the product IDs found in the receipt, or the expiry time; never the receipt or shared secret). Read it with `firebase functions:log --only verifysubscription`.
 
 ## Support
 
