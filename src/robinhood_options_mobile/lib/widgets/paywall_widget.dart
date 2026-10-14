@@ -108,11 +108,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
   Future<void> _restorePurchases() async {
     setState(() => _isLoading = true);
     try {
-      await _subscriptionService.restorePurchases();
+      final result = await _subscriptionService.restorePurchases();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Checking restored subscription...')),
-        );
+        // A verified restore dismisses the paywall through the user document listener.
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(result.message)));
       }
     } catch (e) {
       if (mounted) {
