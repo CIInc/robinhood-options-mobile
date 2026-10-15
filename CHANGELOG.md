@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.6] - 2026-10-15
+**Auto-Trade Signals No Longer Lost While the Market Is Closed ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Signals Are Evaluated Before They Are Marked Processed (`AgenticTradingProvider.runAutoTradeCycle`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Every fetched signal was marked processed before `autoTrade` checked its conditions. A cycle blocked by market hours, the daily limit or the cooldown therefore consumed the signals without evaluating them. Signals generated outside market hours were then filtered as duplicates when the market opened, so no automatic trades were placed.
+  - **Fix**: `autoTrade` flags such a cycle with `blocked: true` and `rememberProcessedSignals` marks signals only for cycles that evaluated them. Blocked cycles leave their signals eligible for the next cycle.
+  - **Require Approval Re-Evaluates Signals**: Require Approval is now part of the rules signature that clears the processed-signal memory, so signals queued for approval are evaluated again when it is turned off.
+- **Turning Require Approval Off Clears Queued Approvals (`AgenticTradingProvider.updateConfig`, [docs](docs/multi-indicator-trading.md)):** Orders already waiting in `pending_orders` are discarded, in memory and in Firestore, when the setting changes from on to off. Previously they stayed on the approval screen. Leaving the setting on, or off, clears nothing.
+- **Known Limitation**: Auto-trading runs on a client timer, so cycles only run while the app is open in the foreground. A second running copy of the app on the same account keeps its own in-memory settings and can queue approvals from the old setting.
+- **Automated Test Coverage**: Added tests in `test/agentic_trading_provider_test.dart` for blocked cycles keeping their signals, `autoTrade` flagging a market-closed cycle, Require Approval re-evaluating signals, and clearing queued approvals only on the on-to-off change.
+
 ## [0.57.5] - 2026-10-14
 **Auto-Trade Orders & Positions Refresh Without Restarting ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
 
