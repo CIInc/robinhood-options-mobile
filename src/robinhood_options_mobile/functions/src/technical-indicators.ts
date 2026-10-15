@@ -1073,6 +1073,7 @@ export function computeWilliamsR(
  * @param {Array<number>} opens - Optional array of open prices for candlestick.
  * @param {Array<number>} highs - Optional array of high prices for candlestick.
  * @param {Array<number>} lows - Optional array of low prices for candlestick.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The pattern detection result.
  */
 export function detectChartPattern(
@@ -1080,12 +1081,13 @@ export function detectChartPattern(
   volumes?: number[],
   opens?: number[],
   highs?: number[],
-  lows?: number[]
+  lows?: number[],
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
   // Expanded multi-pattern heuristic based detection
   // Volumes (if supplied) can confirm breakouts (higher relative volume)
   const minBars = 30; // minimum history for multi-pattern set
-  if (!prices || prices.length < minBars) {
+  if (!prices || endIndex < minBars || prices.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -1094,7 +1096,8 @@ export function detectChartPattern(
   }
 
   const lookback = 60; // maximum historical window inspected
-  const windowPrices = prices.slice(-Math.min(lookback, prices.length));
+  const start = Math.max(0, endIndex - Math.min(lookback, endIndex));
+  const windowPrices = prices.slice(start, endIndex);
   // Short window for moving averages and breakout checks
   const recentPrices = windowPrices.slice(-30);
   const currentPrice = recentPrices[recentPrices.length - 1];
@@ -1645,13 +1648,15 @@ export function detectChartPattern(
  * Evaluate momentum using RSI with divergence detection
  * @param {number[]} prices - Array of historical prices.
  * @param {number} rsiPeriod - RSI calculation period (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The momentum evaluation result.
  */
 export function evaluateMomentum(
   prices: number[],
-  rsiPeriod = 14
+  rsiPeriod = 14,
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
-  if (!prices || prices.length < rsiPeriod + 1) {
+  if (!prices || endIndex < rsiPeriod + 1 || prices.length < endIndex) {
     const requiredPeriods = rsiPeriod + 1;
     return {
       value: null,
@@ -1662,7 +1667,7 @@ export function evaluateMomentum(
   }
 
   // Optimized to calculate RSI once
-  const rsiSeries = computeRSIArray(prices, rsiPeriod);
+  const rsiSeries = computeRSIArray(prices, rsiPeriod, endIndex);
 
   if (rsiSeries.length === 0) {
     return {
@@ -1685,7 +1690,7 @@ export function evaluateMomentum(
   let rsiTrend = 0;
   let priceTrend = 0;
 
-  if (prices.length >= 30) {
+  if (endIndex >= 30) {
     // RSI Series: indices 0..N correspond to prices[rsiPeriod..end]
     // already computed above
 
@@ -1752,7 +1757,7 @@ export function evaluateMomentum(
       recentRSI[0];
     rsiTrend = recentAvg - prevAvg;
 
-    const pLen = prices.length;
+    const pLen = endIndex;
     let sumRecentP = 0;
     for (let i = pLen - 5; i < pLen; i++) sumRecentP += prices[i];
     const recentP = sumRecentP / 5;
@@ -1850,14 +1855,17 @@ export function evaluateMomentum(
  * @param {number[]} marketPrices - Array of market index prices.
  * @param {number} fastPeriod - Fast moving average period (default 10).
  * @param {number} slowPeriod - Slow moving average period (default 30).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The market direction evaluation result.
  */
 export function evaluateMarketDirection(
   marketPrices: number[],
   fastPeriod = 10,
-  slowPeriod = 30
+  slowPeriod = 30,
+  endIndex = marketPrices ? marketPrices.length : 0
 ): IndicatorResult {
-  if (!marketPrices || marketPrices.length < slowPeriod) {
+  if (!marketPrices || endIndex < slowPeriod ||
+    marketPrices.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -1865,8 +1873,8 @@ export function evaluateMarketDirection(
     };
   }
 
-  const fastMAs = computeSMAArray(marketPrices, fastPeriod);
-  const slowMAs = computeSMAArray(marketPrices, slowPeriod);
+  const fastMAs = computeSMAArray(marketPrices, fastPeriod, endIndex);
+  const slowMAs = computeSMAArray(marketPrices, slowPeriod, endIndex);
 
   const fastMA = fastMAs[fastMAs.length - 1];
   const slowMA = slowMAs[slowMAs.length - 1];
@@ -1883,7 +1891,7 @@ export function evaluateMarketDirection(
     };
   }
 
-  const currentPrice = marketPrices[marketPrices.length - 1];
+  const currentPrice = marketPrices[endIndex - 1];
   const trendStrength = ((fastMA - slowMA) / slowMA) * 100;
 
   // Detect crossovers
@@ -2000,13 +2008,16 @@ export function evaluateMacroAssessment(
  * Evaluate volume indicators
  * @param {number[]} volumes - Array of volume data.
  * @param {number[]} prices - Array of price data.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The volume evaluation result.
  */
 export function evaluateVolume(
   volumes: number[],
-  prices: number[]
+  prices: number[],
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
-  if (!volumes || volumes.length < 20 || !prices || prices.length < 20) {
+  if (!volumes || !prices || endIndex < 20 ||
+    volumes.length < endIndex || prices.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2016,8 +2027,8 @@ export function evaluateVolume(
   }
 
   // Calculate volume summary directly without array slicing
-  const vLen = volumes.length;
-  const pLen = prices.length;
+  const vLen = endIndex;
+  const pLen = endIndex;
 
   let volSum = 0;
   for (let i = vLen - 20; i < vLen; i++) {
@@ -2117,16 +2128,18 @@ export function evaluateVolume(
  * @param {number} fastPeriod - Fast EMA period (default 12).
  * @param {number} slowPeriod - Slow EMA period (default 26).
  * @param {number} signalPeriod - Signal line period (default 9).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The MACD evaluation result.
  */
 export function evaluateMACD(
   prices: number[],
   fastPeriod = 12,
   slowPeriod = 26,
-  signalPeriod = 9
+  signalPeriod = 9,
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
   const minPeriods = slowPeriod + signalPeriod;
-  if (!prices || prices.length < minPeriods) {
+  if (!prices || endIndex < minPeriods || prices.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2134,7 +2147,9 @@ export function evaluateMACD(
     };
   }
 
-  const macd = computeMACD(prices, fastPeriod, slowPeriod, signalPeriod);
+  const macd = computeMACD(
+    prices, fastPeriod, slowPeriod, signalPeriod, endIndex
+  );
   if (!macd) {
     return {
       value: null,
@@ -2233,6 +2248,7 @@ export function evaluateMACD(
  * squeeze detection.
  * @param {number[]} [lows] - Optional array of low prices for advanced
  * squeeze detection.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The Bollinger Bands evaluation result.
  */
 export function evaluateBollingerBands(
@@ -2240,9 +2256,10 @@ export function evaluateBollingerBands(
   period = 20,
   stdDev = 2,
   highs?: number[],
-  lows?: number[]
+  lows?: number[],
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
-  if (!prices || prices.length < period) {
+  if (!prices || endIndex < period || prices.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2254,7 +2271,7 @@ export function evaluateBollingerBands(
   // directly in O(period) time, avoiding `computeBollingerBandsArray` and
   // `computeKeltnerChannelsArray` full series array allocations
   // (~8.5x speedup).
-  const bb = computeBollingerBands(prices, period, stdDev);
+  const bb = computeBollingerBands(prices, period, stdDev, endIndex);
 
   if (!bb) {
     return {
@@ -2264,7 +2281,7 @@ export function evaluateBollingerBands(
     };
   }
 
-  const currentPrice = prices[prices.length - 1];
+  const currentPrice = prices[endIndex - 1];
   const bandwidth = (bb.upper - bb.lower) / bb.middle;
   const position = (currentPrice - bb.lower) / (bb.upper - bb.lower);
 
@@ -2274,8 +2291,8 @@ export function evaluateBollingerBands(
   // 1. Advanced TTM Squeeze (if Highs/Lows available)
   // Squeeze is on when Bollinger Bands are completely inside Keltner Channels
   if (highs && lows &&
-    highs.length === prices.length &&
-    lows.length === prices.length) {
+    highs.length >= endIndex &&
+    lows.length >= endIndex) {
     // Default TTM settings: KC(20, 1.5) vs BB(20, 2.0)
     const kc = computeKeltnerChannels(
       highs,
@@ -2283,7 +2300,8 @@ export function evaluateBollingerBands(
       prices,
       period,
       period, // ATR period same as EMA period usually
-      1.5
+      1.5,
+      endIndex
     );
 
     if (kc && bb.upper < kc.upper && bb.lower > kc.lower) {
@@ -2291,12 +2309,12 @@ export function evaluateBollingerBands(
     }
   } else {
     // 2. Fallback: Bandwidth Squeeze (bandwidth is lowest in 6 months)
-    if (prices.length >= period) {
+    if (endIndex >= period) {
       // Find min bandwidth over last 120 bars using scalar
       // computeBollingerBands without array allocations
-      const start = Math.max(period, prices.length - 120);
+      const start = Math.max(period, endIndex - 120);
       let minBandwidth = Number.POSITIVE_INFINITY;
-      for (let i = start; i <= prices.length; i++) {
+      for (let i = start; i <= endIndex; i++) {
         const b = computeBollingerBands(prices, period, stdDev, i);
         if (b !== null) {
           const bw = (b.upper - b.lower) / b.middle;
@@ -2356,9 +2374,9 @@ export function evaluateBollingerBands(
   // If price > upper band and bandwidth is expanding = Strong Trend
   // Need Check previous bandwidth
   let isExpanding = false;
-  if (prices.length >= period + 1) {
+  if (endIndex >= period + 1) {
     const prevBB = computeBollingerBands(
-      prices, period, stdDev, prices.length - 1
+      prices, period, stdDev, endIndex - 1
     );
     if (prevBB) {
       const prevBW = (prevBB.upper - prevBB.lower) / prevBB.middle;
@@ -2420,6 +2438,7 @@ export function evaluateBollingerBands(
  * @param {number[]} closes - Array of close prices.
  * @param {number} kPeriod - %K period (default 14).
  * @param {number} dPeriod - %D period (default 3).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The Stochastic evaluation result.
  */
 export function evaluateStochastic(
@@ -2427,9 +2446,14 @@ export function evaluateStochastic(
   lows: number[],
   closes: number[],
   kPeriod = 14,
-  dPeriod = 3
+  dPeriod = 3,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!highs || !lows || !closes || closes.length < kPeriod) {
+  if (!highs || !lows || !closes ||
+    endIndex < kPeriod ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2443,7 +2467,8 @@ export function evaluateStochastic(
     lows,
     closes,
     kPeriod,
-    dPeriod
+    dPeriod,
+    endIndex
   );
 
   const stoch = stochArray[stochArray.length - 1];
@@ -2473,7 +2498,7 @@ export function evaluateStochastic(
   if (stochArray.length >= 20) {
     const lookback = 20;
     const recentStoch = stochArray.slice(-lookback);
-    const recentPrices = closes.slice(-lookback);
+    const recentPrices = closes.slice(endIndex - lookback, endIndex);
 
     // Find K troughs (< 30) for bullish divergence
     const troughs: number[] = [];
@@ -2648,15 +2673,21 @@ export function evaluateStochastic(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for ATR (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The ATR evaluation result.
  */
 export function evaluateATR(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!highs || !lows || !closes || closes.length < period + 1) {
+  if (!highs || !lows || !closes ||
+    endIndex < period + 1 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2683,7 +2714,7 @@ export function evaluateATR(
   let countATR = 1;
 
   // Smoothed ATR for remaining bars
-  const len = closes.length;
+  const len = endIndex;
   for (let i = period + 1; i < len; i++) {
     const high = highs[i];
     const low = lows[i];
@@ -2776,13 +2807,16 @@ export function evaluateATR(
  * Evaluate OBV (On-Balance Volume) indicator
  * @param {number[]} closes - Array of close prices.
  * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The OBV evaluation result.
  */
 export function evaluateOBV(
   closes: number[],
-  volumes: number[]
+  volumes: number[],
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!closes || !volumes || closes.length < 20 || volumes.length < 20) {
+  if (!closes || !volumes || endIndex < 20 ||
+    closes.length < endIndex || volumes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2790,7 +2824,7 @@ export function evaluateOBV(
     };
   }
 
-  const obv = computeOBV(closes, volumes);
+  const obv = computeOBV(closes, volumes, endIndex);
   if (!obv || obv.length < 20) {
     return {
       value: null,
@@ -2801,7 +2835,7 @@ export function evaluateOBV(
 
   const currentOBV = obv[obv.length - 1];
   const obvLen = obv.length;
-  const closeLen = closes.length;
+  const closeLen = endIndex;
 
   // Calculate recent/older averages and extrema without array allocations
   let sumRecentOBV = 0;
@@ -2840,9 +2874,9 @@ export function evaluateOBV(
     ((recentAvg - olderAvg) / denom) * 100 :
     0;
 
-  const priceChange = closes.length >= 10 ?
-    ((currentPrice - closes[closes.length - 10]) /
-      closes[closes.length - 10]) * 100 : 0;
+  const priceChange = endIndex >= 10 ?
+    ((currentPrice - closes[endIndex - 10]) /
+      closes[endIndex - 10]) * 100 : 0;
 
   // OBV Breakout: OBV makes new high but Price hasn't yet (Accumulation)
   if (isNewHighOBV && !isNewHighPrice) {
@@ -2943,16 +2977,22 @@ export function evaluateOBV(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The VWAP evaluation result.
  */
 export function evaluateVWAP(
   highs: number[],
   lows: number[],
   closes: number[],
-  volumes: number[]
+  volumes: number[],
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
   if (!highs || !lows || !closes || !volumes ||
-    closes.length < 20 || volumes.length < 20) {
+    endIndex < 20 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex ||
+    volumes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -2960,7 +3000,7 @@ export function evaluateVWAP(
     };
   }
 
-  const vwap = computeVWAP(highs, lows, closes, volumes);
+  const vwap = computeVWAP(highs, lows, closes, volumes, endIndex);
   if (vwap === null || vwap === 0) {
     return {
       value: null,
@@ -2969,18 +3009,18 @@ export function evaluateVWAP(
     };
   }
 
-  const currentPrice = closes[closes.length - 1];
-  const prevPrice = closes.length >= 2 ? closes[closes.length - 2] : null;
+  const currentPrice = closes[endIndex - 1];
+  const prevPrice = endIndex >= 2 ? closes[endIndex - 2] : null;
   const deviation = ((currentPrice - vwap) / vwap) * 100;
 
   // Calculate VWAP bands (1 and 2 standard deviations) without array allocation
   let varianceSum = 0;
-  for (let i = 0; i < closes.length; i++) {
+  for (let i = 0; i < endIndex; i++) {
     const tp = (highs[i] + lows[i] + closes[i]) / 3;
     const diff = tp - vwap;
     varianceSum += diff * diff;
   }
-  const variance = closes.length > 1 ? varianceSum / (closes.length - 1) : 0;
+  const variance = endIndex > 1 ? varianceSum / (endIndex - 1) : 0;
   const stdDev = Math.sqrt(variance);
 
   const upperBand1 = vwap + stdDev;
@@ -3087,15 +3127,21 @@ export function evaluateVWAP(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for calculation (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The ADX evaluation result.
  */
 export function evaluateADX(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!highs || !lows || !closes || closes.length < period * 2) {
+  if (!highs || !lows || !closes ||
+    endIndex < period * 2 ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -3103,7 +3149,7 @@ export function evaluateADX(
     };
   }
 
-  const adxResult = computeADX(highs, lows, closes, period);
+  const adxResult = computeADX(highs, lows, closes, period, endIndex);
   if (!adxResult) {
     return {
       value: null,
@@ -3212,15 +3258,21 @@ export function evaluateADX(
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
  * @param {number} period - Period for calculation (default 14).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The Williams %R evaluation result.
  */
 export function evaluateWilliamsR(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 14
+  period = 14,
+  endIndex = highs ? highs.length : 0
 ): IndicatorResult {
-  if (!highs || !lows || !closes || closes.length < period) {
+  if (!highs || !lows || !closes ||
+    endIndex < period ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -3228,7 +3280,7 @@ export function evaluateWilliamsR(
     };
   }
 
-  const williamsR = computeWilliamsR(highs, lows, closes, period);
+  const williamsR = computeWilliamsR(highs, lows, closes, period, endIndex);
   if (williamsR === null) {
     return {
       value: null,
@@ -3239,13 +3291,13 @@ export function evaluateWilliamsR(
 
   // Calculate previous Williams %R for momentum detection without array slicing
   let prevWilliamsR: number | null = null;
-  if (closes.length > period) {
+  if (endIndex > period) {
     prevWilliamsR = computeWilliamsR(
       highs,
       lows,
       closes,
       period,
-      closes.length - 1
+      endIndex - 1
     );
   }
 
@@ -3328,6 +3380,7 @@ export function evaluateWilliamsR(
  * @param {number} basePeriod - Kijun-sen period (default 26).
  * @param {number} spanBPeriod - Senkou Span B period (default 52).
  * @param {number} displacement - Displacement for Chikou Span (default 26).
+ * @param {number} [endIndex] - Optional end index.
  * @return {object|null} The computed Ichimoku components or null.
  */
 export function computeIchimokuCloud(
@@ -3337,7 +3390,8 @@ export function computeIchimokuCloud(
   conversionPeriod = 9,
   basePeriod = 26,
   spanBPeriod = 52,
-  displacement = 26
+  displacement = 26,
+  endIndex = closes ? closes.length : 0
 ): {
   conversionLine: number;
   baseLine: number;
@@ -3346,13 +3400,14 @@ export function computeIchimokuCloud(
   laggingSpan: number;
 } | null {
   if (!highs || !lows || !closes ||
-    highs.length < spanBPeriod ||
-    lows.length < spanBPeriod ||
-    closes.length < spanBPeriod) {
+    endIndex < spanBPeriod ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return null;
   }
 
-  const currentIdx = closes.length - 1;
+  const currentIdx = endIndex - 1;
 
   // Helper to calculate midpoint of high and low over a period
   // without array slicing
@@ -3411,14 +3466,18 @@ export function computeIchimokuCloud(
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The Ichimoku Cloud evaluation result.
  */
 export function evaluateIchimokuCloud(
   highs: number[],
   lows: number[],
-  closes: number[]
+  closes: number[],
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  const ichimoku = computeIchimokuCloud(highs, lows, closes);
+  const ichimoku = computeIchimokuCloud(
+    highs, lows, closes, 9, 26, 52, 26, endIndex
+  );
 
   if (!ichimoku) {
     return {
@@ -3429,7 +3488,7 @@ export function evaluateIchimokuCloud(
   }
 
   const { conversionLine, baseLine, spanA, spanB } = ichimoku;
-  const currentPrice = closes[closes.length - 1];
+  const currentPrice = closes[endIndex - 1];
 
   // Cloud (Kumo) Analysis
   const aboveCloud = currentPrice > Math.max(spanA, spanB);
@@ -3484,7 +3543,7 @@ export function evaluateIchimokuCloud(
   // Kumo Breakout (Bullish)
   if (aboveCloud) {
     // Check previous candle to confirm breakout
-    const prevPrice = closes[closes.length - 2];
+    const prevPrice = closes[endIndex - 2];
     if (prevPrice <= Math.max(spanA, spanB)) {
       return {
         value: currentPrice,
@@ -3497,7 +3556,7 @@ export function evaluateIchimokuCloud(
 
   // Kumo Breakout (Bearish)
   if (belowCloud) {
-    const prevPrice = closes[closes.length - 2];
+    const prevPrice = closes[endIndex - 2];
     if (prevPrice >= Math.min(spanA, spanB)) {
       return {
         value: currentPrice,
@@ -3612,15 +3671,21 @@ export function computeCCI(
  * @param {number[]} lows - Low prices
  * @param {number[]} closes - Close prices
  * @param {number} [period=20] - Period for CCI (default 20)
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} IndicatorResult
  */
 export function evaluateCCI(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 20
+  period = 20,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!highs || !lows || !closes || closes.length < period) {
+  if (!highs || !lows || !closes ||
+    endIndex < period ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -3628,7 +3693,7 @@ export function evaluateCCI(
     };
   }
 
-  const cci = computeCCI(highs, lows, closes, period);
+  const cci = computeCCI(highs, lows, closes, period, endIndex);
   if (cci === null) {
     return {
       value: null,
@@ -3674,6 +3739,7 @@ export function evaluateCCI(
  * @param {number[]} closes - Close prices
  * @param {number} [startStep=0.02] - Start step (default 0.02)
  * @param {number} [maxStep=0.2] - Max step (default 0.2)
+ * @param {number} [endIndex] - Optional end index.
  * @return {Object|null} SAR value and trend direction
  */
 export function computeParabolicSAR(
@@ -3681,16 +3747,21 @@ export function computeParabolicSAR(
   lows: number[],
   closes: number[],
   startStep = 0.02,
-  maxStep = 0.2
+  maxStep = 0.2,
+  endIndex = closes ? closes.length : 0
 ): { sar: number; isUptrend: boolean } | null {
-  if (!highs || !lows || highs.length < 2) return null;
+  if (!highs || !lows || !closes || endIndex < 2 ||
+    highs.length < endIndex || lows.length < endIndex ||
+    closes.length < endIndex) {
+    return null;
+  }
 
   let isUptrend = true;
   let ep = highs[0]; // Extreme Point
   let sar = lows[0]; // Starting SAR
   let af = startStep; // Acceleration Factor
 
-  for (let i = 1; i < closes.length; i++) {
+  for (let i = 1; i < endIndex; i++) {
     const prevSar = sar;
     sar = prevSar + af * (ep - prevSar);
 
@@ -3737,6 +3808,7 @@ export function computeParabolicSAR(
  * @param {number[]} closes - Close prices
  * @param {number} [step=0.02] - Acceleration factor step (default 0.02)
  * @param {number} [max=0.2] - Max acceleration factor (default 0.2)
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} IndicatorResult
  */
 export function evaluateParabolicSAR(
@@ -3744,9 +3816,10 @@ export function evaluateParabolicSAR(
   lows: number[],
   closes: number[],
   step = 0.02,
-  max = 0.2
+  max = 0.2,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  const result = computeParabolicSAR(highs, lows, closes, step, max);
+  const result = computeParabolicSAR(highs, lows, closes, step, max, endIndex);
   if (!result) {
     return {
       value: null,
@@ -3780,6 +3853,8 @@ export function evaluateParabolicSAR(
  * @param {object} marketData - Market index data.
  * @param {object} config - Configuration parameters.
  * @param {IndicatorResult} gammaExposureResult - Optional pre-computed result.
+ * @param {number} [endIndex] - Optional end index for symbolData.
+ * @param {number} [marketEndIndex] - Optional end index for marketData.
  * @return {MultiIndicatorResult} Combined result.
  */
 export function evaluateAllIndicators(
@@ -3799,7 +3874,9 @@ export function evaluateAllIndicators(
     customIndicators?: CustomIndicatorConfig[];
     enabledIndicators?: string[];
   } = {},
-  gammaExposureResult?: IndicatorResult
+  gammaExposureResult?: IndicatorResult,
+  endIndex = symbolData ? symbolData.closes.length : 0,
+  marketEndIndex = marketData ? marketData.closes.length : endIndex
 ): MultiIndicatorResult {
   // Optimization: Reduce logging spam in loops
   // logger.info("Evaluating all technical indicators", { ... });
@@ -3833,7 +3910,7 @@ export function evaluateAllIndicators(
   // Pre-process: Filter out zero-volume data points (market closed/bad data)
   // This prevents skewing averages and triggering "Low volume (0% of avg)"
   if (symbolData.volumes && symbolData.volumes.length > 0) {
-    const limit = Math.min(symbolData.volumes.length, symbolData.closes.length);
+    const limit = Math.min(symbolData.volumes.length, endIndex);
     let hasZeroVolume = false;
 
     for (let i = 0; i < limit; i++) {
@@ -3893,13 +3970,13 @@ export function evaluateAllIndicators(
   // 1. Price Movement (chart patterns)
   const priceMovement = isEnabled("priceMovement") ?
     detectChartPattern(
-      symbolData.closes, volumes, symbolData.opens, highs, lows
+      symbolData.closes, volumes, symbolData.opens, highs, lows, endIndex
     ) :
     disabledResult;
 
   // 2. Momentum (RSI)
   const momentum = isEnabled("momentum") ?
-    evaluateMomentum(symbolData.closes, config.rsiPeriod || 14) :
+    evaluateMomentum(symbolData.closes, config.rsiPeriod || 14, endIndex) :
     disabledResult;
 
   // 3. Market Direction (SPY/QQQ moving averages)
@@ -3907,18 +3984,19 @@ export function evaluateAllIndicators(
     evaluateMarketDirection(
       marketData.closes,
       config.marketFastPeriod || 10,
-      config.marketSlowPeriod || 30
+      config.marketSlowPeriod || 30,
+      marketEndIndex
     ) :
     disabledResult;
 
   // 4. Volume
   const volume = isEnabled("volume") ?
-    evaluateVolume(volumes, symbolData.closes) :
+    evaluateVolume(volumes, symbolData.closes, endIndex) :
     disabledResult;
 
   // 5. MACD
   const macd = isEnabled("macd") ?
-    evaluateMACD(symbolData.closes) :
+    evaluateMACD(symbolData.closes, 12, 26, 9, endIndex) :
     disabledResult;
 
   // 6. Bollinger Bands
@@ -3928,73 +4006,78 @@ export function evaluateAllIndicators(
       20,
       2,
       highs,
-      lows
+      lows,
+      endIndex
     ) :
     disabledResult;
 
   // 7. Stochastic
   const stochastic = isEnabled("stochastic") ?
-    evaluateStochastic(highs, lows, symbolData.closes) :
+    evaluateStochastic(highs, lows, symbolData.closes, 14, 3, endIndex) :
     disabledResult;
 
   // 8. ATR (volatility)
   const atr = isEnabled("atr") ?
-    evaluateATR(highs, lows, symbolData.closes) :
+    evaluateATR(highs, lows, symbolData.closes, 14, endIndex) :
     disabledResult;
 
   // 9. OBV
   const obv = isEnabled("obv") ?
-    evaluateOBV(symbolData.closes, volumes) :
+    evaluateOBV(symbolData.closes, volumes, endIndex) :
     disabledResult;
 
   // 10. VWAP (Volume Weighted Average Price)
   const vwap = isEnabled("vwap") ?
-    evaluateVWAP(highs, lows, symbolData.closes, volumes) :
+    evaluateVWAP(highs, lows, symbolData.closes, volumes, endIndex) :
     disabledResult;
 
   // 11. ADX (Average Directional Index)
   const adx = isEnabled("adx") ?
-    evaluateADX(highs, lows, symbolData.closes) :
+    evaluateADX(highs, lows, symbolData.closes, 14, endIndex) :
     disabledResult;
 
   // 12. Williams %R
   const williamsR = isEnabled("williamsR") ?
-    evaluateWilliamsR(highs, lows, symbolData.closes) :
+    evaluateWilliamsR(highs, lows, symbolData.closes, 14, endIndex) :
     disabledResult;
 
   // 13. Ichimoku Cloud
   const ichimoku = isEnabled("ichimoku") ?
-    evaluateIchimokuCloud(highs, lows, symbolData.closes) :
+    evaluateIchimokuCloud(highs, lows, symbolData.closes, endIndex) :
     disabledResult;
 
   // 14. CCI
   const cci = isEnabled("cci") ?
-    evaluateCCI(highs, lows, symbolData.closes) :
+    evaluateCCI(highs, lows, symbolData.closes, 20, endIndex) :
     disabledResult;
 
   // 15. Parabolic SAR
   const parabolicSar = isEnabled("parabolicSar") ?
-    evaluateParabolicSAR(highs, lows, symbolData.closes) :
+    evaluateParabolicSAR(highs, lows, symbolData.closes, 0.02, 0.2, endIndex) :
     disabledResult;
 
   // 16. ROC
   const roc = isEnabled("roc") ?
-    evaluateROC(symbolData.closes, config.rocPeriod || 9) :
+    evaluateROC(symbolData.closes, config.rocPeriod || 9, endIndex) :
     disabledResult;
 
   // 17. Chaikin Money Flow
   const chaikinMoneyFlow = isEnabled("chaikinMoneyFlow") ?
-    evaluateChaikinMoneyFlow(highs, lows, symbolData.closes, volumes) :
+    evaluateChaikinMoneyFlow(
+      highs, lows, symbolData.closes, volumes, 20, endIndex
+    ) :
     disabledResult;
 
   // 18. Fibonacci Retracements
   const fibonacciRetracements = isEnabled("fibonacciRetracements") ?
-    evaluateFibonacciRetracements(highs, lows, symbolData.closes) :
+    evaluateFibonacciRetracements(
+      highs, lows, symbolData.closes, 50, endIndex
+    ) :
     disabledResult;
 
   // 19. Pivot Points
   const pivotPoints = isEnabled("pivotPoints") ?
-    evaluatePivotPoints(highs, lows, symbolData.closes) :
+    evaluatePivotPoints(highs, lows, symbolData.closes, endIndex) :
     disabledResult;
 
   // 20. Gamma Exposure (GEX) — pre-computed externally
@@ -4011,7 +4094,8 @@ export function evaluateAllIndicators(
         symbolData.closes,
         highs,
         lows,
-        volumes
+        volumes,
+        endIndex
       );
     }
   }
@@ -4214,8 +4298,8 @@ export function evaluateAllIndicators(
     overallSignal,
     reason,
     signalStrength,
-    bars: symbolData.closes.length,
-    sparkline: symbolData.closes.slice(-80),
+    bars: endIndex,
+    sparkline: symbolData.closes.slice(Math.max(0, endIndex - 80), endIndex),
     // Use exactly the max history (Ichimoku uses 52+26=78)
   };
 
@@ -4258,6 +4342,7 @@ export function computeROC(
  * @param {number[]} closes - Array of close prices
  * @param {number[]} volumes - Array of volume data
  * @param {number} period - CMF period (default 20)
+ * @param {number} [endIndex] - Optional end index.
  * @return {number|null} CMF value
  */
 export function computeChaikinMoneyFlow(
@@ -4265,20 +4350,22 @@ export function computeChaikinMoneyFlow(
   lows: number[],
   closes: number[],
   volumes: number[],
-  period = 20
+  period = 20,
+  endIndex = closes ? closes.length : 0
 ): number | null {
   if (
     !highs || !lows || !closes || !volumes ||
-    highs.length < period ||
-    lows.length < period ||
-    closes.length < period ||
-    volumes.length < period
+    endIndex < period ||
+    highs.length < endIndex ||
+    lows.length < endIndex ||
+    closes.length < endIndex ||
+    volumes.length < endIndex
   ) {
     return null;
   }
 
   const len = Math.min(
-    highs.length, lows.length, closes.length, volumes.length
+    endIndex, highs.length, lows.length, closes.length, volumes.length
   );
   let sumMfv = 0;
   let sumVol = 0;
@@ -4308,6 +4395,7 @@ export function computeChaikinMoneyFlow(
  * @param {number[]} closes - Close prices
  * @param {number[]} volumes - Volume data
  * @param {number} period - CMF period (default 20)
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} Result
  */
 export function evaluateChaikinMoneyFlow(
@@ -4315,9 +4403,12 @@ export function evaluateChaikinMoneyFlow(
   lows: number[],
   closes: number[],
   volumes: number[],
-  period = 20
+  period = 20,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  const cmf = computeChaikinMoneyFlow(highs, lows, closes, volumes, period);
+  const cmf = computeChaikinMoneyFlow(
+    highs, lows, closes, volumes, period, endIndex
+  );
 
   if (cmf === null) {
     return {
@@ -4343,15 +4434,17 @@ export function evaluateChaikinMoneyFlow(
  * @param {number[]} lows - Low prices
  * @param {number[]} closes - Close prices
  * @param {number} period - Lookback period (default 50)
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} Result
  */
 export function evaluateFibonacciRetracements(
   highs: number[],
   lows: number[],
   closes: number[],
-  period = 50
+  period = 50,
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
-  if (!closes || closes.length < period) {
+  if (!closes || endIndex < period || closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -4359,7 +4452,7 @@ export function evaluateFibonacciRetracements(
     };
   }
 
-  const len = closes.length;
+  const len = endIndex;
   const start = len - period;
 
   // Calculate max high and min low without array allocations
@@ -4431,13 +4524,15 @@ export function evaluateFibonacciRetracements(
  * Evaluate ROC (Rate of Change)
  * @param {number[]} prices - Array of close prices.
  * @param {number} period - ROC period (default 9).
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The ROC evaluation result.
  */
 export function evaluateROC(
   prices: number[],
-  period = 9
+  period = 9,
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
-  const roc = computeROC(prices, period);
+  const roc = computeROC(prices, period, endIndex);
   if (roc === null) {
     return {
       value: null,
@@ -4479,15 +4574,19 @@ export function evaluateROC(
  * @param {number[]} highs - Array of high prices
  * @param {number[]} lows - Array of low prices
  * @param {number[]} closes - Array of closing information
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} Result object
  */
 export function evaluatePivotPoints(
   highs: number[],
   lows: number[],
-  closes: number[]
+  closes: number[],
+  endIndex = closes ? closes.length : 0
 ): IndicatorResult {
   // Need at least 2 bars: yesterday for calculation, today for comparison
-  if (!highs || !lows || !closes || closes.length < 2) {
+  if (!highs || !lows || !closes || endIndex < 2 ||
+    highs.length < endIndex || lows.length < endIndex ||
+    closes.length < endIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -4495,7 +4594,7 @@ export function evaluatePivotPoints(
     };
   }
 
-  const len = closes.length;
+  const len = endIndex;
   // Use previous bar (yesterday) to calculate pivots for current bar (today)
   const prevHigh = highs[len - 2];
   const prevLow = lows[len - 2];
@@ -4573,6 +4672,7 @@ export function evaluatePivotPoints(
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
  * @return {IndicatorResult} The evaluation result.
  */
 export function evaluateCustomIndicator(
@@ -4580,7 +4680,8 @@ export function evaluateCustomIndicator(
   prices: number[],
   highs: number[],
   lows: number[],
-  volumes: number[]
+  volumes: number[],
+  endIndex = prices ? prices.length : 0
 ): IndicatorResult {
   let value: number | null = null;
   let prevValue: number | null = null;
@@ -4735,7 +4836,7 @@ export function evaluateCustomIndicator(
     };
 
     // 1. Calculate current value
-    value = calculateValue(prices, highs, lows, volumes);
+    value = calculateValue(prices, highs, lows, volumes, endIndex);
 
     if (value === null) {
       return {
@@ -4746,7 +4847,7 @@ export function evaluateCustomIndicator(
     }
 
     // 2. Determine Comparison Value (Current)
-    const currentPrice = prices[prices.length - 1];
+    const currentPrice = prices[endIndex - 1];
     const compareValue = config.compareToPrice ?
       currentPrice : config.threshold;
 
@@ -4764,17 +4865,17 @@ export function evaluateCustomIndicator(
 
     if (isCrossover) {
       // Calculate Previous Value without allocating array slices
-      if (prices.length > 1) {
+      if (endIndex > 1) {
         prevValue = calculateValue(
           prices,
           highs,
           lows,
           volumes,
-          prices.length - 1
+          endIndex - 1
         );
       }
 
-      const prevPrice = prices.length > 1 ? prices[prices.length - 2] : null;
+      const prevPrice = endIndex > 1 ? prices[endIndex - 2] : null;
 
       // Ensure we have previous data
       if (prevValue !== null && prevPrice !== null) {
