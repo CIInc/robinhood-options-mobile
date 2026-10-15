@@ -533,16 +533,6 @@ class AgenticTradingProvider with ChangeNotifier {
 
       _log('📥 Processing ${tradeSignals.length} new signals');
 
-      // Mark signals as processed to prevent duplicates
-      for (final signal in tradeSignals) {
-        final symbol = signal['symbol'] as String?;
-        final timestamp = signal['timestamp'] as int?;
-        if (symbol != null && timestamp != null) {
-          final signalId = '${symbol}_$timestamp';
-          _processedSignalTimestamps[signalId] = timestamp;
-        }
-      }
-
       final result = await autoTrade(
         tradeSignals: tradeSignals,
         tradeSignalsProvider: tradeSignalsProvider,
@@ -554,6 +544,10 @@ class AgenticTradingProvider with ChangeNotifier {
         paperTradingStore: paperTradingStore,
         userDocRef: userDocRef,
       );
+
+      // A blocked cycle (market closed, daily limit, cooldown) never evaluated
+      // these signals, so they must stay eligible for the next cycle.
+      rememberProcessedSignals(tradeSignals, result);
 
       if (result['tradesExecuted'] > 0) {
         final count = result['tradesExecuted'];
@@ -660,6 +654,24 @@ class AgenticTradingProvider with ChangeNotifier {
 
   String? _signalRulesSignature;
 
+  /// Marks [signals] processed unless the cycle was blocked before evaluating them.
+  @visibleForTesting
+  void rememberProcessedSignals(
+      List<Map<String, dynamic>> signals, Map<String, dynamic> result) {
+    if (result['blocked'] == true) return;
+    for (final signal in signals) {
+      final symbol = signal['symbol'] as String?;
+      final timestamp = signal['timestamp'] as int?;
+      if (symbol != null && timestamp != null) {
+        _processedSignalTimestamps['${symbol}_$timestamp'] = timestamp;
+      }
+    }
+  }
+
+  @visibleForTesting
+  bool hasProcessedSignal(String symbol, int timestamp) =>
+      _processedSignalTimestamps.containsKey('${symbol}_$timestamp');
+
   /// Signals rejected under old entry rules must be re-evaluated under new ones.
   void _forgetProcessedSignalsIfRulesChanged() {
     final s = _config.strategyConfig;
@@ -675,6 +687,7 @@ class AgenticTradingProvider with ChangeNotifier {
       s.symbolFilter,
       s.customIndicators.map((c) => c.id).toList(),
       _config.tradingMode,
+      _config.requireApproval,
     ].join('|');
     if (_signalRulesSignature != null && _signalRulesSignature != signature) {
       _processedSignalTimestamps.clear();
@@ -682,11 +695,30 @@ class AgenticTradingProvider with ChangeNotifier {
     _signalRulesSignature = signature;
   }
 
+  /// Queued approvals came from the old setting; the next cycle re-proposes qualified signals and executes them directly.
+  Future<void> _discardPendingApprovals(DocumentReference userDocRef) async {
+    _pendingOrders.clear();
+    try {
+      final snapshot = await userDocRef.collection('pending_orders').get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+      if (snapshot.docs.isNotEmpty) {
+        _log(
+            '🧹 Cleared ${snapshot.docs.length} pending approvals: Require Approval is off');
+      }
+    } catch (e) {
+      _log('❌ Failed to clear pending approvals: $e');
+    }
+  }
+
   /// Update configuration and save to User document
   Future<void> updateConfig(
     AgenticTradingConfig newConfig,
     DocumentReference userDocRef,
   ) async {
+    final approvalTurnedOff =
+        _config.requireApproval && !newConfig.requireApproval;
     _config = newConfig;
     _hasLoadedConfig = true;
     _forgetProcessedSignalsIfRulesChanged();
@@ -701,6 +733,7 @@ class AgenticTradingProvider with ChangeNotifier {
         parameters: {'error': e.toString()},
       );
     }
+    if (approvalTurnedOff) await _discardPendingApprovals(userDocRef);
     notifyListeners();
   }
 
@@ -1385,6 +1418,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'message':
               'Missing required parameters (brokerageUser, account, service, or store)',
           'trades': [],
+          'blocked': true,
           'processedSignals': processedSignals,
         };
       }
@@ -1401,6 +1435,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'tradesExecuted': 0,
           'message': 'Auto-trade conditions not met: $conditionCheck',
           'trades': [],
+          'blocked': true,
           'processedSignals': processedSignals,
         };
       }

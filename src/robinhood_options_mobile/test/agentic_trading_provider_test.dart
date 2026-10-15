@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -912,6 +913,122 @@ void main() {
       final buy = AgenticTradingProvider.withDerivedProfitLoss(
           {'action': 'BUY', 'price': 10.0, 'quantity': 2});
       expect(buy.containsKey('profitLoss'), isFalse);
+    });
+  });
+
+  group('Signals blocked before evaluation', () {
+    Map<String, dynamic> signal(String symbol, int timestamp) =>
+        {'symbol': symbol, 'timestamp': timestamp};
+
+    late AgenticTradingProvider provider;
+    setUp(() => provider = AgenticTradingProvider(
+          analytics: FakeFirebaseAnalytics(),
+        ));
+    tearDown(() => provider.dispose());
+
+    test('a blocked cycle leaves its signals eligible for the next cycle', () {
+      provider.rememberProcessedSignals(
+          [signal('CTRA', 1)], {'blocked': true, 'tradesExecuted': 0});
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
+    });
+
+    test('an evaluated cycle consumes its signals', () {
+      provider
+          .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isTrue);
+    });
+
+    test('autoTrade flags a market-closed cycle as blocked', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      // Saturday, so the market is closed.
+      MarketHours.testTime = DateTime.utc(2023, 10, 28, 15, 0);
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('Market is closed'));
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('turning Require Approval off re-evaluates queued signals', () {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(),
+        requireApproval: true,
+      ));
+      provider
+          .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});
+      expect(provider.hasProcessedSignal('CTRA', 1), isTrue);
+
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(),
+        requireApproval: false,
+      ));
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
+    });
+  });
+
+  group('Turning Require Approval off', () {
+    late AgenticTradingProvider provider;
+    late FakeFirebaseFirestore firestore;
+    late DocumentReference<Map<String, dynamic>> userRef;
+
+    AgenticTradingConfig config({required bool requireApproval}) =>
+        AgenticTradingConfig(
+          strategyConfig: TradeStrategyConfig(),
+          requireApproval: requireApproval,
+        );
+
+    setUp(() async {
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
+      firestore = FakeFirebaseFirestore();
+      userRef = firestore.collection('user').doc('u1');
+      await userRef.set({'name': 'Test'});
+      await userRef
+          .collection('pending_orders')
+          .add({'symbol': 'CTRA', 'action': 'BUY', 'quantity': 5});
+      provider.pendingOrders.add({'symbol': 'CTRA', 'action': 'BUY'});
+    });
+    tearDown(() => provider.dispose());
+
+    test('clears queued approvals locally and in Firestore', () async {
+      provider.loadConfigFromUser(config(requireApproval: true));
+
+      await provider.updateConfig(config(requireApproval: false), userRef);
+
+      expect(provider.pendingOrders, isEmpty);
+      expect((await userRef.collection('pending_orders').get()).docs, isEmpty);
+    });
+
+    test('keeps queued approvals while it stays on', () async {
+      provider.loadConfigFromUser(config(requireApproval: true));
+
+      await provider.updateConfig(config(requireApproval: true), userRef);
+
+      expect(provider.pendingOrders, hasLength(1));
+      expect((await userRef.collection('pending_orders').get()).docs,
+          hasLength(1));
+    });
+
+    test('keeps queued approvals when it was already off', () async {
+      provider.loadConfigFromUser(config(requireApproval: false));
+
+      await provider.updateConfig(config(requireApproval: false), userRef);
+
+      expect(provider.pendingOrders, hasLength(1));
     });
   });
 
