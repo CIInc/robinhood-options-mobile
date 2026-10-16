@@ -1,10 +1,41 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 import { performTradeProposal } from "./agentic-trading";
 
 const db = getFirestore();
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("agenticTradingCronInvoke authorization check failed", e);
+    return false;
+  }
+}
 
 /**
  * Result summary for a cron run.
@@ -151,18 +182,18 @@ export const agenticTradingCron = onSchedule(
 
 // Callable function to trigger the cron logic ad-hoc
 // (e.g., from dashboard or admin tooling).
-// Optional: add auth/role checks before execution.
 export const agenticTradingCronInvoke = onRequest(
   {
     memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes
   },
   async (request, response) => {
-    // logger.info(request.query, { structuredData: true });
-    // Example simple auth gating (adjust to project standards):
-    // if (!request.auth || request.auth.token.admin !== true) {
-    //   throw new HttpsError('permission-denied', 'Admin privileges required');
-    // }
+    if (!(await isAuthorizedAdmin(request.headers.authorization))) {
+      response.status(401).json({
+        error: "Unauthorized: Admin privileges required.",
+      });
+      return;
+    }
     try {
       const result = await runAgenticTradingCron();
       // Send JSON response instead of returning the result
