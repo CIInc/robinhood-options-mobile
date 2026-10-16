@@ -249,5 +249,50 @@ void main() {
       expect(find.text('\$8,000.00/yr'), findsOneWidget);
       expect(find.text('3% Match'), findsOneWidget);
     });
+
+    testWidgets(
+        'renders correct semantics labels for mini metrics and progress bar',
+        (tester) async {
+      tester.view.physicalSize = const Size(1200, 3000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: RetirementProjectionCard(
+                initialBalance: 10000.0,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final handle = tester.ensureSemantics();
+
+      // Check mini metric semantics
+      expect(
+        find.bySemanticsLabel(RegExp(r'You Deposit: \$[0-9,]+')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp(r'Market Growth: \$[0-9,]+')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp(r'Match Added: \$[0-9,]+')),
+        findsOneWidget,
+      );
+
+      // Check stacked progress bar semantics
+      expect(
+        find.bySemanticsLabel(RegExp(
+            r'Retirement balance breakdown: .* principal.* compounding growth')),
+        findsOneWidget,
+      );
+
+      handle.dispose();
+    });
   });
 }
