@@ -73,8 +73,14 @@ export const getSentimentAnalysis = onCall(async (request) => {
       feed: feedItems,
     };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error in getSentimentAnalysis", error);
-    throw new Error(`Failed to calculate sentiment: ${error}`);
+    throw new HttpsError(
+      "internal",
+      "An unexpected error occurred while calculating sentiment."
+    );
   }
 });
 
