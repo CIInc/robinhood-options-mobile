@@ -78,9 +78,12 @@ function calculateRollingStats(
   benchmark: PricePoint[],
   window: number,
 ): RollingStatistic[] {
-  const benchmarkByTimestamp = new Map(
-    benchmark.map((point) => [point.timestamp, point.close]),
-  );
+  // Optimization: Populate Map directly to avoid intermediate array allocations
+  const benchmarkByTimestamp = new Map<number, number>();
+  for (let i = 0; i < benchmark.length; i++) {
+    benchmarkByTimestamp.set(benchmark[i].timestamp, benchmark[i].close);
+  }
+
   const pairedReturns: Array<{
     timestamp: number;
     assetReturn: number;
@@ -103,31 +106,41 @@ function calculateRollingStats(
   }
 
   const stats: RollingStatistic[] = [];
-  for (let end = window - 1; end < pairedReturns.length; end++) {
-    const sample = pairedReturns.slice(end - window + 1, end + 1);
-    const assetReturns = sample.map((point) => point.assetReturn);
-    const benchmarkReturns = sample.map((point) => point.benchmarkReturn);
-    const assetMean = assetReturns.reduce((sum, value) => sum + value, 0) /
-      assetReturns.length;
-    const benchmarkMean = benchmarkReturns.reduce(
-      (sum, value) => sum + value, 0,
-    ) / benchmarkReturns.length;
+  const numPaired = pairedReturns.length;
+
+  // Optimization: Calculate rolling statistics in index-bounded loops over
+  // pairedReturns without allocating temporary sub-arrays (.slice / .map).
+  for (let end = window - 1; end < numPaired; end++) {
+    const start = end - window + 1;
+
+    let assetSum = 0;
+    let benchmarkSum = 0;
+    for (let i = start; i <= end; i++) {
+      assetSum += pairedReturns[i].assetReturn;
+      benchmarkSum += pairedReturns[i].benchmarkReturn;
+    }
+    const sampleSize = window;
+    const assetMean = assetSum / sampleSize;
+    const benchmarkMean = benchmarkSum / sampleSize;
+
     let covariance = 0;
     let assetVariance = 0;
     let benchmarkVariance = 0;
-    for (let index = 0; index < sample.length; index++) {
-      const assetDiff = assetReturns[index] - assetMean;
-      const benchmarkDiff = benchmarkReturns[index] - benchmarkMean;
+    for (let i = start; i <= end; i++) {
+      const assetDiff = pairedReturns[i].assetReturn - assetMean;
+      const benchmarkDiff = pairedReturns[i].benchmarkReturn - benchmarkMean;
       covariance += assetDiff * benchmarkDiff;
       assetVariance += assetDiff * assetDiff;
       benchmarkVariance += benchmarkDiff * benchmarkDiff;
     }
-    const denominator = Math.max(1, sample.length - 1);
+
+    const denominator = Math.max(1, sampleSize - 1);
     covariance /= denominator;
     assetVariance /= denominator;
     benchmarkVariance /= denominator;
     const benchmarkVolatility = Math.sqrt(benchmarkVariance);
     const assetVolatility = Math.sqrt(assetVariance);
+
     stats.push({
       date: new Date(pairedReturns[end].timestamp * 1000)
         .toISOString().split("T")[0],
@@ -135,7 +148,7 @@ function calculateRollingStats(
       beta: benchmarkVariance === 0 ? 0 : covariance / benchmarkVariance,
       correlation: assetVolatility === 0 || benchmarkVolatility === 0 ?
         0 : covariance / (assetVolatility * benchmarkVolatility),
-      sampleSize: sample.length,
+      sampleSize,
     });
   }
   return stats;
