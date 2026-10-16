@@ -659,108 +659,139 @@ class _DayTradeMonitorWidgetState extends State<DayTradeMonitorWidget> {
     final remainingDays = trade.remainingTradingDays;
     final isExpired = trade.isExpired;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: isOption
-              ? Colors.deepPurple.withValues(alpha: 0.15)
-              : Colors.teal.withValues(alpha: 0.15),
-          foregroundColor: isOption ? Colors.deepPurple : Colors.teal,
-          child: Icon(
-            isOption ? Icons.call_split : Icons.show_chart,
-            size: 20,
+    final dateStr = _dateFormat.format(trade.timestamp);
+    final timeStr = _timeFormat.format(trade.timestamp);
+    final typeStr = isOption ? 'option' : 'equity';
+    final detailsParts = <String>[];
+    if (trade.quantity != null) {
+      detailsParts
+          .add('${trade.quantity} ${isOption ? 'contracts' : 'shares'}');
+    }
+    if (trade.price != null) {
+      detailsParts.add('at ${_currencyFormat.format(trade.price)}');
+    }
+    if (trade.direction != null) {
+      detailsParts.add(trade.direction!.replaceAll('_', ' '));
+    }
+    final detailsStr =
+        detailsParts.isNotEmpty ? '. ${detailsParts.join(' ')}' : '';
+    final rollOffStr = isExpired
+        ? 'Expired on ${DateFormat('MMM d').format(trade.dropOffDate)}'
+        : (remainingDays == 1
+            ? 'Rolls off today (${DateFormat('MMM d').format(trade.dropOffDate)})'
+            : 'Rolls off in $remainingDays days on ${DateFormat('MMM d').format(trade.dropOffDate)}');
+
+    final semanticLabel =
+        '${trade.symbol}, $typeStr day trade on $dateStr at $timeStr$detailsStr. $rollOffStr';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: CircleAvatar(
+            backgroundColor: isOption
+                ? Colors.deepPurple.withValues(alpha: 0.15)
+                : Colors.teal.withValues(alpha: 0.15),
+            foregroundColor: isOption ? Colors.deepPurple : Colors.teal,
+            child: Icon(
+              isOption ? Icons.call_split : Icons.show_chart,
+              size: 20,
+            ),
           ),
-        ),
-        title: Row(
-          children: [
-            Flexible(
-              child: Text(
-                trade.symbol,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                trade.type.toUpperCase(),
-                style:
-                    const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              '${_dateFormat.format(trade.timestamp)} • ${_timeFormat.format(trade.timestamp)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (trade.price != null || trade.quantity != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                '${trade.quantity != null ? "${trade.quantity} ${isOption ? 'contracts' : 'shares'}" : ""}${trade.price != null ? " @ ${_currencyFormat.format(trade.price)}" : ""}${trade.direction != null ? " • ${trade.direction!.replaceAll('_', ' ')}" : ""}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: isExpired
-                ? Colors.grey.withValues(alpha: 0.15)
-                : (remainingDays <= 1
-                    ? Colors.green.withValues(alpha: 0.15)
-                    : Colors.amber.withValues(alpha: 0.15)),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
+          title: Row(
             children: [
-              Text(
-                isExpired
-                    ? 'Expired'
-                    : (remainingDays == 1
-                        ? 'Rolls off today'
-                        : 'Rolls off in $remainingDays days'),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: isExpired
-                      ? Colors.grey
-                      : (remainingDays <= 1
-                          ? Colors.green.shade800
-                          : Colors.amber.shade900),
+              Flexible(
+                child: Text(
+                  trade.symbol,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                DateFormat('MMM d').format(trade.dropOffDate),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: theme.colorScheme.onSurfaceVariant,
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  trade.type.toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 4),
+              Text(
+                '${_dateFormat.format(trade.timestamp)} • ${_timeFormat.format(trade.timestamp)}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (trade.price != null || trade.quantity != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '${trade.quantity != null ? "${trade.quantity} ${isOption ? 'contracts' : 'shares'}" : ""}${trade.price != null ? " @ ${_currencyFormat.format(trade.price)}" : ""}${trade.direction != null ? " • ${trade.direction!.replaceAll('_', ' ')}" : ""}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: isExpired
+                  ? Colors.grey.withValues(alpha: 0.15)
+                  : (remainingDays <= 1
+                      ? Colors.green.withValues(alpha: 0.15)
+                      : Colors.amber.withValues(alpha: 0.15)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  isExpired
+                      ? 'Expired'
+                      : (remainingDays == 1
+                          ? 'Rolls off today'
+                          : 'Rolls off in $remainingDays days'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isExpired
+                        ? Colors.grey
+                        : (remainingDays <= 1
+                            ? Colors.green.shade800
+                            : Colors.amber.shade900),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  DateFormat('MMM d').format(trade.dropOffDate),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
