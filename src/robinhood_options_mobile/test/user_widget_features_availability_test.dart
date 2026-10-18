@@ -90,6 +90,10 @@ class FakeSchwabService extends Fake implements SchwabService {
   BrokerageSource get source => BrokerageSource.schwab;
 }
 
+class FakePaperService extends Fake implements IBrokerageService {}
+
+class FakeFidelityService extends Fake implements IBrokerageService {}
+
 void main() {
   setUpAll(() async {
     await setupFirebaseMocks();
@@ -247,7 +251,7 @@ void main() {
     });
 
     testWidgets(
-        'Connected with Charles Schwab shows unsupported reasons without badges',
+        'Connected with Charles Schwab hides unsupported features and empty categories',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -272,27 +276,133 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Margin Health is supported by Schwab -> enabled, no badge
+      // Supported features for Schwab are displayed
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsOneWidget);
-
-      // Banking & Transfers is Robinhood-only; the subtitle explains why it is disabled.
-      expect(find.text('Unsupported'), findsNothing);
-      expect(find.text('Not supported by Charles Schwab'), findsWidgets);
-      expect(find.text('Manage deposits, withdrawals & linked bank accounts'),
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
           findsOneWidget);
-
-      // Tap on Banking & Transfers
-      final bankingFinder =
-          find.widgetWithText(ListTile, 'Banking & Transfers');
-      expect(bankingFinder, findsOneWidget);
-      await tester.tap(bankingFinder);
-      await tester.pump();
-
-      // Expect snackbar explaining Charles Schwab lack of support
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsOneWidget);
       expect(
-          find.text('Banking & Transfers is not supported by Charles Schwab.'),
+          find.widgetWithText(
+              ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
           findsOneWidget);
+
+      // Unsupported features are hidden for Schwab
+      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Corporate Actions & Splits'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Stock Lending & Sweeps'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Retirement & IRA'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Connected Agents'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Notification Center'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
+
+      // Banking & Documents category header is hidden since all its features are unsupported
+      expect(find.text('BANKING & DOCUMENTS'), findsNothing);
+      expect(find.text('Not supported by Charles Schwab'), findsNothing);
+    });
+
+    testWidgets(
+        'Connected with Paper hides banking, margin health, PDT, DRIP, and Say Q&A',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final paperUser = BrokerageUser(
+        BrokerageSource.paper,
+        'PaperUser',
+        'credentials',
+        null,
+      );
+      final paperService = FakePaperService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: paperUser,
+        service: paperService,
+      ));
+      await tester.pumpAndSettle();
+
+      // Supported features for Paper
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
+      expect(
+          find.widgetWithText(
+              ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Investment Profile'), findsOneWidget);
+
+      // Unsupported features are hidden for Paper
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
+      expect(find.text('BANKING & DOCUMENTS'), findsNothing);
+    });
+
+    testWidgets(
+        'Connected with Fidelity hides automated trading, margin health, PDT, DRIP, banking, and Say Q&A',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final fidelityUser = BrokerageUser(
+        BrokerageSource.fidelity,
+        'FidelityUser',
+        'credentials',
+        null,
+      );
+      final fidelityService = FakeFidelityService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: fidelityUser,
+        service: fidelityService,
+      ));
+      await tester.pumpAndSettle();
+
+      // Supported generic features
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
+      expect(
+          find.widgetWithText(
+              ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Trade Signal Notifications'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Custom Alerts'), findsOneWidget);
+
+      // Hidden features for Fidelity
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
+      expect(find.text('BANKING & DOCUMENTS'), findsNothing);
     });
 
     testWidgets(
@@ -326,11 +436,28 @@ void main() {
       expect(find.text('Brokerage Required'), findsNothing);
       expect(find.text('Unsupported'), findsNothing);
 
-      // Both Banking & Transfers and Margin Health should be available and display normal subtitles
-      expect(find.text('Manage deposits, withdrawals & linked bank accounts'),
+      // All categories and features are visible
+      expect(find.text('BANKING & DOCUMENTS'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsOneWidget);
-      expect(find.text('Margin buffer, buying power & collateral holds'),
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
           findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Tax Documents & Statements'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Corporate Actions & Splits'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Stock Lending & Cash Sweeps'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Retirement & IRA'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Connected Agents & Apps'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Notification Center'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsOneWidget);
     });
   });
 }

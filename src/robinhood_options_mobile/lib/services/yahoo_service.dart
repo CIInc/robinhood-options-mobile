@@ -964,6 +964,10 @@ class YahooService {
   Future<void> _writeCache(DocumentReference<Map<String, dynamic>> docRef,
       String cacheKey, dynamic responseJson,
       {String? suffix}) async {
+    // Shared Yahoo cache documents in Firestore require authentication per security rules.
+    if (auth.currentUser == null) {
+      return;
+    }
     try {
       await docRef.set({
         'data': responseJson,
