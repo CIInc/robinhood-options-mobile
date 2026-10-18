@@ -7,6 +7,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -178,6 +180,54 @@ class _UserWidgetState extends State<UserWidget> {
                   user = userSnapshot.data!.data() as User;
                   selectedRole = user.role;
                 }
+
+                String? primaryProviderId = user?.providerId;
+                final List<String> providerDisplayNames = [];
+
+                if (isCurrentUserProfileView &&
+                    widget.auth.currentUser != null) {
+                  final currentFirebaseUser = widget.auth.currentUser!;
+                  try {
+                    if (currentFirebaseUser.isAnonymous) {
+                      primaryProviderId ??= 'anonymous';
+                      providerDisplayNames.add('Guest');
+                    }
+                  } catch (_) {}
+
+                  try {
+                    if (currentFirebaseUser.providerData.isNotEmpty) {
+                      primaryProviderId ??= currentFirebaseUser
+                          .providerData.first.providerId;
+                      for (var p in currentFirebaseUser.providerData) {
+                        final name = _getProviderDisplayName(p.providerId);
+                        if (!providerDisplayNames.contains(name)) {
+                          providerDisplayNames.add(name);
+                        }
+                      }
+                    }
+                  } catch (_) {}
+                }
+
+                if (providerDisplayNames.isEmpty) {
+                  if (primaryProviderId != null &&
+                      primaryProviderId.isNotEmpty) {
+                    providerDisplayNames.add(
+                        _getProviderDisplayName(primaryProviderId));
+                  }
+                }
+
+                final loginTypeDisplay = providerDisplayNames.isNotEmpty
+                    ? providerDisplayNames.join(', ')
+                    : 'Unknown';
+
+                final loginName = user?.email ??
+                    user?.phoneNumber ??
+                    (isCurrentUserProfileView
+                        ? (widget.auth.currentUser?.email ??
+                            widget.auth.currentUser?.phoneNumber)
+                        : null);
+                final isEmail = loginName?.contains('@') ?? false;
+                final loginLabel = isEmail ? 'Email' : 'Phone Number';
 
                 // final groupsStream = queryGroups(
                 //     getGroupCollectionReference(),
@@ -712,16 +762,83 @@ class _UserWidgetState extends State<UserWidget> {
                                                               UserRole.admin)
                                                       ? (user.email != null ||
                                                               user.phoneNumber !=
-                                                                  null
-                                                          ? Text(user.email ??
-                                                              user
-                                                                  .phoneNumber ??
-                                                              '')
-                                                          : null)
-                                                      : (user.location != null &&
+                                                                  null ||
+                                                              loginTypeDisplay !=
+                                                                  'Unknown')
+                                                          ? Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                if (user.email !=
+                                                                        null ||
+                                                                    user.phoneNumber !=
+                                                                        null) ...[
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      user.email ??
+                                                                          user.phoneNumber ??
+                                                                          '',
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                    ),
+                                                                  ),
+                                                                  if (loginTypeDisplay !=
+                                                                      'Unknown') ...[
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            6),
+                                                                    _buildProviderIcon(
+                                                                        primaryProviderId,
+                                                                        size:
+                                                                            14),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            4),
+                                                                    Text(
+                                                                      loginTypeDisplay,
+                                                                      style: Theme.of(
+                                                                              context)
+                                                                          .textTheme
+                                                                          .bodySmall
+                                                                          ?.copyWith(
+                                                                            color: Theme.of(context).colorScheme.outline,
+                                                                          ),
+                                                                    ),
+                                                                  ],
+                                                                ] else if (loginTypeDisplay !=
+                                                                    'Unknown') ...[
+                                                                  _buildProviderIcon(
+                                                                      primaryProviderId,
+                                                                      size: 14),
+                                                                  const SizedBox(
+                                                                      width: 4),
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      loginTypeDisplay,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style: Theme.of(
+                                                                              context)
+                                                                          .textTheme
+                                                                          .bodySmall
+                                                                          ?.copyWith(
+                                                                            color: Theme.of(context).colorScheme.outline,
+                                                                          ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ],
+                                                            )
+                                                          : null
+                                                      : (user.location !=
+                                                                  null &&
                                                               user.location!
                                                                   .isNotEmpty
-                                                          ? Text(user.location!)
+                                                          ? Text(user
+                                                              .location!)
                                                           : null),
                                               children: [
                                                 ListTile(
@@ -779,6 +896,92 @@ class _UserWidgetState extends State<UserWidget> {
                                                         : null,
                                                   ),
                                                 ],
+                                                if (isCurrentUserProfileView ||
+                                                    userRole ==
+                                                        UserRole.admin) ...[
+                                                  if (loginName != null &&
+                                                      loginName.isNotEmpty) ...[
+                                                    ListTile(
+                                                      leading: Icon(isEmail
+                                                          ? Icons
+                                                              .alternate_email
+                                                          : Icons
+                                                              .phone_outlined),
+                                                      title: Text(loginLabel),
+                                                      subtitle: Text(
+                                                        loginName,
+                                                        style: const TextStyle(
+                                                            fontSize: 14),
+                                                      ),
+                                                      onTap: () {
+                                                        Clipboard.setData(
+                                                            ClipboardData(
+                                                                text:
+                                                                    loginName));
+                                                        ScaffoldMessenger.of(
+                                                                context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                                '$loginLabel copied to clipboard'),
+                                                            behavior:
+                                                                SnackBarBehavior
+                                                                    .floating,
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                    if (user.phoneNumber !=
+                                                            null &&
+                                                        user.phoneNumber!
+                                                            .isNotEmpty &&
+                                                        loginName !=
+                                                            user.phoneNumber)
+                                                      ListTile(
+                                                        leading: const Icon(
+                                                            Icons.phone_outlined),
+                                                        title: const Text(
+                                                            'Phone Number'),
+                                                        subtitle: Text(
+                                                          user.phoneNumber!,
+                                                          style: const TextStyle(
+                                                              fontSize: 14),
+                                                        ),
+                                                        onTap: () {
+                                                          final phone =
+                                                              user?.phoneNumber;
+                                                          if (phone != null) {
+                                                            Clipboard.setData(
+                                                                ClipboardData(
+                                                                    text: phone));
+                                                            ScaffoldMessenger.of(
+                                                                    context)
+                                                                .showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                    'Phone number copied to clipboard'),
+                                                                behavior:
+                                                                    SnackBarBehavior
+                                                                        .floating,
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
+                                                  ],
+                                                ],
+                                                ListTile(
+                                                  leading: _buildProviderIcon(
+                                                      primaryProviderId,
+                                                      size: 24),
+                                                  title: const Text(
+                                                      'Login Type'),
+                                                  subtitle: Text(
+                                                    loginTypeDisplay,
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ),
                                                 ListTile(
                                                   leading:
                                                       const Icon(Icons.login),
@@ -3035,5 +3238,43 @@ class _UserWidgetState extends State<UserWidget> {
     final errStr = error.toString().toLowerCase();
     return errStr.contains('permission-denied') ||
         errStr.contains('permission_denied');
+  }
+
+  String _getProviderDisplayName(String? providerId) {
+    switch (providerId?.toLowerCase()) {
+      case 'apple.com':
+        return 'Apple';
+      case 'google.com':
+        return 'Google';
+      case 'password':
+        return 'Email & Password';
+      case 'phone':
+        return 'Phone';
+      case 'anonymous':
+        return 'Guest';
+      default:
+        if (providerId == null || providerId.isEmpty) return 'Unknown';
+        final clean = providerId.replaceAll('.com', '');
+        return clean.capitalize();
+    }
+  }
+
+  Widget _buildProviderIcon(String? providerId,
+      {double size = 20, Color? color}) {
+    switch (providerId?.toLowerCase()) {
+      case 'apple.com':
+        return Icon(Icons.apple, size: size, color: color);
+      case 'google.com':
+        return FaIcon(FontAwesomeIcons.google,
+            size: size, color: color ?? Colors.red);
+      case 'password':
+        return Icon(Icons.email_outlined, size: size, color: color);
+      case 'phone':
+        return Icon(Icons.phone_outlined, size: size, color: color);
+      case 'anonymous':
+        return Icon(Icons.person_outline, size: size, color: color);
+      default:
+        return Icon(Icons.verified_user_outlined, size: size, color: color);
+    }
   }
 }

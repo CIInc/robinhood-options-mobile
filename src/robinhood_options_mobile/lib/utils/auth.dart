@@ -196,7 +196,7 @@ class AuthUtil {
     user.photoUrl = firebaseUser.photoURL;
     user.providerId = firebaseUser.providerData.isNotEmpty
         ? firebaseUser.providerData[0].providerId
-        : null;
+        : (firebaseUser.isAnonymous ? 'anonymous' : null);
     user.role = value;
     if (lastVisited != null) {
       user.lastVisited = lastVisited; // DateTime.now(); //.toUtc();
