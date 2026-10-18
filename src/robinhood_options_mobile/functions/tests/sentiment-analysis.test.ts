@@ -141,6 +141,28 @@ describe("sentiment-analysis tests", () => {
     );
   });
 
+  test("getSentimentAnalysis masks internal errors safely", async () => {
+    mockGetAll.mockImplementationOnce(async () => {
+      throw new Error("Internal secret DB connection string leak!");
+    });
+
+    try {
+      await (getSentimentAnalysis as any)({
+        data: {},
+        auth: { uid: "user123" },
+      });
+      fail("Expected getSentimentAnalysis to throw");
+    } catch (err: any) {
+      expect(err.code).toBe("internal");
+      expect(err.message).toBe(
+        "An unexpected error occurred while calculating sentiment."
+      );
+      expect(err.message).not.toContain(
+        "Internal secret DB connection string leak!"
+      );
+    }
+  });
+
   test("helper functions fall back to batched getAll without snapshotMap",
     async () => {
       mockGetAll.mockImplementation(async (...refs: any[]) => {
