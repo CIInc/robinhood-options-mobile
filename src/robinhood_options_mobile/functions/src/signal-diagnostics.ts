@@ -1,13 +1,51 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 const db = getFirestore();
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("signalDiagnostics authorization check failed", e);
+    return false;
+  }
+}
 
 /**
  * Diagnostic endpoint to check signal data and cache status
  */
 export const signalDiagnostics = onRequest(async (request, response) => {
+  if (!(await isAuthorizedAdmin(request.headers.authorization))) {
+    response.status(401).json({
+      error: "Unauthorized: Admin privileges required.",
+    });
+    return;
+  }
+
   const symbol = (request.query.symbol as string) || "UBER";
 
   try {
@@ -67,6 +105,6 @@ export const signalDiagnostics = onRequest(async (request, response) => {
     response.json(result);
   } catch (error) {
     logger.error("Error in signalDiagnostics", error);
-    response.status(500).json({ error: String(error) });
+    response.status(500).json({ error: "Failed to run signal diagnostics" });
   }
 });
