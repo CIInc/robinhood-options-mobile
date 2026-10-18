@@ -214,31 +214,36 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
   Widget _buildMiniMetric(
       BuildContext context, String label, String value, Color color) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $value',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+              ),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -252,66 +257,79 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
     final growthRatio = res.investmentGrowthShare;
     final matchRatio = res.matchShare;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: SizedBox(
-            height: 10,
-            child: Row(
-              children: [
-                if (contribRatio > 0)
-                  Expanded(
-                    flex: (contribRatio * 1000).toInt(),
-                    child: Container(color: colorScheme.primary),
-                  ),
-                if (matchRatio > 0)
-                  Expanded(
-                    flex: (matchRatio * 1000).toInt(),
-                    child: Container(color: Colors.amber),
-                  ),
-                if (growthRatio > 0)
-                  Expanded(
-                    flex: (growthRatio * 1000).toInt(),
-                    child: Container(color: Colors.green),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${(contribRatio * 100).toStringAsFixed(0)}% Principal',
-              style: TextStyle(
-                fontSize: 11,
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w600,
+    final contribPct = (contribRatio * 100).toStringAsFixed(0);
+    final matchPct = (matchRatio * 100).toStringAsFixed(1);
+    final growthPct = (growthRatio * 100).toStringAsFixed(0);
+
+    final semanticLabel = matchRatio > 0
+        ? 'Retirement balance breakdown: $contribPct% principal, $matchPct% match wealth, $growthPct% compounding growth'
+        : 'Retirement balance breakdown: $contribPct% principal, $growthPct% compounding growth';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (contribRatio > 0)
+                    Expanded(
+                      flex: (contribRatio * 1000).toInt(),
+                      child: Container(color: colorScheme.primary),
+                    ),
+                  if (matchRatio > 0)
+                    Expanded(
+                      flex: (matchRatio * 1000).toInt(),
+                      child: Container(color: Colors.amber),
+                    ),
+                  if (growthRatio > 0)
+                    Expanded(
+                      flex: (growthRatio * 1000).toInt(),
+                      child: Container(color: Colors.green),
+                    ),
+                ],
               ),
             ),
-            if (matchRatio > 0)
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                '${(matchRatio * 100).toStringAsFixed(1)}% Match Wealth',
-                style: const TextStyle(
+                '$contribPct% Principal',
+                style: TextStyle(
                   fontSize: 11,
-                  color: Colors.amber,
+                  color: colorScheme.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            Text(
-              '${(growthRatio * 100).toStringAsFixed(0)}% Compounding',
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.green,
-                fontWeight: FontWeight.w600,
+              if (matchRatio > 0)
+                Text(
+                  '$matchPct% Match Wealth',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Colors.amber,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              Text(
+                '$growthPct% Compounding',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
