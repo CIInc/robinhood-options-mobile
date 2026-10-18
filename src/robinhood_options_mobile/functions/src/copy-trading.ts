@@ -21,9 +21,33 @@ interface CopyTradeSettings {
   enabled: boolean;
   targetUserId?: string;
   autoExecute: boolean;
+  copyPercentage?: number;
   maxQuantity?: number;
   maxAmount?: number;
+  maxDailyAmount?: number;
   overridePrice?: boolean;
+  symbolWhitelist?: string[];
+  symbolBlacklist?: string[];
+  sectorWhitelist?: string[];
+  minMarketCap?: number;
+  maxMarketCap?: number;
+  startTime?: string;
+  endTime?: string;
+  copyStopLoss?: boolean;
+  copyTakeProfit?: boolean;
+  copyTrailingStop?: boolean;
+  inverse?: boolean;
+  stopLossAdjustment?: number;
+  takeProfitAdjustment?: number;
+  maxAllocationPerTrade?: number;
+  maxAllocationPct?: number;
+  maxSlippageBps?: number;
+  autoDisconnectOnDivergence?: boolean;
+  maxLeaderDrawdownPct?: number;
+  maxReturnDivergencePct?: number;
+  isRiskGuardianTripped?: boolean;
+  riskGuardianTripReason?: string;
+  riskGuardianTrippedAt?: string;
 }
 
 /**
@@ -46,15 +70,140 @@ interface CopyTradeRecord {
   targetUserId: string;
   groupId: string;
   orderType: "instrument" | "option";
+  type?: string; // limit, market, stop, etc.
+  trigger?: string; // stop, etc.
   originalOrderId: string;
   symbol: string;
   side: string;
   originalQuantity: number;
   copiedQuantity: number;
   price: number;
+  stopPrice?: number;
   strategy?: string;
+  legs?: {
+    expirationDate?: string;
+    strikePrice?: number;
+    optionType?: string;
+    side?: string;
+    positionEffect?: string;
+    ratioQuantity?: number;
+  }[];
   timestamp: FieldValue; // server timestamp placeholder
   executed: boolean;
+  status?: "pending_approval" | "approved" | "rejected"
+  | "executed" | "aborted";
+  executionResult?: string;
+  error?: string;
+  isInverse?: boolean;
+  executedPrice?: number;
+  fillLatencyMs?: number;
+  priceSlippage?: number;
+  slippageBps?: number;
+  leaderReturnPct?: number;
+  followerReturnPct?: number;
+  returnDivergencePct?: number;
+}
+
+/**
+ * Interface for fundamentals
+ */
+interface Fundamentals {
+  sector?: string;
+  market_cap?: number;
+}
+
+/**
+ * Interface for instrument
+ */
+interface Instrument {
+  symbol: string;
+  fundamentalsObj?: Fundamentals;
+}
+
+/**
+ * Checks if current time is within the specified range
+ * @param {string} startTime - Start time in HH:mm format
+ * @param {string} endTime - End time in HH:mm format
+ * @return {boolean} True if current time is within range
+ */
+function isTimeInRange(startTime: string, endTime: string): boolean {
+  // Convert current time to EST/EDT as market hours are in ET
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  // EDT (UTC-4) - simplified, ideally use a library for timezone
+  const etOffset = -4;
+  const etDate = new Date(utc + 3600000 * etOffset);
+
+  const currentMinutes = etDate.getHours() * 60 + etDate.getMinutes();
+
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const startMinutes = startHour * 60 + startMinute;
+
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+  const endMinutes = endHour * 60 + endMinute;
+
+  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+}
+
+/**
+ * Checks if a trade should be copied based on settings
+ * @param {CopyTradeSettings} settings - Copy trade settings
+ * @param {string} symbol - Symbol of the trade
+ * @param {string} [sector] - Sector of the symbol
+ * @param {number} [marketCap] - Market cap of the symbol
+ * @return {boolean} True if trade should be copied
+ */
+function shouldCopyTrade(
+  settings: CopyTradeSettings,
+  symbol: string,
+  sector?: string,
+  marketCap?: number
+): boolean {
+  if (!settings.enabled) return false;
+  if (settings.isRiskGuardianTripped) return false;
+
+  // Symbol Whitelist
+  if (
+    settings.symbolWhitelist &&
+    settings.symbolWhitelist.length > 0 &&
+    !settings.symbolWhitelist.includes(symbol)
+  ) {
+    return false;
+  }
+
+  // Symbol Blacklist
+  if (settings.symbolBlacklist && settings.symbolBlacklist.includes(symbol)) {
+    return false;
+  }
+
+  // Sector Whitelist
+  if (
+    sector &&
+    settings.sectorWhitelist &&
+    settings.sectorWhitelist.length > 0 &&
+    !settings.sectorWhitelist.includes(sector)
+  ) {
+    return false;
+  }
+
+  // Market Cap
+  if (marketCap) {
+    if (settings.minMarketCap && marketCap < settings.minMarketCap) {
+      return false;
+    }
+    if (settings.maxMarketCap && marketCap > settings.maxMarketCap) {
+      return false;
+    }
+  }
+
+  // Time Filters
+  if (settings.startTime && settings.endTime) {
+    if (!isTimeInRange(settings.startTime, settings.endTime)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -86,14 +235,75 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         }
       );
 
-      // Only process filled orders
+      // Determine if this is an exit order (Stop Loss or Take Profit)
+      const isStopLoss = orderData.trigger === "stop";
+      const isTakeProfit =
+        orderData.type === "limit" &&
+        orderData.side === "sell"; // Simplified assumption
+      const isExitOrder = isStopLoss || isTakeProfit;
+
+      // Only process filled orders, unless it's a confirmed exit order
       if (orderData.state !== "filled") {
-        logger.info("Order not filled, skipping copy trade", {
-          userId,
-          orderId,
-          state: orderData.state,
-        });
-        return;
+        if (
+          !isExitOrder ||
+          (orderData.state !== "confirmed" &&
+            orderData.state !== "queued")
+        ) {
+          logger.info(
+            "Skipping copy trade: Order not filled/confirmed exit",
+            {
+              userId,
+              orderId,
+              state: orderData.state,
+              trigger: orderData.trigger,
+              type: orderData.type,
+              side: orderData.side,
+            }
+          );
+          return;
+        }
+      }
+
+      // Fetch instrument details to get symbol, sector, and market cap
+      let symbol = "Unknown";
+      let sector: string | undefined;
+      let marketCap: number | undefined;
+
+      const instrumentId = orderData.instrument_id;
+      if (instrumentId) {
+        try {
+          const instrumentDoc = await db
+            .collection("instrument")
+            .doc(instrumentId)
+            .get();
+
+          if (instrumentDoc.exists) {
+            const instrumentData = instrumentDoc.data() as Instrument;
+            symbol = instrumentData.symbol || "Unknown";
+            sector = instrumentData.fundamentalsObj?.sector;
+            marketCap = instrumentData.fundamentalsObj?.market_cap;
+
+            logger.info("Fetched instrument details", {
+              instrumentId,
+              symbol,
+              sector,
+              marketCap,
+            });
+          } else {
+            logger.warn("Instrument document not found", { instrumentId });
+          }
+        } catch (error) {
+          logger.error("Error fetching instrument details", {
+            instrumentId,
+            error,
+          });
+        }
+      } else {
+        logger.warn("No instrument_id in order data", { orderId });
+        // Fallback to existing symbol if available
+        if (orderData.instrumentObj?.symbol) {
+          symbol = orderData.instrumentObj.symbol;
+        }
       }
 
       // Find investor groups where this user is a member
@@ -107,6 +317,27 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
+      let sourceUserNamePromise: Promise<string> | undefined;
+      const getSourceUserName = async (): Promise<string> => {
+        if (!sourceUserNamePromise) {
+          sourceUserNamePromise = db.collection("user").doc(userId).get()
+            .then((sourceUserDoc) =>
+              sourceUserDoc.exists ?
+                (sourceUserDoc.data()?.name || "A trader") :
+                "A trader"
+            )
+            .catch((error) => {
+              logger.error("Error fetching source user details", {
+                userId,
+                error,
+              });
+              return "A trader";
+            });
+        }
+
+        return sourceUserNamePromise;
+      };
+
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
@@ -119,72 +350,170 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         for (const [memberId, settings] of Object.entries(
           group.memberCopyTradeSettings
         )) {
-          if (
-            settings.enabled &&
-            settings.autoExecute &&
-            settings.targetUserId === userId
-          ) {
-            logger.info(
-              "Found copy trade target",
-              {
-                sourceUser: userId,
+          if (settings.enabled && settings.targetUserId === userId) {
+            // Use fetched symbol, sector, and marketCap
+            if (!shouldCopyTrade(settings, symbol, sector, marketCap)) {
+              logger.info("Trade filtered out by settings", {
+                userId,
                 targetUser: memberId,
-                groupId: group.id,
-              }
-            );
+                symbol,
+              });
+              continue;
+            }
+
+            // Check if we should copy this type of order
+            if (isStopLoss && !settings.copyStopLoss) {
+              logger.info("Stop loss copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+            if (
+              isTakeProfit &&
+              !settings.copyTakeProfit &&
+              orderData.state !==
+              "filled"
+            ) {
+              logger.info("Take profit copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            // Trailing Stop Check (Heuristic: stop trigger without fixed stop
+            // price or explicit type)
+            // Note: Adjust logic based on actual Robinhood API response for
+            // trailing stops
+            const isTrailingStop =
+              orderData.type === "market" &&
+              orderData.trigger === "stop" &&
+              !orderData.stop_price;
+            if (isTrailingStop && !settings.copyTrailingStop) {
+              logger.info("Trailing stop copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            logger.info("Found copy trade target", {
+              sourceUser: userId,
+              targetUser: memberId,
+              groupId: group.id,
+              autoExecute: settings.autoExecute,
+            });
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
-            const price = orderData.price || 0;
+            let price = orderData.price || 0;
+            let stopPrice = orderData.stop_price;
+
+            if (isStopLoss && settings.stopLossAdjustment && stopPrice) {
+              stopPrice = stopPrice * (1 + settings.stopLossAdjustment / 100);
+            }
+
+            if (isTakeProfit && settings.takeProfitAdjustment && price) {
+              price = price * (1 + settings.takeProfitAdjustment / 100);
+            }
+
+            if (settings.copyPercentage) {
+              quantity = quantity * (settings.copyPercentage / 100);
+              // Round to 4 decimal places for instruments (fractional shares)
+              quantity = Math.round(quantity * 10000) / 10000;
+            }
 
             if (settings.maxQuantity && quantity > settings.maxQuantity) {
               quantity = settings.maxQuantity;
             }
 
-            if (settings.maxAmount) {
+            const effectiveMaxAmount =
+              settings.maxAllocationPerTrade || settings.maxAmount;
+            if (effectiveMaxAmount && price > 0) {
               const totalAmount = quantity * price;
-              if (totalAmount > settings.maxAmount) {
-                quantity = settings.maxAmount / price;
+              if (totalAmount > effectiveMaxAmount) {
+                quantity = effectiveMaxAmount / price;
+                quantity = Math.round(quantity * 10000) / 10000;
               }
             }
 
-            // Create a copy trade record
-            await createCopyTradeRecord({
-              sourceUserId: userId,
-              targetUserId: memberId,
-              groupId: group.id,
-              orderType: "instrument",
-              originalOrderId: orderId,
-              symbol: orderData.instrumentObj?.symbol || "Unknown",
-              side: orderData.side,
-              originalQuantity: orderData.quantity,
-              copiedQuantity: quantity,
-              price: price,
-              timestamp: FieldValue.serverTimestamp(),
-              executed: false, // Would be true after actual order placement
-            });
+            if (settings.autoExecute) {
+              // Create a copy trade record (auto-execute)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "instrument",
+                type: orderData.type,
+                trigger: orderData.trigger,
+                originalOrderId: orderId,
+                symbol: orderData.instrumentObj?.symbol || "Unknown",
+                side: settings.inverse ?
+                  (orderData.side === "buy" ? "sell" : "buy") :
+                  orderData.side,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                stopPrice: stopPrice,
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false, // Would be true after actual order placement
+                status: "approved",
+                isInverse: settings.inverse || false,
+              });
 
-            logger.info(
-              "Copy trade record created",
-              {
-                sourceUser: userId,
-                targetUser: memberId,
-                symbol: orderData.instrumentObj?.symbol,
-              }
-            );
+              logger.info(
+                "Copy trade record created (auto-execute)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.instrumentObj?.symbol,
+                }
+              );
+            } else {
+              // Create a copy trade record (manual approval)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "instrument",
+                type: orderData.type,
+                trigger: orderData.trigger,
+                originalOrderId: orderId,
+                symbol: orderData.instrumentObj?.symbol || "Unknown",
+                side: settings.inverse ?
+                  (orderData.side === "buy" ? "sell" : "buy") :
+                  orderData.side,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                stopPrice: stopPrice,
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false,
+                status: "pending_approval",
+                isInverse: settings.inverse || false,
+              });
 
-            // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
+              logger.info(
+                "Copy trade record created (pending approval)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.instrumentObj?.symbol,
+                }
+              );
+            }
 
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
-              orderData.instrumentObj?.symbol || "Unknown",
+              await getSourceUserName(),
+              symbol,
               orderData.side,
               quantity,
-              "instrument"
+              "instrument",
+              price,
+              settings.autoExecute
             );
           }
         }
@@ -222,14 +551,68 @@ export const onOptionOrderCreated = onDocumentCreated(
         }
       );
 
-      // Only process filled orders
+      // Determine if this is an exit order (Stop Loss or Take Profit)
+      const isStopLoss = orderData.trigger === "stop";
+      const isSell =
+        orderData.legs &&
+        orderData.legs.length > 0 &&
+        orderData.legs[0].side === "sell";
+      const isTakeProfit = orderData.type === "limit" && isSell;
+      const isExitOrder = isStopLoss || isTakeProfit;
+
+      // Only process filled orders, unless it's a confirmed exit order
       if (orderData.state !== "filled") {
-        logger.info("Order not filled, skipping copy trade", {
-          userId,
-          orderId,
-          state: orderData.state,
-        });
-        return;
+        if (
+          !isExitOrder ||
+          (orderData.state !== "confirmed" &&
+            orderData.state !== "queued")
+        ) {
+          logger.info(
+            "Skipping copy trade: Order not filled/confirmed exit",
+            {
+              userId,
+              orderId,
+              state: orderData.state,
+              trigger: orderData.trigger,
+              type: orderData.type,
+            }
+          );
+          return;
+        }
+      }
+
+      // Fetch instrument details to get sector and market cap
+      const symbol = orderData.chain_symbol || "Unknown";
+      let sector: string | undefined;
+      let marketCap: number | undefined;
+
+      if (symbol !== "Unknown") {
+        try {
+          const instrumentQuery = await db
+            .collection("instrument")
+            .where("symbol", "==", symbol)
+            .limit(1)
+            .get();
+
+          if (!instrumentQuery.empty) {
+            const instrumentData = instrumentQuery.docs[0].data() as Instrument;
+            sector = instrumentData.fundamentalsObj?.sector;
+            marketCap = instrumentData.fundamentalsObj?.market_cap;
+
+            logger.info("Fetched instrument details for option", {
+              symbol,
+              sector,
+              marketCap,
+            });
+          } else {
+            logger.warn("Instrument not found for symbol", { symbol });
+          }
+        } catch (error) {
+          logger.error("Error fetching instrument details", {
+            symbol,
+            error,
+          });
+        }
       }
 
       // Find investor groups where this user is a member
@@ -243,6 +626,27 @@ export const onOptionOrderCreated = onDocumentCreated(
         return;
       }
 
+      let sourceUserNamePromise: Promise<string> | undefined;
+      const getSourceUserName = async (): Promise<string> => {
+        if (!sourceUserNamePromise) {
+          sourceUserNamePromise = db.collection("user").doc(userId).get()
+            .then((sourceUserDoc) =>
+              sourceUserDoc.exists ?
+                (sourceUserDoc.data()?.name || "A trader") :
+                "A trader"
+            )
+            .catch((error) => {
+              logger.error("Error fetching source user details", {
+                userId,
+                error,
+              });
+              return "A trader";
+            });
+        }
+
+        return sourceUserNamePromise;
+      };
+
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
@@ -255,74 +659,194 @@ export const onOptionOrderCreated = onDocumentCreated(
         for (const [memberId, settings] of Object.entries(
           group.memberCopyTradeSettings
         )) {
-          if (
-            settings.enabled &&
-            settings.autoExecute &&
-            settings.targetUserId === userId
-          ) {
-            logger.info(
-              "Found copy trade target",
-              {
-                sourceUser: userId,
+          if (settings.enabled && settings.targetUserId === userId) {
+            // Use fetched symbol, sector, and marketCap
+            if (!shouldCopyTrade(settings, symbol, sector, marketCap)) {
+              logger.info("Trade filtered out by settings", {
+                userId,
                 targetUser: memberId,
-                groupId: group.id,
-              }
-            );
+                symbol,
+              });
+              continue;
+            }
+
+            // Check if we should copy this type of order
+            if (isStopLoss && !settings.copyStopLoss) {
+              logger.info("Stop loss copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+            if (
+              isTakeProfit &&
+              !settings.copyTakeProfit &&
+              orderData.state !==
+              "filled"
+            ) {
+              logger.info("Take profit copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            // Trailing Stop Check (Heuristic: stop trigger without fixed stop
+            // price or explicit type)
+            // Note: Adjust logic based on actual Robinhood API response for
+            // trailing stops
+            const isTrailingStop =
+              orderData.type === "market" &&
+              orderData.trigger === "stop" &&
+              !orderData.stop_price;
+            if (isTrailingStop && !settings.copyTrailingStop) {
+              logger.info("Trailing stop copying disabled", {
+                userId,
+                targetUser: memberId,
+              });
+              continue;
+            }
+
+            logger.info("Found copy trade target", {
+              sourceUser: userId,
+              targetUser: memberId,
+              groupId: group.id,
+              autoExecute: settings.autoExecute,
+            });
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
-            const price = orderData.price || 0;
+            let price = orderData.price || 0;
+            let stopPrice = orderData.stop_price;
+
+            if (isStopLoss && settings.stopLossAdjustment && stopPrice) {
+              stopPrice = stopPrice * (1 + settings.stopLossAdjustment / 100);
+            }
+
+            if (isTakeProfit && settings.takeProfitAdjustment && price) {
+              price = price * (1 + settings.takeProfitAdjustment / 100);
+            }
+
+            if (settings.copyPercentage) {
+              quantity = quantity * (settings.copyPercentage / 100);
+              // Options must be integers, floor to be safe
+              quantity = Math.floor(quantity);
+              // Ensure at least 1 contract if copying
+              if (quantity < 1) quantity = 1;
+            }
 
             if (settings.maxQuantity && quantity > settings.maxQuantity) {
               quantity = settings.maxQuantity;
             }
 
-            if (settings.maxAmount) {
+            const effectiveMaxOptionAmount =
+              settings.maxAllocationPerTrade || settings.maxAmount;
+            if (effectiveMaxOptionAmount && price > 0) {
               const totalAmount =
                 quantity * price * 100; // Options are per 100 shares
-              if (totalAmount > settings.maxAmount) {
-                quantity = settings.maxAmount / (price * 100);
+              if (totalAmount > effectiveMaxOptionAmount) {
+                quantity = Math.floor(effectiveMaxOptionAmount / (price * 100));
               }
             }
 
-            // Create a copy trade record
-            await createCopyTradeRecord({
-              sourceUserId: userId,
-              targetUserId: memberId,
-              groupId: group.id,
-              orderType: "option",
-              originalOrderId: orderId,
-              symbol: orderData.chainSymbol || "Unknown",
-              side: orderData.direction,
-              originalQuantity: orderData.quantity,
-              copiedQuantity: quantity,
-              price: price,
-              strategy: orderData.strategy,
-              timestamp: FieldValue.serverTimestamp(),
-              executed: false, // Would be true after actual order placement
-            });
+            if (settings.autoExecute) {
+              // Create a copy trade record (auto-execute)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "option",
+                type: orderData.type,
+                trigger: orderData.trigger,
+                originalOrderId: orderId,
+                symbol: symbol,
+                side: settings.inverse ?
+                  (orderData.direction === "debit" ? "credit" : "debit") :
+                  orderData.direction,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                stopPrice: stopPrice,
+                strategy: orderData.strategy,
+                legs: (orderData.legs || []).map((leg: any) => ({
+                  expirationDate: leg.expiration_date,
+                  strikePrice: leg.strike_price,
+                  optionType: leg.option_type,
+                  side: settings.inverse ?
+                    (leg.side === "buy" ? "sell" : "buy") :
+                    leg.side,
+                  positionEffect: leg.position_effect,
+                  ratioQuantity: leg.ratio_quantity,
+                })),
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false, // Would be true after actual order placement
+                status: "approved",
+                isInverse: settings.inverse || false,
+              });
 
-            logger.info(
-              "Copy trade record created",
-              {
-                sourceUser: userId,
-                targetUser: memberId,
-                symbol: orderData.chainSymbol,
-              }
-            );
+              logger.info(
+                "Copy trade record created (auto-execute)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.chainSymbol,
+                }
+              );
+            } else {
+              // Create a copy trade record (manual approval)
+              await createCopyTradeRecord({
+                sourceUserId: userId,
+                targetUserId: memberId,
+                groupId: group.id,
+                orderType: "option",
+                type: orderData.type,
+                trigger: orderData.trigger,
+                originalOrderId: orderId,
+                symbol: symbol,
+                side: settings.inverse ?
+                  (orderData.direction === "debit" ? "credit" : "debit") :
+                  orderData.direction,
+                originalQuantity: orderData.quantity,
+                copiedQuantity: quantity,
+                price: price,
+                stopPrice: stopPrice,
+                strategy: orderData.strategy,
+                legs: (orderData.legs || []).map((leg: any) => ({
+                  expirationDate: leg.expiration_date,
+                  strikePrice: leg.strike_price,
+                  optionType: leg.option_type,
+                  side: settings.inverse ?
+                    (leg.side === "buy" ? "sell" : "buy") :
+                    leg.side,
+                  positionEffect: leg.position_effect,
+                  ratioQuantity: leg.ratio_quantity,
+                })),
+                timestamp: FieldValue.serverTimestamp(),
+                executed: false,
+                status: "pending_approval",
+                isInverse: settings.inverse || false,
+              });
 
-            // Get source user name for notification
-            const sourceUserDoc = await db.collection("user").doc(userId).get();
-            const sourceUserName = sourceUserDoc.data()?.name || "A trader";
+              logger.info(
+                "Copy trade record created (pending approval)",
+                {
+                  sourceUser: userId,
+                  targetUser: memberId,
+                  symbol: orderData.chainSymbol,
+                }
+              );
+            }
 
             // Send notification to target user
             await sendCopyTradeNotification(
               memberId,
-              sourceUserName,
-              orderData.chainSymbol || "Unknown",
+              await getSourceUserName(),
+              symbol,
               orderData.direction,
               quantity,
-              "option"
+              "option",
+              price,
+              settings.autoExecute
             );
           }
         }
@@ -342,6 +866,9 @@ export const onOptionOrderCreated = onDocumentCreated(
  * @param {string} side Buy/sell side
  * @param {number} quantity Quantity of the trade
  * @param {string} orderType Type of order (instrument or option)
+ * @param {number} [price] Price of the trade
+ * @param {boolean} autoExecute Whether the trade was auto-executed or
+ *   requires approval
  */
 async function sendCopyTradeNotification(
   userId: string,
@@ -349,7 +876,9 @@ async function sendCopyTradeNotification(
   symbol: string,
   side: string,
   quantity: number,
-  orderType: string
+  orderType: string,
+  price?: number,
+  autoExecute = true
 ): Promise<void> {
   try {
     // Fetch user's FCM tokens from devices
@@ -373,10 +902,18 @@ async function sendCopyTradeNotification(
     }
 
     // Prepare notification
-    const title = "Copy Trade Available";
+    const emoji = side.toLowerCase() === "buy" ? "📥" : "📤";
+    // Title: "📥 Copy Buy Executed: AAPL"
+    const title = autoExecute ?
+      `${emoji} Copy ${side} Executed: ${symbol}` :
+      `${emoji} Copy ${side} Request: ${symbol}`;
+
+    const priceStr = price ? ` @ $${price.toFixed(2)}` : "";
+
+    // Body: "👤 UserX • bought 10 shares @ $150.00"
     const body =
-      `${sourceUserName} ${side} ${quantity.toFixed(0)} ` +
-      `${orderType === "option" ? "contracts" : "shares"} of ${symbol}`;
+      `👤 ${sourceUserName} • ${side.toLowerCase()} ${quantity.toFixed(0)} ` +
+      `${orderType === "option" ? "contracts" : "shares"}${priceStr}`;
 
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({
@@ -391,6 +928,7 @@ async function sendCopyTradeNotification(
         side: side,
         quantity: quantity.toString(),
         orderType: orderType,
+        action: autoExecute ? "executed" : "request",
       },
       android: {
         priority: "high",
@@ -398,6 +936,8 @@ async function sendCopyTradeNotification(
           channelId: "copy_trades",
           priority: "high",
           sound: "default",
+          // Group notifications by symbol
+          // tag: symbol,
         },
       },
       apns: {
@@ -405,6 +945,8 @@ async function sendCopyTradeNotification(
           aps: {
             sound: "default",
             badge: 1,
+            // Group notifications by symbol on iOS
+            // threadId: symbol,
           },
         },
       },

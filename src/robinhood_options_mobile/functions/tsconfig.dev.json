@@ -1,5 +1,11 @@
 {
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"]
+  },
   "include": [
-    ".eslintrc.js"
+    ".eslintrc.js",
+    "jest.config.js",
+    "tests"
   ]
 }

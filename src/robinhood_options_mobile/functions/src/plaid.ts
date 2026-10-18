@@ -1,3 +1,4 @@
+/*
 // import * as functions from 'firebase-functions';
 import * as https from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
@@ -88,3 +89,4 @@ export const getInvestmentsTransactions = https.onCall({},
     });
     return tokenExchangeResponse.data;
   });
+*/

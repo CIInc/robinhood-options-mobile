@@ -1,11 +1,15 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -16,12 +20,31 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/widgets/alpha_factor_discovery_widget.dart';
+import 'package:robinhood_options_mobile/widgets/carry_trade_optimizer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/event_study_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
+// Reserved for a future Alpha Feed with distinct news and social signals.
+// import 'package:robinhood_options_mobile/widgets/market_sentiment_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/macro_assessment_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
+import 'package:robinhood_options_mobile/widgets/list_widget.dart';
+import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+import 'package:robinhood_options_mobile/widgets/presets_widget.dart';
+import 'package:robinhood_options_mobile/widgets/whale_watch_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/congress_trading_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/gamma_exposure_dashboard_widget.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -29,9 +52,15 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
   final User? user;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final IBrokerageService? service;
   final GenerativeService generativeService;
+  final DocumentReference<User>? userDocRef;
+
+  /// When true, the widget is hosted inside another screen that provides
+  /// its own app bar and owns navigation: the internal app bar is hidden
+  /// and back gestures/buttons are allowed to pop the enclosing route.
+  final bool embedded;
 
   const SearchWidget(
     this.brokerageUser,
@@ -41,7 +70,9 @@ class SearchWidget extends StatefulWidget {
     required this.observer,
     required this.generativeService,
     this.navigatorKey,
-    this.user,
+    required this.user,
+    required this.userDocRef,
+    this.embedded = false,
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -55,59 +86,28 @@ class SearchWidget extends StatefulWidget {
 class _SearchWidgetState extends State<SearchWidget>
     with AutomaticKeepAliveClientMixin<SearchWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  final YahooService _yahooService = YahooService();
+  final ScrollController _scrollController = ScrollController();
 
   String? query;
   TextEditingController? searchCtl;
   Future<dynamic>? futureSearch;
+
+  /// Debounces search-as-you-type so a request fires only after the user
+  /// pauses, instead of once per keystroke.
+  Timer? _searchDebounce;
   Future<List<MidlandMoversItem>>? futureMovers;
   Future<List<MidlandMoversItem>>? futureLosers;
   Future<List<Instrument>>? futureListMovers;
   Future<List<Instrument>>? futureListMostPopular;
-  Future<List<Map<String, dynamic>>>? futureTradeSignals;
+
+  Stream<List<Watchlist>>? watchlistStream;
 
   InstrumentStore? instrumentStore;
 
-  // Advanced Stock Screener UI state
-  List<Instrument>? screenerResults;
-  String? screenerSector;
-  int? screenerMarketCapMin;
-  int? screenerMarketCapMax;
-  int? screenerPeMin;
-  int? screenerPeMax;
-  int? screenerDividendYieldMin;
-  int? screenerDividendYieldMax;
-  double? screenerPriceMin;
-  double? screenerPriceMax;
-  int? screenerVolumeMin;
-  bool screenerLoading = false;
-  String? errorText;
-  String screenerSortBy = 'symbol'; // symbol, marketCap, pe, dividend, price
-
-  // Yahoo Screener integration
-  late YahooService yahooService;
-  ScreenerId? selectedYahooScreener;
-  dynamic yahooScreenerResults;
-  bool yahooScreenerLoading = false;
-  String? yahooScreenerError;
+  final GlobalKey<TradeSignalsWidgetState> _tradeSignalsKey = GlobalKey();
 
   // Trade Signal Filters
-  String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
-  List<String> selectedIndicators =
-      []; // Selected indicators from multiIndicatorResult.indicators
-  DateTime? tradeSignalStartDate;
-  DateTime? tradeSignalEndDate;
-  int tradeSignalLimit = 50; // Default limit
-
-  // Controllers for screener fields
-  late TextEditingController marketCapMinCtl;
-  late TextEditingController marketCapMaxCtl;
-  late TextEditingController peMinCtl;
-  late TextEditingController peMaxCtl;
-  late TextEditingController dividendYieldMinCtl;
-  late TextEditingController dividendYieldMaxCtl;
-  late TextEditingController priceMinCtl;
-  late TextEditingController priceMaxCtl;
-  late TextEditingController volumeMinCtl;
 
   _SearchWidgetState();
 
@@ -119,48 +119,138 @@ class _SearchWidgetState extends State<SearchWidget>
     super.initState();
 
     searchCtl = TextEditingController();
-    marketCapMinCtl = TextEditingController();
-    marketCapMaxCtl = TextEditingController();
-    peMinCtl = TextEditingController();
-    peMaxCtl = TextEditingController();
-    dividendYieldMinCtl = TextEditingController();
-    dividendYieldMaxCtl = TextEditingController();
-    priceMinCtl = TextEditingController();
-    priceMaxCtl = TextEditingController();
-    volumeMinCtl = TextEditingController();
-    yahooService = YahooService();
     widget.analytics.logScreenView(screenName: 'Search');
+  }
 
-    // Fetch trade signals on initialization
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-      agenticTradingProvider.fetchAllTradeSignals();
-    });
+  @override
+  void didUpdateWidget(SearchWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.brokerageUser != oldWidget.brokerageUser) {
+      debugPrint("SearchWidget: User changed. Resetting futures.");
+      futureMovers = null;
+      futureLosers = null;
+      futureListMovers = null;
+      futureSearch = null;
+      watchlistStream = null;
+
+      if (searchCtl?.text.isNotEmpty == true) {
+        debugPrint(
+            "SearchWidget: User changed and text present. Retriggering search.");
+        if (widget.service != null) {
+          futureSearch =
+              widget.service!.search(widget.brokerageUser!, searchCtl!.text);
+        } else {
+          futureSearch = _yahooService.search(searchCtl!.text);
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     searchCtl?.dispose();
-    marketCapMinCtl.dispose();
-    marketCapMaxCtl.dispose();
-    peMinCtl.dispose();
-    peMaxCtl.dispose();
-    dividendYieldMinCtl.dispose();
-    dividendYieldMaxCtl.dispose();
-    priceMinCtl.dispose();
-    priceMaxCtl.dispose();
-    volumeMinCtl.dispose();
-    yahooService.httpClient.close();
+    _scrollController.dispose();
     super.dispose();
   }
 
+  /// Executes the (debounced) symbol search. Comma-separated input searches
+  /// each term and combines the results.
+  void _performSearch(String text) {
+    setState(() {
+      if (text.contains(',')) {
+        var queries = text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        if (queries.isNotEmpty) {
+          if (widget.service != null) {
+            futureSearch = Future.wait(queries.map(
+                    (q) => widget.service!.search(widget.brokerageUser!, q)))
+                .then((results) {
+              var combined = [];
+              for (var result in results) {
+                if (result is List) {
+                  combined.addAll(result);
+                } else if (result is Map) {
+                  // Assume Robinhood structure
+                  try {
+                    var resList = result['results'] as List?;
+                    if (resList != null) {
+                      for (var res in resList) {
+                        var content = res['content'];
+                        if (content != null) {
+                          var data = content['data'] as List?;
+                          if (data != null) {
+                            for (var d in data) {
+                              if (d['item'] != null) {
+                                combined.add(d['item']);
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    debugPrint('Error parsing search result: $e');
+                  }
+                }
+              }
+              return combined;
+            });
+          } else {
+            futureSearch =
+                Future.wait(queries.map((q) => _yahooService.search(q)))
+                    .then((results) {
+              var combined = [];
+              for (var result in results) {
+                combined.addAll(result);
+              }
+              return combined;
+            });
+          }
+          return;
+        }
+      }
+      if (widget.service != null) {
+        futureSearch = widget.service!.search(widget.brokerageUser!, text);
+      } else {
+        futureSearch = _yahooService.search(text);
+      }
+    });
+  } // WidgetsBinding.instance.addPostFrameCallback((_) {
+
+  //   _fetchTradeSignalsWithFilters();
+
+  void _openPresets() {
+    final brokerageUser = widget.brokerageUser;
+    final service = widget.service;
+    if (brokerageUser == null || service == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PresetsWidget(
+          brokerageUser,
+          service,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          generativeService: widget.generativeService,
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+        ),
+      ),
+    );
+  }
+
+  //override
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return PopScope(
-        canPop: false, //When false, blocks the current route from being popped.
+        canPop: widget
+            .embedded, //When false, blocks the current route from being popped.
         onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
@@ -173,732 +263,54 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildScaffold() {
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
-    futureMovers ??=
-        widget.service.getMovers(widget.brokerageUser, direction: "up");
-    futureLosers ??=
-        widget.service.getMovers(widget.brokerageUser, direction: "down");
-    futureListMovers ??=
-        widget.service.getTopMovers(widget.brokerageUser, instrumentStore!);
+    if (widget.brokerageUser != null && widget.service != null) {
+      futureMovers ??= widget.service!
+          .getMovers(widget.brokerageUser!, direction: "up")
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting movers: $e");
+        return <MidlandMoversItem>[];
+      });
+      futureLosers ??= widget.service!
+          .getMovers(widget.brokerageUser!, direction: "down")
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting losers: $e");
+        return <MidlandMoversItem>[];
+      });
+      futureListMovers ??= widget.service!
+          .getTopMovers(widget.brokerageUser!, instrumentStore!)
+          .catchError((e) {
+        debugPrint("SearchWidget: Error getting top movers: $e");
+        return <Instrument>[];
+      });
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+          widget.brokerageUser!.source == BrokerageSource.demo) {
+        watchlistStream ??= widget.service!
+            .streamLists(widget.brokerageUser!, instrumentStore!,
+                Provider.of<QuoteStore>(context, listen: false))
+            .asBroadcastStream();
+      }
+    } else {
+      // Fallback for non-logged-in users
+      futureMovers ??= _yahooService.getMovers(direction: "up").then(
+          (results) => results
+              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
+                  q['changePercent'], q['price'], q['description']))
+              .toList());
+      futureLosers ??= _yahooService.getMovers(direction: "down").then(
+          (results) => results
+              .map((q) => MidlandMoversItem('', q['symbol'], DateTime.now(),
+                  q['changePercent'], q['price'], q['description']))
+              .toList());
+      futureListMovers ??= Future.value([]);
+    }
     // futureListMostPopular ??=
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
-    return Column(
-      children: [
-        Expanded(child: _buildSearchContent()),
-      ],
-    );
-  }
-
-  Widget _buildScreenerPanel() {
-    final sectors = [
-      'All',
-      'Electronic Technology',
-      'Consumer Durables',
-      'Consumer Non-Durables',
-      'Consumer Services',
-      'Finance',
-      'Health Technology',
-      'Miscellaneous',
-      'Retail Trade',
-      'Technology Services',
-      'Transportation',
-    ];
-
-    // Keep controllers in sync with state
-    marketCapMinCtl.text = screenerMarketCapMin?.toString() ?? '';
-    marketCapMaxCtl.text = screenerMarketCapMax?.toString() ?? '';
-    peMinCtl.text = screenerPeMin?.toString() ?? '';
-    peMaxCtl.text = screenerPeMax?.toString() ?? '';
-    dividendYieldMinCtl.text = screenerDividendYieldMin?.toString() ?? '';
-    dividendYieldMaxCtl.text = screenerDividendYieldMax?.toString() ?? '';
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(12, 0, 12, 12), // .all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      body: Column(
         children: [
-          SizedBox(height: 8),
-          Text('Quick Presets',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildPresetButton(
-                  'High Dividend', () => _applyPreset('dividend')),
-              _buildPresetButton('Growth Stocks', () => _applyPreset('growth')),
-              _buildPresetButton('Value Stocks', () => _applyPreset('value')),
-              _buildPresetButton('Large Cap', () => _applyPreset('largecap')),
-              OutlinedButton.icon(
-                onPressed: () => _applyPreset('clear'),
-                icon: Icon(Icons.clear_all, size: 16),
-                label: Text('Clear All', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  side: BorderSide(color: Colors.grey),
-                  foregroundColor: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: screenerSector,
-            items: sectors
-                .map((s) => DropdownMenuItem(
-                      value: s == 'All' ? null : s,
-                      child: Text(s),
-                    ))
-                .toList(),
-            decoration: InputDecoration(labelText: 'Sector'),
-            onChanged: (v) => setState(() => screenerSector = v),
-          ),
-          SizedBox(height: 12),
-          Text('Market Cap',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickFilterChip('Micro (<\$300M)', () {
-                setState(() {
-                  screenerMarketCapMin = null;
-                  screenerMarketCapMax = 300000000;
-                  marketCapMinCtl.clear();
-                  marketCapMaxCtl.text = '300000000';
-                });
-              }),
-              _buildQuickFilterChip('Small (\$300M-\$2B)', () {
-                setState(() {
-                  screenerMarketCapMin = 300000000;
-                  screenerMarketCapMax = 2000000000;
-                  marketCapMinCtl.text = '300000000';
-                  marketCapMaxCtl.text = '2000000000';
-                });
-              }),
-              _buildQuickFilterChip('Mid (\$2B-\$10B)', () {
-                setState(() {
-                  screenerMarketCapMin = 2000000000;
-                  screenerMarketCapMax = 10000000000;
-                  marketCapMinCtl.text = '2000000000';
-                  marketCapMaxCtl.text = '10000000000';
-                });
-              }),
-              _buildQuickFilterChip('Large (>\$10B)', () {
-                setState(() {
-                  screenerMarketCapMin = 10000000000;
-                  screenerMarketCapMax = null;
-                  marketCapMinCtl.text = '10000000000';
-                  marketCapMaxCtl.clear();
-                });
-              }),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(children: [
-            Flexible(
-              child: TextField(
-                controller: marketCapMinCtl,
-                decoration: InputDecoration(
-                  labelText: 'Min (USD)',
-                  hintText: '1000000000',
-                  helperText: '\$1B = 1,000,000,000',
-                  helperMaxLines: 1,
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (v) =>
-                    setState(() => screenerMarketCapMin = int.tryParse(v)),
-              ),
-            ),
-            SizedBox(width: 12),
-            Flexible(
-              child: TextField(
-                controller: marketCapMaxCtl,
-                decoration: InputDecoration(
-                  labelText: 'Max (USD)',
-                  hintText: '100000000000',
-                  helperText: '\$100B = 100,000,000,000',
-                  helperMaxLines: 1,
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (v) =>
-                    setState(() => screenerMarketCapMax = int.tryParse(v)),
-              ),
-            ),
-          ]),
-          SizedBox(height: 12),
-          Text('P/E Ratio',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          Text('Value: <15, Growth: >20',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
-          SizedBox(height: 4),
-          Row(children: [
-            Flexible(
-              child: TextField(
-                controller: peMinCtl,
-                decoration: InputDecoration(
-                  labelText: 'Min',
-                  hintText: '10',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerPeMin = int.tryParse(v)),
-              ),
-            ),
-            SizedBox(width: 12),
-            Flexible(
-              child: TextField(
-                controller: peMaxCtl,
-                decoration: InputDecoration(
-                  labelText: 'Max',
-                  hintText: '30',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerPeMax = int.tryParse(v)),
-              ),
-            ),
-          ]),
-          SizedBox(height: 12),
-          Text('Dividend Yield (%)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          Text('High dividend: >3%',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
-          SizedBox(height: 4),
-          Row(children: [
-            Flexible(
-              child: TextField(
-                controller: dividendYieldMinCtl,
-                decoration: InputDecoration(
-                  labelText: 'Min',
-                  hintText: '2',
-                  suffixText: '%',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerDividendYieldMin = int.tryParse(v)),
-              ),
-            ),
-            SizedBox(width: 12),
-            Flexible(
-              child: TextField(
-                controller: dividendYieldMaxCtl,
-                decoration: InputDecoration(
-                  labelText: 'Max',
-                  hintText: '5',
-                  suffixText: '%',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerDividendYieldMax = int.tryParse(v)),
-              ),
-            ),
-          ]),
-          SizedBox(height: 12),
-          Text('Price Range (\$)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          SizedBox(height: 4),
-          Row(children: [
-            Flexible(
-              child: TextField(
-                controller: priceMinCtl,
-                decoration: InputDecoration(
-                  labelText: 'Min',
-                  hintText: '10',
-                  prefixText: '\$',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerPriceMin = double.tryParse(v)),
-              ),
-            ),
-            SizedBox(width: 12),
-            Flexible(
-              child: TextField(
-                controller: priceMaxCtl,
-                decoration: InputDecoration(
-                  labelText: 'Max',
-                  hintText: '500',
-                  prefixText: '\$',
-                  isDense: true,
-                ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (v) =>
-                    setState(() => screenerPriceMax = double.tryParse(v)),
-              ),
-            ),
-          ]),
-          SizedBox(height: 12),
-          Text('Volume',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          Text('Minimum average daily volume',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
-          SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickFilterChip('Low (100K+)', () {
-                setState(() {
-                  screenerVolumeMin = 100000;
-                  volumeMinCtl.text = '100000';
-                });
-              }),
-              _buildQuickFilterChip('Med (500K+)', () {
-                setState(() {
-                  screenerVolumeMin = 500000;
-                  volumeMinCtl.text = '500000';
-                });
-              }),
-              _buildQuickFilterChip('High (1M+)', () {
-                setState(() {
-                  screenerVolumeMin = 1000000;
-                  volumeMinCtl.text = '1000000';
-                });
-              }),
-              _buildQuickFilterChip('Very High (5M+)', () {
-                setState(() {
-                  screenerVolumeMin = 5000000;
-                  volumeMinCtl.text = '5000000';
-                });
-              }),
-            ],
-          ),
-          SizedBox(height: 8),
-          TextField(
-            controller: volumeMinCtl,
-            decoration: InputDecoration(
-              labelText: 'Min Volume',
-              hintText: '1000000',
-              helperText: '1M = 1,000,000',
-              isDense: true,
-            ),
-            keyboardType: TextInputType.number,
-            onChanged: (v) =>
-                setState(() => screenerVolumeMin = int.tryParse(v)),
-          ),
-          if (errorText != null) ...[
-            SizedBox(height: 8),
-            Text(errorText!, style: TextStyle(color: Colors.red)),
-          ],
-          SizedBox(height: 16),
-          Row(
-            children: [
-              ElevatedButton.icon(
-                icon: Icon(Icons.search),
-                onPressed: screenerLoading
-                    ? null
-                    : () async {
-                        // Validate min/max fields
-                        if (screenerMarketCapMin != null &&
-                            screenerMarketCapMax != null &&
-                            screenerMarketCapMin! > screenerMarketCapMax!) {
-                          setState(() {
-                            errorText =
-                                'Market Cap Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerPeMin != null &&
-                            screenerPeMax != null &&
-                            screenerPeMin! > screenerPeMax!) {
-                          setState(() {
-                            errorText = 'P/E Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerDividendYieldMin != null &&
-                            screenerDividendYieldMax != null &&
-                            screenerDividendYieldMin! >
-                                screenerDividendYieldMax!) {
-                          setState(() {
-                            errorText =
-                                'Dividend Yield Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerPriceMin != null &&
-                            screenerPriceMax != null &&
-                            screenerPriceMin! > screenerPriceMax!) {
-                          setState(() {
-                            errorText = 'Price Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        setState(() {
-                          screenerLoading = true;
-                          errorText = null;
-                        });
-                        try {
-                          var results = await _firestoreService.stockScreener(
-                            sector: screenerSector,
-                            marketCapMin: screenerMarketCapMin,
-                            marketCapMax: screenerMarketCapMax,
-                            peMin: screenerPeMin,
-                            peMax: screenerPeMax,
-                            dividendYieldMin: screenerDividendYieldMin,
-                            dividendYieldMax: screenerDividendYieldMax,
-                          );
-
-                          // Client-side filtering for price and volume
-                          if (screenerPriceMin != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.quoteObj?.lastTradePrice ?? 0) >=
-                                    screenerPriceMin!)
-                                .toList();
-                          }
-                          if (screenerPriceMax != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.quoteObj?.lastTradePrice ??
-                                        double.infinity) <=
-                                    screenerPriceMax!)
-                                .toList();
-                          }
-                          if (screenerVolumeMin != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.fundamentalsObj?.averageVolume ?? 0) >=
-                                    screenerVolumeMin!)
-                                .toList();
-                          }
-
-                          setState(() {
-                            screenerResults = results;
-                            screenerLoading = false;
-                            // Keep controllers in sync after results
-                            marketCapMinCtl.text =
-                                screenerMarketCapMin?.toString() ?? '';
-                            marketCapMaxCtl.text =
-                                screenerMarketCapMax?.toString() ?? '';
-                            peMinCtl.text = screenerPeMin?.toString() ?? '';
-                            peMaxCtl.text = screenerPeMax?.toString() ?? '';
-                            dividendYieldMinCtl.text =
-                                screenerDividendYieldMin?.toString() ?? '';
-                            dividendYieldMaxCtl.text =
-                                screenerDividendYieldMax?.toString() ?? '';
-                            priceMinCtl.text =
-                                screenerPriceMin?.toString() ?? '';
-                            priceMaxCtl.text =
-                                screenerPriceMax?.toString() ?? '';
-                            volumeMinCtl.text =
-                                screenerVolumeMin?.toString() ?? '';
-                          });
-                        } catch (e) {
-                          setState(() {
-                            screenerLoading = false;
-                          });
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: SelectableText(
-                                      'Error running screener: $e')),
-                            );
-                          }
-                        }
-                      },
-                label: Text('Run Screener'),
-              ),
-              if (screenerLoading) ...[
-                SizedBox(width: 16),
-                SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-              ]
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildScreenerSliver() {
-    if (screenerLoading) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-    return SliverStickyHeader(
-      header: Material(
-        child: Container(
-          alignment: Alignment.centerLeft,
-          child: Column(
-            children: [
-              ListTile(
-                title: Text(
-                  screenerResults != null && screenerResults!.isNotEmpty
-                      ? 'Screener (${screenerResults!.length})'
-                      : 'Screener',
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                trailing: screenerResults != null && screenerResults!.isNotEmpty
-                    ? SizedBox(
-                        width: 140,
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: screenerSortBy,
-                          items: [
-                            DropdownMenuItem(
-                                value: 'symbol', child: Text('Symbol')),
-                            DropdownMenuItem(
-                                value: 'marketCap', child: Text('Market Cap')),
-                            DropdownMenuItem(
-                                value: 'pe', child: Text('P/E Ratio')),
-                            DropdownMenuItem(
-                                value: 'dividend', child: Text('Dividend')),
-                            DropdownMenuItem(
-                                value: 'price', child: Text('Price')),
-                            DropdownMenuItem(
-                                value: 'volume', child: Text('Volume')),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => screenerSortBy = value);
-                            }
-                          },
-                        ),
-                      )
-                    : null,
-              ),
-            ],
-          ),
-        ),
-      ),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          _buildScreenerPanel(),
-          if (screenerResults != null && screenerResults!.isNotEmpty)
-            GridView.builder(
-              shrinkWrap: true,
-              padding: EdgeInsets.all(8),
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 150.0,
-                mainAxisSpacing: 6.0,
-                crossAxisSpacing: 2.0,
-                childAspectRatio: 1.3,
-              ),
-              itemCount: screenerResults!.length,
-              itemBuilder: (BuildContext context, int gridIndex) {
-                final sortedResults = _sortScreenerResults(screenerResults!);
-                return _buildListGridItem(
-                    sortedResults, gridIndex, widget.brokerageUser);
-              },
-            )
-          else if (screenerResults != null && screenerResults!.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text('No results found.',
-                    style: TextStyle(color: Colors.grey)),
-              ),
-            ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildYahooScreenerSliver() {
-    return SliverStickyHeader(
-      header: Material(
-        child: Container(
-          alignment: Alignment.centerLeft,
-          child: const ListTile(
-            title: Text(
-              "Presets",
-              style: TextStyle(fontSize: 19.0),
-            ),
-          ),
-        ),
-      ),
-      sliver: SliverList(
-        delegate: SliverChildListDelegate([
-          _buildYahooScreenerPanel(),
-          if (yahooScreenerLoading) ...[
-            const SizedBox(height: 12),
-            const Center(child: CircularProgressIndicator()),
-          ],
-          if (yahooScreenerError != null) ...[
-            const SizedBox(height: 8),
-            Text('Error: $yahooScreenerError',
-                style: const TextStyle(color: Colors.red)),
-          ],
-          if (yahooScreenerResults != null) ...[
-            Builder(
-              builder: (context) {
-                final records = yahooScreenerResults['finance']?['result']?[0]
-                        ?['records'] ??
-                    [];
-                if (records.isEmpty) {
-                  return const Center(child: Text('No results found.'));
-                }
-                return ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.all(4.0),
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: records.length,
-                  // separatorBuilder: (context, idx) => const Divider(height: 1),
-                  itemBuilder: (context, idx) {
-                    final item = records[idx];
-                    return ListTile(
-                        // leading: item['logo_url'] != null
-                        //     ? Image.network(item['logo_url'],
-                        //         width: 32,
-                        //         height: 32,
-                        //         errorBuilder: (c, e, s) =>
-                        //             const Icon(Icons.image_not_supported))
-                        //     : const Icon(Icons.business),
-                        title: Text(item['companyName'] ?? item['ticker'] ?? '',
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text(item['ticker'] ?? '',
-                            style: const TextStyle(fontSize: 13)),
-                        trailing: item['regularMarketPrice'] != null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    formatCurrency.format(
-                                        item['regularMarketPrice']['raw']),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 16),
-                                  ),
-                                  if (item['regularMarketChangePercent'] !=
-                                      null)
-                                    Text(
-                                      formatPercentage.format(
-                                          item['regularMarketChangePercent']
-                                                  ['raw'] /
-                                              100),
-                                      style: TextStyle(
-                                        color:
-                                            (item['regularMarketChangePercent']
-                                                            ['raw'] ??
-                                                        0) >=
-                                                    0
-                                                ? Colors.green
-                                                : Colors.red,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : null,
-                        onTap: () async {
-                          var instrument = await widget.service
-                              .getInstrumentBySymbol(
-                                  widget.brokerageUser,
-                                  Provider.of<InstrumentStore>(context,
-                                      listen: false),
-                                  item['ticker']);
-                          if (instrument != null) {
-                            if (context.mounted) {
-                              Navigator.of(context)
-                                  .push(MaterialPageRoute(builder: (context) {
-                                return InstrumentWidget(
-                                  widget.brokerageUser,
-                                  widget.service,
-                                  instrument,
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                  generativeService: widget.generativeService,
-                                );
-                              }));
-                            }
-                          }
-                        });
-                  },
-                );
-              },
-            ),
-          ],
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildYahooScreenerPanel() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DropdownButtonFormField<ScreenerId>(
-            initialValue: selectedYahooScreener,
-            items: YahooService.scrIds
-                .map((s) => DropdownMenuItem(
-                      value: s,
-                      child: Text(s.display),
-                    ))
-                .toList(),
-            onChanged: (v) async {
-              setState(() => selectedYahooScreener = v);
-              setState(() {
-                yahooScreenerLoading = true;
-                yahooScreenerError = null;
-                yahooScreenerResults = null;
-              });
-              try {
-                final result = await yahooService.getStockScreener(
-                  scrIds: selectedYahooScreener!.id,
-                );
-                setState(() {
-                  yahooScreenerResults = result;
-                  yahooScreenerLoading = false;
-                });
-              } catch (e) {
-                setState(() {
-                  yahooScreenerError = e.toString();
-                  yahooScreenerLoading = false;
-                });
-              }
-            },
-            decoration: const InputDecoration(labelText: 'Screener'),
-          ),
-          const SizedBox(height: 12),
-          // ElevatedButton.icon(
-          //   icon: Icon(Icons.search),
-          //   onPressed: selectedYahooScreener == null || yahooScreenerLoading
-          //       ? null
-          //       : () async {
-          //           setState(() {
-          //             yahooScreenerLoading = true;
-          //             yahooScreenerError = null;
-          //             yahooScreenerResults = null;
-          //           });
-          //           try {
-          //             final result = await yahooService.getStockScreener(
-          //               scrIds: selectedYahooScreener!.id,
-          //             );
-          //             setState(() {
-          //               yahooScreenerResults = result;
-          //               yahooScreenerLoading = false;
-          //             });
-          //           } catch (e) {
-          //             setState(() {
-          //               yahooScreenerError = e.toString();
-          //               yahooScreenerLoading = false;
-          //             });
-          //           }
-          //         },
-          //   label: const Text('Run Screener'),
-          // ),
+          Expanded(child: _buildSearchContent()),
         ],
       ),
     );
@@ -925,6 +337,11 @@ class _SearchWidgetState extends State<SearchWidget>
                 data.length > 3 ? data[3] as List<Instrument> : null;
             // var listMostPopular =
             //     data.length > 4 ? data[4] as List<Instrument> : null;
+
+            if (search != null) {
+              debugPrint("SearchWidget: has search results: $search");
+            }
+
             return _buildPage(
                 search: search,
                 movers: movers,
@@ -951,481 +368,1040 @@ class _SearchWidgetState extends State<SearchWidget>
       List<Instrument>? listMostPopular,
       bool done = false}) {
     return RefreshIndicator(
-        onRefresh: _pullRefresh,
-        child: GestureDetector(
-            onTap: () {
-              FocusScopeNode currentFocus = FocusScope.of(context);
+      onRefresh: _pullRefresh,
+      child: GestureDetector(
+        onTap: () {
+          FocusScopeNode currentFocus = FocusScope.of(context);
 
-              if (!currentFocus.hasPrimaryFocus) {
-                currentFocus.unfocus();
-              }
-            },
-            child: CustomScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                slivers: [
-                  SliverAppBar(
-                      floating: false,
-                      snap: false,
-                      pinned: true,
-                      centerTitle: false,
-                      title: const Text('Search'),
-                      actions: [
+          if (!currentFocus.hasPrimaryFocus) {
+            currentFocus.unfocus();
+          }
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            if (!widget.embedded)
+              ExpandedSliverAppBar(
+                auth: auth,
+                firestoreService: _firestoreService,
+                automaticallyImplyLeading: true,
+                title: const Text(Constants.appTitle),
+                analytics: widget.analytics,
+                observer: widget.observer,
+                user: widget.brokerageUser,
+                firestoreUser: widget.user,
+                userDocRef: widget.userDocRef,
+                service: widget.service,
+                scrollController: _scrollController,
+                actions: widget.brokerageUser != null && widget.service != null
+                    ? [
                         IconButton(
-                            icon: auth.currentUser != null
-                                ? (auth.currentUser!.photoURL == null
-                                    ? const Icon(Icons.account_circle)
-                                    : CircleAvatar(
-                                        maxRadius: 12,
-                                        backgroundImage: CachedNetworkImageProvider(
-                                            auth.currentUser!.photoURL!
-                                            //  ?? Constants .placeholderImage, // No longer used
-                                            )))
-                                : const Icon(Icons.login),
-                            onPressed: () async {
-                              var response = await showProfile(
-                                  context,
-                                  auth,
-                                  _firestoreService,
-                                  widget.analytics,
-                                  widget.observer,
-                                  widget.brokerageUser);
-                              if (response != null) {
-                                setState(() {});
-                              }
-                            })
-                      ]),
-                  if (done == false) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 3, //150.0,
-                      child: Align(
-                          alignment: Alignment.center,
-                          child: Center(
-                              child: LinearProgressIndicator(
-                                  //value: controller.value,
-                                  //semanticsLabel: 'Linear progress indicator',
-                                  ) //CircularProgressIndicator(),
-                              )),
-                    ))
-                  ],
-                  SliverStickyHeader(
-                    header: Material(
-                      elevation: 2,
+                          tooltip: 'Screener tools',
+                          icon: const Icon(Icons.filter_alt_outlined),
+                          onPressed: _openPresets,
+                        ),
+                      ]
+                    : null,
+                onChange: () {
+                  setState(() {});
+                },
+              ),
+            const SliverToBoxAdapter(child: OfflineStatusBanner()),
+            SliverStickyHeader(
+              header: Material(
+                elevation: 1,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: searchCtl,
+                    decoration: InputDecoration(
+                      hintText: 'Search stocks by name or symbol',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchCtl!.text.isNotEmpty
+                          ? IconButton(
+                              tooltip: 'Clear search',
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                searchCtl!.clear();
+                                setState(() {
+                                  futureSearch = Future.value(null);
+                                });
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide:
+                            const BorderSide(color: Colors.blue, width: 2),
+                      ),
+                      filled: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16.0),
+                    ),
+                    onChanged: (text) {
+                      widget.analytics.logSearch(searchTerm: text);
+                      debugPrint(
+                          "SearchWidget: onChanged '$text'. Service: ${widget.service}");
+                      _searchDebounce?.cancel();
+                      if (text.isEmpty) {
+                        setState(() {
+                          futureSearch = Future.value(null);
+                        });
+                        return;
+                      }
+                      _searchDebounce =
+                          Timer(const Duration(milliseconds: 400), () {
+                        if (mounted) _performSearch(text);
+                      });
+                    },
+                    onSubmitted: (value) {
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                ),
+              ),
+              sliver: search == null
+                  ? null
+                  : SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 150.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          childAspectRatio: 0.925,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildSearchGridItem(search, index);
+                          },
+                          childCount: search != null
+                              ? (search is List
+                                  ? search.length
+                                  : (search["results"] != null &&
+                                          search["results"].isNotEmpty &&
+                                          search["results"][0]["content"] !=
+                                              null &&
+                                          search["results"][0]["content"]
+                                                  ["data"] !=
+                                              null
+                                      ? search["results"][0]["content"]["data"]
+                                          .length
+                                      : 0))
+                              : 0,
+                        ),
+                      )),
+            ),
+            if (welcomeWidget != null) ...[
+              SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 80.0,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child:
+                      Align(alignment: Alignment.center, child: welcomeWidget),
+                ),
+              ))
+            ],
+            // if (search != null) ...[
+            //   SliverStickyHeader(
+            //       header: Material(
+            //           //elevation: 2,
+            //           child: Container(
+            //               alignment: Alignment.centerLeft,
+            //               child: const ListTile(
+            //                 title: Text(
+            //                   "Search Results",
+            //                   style: TextStyle(fontSize: 19.0),
+            //                 ),
+            //                 //subtitle: Text(
+            //                 //    "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+            //               ))),
+            //       sliver: SliverPadding(
+            //           padding: const EdgeInsets.symmetric(horizontal: 2),
+            //           sliver: SliverGrid(
+            //             gridDelegate:
+            //                 const SliverGridDelegateWithMaxCrossAxisExtent(
+            //               maxCrossAxisExtent: 125.0,
+            //               mainAxisSpacing: 8.0,
+            //               crossAxisSpacing: 8.0,
+            //               childAspectRatio: 1.25,
+            //             ),
+            //             delegate: SliverChildBuilderDelegate(
+            //               (BuildContext context, int index) {
+            //                 return _buildSearchGridItem(search, index);
+            //               },
+            //               childCount: search["results"][0]["content"]
+            //                       ["data"]
+            //                   .length,
+            //             ),
+            //           ))),
+            //   const SliverToBoxAdapter(
+            //       child: SizedBox(
+            //     height: 25.0,
+            //   )),
+            // ],
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: MacroAssessmentWidget(
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  brokerageUser: widget.brokerageUser,
+                ),
+              ),
+            ),
+            // Keep this disabled until it becomes an Alpha Feed backed by
+            // news, social, and community signals distinct from macro state.
+            // SliverToBoxAdapter(
+            //   child: MarketSentimentCardWidget(
+            //     widget.brokerageUser,
+            //     widget.service,
+            //     analytics: widget.analytics,
+            //     observer: widget.observer,
+            //     generativeService: widget.generativeService,
+            //     user: widget.user,
+            //     userDocRef: widget.userDocRef,
+            //   ),
+            // ),
+            SliverToBoxAdapter(
+              child: OptionsFlowCardWidget(
+                brokerageUser: widget.brokerageUser,
+                service: widget.service,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              ),
+            ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GammaExposureDashboardWidget(
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            ),
+                          ),
+                        );
+                      },
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: TextField(
-                          controller: searchCtl,
-                          decoration: InputDecoration(
-                            hintText: 'Search stocks by name or symbol',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: searchCtl!.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      searchCtl!.clear();
-                                      setState(() {
-                                        futureSearch = Future.value(null);
-                                      });
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.adjust_outlined,
+                                  size: 24, color: Colors.green),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide:
-                                  BorderSide(color: Colors.grey.shade300),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Gamma Exposure (GEX)",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Analyze dealer positioning & volatility regimes",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: const BorderSide(
-                                  color: Colors.blue, width: 2),
-                            ),
-                            filled: true,
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 16.0),
-                          ),
-                          onChanged: (text) {
-                            widget.analytics.logSearch(searchTerm: text);
-                            setState(() {
-                              futureSearch = text.isEmpty
-                                  ? Future.value(null)
-                                  : widget.service
-                                      .search(widget.brokerageUser, text);
-                            });
-                          },
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
                         ),
                       ),
                     ),
-                    sliver: SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 125.0,
-                            mainAxisSpacing: 10.0,
-                            crossAxisSpacing: 10.0,
-                            childAspectRatio: 1.29,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext context, int index) {
-                              return _buildSearchGridItem(search, index);
-                            },
-                            childCount: search != null
-                                ? search["results"][0]["content"]["data"].length
-                                : 0,
-                          ),
-                        )),
                   ),
-                  if (welcomeWidget != null) ...[
-                    SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 150.0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Align(
-                            alignment: Alignment.center, child: welcomeWidget),
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
                       ),
-                    ))
-                  ],
-                  // if (search != null) ...[
-                  //   SliverStickyHeader(
-                  //       header: Material(
-                  //           //elevation: 2,
-                  //           child: Container(
-                  //               alignment: Alignment.centerLeft,
-                  //               child: const ListTile(
-                  //                 title: Text(
-                  //                   "Search Results",
-                  //                   style: TextStyle(fontSize: 19.0),
-                  //                 ),
-                  //                 //subtitle: Text(
-                  //                 //    "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                  //               ))),
-                  //       sliver: SliverPadding(
-                  //           padding: const EdgeInsets.symmetric(horizontal: 2),
-                  //           sliver: SliverGrid(
-                  //             gridDelegate:
-                  //                 const SliverGridDelegateWithMaxCrossAxisExtent(
-                  //               maxCrossAxisExtent: 125.0,
-                  //               mainAxisSpacing: 10.0,
-                  //               crossAxisSpacing: 10.0,
-                  //               childAspectRatio: 1.25,
-                  //             ),
-                  //             delegate: SliverChildBuilderDelegate(
-                  //               (BuildContext context, int index) {
-                  //                 return _buildSearchGridItem(search, index);
-                  //               },
-                  //               childCount: search["results"][0]["content"]
-                  //                       ["data"]
-                  //                   .length,
-                  //             ),
-                  //           ))),
-                  //   const SliverToBoxAdapter(
-                  //       child: SizedBox(
-                  //     height: 25.0,
-                  //   )),
-                  // ],
-                  Consumer<AgenticTradingProvider>(
-                    builder: (context, agenticTradingProvider, child) {
-                      final tradeSignals = agenticTradingProvider.tradeSignals;
-                      final isMarketOpen = agenticTradingProvider.isMarketOpen;
-                      final selectedInterval =
-                          agenticTradingProvider.selectedInterval;
-                      final intervalLabel = selectedInterval == '1d'
-                          ? 'Daily'
-                          : selectedInterval == '1h'
-                              ? 'Hourly'
-                              : selectedInterval == '30m'
-                                  ? '30-min'
-                                  : selectedInterval == '15m'
-                                      ? '15-min'
-                                      : selectedInterval;
-
-                      return SliverStickyHeader(
-                          header: Material(
-                              //elevation: 2,
-                              child: Container(
-                                  alignment: Alignment.centerLeft,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        title: Row(
-                                          children: [
-                                            const Text(
-                                              "Trade Signals",
-                                              style: TextStyle(fontSize: 19.0),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Chip(
-                                              avatar: Icon(
-                                                isMarketOpen
-                                                    ? Icons.access_time
-                                                    : Icons.calendar_today,
-                                                size: 16,
-                                                color: isMarketOpen
-                                                    ? Colors.green.shade700
-                                                    : Colors.blue.shade700,
-                                              ),
-                                              label: Text(
-                                                '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: isMarketOpen
-                                                      ? Colors.green.shade700
-                                                      : Colors.blue.shade700,
-                                                ),
-                                              ),
-                                              backgroundColor: isMarketOpen
-                                                  ? Colors.green
-                                                      .withOpacity(0.1)
-                                                  : Colors.blue
-                                                      .withOpacity(0.1),
-                                              side: BorderSide(
-                                                color: isMarketOpen
-                                                    ? Colors.green.shade300
-                                                    : Colors.blue.shade300,
-                                                width: 1,
-                                              ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 0),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Consumer<AgenticTradingProvider>(
-                                        builder:
-                                            (context, agenticProvider, child) {
-                                          return Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 16.0,
-                                                vertical: 4.0),
-                                            child:
-                                                _buildTradeSignalFilterChips(),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  ))),
-                          sliver: tradeSignals.isEmpty
-                              ? SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Center(
-                                      child: Text(
-                                        tradeSignalFilter == null
-                                            ? 'No trade signals available'
-                                            : 'No $tradeSignalFilter signals found',
-                                        style: TextStyle(
-                                          fontSize: 16.0,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EventStudyWidget(),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.event_available,
+                                  size: 24, color: Colors.teal),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Event Study Analyzer',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
-                                )
-                              : SliverPadding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 2),
-                                  sliver: SliverGrid(
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 220.0,
-                                      mainAxisSpacing: 10.0,
-                                      crossAxisSpacing: 10.0,
-                                      childAspectRatio: 1.25,
-                                    ),
-                                    delegate: SliverChildBuilderDelegate(
-                                      (BuildContext context, int index) {
-                                        return _buildTradeSignalGridItem(
-                                            tradeSignals, index);
-                                      },
-                                      childCount: tradeSignals.length,
-                                    ),
-                                  )));
-                    },
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Measure stock performance around earnings and other events',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                  _buildScreenerSliver(),
-                  _buildYahooScreenerSliver(),
-
-                  if (movers != null && movers.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            //elevation: 2,
-                            child: Container(
-                                alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "S&P Movers",
-                                      style: TextStyle(fontSize: 19.0),
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                      appBar: AppBar(
+                                          title: const Text('Whale Watch')),
+                                      body: WhaleWatchDashboardWidget(
+                                        brokerageUser: widget.brokerageUser!,
+                                        service: widget.service!,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                      ),
+                                    )));
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.visibility_outlined,
+                                  size: 24, color: Colors.blue),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Whale Watch",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Track insider filings & institutional moves",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Card(
+                  elevation: 0,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CongressTradingDashboardWidget(
+                            brokerageUser: widget.brokerageUser,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.account_balance,
+                                size: 24, color: Colors.indigo),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Congress Trading",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "STOCK Act filings & political transactions",
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const AlphaFactorDiscoveryWidget(),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.analytics_outlined,
+                                  size: 24, color: Colors.purple),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Alpha Factor Discovery",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Backtest predictive factors & correlations",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.brokerageUser != null && widget.service != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Card(
+                    elevation: 0,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CarryTradeOptimizerWidget(
+                              brokerageUser: widget.brokerageUser,
+                              service: widget.service,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.currency_exchange,
+                                  size: 24, color: Colors.amber),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Carry Trade Optimizer",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    "Analyze yield spreads & optimize FX carry baskets",
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // Moved to its own page
+            // TradeSignalsWidget(
+            //   key: _tradeSignalsKey,
+            //   user: widget.user,
+            //   brokerageUser: widget.brokerageUser,
+            //   userDocRef: widget.userDocRef,
+            //   service: widget.service,
+            //   analytics: widget.analytics,
+            //   observer: widget.observer,
+            //   generativeService: widget.generativeService,
+            // ),
+            if (watchlistStream != null) ...[
+              SliverToBoxAdapter(
+                child: StreamBuilder<List<Watchlist>>(
+                  stream: watchlistStream,
+                  builder: (context, snapshot) {
+                    final visible =
+                        search == null || (search is List && search.isEmpty);
+                    if (visible && snapshot.hasData) {
+                      var lists = snapshot.data!;
+                      return SizedBox(
+                        height: 50,
+                        child: ListView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 0.0),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: lists.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ActionChip(
+                                  avatar: const Icon(Icons.list),
+                                  label: const Text('All Lists'),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ListsWidget(
+                                          widget.brokerageUser!,
+                                          widget.service!,
+                                          analytics: widget.analytics,
+                                          observer: widget.observer,
+                                          generativeService:
+                                              widget.generativeService,
+                                          user: widget.user,
+                                          userDocRef: widget.userDocRef,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            }
+                            var list = lists[index - 1];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ActionChip(
+                                label: Text(list.displayName),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ListWidget(
+                                        widget.brokerageUser!,
+                                        widget.service!,
+                                        list.id,
+                                        ownerType: "custom",
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                        user: widget.user,
+                                        userDocRef: widget.userDocRef,
+                                      ),
                                     ),
-                                    Icon(Icons.trending_up,
-                                        color: Colors.green, size: 28)
-                                  ]),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.3,
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildMoversGridItem(movers, index);
+                                  );
                                 },
-                                childCount: movers.length,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  if (losers != null && losers.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            //elevation: 2,
-                            child: Container(
-                                alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "S&P Movers",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    Icon(Icons.trending_down,
-                                        color: Colors.red, size: 28)
-                                  ]),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220.0,
-                                mainAxisSpacing: 10.0,
-                                crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.3,
+                            );
+                          },
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ],
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 12.0,
+            )),
+            if (movers != null && movers.isNotEmpty) ...[
+              // const SliverToBoxAdapter(
+              //     child: SizedBox(
+              //   height: 25.0,
+              // )),
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildMoversGridItem(losers, index);
-                                },
-                                childCount: losers.length,
+                              child: const Icon(Icons.trending_up,
+                                  color: Colors.green, size: 22),
+                            ),
+                            title: Text(
+                              "S&P Gainers",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  if (listMovers != null && listMovers.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            //elevation: 2,
-                            child: Container(
-                                alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "Top Movers",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                  ]),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 150.0,
-                                mainAxisSpacing: 6.0,
-                                crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.35,
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          mainAxisExtent: 144.0,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildMoversGridItem(movers, index);
+                          },
+                          childCount: movers.length,
+                        ),
+                      ))),
+            ],
+            if (losers != null && losers.isNotEmpty) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildListGridItem(
-                                      listMovers, index, widget.brokerageUser);
-                                },
-                                childCount: listMovers.length,
+                              child: const Icon(Icons.trending_down,
+                                  color: Colors.red, size: 22),
+                            ),
+                            title: Text(
+                              "S&P Decliners",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  if (listMostPopular != null &&
-                      listMostPopular.isNotEmpty) ...[
-                    SliverStickyHeader(
-                        header: Material(
-                            //elevation: 2,
-                            child: Container(
-                                alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "100 Most Popular",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                  ]),
-                                ))),
-                        sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 150.0,
-                                mainAxisSpacing: 6.0,
-                                crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.22,
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          mainAxisExtent: 144.0,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildMoversGridItem(losers, index);
+                          },
+                          childCount: losers.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+            if (listMovers != null && listMovers.isNotEmpty) ...[
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (BuildContext context, int index) {
-                                  return _buildListGridItem(listMostPopular,
-                                      index, widget.brokerageUser);
-                                },
-                                childCount: listMostPopular.length,
+                              child: Icon(Icons.show_chart,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 22),
+                            ),
+                            title: Text(
+                              "Top Movers",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ))),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
-                  ],
-                  // TODO: Introduce web banner
-                  if (!kIsWeb) ...[
-                    SliverToBoxAdapter(
-                        child: AdBannerWidget(
-                      size: AdSize.mediumRectangle,
-                      searchBanner: true,
-                    )),
-                  ],
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
-                  const SliverToBoxAdapter(child: DisclaimerWidget()),
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
-                ])));
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220.0,
+                          mainAxisSpacing: 8.0,
+                          crossAxisSpacing: 8.0,
+                          mainAxisExtent: 144.0,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildListGridItem(
+                                listMovers, index, widget.brokerageUser!);
+                          },
+                          childCount: listMovers.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+            if (listMostPopular != null && listMostPopular.isNotEmpty) ...[
+              SliverStickyHeader(
+                  header: Material(
+                      elevation: 1,
+                      child: Container(
+                          color: Theme.of(context).colorScheme.surface,
+                          alignment: Alignment.centerLeft,
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(Icons.star,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 22),
+                            ),
+                            title: Text(
+                              "100 Most Popular",
+                              style: TextStyle(
+                                fontSize: 20.0,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ))),
+                  sliver: SliverPadding(
+                      padding: const EdgeInsets.all(
+                          12), // .symmetric(horizontal: 2),
+                      sliver: SliverGrid(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 150.0,
+                          mainAxisSpacing: 6.0,
+                          crossAxisSpacing: 2.0,
+                          mainAxisExtent: 144.0,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (BuildContext context, int index) {
+                            return _buildListGridItem(
+                                listMostPopular, index, widget.brokerageUser!);
+                          },
+                          childCount: listMostPopular.length,
+                        ),
+                      ))),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              if (kIsWeb) const WebPromotionBannerSliver(),
+              if (!kIsWeb) ...[
+                SliverToBoxAdapter(
+                    child: AdBannerWidget(
+                  size: AdSize.mediumRectangle,
+                  searchBanner: true,
+                )),
+              ],
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              const SliverToBoxAdapter(child: DisclaimerWidget()),
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pullRefresh() async {
@@ -1435,39 +1411,63 @@ class _SearchWidgetState extends State<SearchWidget>
       futureListMovers = null;
       futureListMostPopular = null;
       futureSearch = Future.value(null);
-      futureTradeSignals = null;
     });
     // Refresh trade signals on pull-to-refresh
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    await agenticTradingProvider.fetchAllTradeSignals();
+    _tradeSignalsKey.currentState?.refresh();
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
-    final isPositive = movers[index].marketHoursPriceMovement! > 0;
-    final isNegative = movers[index].marketHoursPriceMovement! < 0;
+    final mover = movers[index];
+    final movement = mover.marketHoursPriceMovement ?? 0.0;
+    final isPositive = movement > 0;
+    final isNegative = movement < 0;
     return Card(
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: isPositive
+                ? Colors.green.withValues(alpha: 0.3)
+                : (isNegative
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(
+                        alpha:
+                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
+            width: 1.5,
+          ),
         ),
         child: InkWell(
             borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(movers[index].symbol,
-                          style: const TextStyle(
+                      Text(mover.symbol,
+                          style: TextStyle(
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 6),
                       Row(
                         children: [
+                          Expanded(
+                            child: Text(
+                                mover.marketHoursLastPrice != null
+                                    ? formatCurrency
+                                        .format(mover.marketHoursLastPrice)
+                                    : '',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.w500,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                                overflow: TextOverflow.ellipsis),
+                          ),
                           Icon(
                               isPositive
                                   ? Icons.trending_up
@@ -1479,11 +1479,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                   : (isNegative ? Colors.red : Colors.grey),
                               size: 18),
                           const SizedBox(width: 4),
-                          Text(
-                              formatPercentage.format(movers[index]
-                                      .marketHoursPriceMovement!
-                                      .abs() /
-                                  100),
+                          Text(formatPercentage.format(movement.abs() / 100),
                               style: TextStyle(
                                 fontSize: 15.0,
                                 fontWeight: FontWeight.w600,
@@ -1493,98 +1489,214 @@ class _SearchWidgetState extends State<SearchWidget>
                               )),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                          formatCurrency
-                              .format(movers[index].marketHoursLastPrice),
-                          style: const TextStyle(
-                            fontSize: 16.0,
-                            fontWeight: FontWeight.w500,
-                          )),
                       const SizedBox(height: 6),
                       Expanded(
                         child: Text(movers[index].description,
                             style: TextStyle(
                               fontSize: 12.0,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
                             ),
-                            maxLines: 2,
+                            softWrap: true,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis),
                       ),
                     ])),
             onTap: () async {
-              var instrument = await widget.service.getInstrument(
-                  widget.brokerageUser,
-                  instrumentStore!,
-                  movers[index].instrumentUrl);
+              IBrokerageService activeService =
+                  widget.service ?? PaperService();
+              BrokerageUser activeUser = widget.brokerageUser ??
+                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
 
-              /* For navigation within this tab, uncomment
-                widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru,
-                        watchLists[index].instrumentObj as Instrument)));
-                        */
+              final instrumentStore =
+                  Provider.of<InstrumentStore>(context, listen: false);
+              var instrument = await activeService.getInstrumentBySymbol(
+                  activeUser, instrumentStore, movers[index].symbol);
+
               if (!mounted) return;
+
+              if (instrument == null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content:
+                        Text("Instrument ${movers[index].symbol} not found.")));
+                return;
+              }
+
               Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
+                            activeUser,
+                            activeService,
                             instrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
   }
 
   Widget _buildSearchGridItem(dynamic search, int index) {
-    var data = search["results"][0]["content"]["data"][index];
+    dynamic data;
+    if (search is List) {
+      data = search[index];
+    } else {
+      data = search["results"][0]["content"]["data"][index]["item"];
+    }
     return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: Colors.grey.withValues(
+                alpha: 0.2), // Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
         ),
         child: InkWell(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8),
                 child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.max,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(
-                        data["item"]["symbol"],
-                        style: const TextStyle(
-                          fontSize: 17.0,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              data["symbol"],
+                              style: TextStyle(
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Expanded(
                         child: Text(
-                          data["item"]["simple_name"] ?? data["item"]["name"],
+                          data["simple_name"] ??
+                              data["name"] ??
+                              data[
+                                  "description"], // Schwab API returns this field
                           style: TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey.shade700,
+                            fontSize: 13.0,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.7),
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      )
+                      ),
+                      if (data["exchange"] != null ||
+                          data["assetType"] != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            if (data["exchange"] != null)
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer
+                                        .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    data["exchange"],
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSecondaryContainer,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            if (data["exchange"] != null &&
+                                data["assetType"] != null &&
+                                data["exchange"] != "Mutual Fund" &&
+                                data["assetType"] != "INDEX" &&
+                                data["assetType"] != "EQUITY")
+                              const SizedBox(width: 4),
+                            if (data["assetType"] != null &&
+                                data["exchange"] != "Mutual Fund" &&
+                                data["assetType"] != "INDEX" &&
+                                data["assetType"] != "EQUITY")
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .tertiaryContainer
+                                        .withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    data["assetType"],
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onTertiaryContainer,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      ]
                     ])),
-            onTap: () {
-              var instrument = Instrument.fromJson(data["item"]);
+            onTap: () async {
+              IBrokerageService activeService =
+                  widget.service ?? PaperService();
+              BrokerageUser activeUser = widget.brokerageUser ??
+                  BrokerageUser(BrokerageSource.paper, 'Guest', null, null);
+
+              final instrumentStore =
+                  Provider.of<InstrumentStore>(context, listen: false);
+              var instrument = await activeService.getInstrumentBySymbol(
+                  activeUser, instrumentStore, data["symbol"]);
+
+              if (!mounted) return;
+
+              if (instrument == null) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Instrument ${data["symbol"]} not found.")));
+                return;
+              }
+
               Navigator.push(
                   context,
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
+                            activeUser,
+                            activeService,
                             instrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
     /*
@@ -1603,207 +1715,6 @@ class _SearchWidgetState extends State<SearchWidget>
     */
   }
 
-  Widget _buildTradeSignalGridItem(
-      List<Map<String, dynamic>> tradeSignals, int index) {
-    final signal = tradeSignals[index];
-    final timestamp = signal['timestamp'] != null
-        ? DateTime.fromMillisecondsSinceEpoch(signal['timestamp'] as int)
-        : DateTime.now();
-    final symbol = signal['symbol'] ?? 'N/A';
-    final signalType = signal['signal'] ?? 'HOLD';
-    // final reason = signal['reason'] ?? 'No reason provided';
-    final isBuy = signalType == 'BUY';
-    final isSell = signalType == 'SELL';
-
-    // Extract individual indicator signals from multiIndicatorResult
-    final multiIndicatorResult =
-        signal['multiIndicatorResult'] as Map<String, dynamic>?;
-    final indicatorsMap =
-        multiIndicatorResult?['indicators'] as Map<String, dynamic>?;
-
-    Map<String, String> indicatorSignals = {};
-    if (indicatorsMap != null) {
-      const indicatorNames = [
-        'priceMovement',
-        'momentum',
-        'marketDirection',
-        'volume',
-        'macd',
-        'bollingerBands',
-        'stochastic',
-        'atr',
-        'obv',
-      ];
-
-      for (final indicator in indicatorNames) {
-        final indicatorData = indicatorsMap[indicator] as Map<String, dynamic>?;
-        if (indicatorData != null && indicatorData['signal'] != null) {
-          indicatorSignals[indicator] = indicatorData['signal'];
-        }
-      }
-    }
-
-    return Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: isBuy
-                ? Colors.green.withOpacity(0.3)
-                : (isSell
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2)),
-            width: 1.5,
-          ),
-        ),
-        child: InkWell(
-            borderRadius: BorderRadius.circular(12.0),
-            child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isBuy
-                                  ? Colors.green.withOpacity(0.15)
-                                  : (isSell
-                                      ? Colors.red.withOpacity(0.15)
-                                      : Colors.grey.withOpacity(0.15)),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                    isBuy
-                                        ? Icons.trending_up
-                                        : (isSell
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: isBuy
-                                        ? Colors.green
-                                        : (isSell ? Colors.red : Colors.grey),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(signalType,
-                                    style: TextStyle(
-                                      fontSize: 13.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: isBuy
-                                          ? Colors.green
-                                          : (isSell ? Colors.red : Colors.grey),
-                                    )),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(formatDate.format(timestamp),
-                          style: TextStyle(
-                              fontSize: 12.0, color: Colors.grey.shade600),
-                          overflow: TextOverflow.ellipsis),
-                      // Individual indicator signal tags
-                      if (indicatorSignals.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: indicatorSignals.entries.map((entry) {
-                            final indicatorName = entry.key;
-                            final indicatorSignal = entry.value;
-
-                            Color tagColor;
-                            if (indicatorSignal == 'BUY') {
-                              tagColor = Colors.green;
-                            } else if (indicatorSignal == 'SELL') {
-                              tagColor = Colors.red;
-                            } else {
-                              tagColor = Colors.grey;
-                            }
-
-                            // Short names for display
-                            final displayName = indicatorName == 'priceMovement'
-                                ? 'Price'
-                                : indicatorName == 'marketDirection'
-                                    ? 'Market'
-                                    : indicatorName == 'bollingerBands'
-                                        ? 'BB'
-                                        : indicatorName == 'stochastic'
-                                            ? 'Stoch'
-                                            : indicatorName[0].toUpperCase() +
-                                                indicatorName.substring(1);
-
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: tagColor.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: tagColor.withOpacity(0.4),
-                                  width: 0.5,
-                                ),
-                              ),
-                              child: Text(
-                                displayName, //'$displayName: ${indicatorSignal[0]}',
-                                style: TextStyle(
-                                  fontSize: 9.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: tagColor,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                      // const SizedBox(height: 8),
-                      // Expanded(
-                      //   child: Text(reason,
-                      //       style: TextStyle(
-                      //         fontSize: 12.0,
-                      //         color: Colors.grey.shade700,
-                      //       ),
-                      //       maxLines: 3,
-                      //       overflow: TextOverflow.ellipsis),
-                      // ),
-                    ])),
-            onTap: () async {
-              final symbol = signal['symbol'];
-              if (symbol == null || symbol == 'N/A') return;
-              var instrument = await widget.service.getInstrumentBySymbol(
-                  widget.brokerageUser, instrumentStore!, symbol);
-
-              if (!mounted || instrument == null) return;
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            widget.brokerageUser,
-                            widget.service,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                          )));
-            }));
-  }
-
   Widget _buildListGridItem(
       List<Instrument> instruments, int index, BrokerageUser user) {
     var instrumentObj = instruments[index];
@@ -1817,12 +1728,22 @@ class _SearchWidgetState extends State<SearchWidget>
     return Card(
         elevation: 1,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: changeToday > 0
+                ? Colors.green.withValues(alpha: 0.3)
+                : (changeToday < 0
+                    ? Colors.red.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(
+                        alpha:
+                            0.2)), // Theme.of(context).colorScheme.outlineVariant)
+            width: 1.5,
+          ),
         ),
         child: InkWell(
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1830,32 +1751,29 @@ class _SearchWidgetState extends State<SearchWidget>
                     // Symbol - always shown
                     Text(
                       instrumentObj.symbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-
-                    // Current Price
-                    if (lastTradePrice != null) ...[
-                      Text(
-                        formatCurrency.format(lastTradePrice),
-                        style: const TextStyle(
-                          fontSize: 15.0,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                    ],
-
-                    // Change indicator with percentage
-                    if (hasQuote) ...[
+                    const SizedBox(height: 6),
+                    if (hasQuote && lastTradePrice != null) ...[
                       Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
+                          Expanded(
+                            child: AnimatedPriceText(
+                              price: lastTradePrice,
+                              format: formatCurrency,
+                              style: TextStyle(
+                                fontSize: 15.0,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                           Icon(
                             changeToday > 0
                                 ? Icons.trending_up
@@ -1865,31 +1783,48 @@ class _SearchWidgetState extends State<SearchWidget>
                             color: changeToday > 0
                                 ? Colors.green
                                 : (changeToday < 0 ? Colors.red : Colors.grey),
-                            size: 16,
+                            size: 15,
                           ),
                           const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              formatPercentage.format(changePercentToday.abs()),
-                              style: TextStyle(
-                                fontSize: 14.0,
-                                color: changeToday > 0
-                                    ? Colors.green
-                                    : (changeToday < 0
-                                        ? Colors.red
-                                        : Colors.grey),
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          Text(
+                            formatPercentage.format(changePercentToday.abs()),
+                            style: TextStyle(
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w600,
+                              color: changeToday > 0
+                                  ? Colors.green
+                                  : (changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey),
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ] else ...[
-                      const Text(
+                      Text(
                         'No quote data',
-                        style: TextStyle(fontSize: 12.0, color: Colors.grey),
+                        style: TextStyle(
+                            fontSize: 12.0,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child:
+                          Text(instrumentObj.fundamentalsObj?.description ?? '',
+                              style: TextStyle(
+                                fontSize: 12.0,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
+                              ),
+                              softWrap: true,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis),
+                    ),
                   ],
                 )),
             onTap: () {
@@ -1903,266 +1838,14 @@ class _SearchWidgetState extends State<SearchWidget>
                   MaterialPageRoute(
                       builder: (context) => InstrumentWidget(
                             user,
-                            widget.service,
+                            widget.service!,
                             instrumentObj,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
-  }
-
-  Widget _buildQuickFilterChip(String label, VoidCallback onTap) {
-    return ActionChip(
-      label: Text(label, style: TextStyle(fontSize: 12)),
-      onPressed: onTap,
-      backgroundColor: Colors.blue.withOpacity(0.1),
-      labelStyle: TextStyle(color: Colors.blue),
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    );
-  }
-
-  Widget _buildPresetButton(String label, VoidCallback onTap) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        side: BorderSide(color: Colors.blue),
-      ),
-      child: Text(label, style: TextStyle(fontSize: 13)),
-    );
-  }
-
-  void _applyPreset(String preset) {
-    setState(() {
-      // Clear all filters first
-      screenerSector = null;
-      screenerMarketCapMin = null;
-      screenerMarketCapMax = null;
-      screenerPeMin = null;
-      screenerPeMax = null;
-      screenerDividendYieldMin = null;
-      screenerDividendYieldMax = null;
-      screenerPriceMin = null;
-      screenerPriceMax = null;
-      screenerVolumeMin = null;
-      marketCapMinCtl.clear();
-      marketCapMaxCtl.clear();
-      peMinCtl.clear();
-      peMaxCtl.clear();
-      dividendYieldMinCtl.clear();
-      dividendYieldMaxCtl.clear();
-      priceMinCtl.clear();
-      priceMaxCtl.clear();
-      volumeMinCtl.clear();
-
-      // Apply preset filters
-      switch (preset) {
-        case 'clear':
-          // Already cleared above, do nothing
-          break;
-        case 'dividend':
-          screenerDividendYieldMin = 3;
-          screenerVolumeMin = 1000000; // 1M+ volume for liquidity
-          dividendYieldMinCtl.text = '3';
-          volumeMinCtl.text = '1000000';
-          break;
-        case 'growth':
-          screenerPeMin = 20;
-          screenerMarketCapMin = 2000000000; // $2B+
-          screenerVolumeMin = 500000; // 500K+ volume
-          peMinCtl.text = '20';
-          marketCapMinCtl.text = '2000000000';
-          volumeMinCtl.text = '500000';
-          break;
-        case 'value':
-          screenerPeMax = 15;
-          screenerDividendYieldMin = 2;
-          screenerPriceMin = 5; // Avoid penny stocks
-          peMaxCtl.text = '15';
-          dividendYieldMinCtl.text = '2';
-          priceMinCtl.text = '5';
-          break;
-        case 'largecap':
-          screenerMarketCapMin = 10000000000; // $10B+
-          screenerVolumeMin = 1000000; // 1M+ volume
-          marketCapMinCtl.text = '10000000000';
-          volumeMinCtl.text = '1000000';
-          break;
-      }
-    });
-  }
-
-  List<Instrument> _sortScreenerResults(List<Instrument> results) {
-    final sorted = List<Instrument>.from(results);
-
-    switch (screenerSortBy) {
-      case 'marketCap':
-        sorted.sort((a, b) {
-          final aVal = a.fundamentalsObj?.marketCap ?? 0;
-          final bVal = b.fundamentalsObj?.marketCap ?? 0;
-          return bVal.compareTo(aVal); // Descending
-        });
-        break;
-      case 'pe':
-        sorted.sort((a, b) {
-          final aVal = a.fundamentalsObj?.peRatio ?? double.infinity;
-          final bVal = b.fundamentalsObj?.peRatio ?? double.infinity;
-          return aVal.compareTo(bVal); // Ascending
-        });
-        break;
-      case 'dividend':
-        sorted.sort((a, b) {
-          final aVal = a.fundamentalsObj?.dividendYield ?? 0;
-          final bVal = b.fundamentalsObj?.dividendYield ?? 0;
-          return bVal.compareTo(aVal); // Descending
-        });
-        break;
-      case 'price':
-        sorted.sort((a, b) {
-          final aVal = a.quoteObj?.lastTradePrice ?? 0;
-          final bVal = b.quoteObj?.lastTradePrice ?? 0;
-          return bVal.compareTo(aVal); // Descending
-        });
-        break;
-      case 'volume':
-        sorted.sort((a, b) {
-          final aVal = a.fundamentalsObj?.averageVolume ?? 0;
-          final bVal = b.fundamentalsObj?.averageVolume ?? 0;
-          return bVal.compareTo(aVal); // Descending
-        });
-        break;
-      case 'symbol':
-      default:
-        sorted.sort((a, b) => a.symbol.compareTo(b.symbol));
-        break;
-    }
-
-    return sorted;
-  }
-
-  void _fetchTradeSignalsWithFilters() {
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    agenticTradingProvider.fetchAllTradeSignals(
-      signalType: tradeSignalFilter,
-      indicators: selectedIndicators.isEmpty ? null : selectedIndicators,
-      startDate: tradeSignalStartDate,
-      endDate: tradeSignalEndDate,
-      limit: tradeSignalLimit,
-    );
-  }
-
-  Widget _buildTradeSignalFilterChips() {
-    final indicatorOptions = [
-      'priceMovement',
-      'momentum',
-      'marketDirection',
-      'volume',
-      'macd',
-      'bollingerBands',
-      'stochastic',
-      'atr',
-      'obv',
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          // FilterChip(
-          //   label: const Text('All'),
-          //   selected: tradeSignalFilter == null,
-          //   onSelected: (selected) {
-          //     if (tradeSignalFilter != null) {
-          //       setState(() {
-          //         tradeSignalFilter = null;
-          //       });
-          //       _fetchTradeSignalsWithFilters();
-          //     }
-          //   },
-          // ),
-          // const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('BUY'),
-            selected: tradeSignalFilter == 'BUY',
-            onSelected: (selected) {
-              setState(() {
-                tradeSignalFilter = selected ? 'BUY' : null;
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            selectedColor: Colors.green.withOpacity(0.3),
-            checkmarkColor: Colors.green,
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('SELL'),
-            selected: tradeSignalFilter == 'SELL',
-            onSelected: (selected) {
-              setState(() {
-                tradeSignalFilter = selected ? 'SELL' : null;
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            selectedColor: Colors.red.withOpacity(0.3),
-            checkmarkColor: Colors.red,
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            label: const Text('HOLD'),
-            selected: tradeSignalFilter == 'HOLD',
-            onSelected: (selected) {
-              setState(() {
-                tradeSignalFilter = selected ? 'HOLD' : null;
-              });
-              _fetchTradeSignalsWithFilters();
-            },
-            selectedColor: Colors.grey.withOpacity(0.3),
-            checkmarkColor: Colors.grey,
-          ),
-          // const SizedBox(width: 8),
-          // IconButton(
-          //   icon: const Icon(Icons.refresh),
-          //   tooltip: 'Refresh',
-          //   onPressed: _fetchTradeSignalsWithFilters,
-          //   iconSize: 20,
-          // ),
-          const SizedBox(width: 8),
-          const Text('•', style: TextStyle(color: Colors.grey)),
-          const SizedBox(width: 8),
-          // Indicator chips
-          ...indicatorOptions.map((indicator) {
-            final indicatorLabel = indicator == 'priceMovement'
-                ? 'Price'
-                : indicator == 'marketDirection'
-                    ? 'Market'
-                    : indicator == 'bollingerBands'
-                        ? 'Bollinger'
-                        : indicator[0].toUpperCase() + indicator.substring(1);
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: FilterChip(
-                label: Text(indicatorLabel),
-                selected: selectedIndicators.contains(indicator),
-                onSelected: (selected) {
-                  setState(() {
-                    if (selected) {
-                      selectedIndicators.add(indicator);
-                    } else {
-                      selectedIndicators.remove(indicator);
-                    }
-                  });
-                  _fetchTradeSignalsWithFilters();
-                },
-                backgroundColor: Colors.transparent,
-                selectedColor: Colors.blue.withOpacity(0.2),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
   }
 }

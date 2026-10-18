@@ -6,17 +6,23 @@ import 'dart:io';
 
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:collection/collection.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_signin_button/flutter_signin_button.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:provider/provider.dart';
+// import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:smart_auth/smart_auth.dart';
 import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 
 typedef OAuthSignIn = void Function();
+
+enum AuthButtonType { apple, google }
 
 // If set to true, the app will request notification permissions to use
 // silent verification for SMS MFA instead of Recaptcha.
@@ -82,52 +88,61 @@ class _AuthGateState extends State<AuthGate> {
 
   bool isLoading = false;
   bool _obscurePassword = true;
+  bool _showEmailPhoneSignIn = false;
+  User? _anonymousUserBeforeAuth;
+  String? _anonymousIdTokenBeforeAuth;
+
+  Future<void> _requestPhoneNumberHint() async {
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final res = await SmartAuth.instance.requestPhoneNumberHint();
+        if (res.hasData && res.data != null) {
+          setState(() {
+            phoneController.text = res.data!;
+          });
+        }
+      } catch (e) {
+        debugPrint('Phone hint failed: $e');
+      }
+    }
+  }
 
   void setIsLoading() {
+    if (!mounted) return;
     setState(() {
       isLoading = !isLoading;
     });
   }
 
-  late Map<Buttons, OAuthSignIn> authButtons;
+  late Map<AuthButtonType, OAuthSignIn> authButtons;
 
   @override
   void initState() {
     super.initState();
 
-    if (withSilentVerificationSMSMFA && !kIsWeb) {
+    // Skip notification permission request during integration tests
+    const bool isIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
+    if (withSilentVerificationSMSMFA && !kIsWeb && !isIntegrationTest) {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
-      messaging.requestPermission();
+      // Throws on unsigned/debug desktop builds; it is not awaited, so it must not go unhandled.
+      messaging.requestPermission().then<void>((_) {}).catchError((Object e) {
+        debugPrint('Notification permission request failed: $e');
+      });
     }
 
     if (!kIsWeb && Platform.isMacOS) {
       authButtons = {
-        Buttons.Apple: () => _handleMultiFactorException(
+        AuthButtonType.apple: () => _handleMultiFactorException(
               _signInWithApple,
             ),
       };
     } else {
       authButtons = {
-        Buttons.Apple: () => _handleMultiFactorException(
+        AuthButtonType.apple: () => _handleMultiFactorException(
               _signInWithApple,
             ),
-        Buttons.Google: () => _handleMultiFactorException(
+        AuthButtonType.google: () => _handleMultiFactorException(
               _signInWithGoogle,
-            ),
-        Buttons.GitHub: () => _handleMultiFactorException(
-              _signInWithGitHub,
-            ),
-        Buttons.Microsoft: () => _handleMultiFactorException(
-              _signInWithMicrosoft,
-            ),
-        Buttons.Twitter: () => _handleMultiFactorException(
-              _signInWithTwitter,
-            ),
-        Buttons.Yahoo: () => _handleMultiFactorException(
-              _signInWithYahoo,
-            ),
-        Buttons.Facebook: () => _handleMultiFactorException(
-              _signInWithFacebook,
             ),
       };
     }
@@ -145,391 +160,345 @@ class _AuthGateState extends State<AuthGate> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SafeArea(
-                  child: Form(
-                    key: formKey,
-                    autovalidateMode: AutovalidateMode.onUserInteraction,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Visibility(
-                            visible: error.isNotEmpty,
-                            child: MaterialBanner(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.error,
-                              content: SelectableText(error),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      error = '';
-                                    });
-                                  },
-                                  child: const Text(
-                                    'dismiss',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                              contentTextStyle:
-                                  const TextStyle(color: Colors.white),
-                              padding: const EdgeInsets.all(10),
+                  child: AutofillGroup(
+                    child: Form(
+                      key: formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 400),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 40),
+                            Image.asset(
+                              'assets/images/icon.png',
+                              height: 80,
+                              width: 80,
                             ),
-                          ),
-                          // const SizedBox(height: 20),
-                          SegmentedButton(
-                            expandedInsets: EdgeInsets.all(8),
-                            style: SegmentedButton.styleFrom(
-                                textStyle: TextStyle(fontSize: 18)),
-                            segments: [
-                              ButtonSegment(
-                                  value: 'phone',
-                                  icon: Icon(Icons.phone),
-                                  label: Text(
-                                    'Phone',
-                                  )),
-                              ButtonSegment(
-                                  value: 'email',
-                                  icon: Icon(Icons.email),
-                                  label: Text('Email')),
-                            ],
-                            selected: {
-                              mode == AuthMode.phone ? 'phone' : 'email'
-                            },
-                            onSelectionChanged: (p0) {
-                              setState(() {
-                                mode = p0.contains('phone')
-                                    ? AuthMode.phone
-                                    : AuthMode.login;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          AnimatedCrossFade(
-                              // excludeBottomFocus: false,
-                              firstChild: Column(
-                                children: [
-                                  TextFormField(
-                                    controller: emailController,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Email',
-                                      border: OutlineInputBorder(),
-                                      prefixIcon: Icon(Icons.email_outlined),
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                    autofillHints: const [AutofillHints.email],
-                                    validator: (value) {
-                                      if (mode == AuthMode.phone) return null;
-                                      if (value == null || value.isEmpty) {
-                                        return 'Email is required';
-                                      }
-                                      // Basic email validation
-                                      final emailRegex = RegExp(
-                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                      );
-                                      if (!emailRegex.hasMatch(value)) {
-                                        return 'Please enter a valid email address';
-                                      }
-                                      return null;
-                                    },
+                            const SizedBox(height: 16),
+                            Text(
+                              'RealizeAlpha',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  const SizedBox(height: 20),
-                                  TextFormField(
-                                    controller: passwordController,
-                                    obscureText: _obscurePassword,
-                                    decoration: InputDecoration(
-                                      hintText: 'Password',
-                                      border: const OutlineInputBorder(),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _obscurePassword =
-                                                !_obscurePassword;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (mode == AuthMode.phone) return null;
-                                      if (value == null || value.isEmpty) {
-                                        return 'Password is required';
-                                      }
-                                      if (mode == AuthMode.register &&
-                                          value.length < 6) {
-                                        return 'Password must be at least 6 characters';
-                                      }
-                                      return null;
+                            ),
+                            const SizedBox(height: 32),
+                            Visibility(
+                              visible: error.isNotEmpty,
+                              child: MaterialBanner(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                content: SelectableText(error),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        error = '';
+                                      });
                                     },
+                                    child: Text(
+                                      'Dismiss',
+                                      style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onErrorContainer),
+                                    ),
                                   ),
                                 ],
+                                contentTextStyle: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer),
+                                padding: const EdgeInsets.all(10),
                               ),
-                              secondChild: TextFormField(
-                                controller: phoneController,
-                                decoration: const InputDecoration(
-                                  hintText: '+1 234 567 8910',
-                                  labelText: 'Phone number with country code',
-                                  helperText:
-                                      'Format: +[country code] [number]',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.phone_outlined),
+                            ),
+                            const SizedBox(height: 20),
+                            if (authButtons.isNotEmpty) ...[
+                              ...authButtons.keys.map(
+                                (button) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 5),
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    child: isLoading
+                                        ? Container(
+                                            color: Colors.grey[200],
+                                            height: 50,
+                                            width: double.infinity,
+                                          )
+                                        : SizedBox(
+                                            width: double.infinity,
+                                            height: 50,
+                                            child: _buildAuthButton(
+                                              context,
+                                              button,
+                                              authButtons[button],
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                                keyboardType: TextInputType.phone,
-                                validator: (value) {
-                                  if (mode != AuthMode.phone) return null;
-                                  if (value == null || value.isEmpty) {
-                                    return 'Phone number is required';
+                              ),
+                              const SizedBox(height: 20),
+                              TextButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _showEmailPhoneSignIn =
+                                        !_showEmailPhoneSignIn;
+                                  });
+                                },
+                                icon: Icon(
+                                  _showEmailPhoneSignIn
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                ),
+                                label: Text(
+                                  _showEmailPhoneSignIn
+                                      ? 'Hide phone or email sign-in'
+                                      : 'Or sign in with',
+                                ),
+                              ),
+                            ],
+                            if (_showEmailPhoneSignIn) ...[
+                              const SizedBox(height: 12),
+                              SegmentedButton(
+                                expandedInsets: const EdgeInsets.all(8),
+                                style: SegmentedButton.styleFrom(
+                                    textStyle: TextStyle(fontSize: 18)),
+                                segments: [
+                                  ButtonSegment(
+                                      value: 'phone',
+                                      icon: Icon(Icons.phone),
+                                      label: Text(
+                                        'Phone',
+                                      )),
+                                  ButtonSegment(
+                                      value: 'email',
+                                      icon: Icon(Icons.email),
+                                      label: Text('Email')),
+                                ],
+                                selected: {
+                                  mode == AuthMode.phone ? 'phone' : 'email'
+                                },
+                                onSelectionChanged: (p0) {
+                                  setState(() {
+                                    mode = p0.contains('phone')
+                                        ? AuthMode.phone
+                                        : AuthMode.login;
+                                  });
+                                  if (mode == AuthMode.phone) {
+                                    _requestPhoneNumberHint();
                                   }
-                                  if (!value.startsWith('+')) {
-                                    return 'Please include country code (e.g., +1)';
-                                  }
-                                  if (value.length < 10) {
-                                    return 'Please enter a valid phone number';
-                                  }
-                                  return null;
                                 },
                               ),
-                              crossFadeState: mode != AuthMode.phone
-                                  ? CrossFadeState.showFirst
-                                  : CrossFadeState.showSecond,
-                              duration: Duration(milliseconds: 200)),
-                          // if (mode != AuthMode.phone)
-                          //   Column(
-                          //     children: [
-                          //       TextFormField(
-                          //         controller: emailController,
-                          //         autofocus: true,
-                          //         decoration: const InputDecoration(
-                          //           hintText: 'Email',
-                          //           border: OutlineInputBorder(),
-                          //         ),
-                          //         keyboardType: TextInputType.emailAddress,
-                          //         autofillHints: const [AutofillHints.email],
-                          //         validator: (value) =>
-                          //             value != null && value.isNotEmpty
-                          //                 ? null
-                          //                 : 'Required',
-                          //       ),
-                          //       const SizedBox(height: 20),
-                          //       TextFormField(
-                          //         controller: passwordController,
-                          //         obscureText: true,
-                          //         decoration: const InputDecoration(
-                          //           hintText: 'Password',
-                          //           border: OutlineInputBorder(),
-                          //         ),
-                          //         validator: (value) =>
-                          //             value != null && value.isNotEmpty
-                          //                 ? null
-                          //                 : 'Required',
-                          //       ),
-                          //     ],
-                          //   ),
-                          // if (mode == AuthMode.phone)
-                          //   TextFormField(
-                          //     controller: phoneController,
-                          //     autofocus: true,
-                          //     decoration: const InputDecoration(
-                          //       hintText: '+12345678910',
-                          //       labelText: 'Phone number',
-                          //       border: OutlineInputBorder(),
-                          //     ),
-                          //     keyboardType: TextInputType.phone,
-                          //     validator: (value) =>
-                          //         value != null && value.isNotEmpty
-                          //             ? null
-                          //             : 'Required',
-                          //   ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () => _handleMultiFactorException(
-                                        _emailAndPassword,
-                                      ),
-                              child: isLoading
-                                  ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                              const SizedBox(height: 10),
+                              AnimatedCrossFade(
+                                  // excludeBottomFocus: false,
+                                  firstChild: Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: Column(
                                       children: [
-                                        const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                    Colors.white),
+                                        TextFormField(
+                                          controller: emailController,
+                                          decoration: const InputDecoration(
+                                            hintText: 'Email',
+                                            labelText: 'Email',
+                                            border: OutlineInputBorder(),
+                                            prefixIcon:
+                                                Icon(Icons.email_outlined),
+                                            filled: true,
                                           ),
+                                          keyboardType:
+                                              TextInputType.emailAddress,
+                                          autofillHints: const [
+                                            AutofillHints.email
+                                          ],
+                                          validator: (value) {
+                                            if (mode == AuthMode.phone) {
+                                              return null;
+                                            }
+                                            if (value == null ||
+                                                value.isEmpty) {
+                                              return 'Email is required';
+                                            }
+                                            // Basic email validation
+                                            final emailRegex = RegExp(
+                                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                            );
+                                            if (!emailRegex.hasMatch(value)) {
+                                              return 'Please enter a valid email address';
+                                            }
+                                            return null;
+                                          },
                                         ),
-                                        const SizedBox(width: 12),
-                                        Text('Signing in...'),
+                                        const SizedBox(height: 20),
+                                        TextFormField(
+                                          controller: passwordController,
+                                          obscureText: _obscurePassword,
+                                          decoration: InputDecoration(
+                                            hintText: 'Password',
+                                            labelText: 'Password',
+                                            border: const OutlineInputBorder(),
+                                            filled: true,
+                                            suffixIcon: IconButton(
+                                              icon: Icon(
+                                                _obscurePassword
+                                                    ? Icons.visibility_off
+                                                    : Icons.visibility,
+                                              ),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _obscurePassword =
+                                                      !_obscurePassword;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          validator: (value) {
+                                            if (mode == AuthMode.phone) {
+                                              return null;
+                                            }
+                                            if (value == null ||
+                                                value.isEmpty) {
+                                              return 'Password is required';
+                                            }
+                                            if (mode == AuthMode.register &&
+                                                value.length < 6) {
+                                              return 'Password must be at least 6 characters';
+                                            }
+                                            return null;
+                                          },
+                                        ),
                                       ],
-                                    )
-                                  : Text(mode.label),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              child: mode != AuthMode.phone
-                                  ? Column(
+                                    ),
+                                  ),
+                                  secondChild: Padding(
+                                    padding: const EdgeInsets.only(top: 10),
+                                    child: Column(
                                       children: [
-                                        TextButton(
-                                          onPressed: _resetPassword,
-                                          child: const Text('Forgot password?'),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              mode = mode == AuthMode.login
-                                                  ? AuthMode.register
-                                                  : AuthMode.login;
-                                            });
+                                        TextFormField(
+                                          controller: phoneController,
+                                          decoration: InputDecoration(
+                                            hintText: '+1 234 567 8910',
+                                            labelText:
+                                                'Phone number with country code',
+                                            helperText:
+                                                'Format: +[country code] [number]',
+                                            border: const OutlineInputBorder(),
+                                            prefixIcon: const Icon(
+                                                Icons.phone_outlined),
+                                            filled: true,
+                                            suffixIcon: IconButton(
+                                              icon: const Icon(
+                                                  Icons.contact_phone),
+                                              onPressed:
+                                                  _requestPhoneNumberHint,
+                                            ),
+                                          ),
+                                          keyboardType: TextInputType.phone,
+                                          autofillHints: const [
+                                            AutofillHints.telephoneNumber,
+                                            AutofillHints.telephoneNumberDevice
+                                          ],
+                                          validator: (value) {
+                                            if (mode != AuthMode.phone) {
+                                              return null;
+                                            }
+                                            if (value == null ||
+                                                value.isEmpty) {
+                                              return 'Phone number is required';
+                                            }
+                                            if (!value.startsWith('+')) {
+                                              return 'Please include country code (e.g., +1)';
+                                            }
+                                            if (value.length < 10) {
+                                              return 'Please enter a valid phone number';
+                                            }
+                                            return null;
                                           },
-                                          child: const Text(
-                                              'Register New Account'),
                                         ),
                                       ],
-                                    )
-                                  : null),
-                          // SizedBox(
-                          //   width: double.infinity,
-                          //   height: 50,
-                          //   child: OutlinedButton(
-                          //     onPressed: isLoading
-                          //         ? null
-                          //         : () {
-                          //             if (mode != AuthMode.phone) {
-                          //               setState(() {
-                          //                 mode = AuthMode.phone;
-                          //               });
-                          //             } else {
-                          //               setState(() {
-                          //                 mode = AuthMode.login;
-                          //               });
-                          //             }
-                          //           },
-                          //     child: isLoading
-                          //         ? const CircularProgressIndicator.adaptive()
-                          //         : Text(
-                          //             mode != AuthMode.phone
-                          //                 ? 'Sign in with Phone Number'
-                          //                 : 'Sign in with Email and Password',
-                          //           ),
-                          //   ),
-                          // ),
-                          // Divider(
-                          //   height: 50,
-                          //   indent: 16,
-                          //   endIndent: 16,
-                          //   color: Colors.indigo,
-                          //   thickness: 0,
-                          // ),
-                          SizedBox(
-                            height: 20,
-                          ),
-                          ListTile(
-                            title: Text('Or sign in with'),
-                          ),
-                          // SizedBox(
-                          //   height: 50,
-                          //   child: Center(
-                          //     child: RichText(
-                          //       text: TextSpan(
-                          //         style: Theme.of(context).textTheme.bodyLarge,
-                          //         children: [
-                          //           const TextSpan(text: 'Or '),
-                          //           const TextSpan(text: 'login with'),
-                          //           // TextSpan(
-                          //           //   text: 'continue as guest',
-                          //           //   style:
-                          //           //       const TextStyle(color: Colors.blue),
-                          //           //   recognizer: TapGestureRecognizer()
-                          //           //     ..onTap = _anonymousAuth,
-                          //           // ),
-                          //         ],
-                          //       ),
-                          //     ),
-                          //   ),
-                          // ),
-                          ...authButtons.keys.map(
-                            (button) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 5),
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: isLoading
-                                    ? Container(
-                                        color: Colors.grey[200],
-                                        height: 50,
-                                        width: double.infinity,
-                                      )
-                                    : SizedBox(
-                                        width: double.infinity,
-                                        height: 50,
-                                        child: SignInButton(
-                                          button,
-                                          // onPressed: authButtons[button]!,
-                                          onPressed: () {
-                                            ScaffoldSnackbar.of(context).show(
-                                                '${button.name} login not yet available.');
-                                          },
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          // if (mode != AuthMode.phone)
-                          //   RichText(
-                          //     text: TextSpan(
-                          //       style: Theme.of(context).textTheme.bodyLarge,
-                          //       children: [
-                          //         TextSpan(
-                          //           text: mode == AuthMode.login
-                          //               ? "Don't have an account? "
-                          //               : 'You have an account? ',
-                          //         ),
-                          //         TextSpan(
-                          //           text: mode == AuthMode.login
-                          //               ? 'Register now'
-                          //               : 'Click to login',
-                          //           style: const TextStyle(color: Colors.blue),
-                          //           recognizer: TapGestureRecognizer()
-                          //             ..onTap = () {
-                          //               setState(() {
-                          //                 mode = mode == AuthMode.login
-                          //                     ? AuthMode.register
-                          //                     : AuthMode.login;
-                          //               });
-                          //             },
-                          //         ),
-                          //       ],
-                          //     ),
-                          //   ),
-                          // const SizedBox(height: 10),
-                          RichText(
-                            text: TextSpan(
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              children: [
-                                const TextSpan(text: 'Or '),
-                                TextSpan(
-                                  text: 'continue as guest',
-                                  style: const TextStyle(color: Colors.blue),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = _anonymousAuth,
+                                    ),
+                                  ),
+                                  crossFadeState: mode != AuthMode.phone
+                                      ? CrossFadeState.showFirst
+                                      : CrossFadeState.showSecond,
+                                  duration: Duration(milliseconds: 200)),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: FilledButton(
+                                  onPressed: isLoading
+                                      ? null
+                                      : () => _handleMultiFactorException(
+                                            _emailAndPassword,
+                                          ),
+                                  child: isLoading
+                                      ? Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(Colors.white),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text('Signing in...'),
+                                          ],
+                                        )
+                                      : Text(mode.label),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
+                              ),
+                              AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: mode != AuthMode.phone
+                                      ? Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            TextButton(
+                                              onPressed: _resetPassword,
+                                              child: const Text(
+                                                  'Forgot password?'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () {
+                                                setState(() {
+                                                  mode = mode == AuthMode.login
+                                                      ? AuthMode.register
+                                                      : AuthMode.login;
+                                                });
+                                              },
+                                              child: Text(mode == AuthMode.login
+                                                  ? 'Register'
+                                                  : 'Login'),
+                                            ),
+                                          ],
+                                        )
+                                      : null),
+                              const SizedBox(height: 20),
+                            ],
+                            // Removing Guest login option to force users to register
+                            // SizedBox(
+                            //   width: double.infinity,
+                            //   height: 50,
+                            //   child: FilledButton.tonal(
+                            //     onPressed: _anonymousAuth,
+                            //     child: const Text('Continue as guest'),
+                            //   ),
+                            // ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -558,7 +527,7 @@ class _AuthGateState extends State<AuthGate> {
               },
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () {
                 if (formKey.currentState?.validate() ?? false) {
                   Navigator.of(context).pop();
@@ -583,6 +552,7 @@ class _AuthGateState extends State<AuthGate> {
                     hintText: 'Email',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.email_outlined),
+                    filled: true,
                   ),
                   keyboardType: TextInputType.emailAddress,
                   autofocus: true,
@@ -635,39 +605,50 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  Future<void> _anonymousAuth() async {
-    setIsLoading();
+  // Do not remove this comment as we might want to reintroduce guest access at some point.
+  // Removed for now to force users to create an account and avoid "spammers".
+  // Future<void> _anonymousAuth() async {
+  //   setIsLoading();
 
-    try {
-      await auth.signInAnonymously();
-      if (widget.onSignin != null && auth.currentUser != null) {
-        widget.onSignin!(auth.currentUser!);
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        error = '${e.message}';
-      });
-    } catch (e) {
-      setState(() {
-        error = '$e';
-      });
-    } finally {
-      setIsLoading();
-    }
-  }
+  //   try {
+  //     await auth.signInAnonymously();
+  //     if (widget.onSignin != null && auth.currentUser != null) {
+  //       widget.onSignin!(auth.currentUser!);
+  //     }
+  //   } on FirebaseAuthException catch (e) {
+  //     setState(() {
+  //       error = '${e.message}';
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       error = '$e';
+  //     });
+  //   } finally {
+  //     setIsLoading();
+  //   }
+  // }
 
   Future<void> _handleMultiFactorException(
     Future<void> Function() authFunction,
   ) async {
     setIsLoading();
     try {
+      _anonymousUserBeforeAuth =
+          auth.currentUser?.isAnonymous == true ? auth.currentUser : null;
+      try {
+        _anonymousIdTokenBeforeAuth =
+            await _anonymousUserBeforeAuth?.getIdToken();
+      } catch (e) {
+        debugPrint('Could not capture anonymous paper session: $e');
+        _anonymousIdTokenBeforeAuth = null;
+      }
       await authFunction();
-      if (widget.onSignin != null && auth.currentUser != null) {
+      if (auth.currentUser != null && !auth.currentUser!.isAnonymous) {
         // Show success message
         if (mounted) {
           ScaffoldSnackbar.of(context).show('✓ Successfully signed in!');
         }
-        widget.onSignin!(auth.currentUser!);
+        await _completeSignIn(auth.currentUser!);
       }
     } on FirebaseAuthMultiFactorException catch (e) {
       setState(() {
@@ -715,9 +696,7 @@ class _AuthGateState extends State<AuthGate> {
                   credential,
                 ),
               );
-              if (widget.onSignin != null) {
-                widget.onSignin!(auth.currentUser!);
-              }
+              await _completeSignIn(auth.currentUser!);
             } on FirebaseAuthException catch (e) {
               debugPrint(e.message);
             }
@@ -726,47 +705,69 @@ class _AuthGateState extends State<AuthGate> {
         codeAutoRetrievalTimeout: print,
       );
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        // Provide more user-friendly error messages
-        switch (e.code) {
-          case 'user-not-found':
-            error =
-                'No account found with this email. Please check or register.';
-            break;
-          case 'wrong-password':
-            error =
-                'Incorrect password. Please try again or reset your password.';
-            break;
-          case 'email-already-in-use':
-            error = 'This email is already registered. Try signing in instead.';
-            break;
-          case 'weak-password':
-            error = 'Password is too weak. Please use at least 6 characters.';
-            break;
-          case 'invalid-email':
-            error = 'Invalid email format. Please check your email address.';
-            break;
-          case 'network-request-failed':
-            error =
-                'Network error. Please check your connection and try again.';
-            break;
-          case 'too-many-requests':
-            error = 'Too many attempts. Please wait a moment and try again.';
-            break;
-          default:
-            error = e.message ?? 'An error occurred. Please try again.';
-        }
-      });
+      if (e.code == 'canceled' ||
+          e.code == 'cancelled' ||
+          e.code == 'popup-closed-by-user') {
+        // User cancelled the sign-in modal/dialog
+      } else {
+        setState(() {
+          // Provide more user-friendly error messages
+          switch (e.code) {
+            case 'user-not-found':
+              error =
+                  'No account found with this email. Please check or register.';
+              break;
+            case 'wrong-password':
+              error =
+                  'Incorrect password. Please try again or reset your password.';
+              break;
+            case 'email-already-in-use':
+              error =
+                  'This email is already registered. Try signing in instead.';
+              break;
+            case 'account-exists-with-different-credential':
+              error =
+                  'An account already exists with the same email. Please sign in using your existing provider.';
+              break;
+            case 'weak-password':
+              error = 'Password is too weak. Please use at least 6 characters.';
+              break;
+            case 'invalid-email':
+              error = 'Invalid email format. Please check your email address.';
+              break;
+            case 'network-request-failed':
+              error =
+                  'Network error. Please check your connection and try again.';
+              break;
+            case 'too-many-requests':
+              error = 'Too many attempts. Please wait a moment and try again.';
+              break;
+            default:
+              error = e.message ?? 'An error occurred. Please try again.';
+          }
+        });
+      }
     } catch (e) {
-      setState(() {
-        error = 'An unexpected error occurred. Please try again.';
-      });
+      if (e is PlatformException &&
+          (e.code == 'canceled' ||
+              e.code == 'cancelled' ||
+              e.code == '1001' ||
+              e.message?.toLowerCase().contains('canceled') == true ||
+              e.message?.toLowerCase().contains('cancelled') == true)) {
+        // User cancelled the sign-in modal/dialog
+      } else {
+        setState(() {
+          debugPrint('Auth unexpected error: $e');
+          error = e.toString();
+        });
+      }
     }
     setIsLoading();
   }
 
   Future<void> _emailAndPassword() async {
     if (formKey.currentState?.validate() ?? false) {
+      TextInput.finishAutofillContext();
       if (mode == AuthMode.login) {
         await auth.signInWithEmailAndPassword(
           email: emailController.text,
@@ -783,6 +784,97 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
+  Future<void> _completeSignIn(User firebaseUser) async {
+    final paperStore = Provider.of<PaperTradingStore>(
+      context,
+      listen: false,
+    );
+    String? migrationPolicy;
+    try {
+      final guestUser = _anonymousUserBeforeAuth;
+      final guestToken = _anonymousIdTokenBeforeAuth;
+      if (guestUser != null && guestUser.uid != firebaseUser.uid) {
+        if (guestToken == null) {
+          throw StateError(
+            'The previous anonymous session could not be verified.',
+          );
+        }
+        final callable = FirebaseFunctions.instance
+            .httpsCallable('migrateGuestPaperAccount');
+        final preview = await callable.call({
+          'guestIdToken': guestToken,
+        });
+        final response =
+            Map<String, dynamic>.from(preview.data as Map<dynamic, dynamic>);
+        if (response['conflict'] == true) {
+          migrationPolicy = await _choosePaperMigrationPolicy();
+          await callable.call({
+            'guestIdToken': guestToken,
+            'policy': migrationPolicy,
+          });
+        }
+      }
+
+      if (await paperStore.hasLocalGuestAccount()) {
+        final hasConflict =
+            await paperStore.localGuestAccountConflictsWith(firebaseUser);
+        if (hasConflict && migrationPolicy == null) {
+          migrationPolicy = await _choosePaperMigrationPolicy();
+        }
+        final replaceExisting =
+            hasConflict && migrationPolicy == 'replace_with_guest';
+        await paperStore.migrateLocalGuestAccount(
+          firebaseUser,
+          replaceExisting: replaceExisting,
+        );
+      } else {
+        await paperStore.ensureLoaded(firebaseUser);
+      }
+    } catch (e) {
+      try {
+        await paperStore.ensureLoaded(firebaseUser);
+      } catch (loadError) {
+        debugPrint(
+          'Could not load the signed-in paper account after migration '
+          'failed: $loadError',
+        );
+      }
+      if (mounted) {
+        ScaffoldSnackbar.of(context).show(
+          'Signed in, but Paper Trading data could not be transferred: $e',
+        );
+      }
+    }
+
+    if (widget.onSignin != null && mounted) {
+      await Future.sync(() => widget.onSignin!(firebaseUser));
+    }
+  }
+
+  Future<String> _choosePaperMigrationPolicy() async {
+    return await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: const Text('Paper Trading data already exists'),
+            content: const Text(
+              'Choose which balance and positions to keep. Guest order and equity history will be added to the signed-in account either way.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, 'keep_existing'),
+                child: const Text('Keep signed-in portfolio'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, 'replace_with_guest'),
+                child: const Text('Replace with guest portfolio'),
+              ),
+            ],
+          ),
+        ) ??
+        'keep_existing';
+  }
+
   Future<void> _phoneAuth() async {
     if (mode != AuthMode.phone) {
       setState(() {
@@ -796,7 +888,11 @@ class _AuthGateState extends State<AuthGate> {
           final smsCode = await getSmsCodeFromUser(context);
 
           if (smsCode != null) {
-            await confirmationResult.confirm(smsCode);
+            final credential = PhoneAuthProvider.credential(
+              verificationId: confirmationResult.verificationId,
+              smsCode: smsCode,
+            );
+            await auth.signInWithCredential(credential);
           }
         }
       } else {
@@ -821,8 +917,8 @@ class _AuthGateState extends State<AuthGate> {
               try {
                 // Sign the user in (or link) with the credential
                 await auth.signInWithCredential(credential);
-                if (widget.onSignin != null && auth.currentUser != null) {
-                  widget.onSignin!(auth.currentUser!);
+                if (auth.currentUser != null) {
+                  await _completeSignIn(auth.currentUser!);
                 }
               } on FirebaseAuthException catch (e) {
                 setState(() {
@@ -842,97 +938,113 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> _signInWithGoogle() async {
-    // Trigger the authentication flow
-    final googleUser = await GoogleSignIn().signIn();
+    try {
+      if (kIsWeb) {
+        await auth.signInWithPopup(GoogleAuthProvider());
+        return;
+      }
 
-    // Obtain the auth details from the request
-    final googleAuth = await googleUser?.authentication;
+      // final googleSignIn = GoogleSignIn.instance(scopes: const ['email', 'profile']);
 
-    if (googleAuth != null) {
-      // Create a new credential
+      // Trigger the authentication flow.
+      // final googleUser = await googleSignIn.signIn();
+      final googleUser = await GoogleSignIn.instance
+          .authenticate(scopeHint: const ['email', 'profile']);
+
+      // if (googleUser.authentication. == null) {
+      //   return;
+      // }
+
+      // Obtain the auth details from the request.
+      final googleAuth = googleUser.authentication;
+
+      // Create a new credential.
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        // accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Once signed in, return the UserCredential
+      // Once signed in, return the UserCredential.
       await auth.signInWithCredential(credential);
+    } on GoogleSignInException catch (e) {
+      debugPrint('Google sign-in failed (${e.code}): ${e.description}');
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted) {
+        return;
+      }
+      setState(() {
+        error = e.code == GoogleSignInExceptionCode.clientConfigurationError
+            ? 'Google sign-in is not configured for this app build.'
+            : e.description ?? 'Google sign-in failed. Please try again.';
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        error = e.message ?? 'Google sign-in failed. Please try again.';
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        error = e.message ?? 'Google sign-in failed. Please try again.';
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Google sign-in failed. Please try again.';
+      });
     }
   }
 
-  Future<void> _signInWithFacebook() async {
-    // Trigger the authentication flow
-    // by default we request the email and the public profile
-    final LoginResult result = await FacebookAuth.instance.login();
+  // Future<void> _signInWithFacebook() async {
+  //   // Trigger the authentication flow.
+  //   // By default we request the email and public profile permissions.
+  //   final LoginResult result = await FacebookAuth.instance.login();
 
-    if (result.status == LoginStatus.success) {
-      // Get access token
-      final AccessToken accessToken = result.accessToken!;
+  //   if (result.status == LoginStatus.success) {
+  //     // Get access token.
+  //     final AccessToken accessToken = result.accessToken!;
 
-      // Login with token
-      await auth.signInWithCredential(
-        FacebookAuthProvider.credential(accessToken.tokenString),
-      );
-    } else {
-      debugPrint('Facebook login did not succeed');
-      debugPrint(result.status.toString());
-      debugPrint(result.message);
-    }
-  }
-}
-
-Future<void> _signInWithTwitter() async {
-  TwitterAuthProvider twitterProvider = TwitterAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(twitterProvider);
-  } else {
-    await auth.signInWithProvider(twitterProvider);
-  }
+  //     // Login with token.
+  //     await auth.signInWithCredential(
+  //       FacebookAuthProvider.credential(accessToken.tokenString),
+  //     );
+  //   } else if (result.status == LoginStatus.cancelled) {
+  //     return;
+  //   } else {
+  //     debugPrint('Facebook login did not succeed');
+  //     debugPrint(result.status.toString());
+  //     debugPrint(result.message);
+  //   }
+  // }
 }
 
 Future<void> _signInWithApple() async {
   final appleProvider = AppleAuthProvider();
   appleProvider.addScope('email');
+  appleProvider.addScope('name');
 
-  if (kIsWeb) {
-    // Once signed in, return the UserCredential
-    await auth.signInWithPopup(appleProvider);
-  } else {
-    final userCred = await auth.signInWithProvider(appleProvider);
-    AuthGate.appleAuthorizationCode =
-        userCred.additionalUserInfo?.authorizationCode;
-  }
-}
-
-Future<void> _signInWithYahoo() async {
-  final yahooProvider = YahooAuthProvider();
-
-  if (kIsWeb) {
-    // Once signed in, return the UserCredential
-    await auth.signInWithPopup(yahooProvider);
-  } else {
-    await auth.signInWithProvider(yahooProvider);
-  }
-}
-
-Future<void> _signInWithGitHub() async {
-  final githubProvider = GithubAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(githubProvider);
-  } else {
-    await auth.signInWithProvider(githubProvider);
-  }
-}
-
-Future<void> _signInWithMicrosoft() async {
-  final microsoftProvider = MicrosoftAuthProvider();
-
-  if (kIsWeb) {
-    await auth.signInWithPopup(microsoftProvider);
-  } else {
-    await auth.signInWithProvider(microsoftProvider);
+  try {
+    if (kIsWeb) {
+      // Once signed in, return the UserCredential
+      await auth.signInWithPopup(appleProvider);
+    } else {
+      final userCred = await auth.signInWithProvider(appleProvider);
+      AuthGate.appleAuthorizationCode =
+          userCred.additionalUserInfo?.authorizationCode;
+    }
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'canceled' ||
+        e.code == 'cancelled' ||
+        e.code == 'popup-closed-by-user') {
+      return;
+    }
+    rethrow;
+  } on PlatformException catch (e) {
+    if (e.code == 'canceled' ||
+        e.code == 'cancelled' ||
+        e.code == '1001' ||
+        e.message?.toLowerCase().contains('canceled') == true ||
+        e.message?.toLowerCase().contains('cancelled') == true) {
+      return;
+    }
+    rethrow;
   }
 }
 
@@ -1068,3 +1180,44 @@ Future<String?> getTotpFromUser(
 
   return smsCode;
 }
+
+Widget _buildAuthButton(
+    BuildContext context, AuthButtonType type, VoidCallback? onPressed) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  switch (type) {
+    case AuthButtonType.apple:
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(Icons.apple, color: isDark ? Colors.black : Colors.white),
+        label: Text('Sign in with Apple',
+            style: TextStyle(color: isDark ? Colors.black : Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? Colors.white : Colors.black,
+          minimumSize: const Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+    case AuthButtonType.google:
+      return ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: const FaIcon(FontAwesomeIcons.google, color: Colors.red),
+        label: const Text('Sign in with Google'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          minimumSize: const Size(double.infinity, 50),
+          side: const BorderSide(color: Colors.grey),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      );
+  }
+}
+
+/// Helper to build an OAuth provider button for testing and customization.
+Widget buildAuthButton(
+        BuildContext context, AuthButtonType type, VoidCallback? onPressed) =>
+    _buildAuthButton(context, type, onPressed);

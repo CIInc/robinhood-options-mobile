@@ -4,7 +4,41 @@ enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
 
-enum ChartDateSpan { hour, day, week, month, month_3, ytd, year, year_5, all }
+enum ChartDateSpan {
+  hour,
+  day,
+  week,
+  month,
+  month_3,
+  rolling_30,
+  rolling_60,
+  rolling_90,
+  ytd,
+  year,
+  year_2,
+  year_3,
+  year_5,
+  all
+}
+
+extension ChartDateSpanDisplay on ChartDateSpan {
+  String get label => switch (this) {
+        ChartDateSpan.hour => '1H',
+        ChartDateSpan.day => '1D',
+        ChartDateSpan.week => '1W',
+        ChartDateSpan.month => '1M',
+        ChartDateSpan.month_3 => '3M',
+        ChartDateSpan.rolling_30 => '30D',
+        ChartDateSpan.rolling_60 => '60D',
+        ChartDateSpan.rolling_90 => '90D',
+        ChartDateSpan.ytd => 'YTD',
+        ChartDateSpan.year => '1Y',
+        ChartDateSpan.year_2 => '2Y',
+        ChartDateSpan.year_3 => '3Y',
+        ChartDateSpan.year_5 => '5Y',
+        ChartDateSpan.all => 'All',
+      };
+}
 
 enum Bounds { regular, t24_7, trading }
 
@@ -21,7 +55,15 @@ enum DisplayValue {
   totalReturn
 }
 
-enum BrokerageSource { robinhood, schwab, demo, plaid, robinhoodCrypto }
+enum BrokerageSource {
+  robinhood,
+  schwab,
+  demo,
+  plaid,
+  fidelity,
+  paper,
+  robinhoodCrypto
+}
 
 String convertChartBoundsFilter(Bounds chartBoundsFilter) {
   String bounds = "regular";
@@ -34,9 +76,6 @@ String convertChartBoundsFilter(Bounds chartBoundsFilter) {
       break;
     case Bounds.trading:
       bounds = "trading";
-      break;
-    default:
-      bounds = "regular";
       break;
   }
   return bounds;
@@ -63,11 +102,24 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
     case ChartDateSpan.month_3:
       span = "3month";
       break;
+    case ChartDateSpan.rolling_30:
+      span = "month";
+      break;
+    case ChartDateSpan.rolling_60:
+    case ChartDateSpan.rolling_90:
+      span = "3month";
+      break;
     case ChartDateSpan.ytd:
       span = "ytd";
       break;
     case ChartDateSpan.year:
       span = "year";
+      break;
+    case ChartDateSpan.year_2: // Does not exist in Robinhood API
+      span = "2year";
+      break;
+    case ChartDateSpan.year_3: // Does not exist in Robinhood API
+      span = "3year";
       break;
     case ChartDateSpan.year_5:
       span = "5year";
@@ -107,6 +159,15 @@ List<String> convertChartSpanFilterWithInterval(
       interval = "day";
       span = "3month";
       break;
+    case ChartDateSpan.rolling_30:
+      interval = "day";
+      span = "month";
+      break;
+    case ChartDateSpan.rolling_60:
+    case ChartDateSpan.rolling_90:
+      interval = "day";
+      span = "3month";
+      break;
     case ChartDateSpan.ytd:
       interval = "day";
       span = "ytd";
@@ -115,12 +176,20 @@ List<String> convertChartSpanFilterWithInterval(
       interval = "day";
       span = "year";
       break;
+    case ChartDateSpan.year_2: // Does not exist in Robinhood API
+      interval = "week";
+      span = "2year";
+      break;
+    case ChartDateSpan.year_3: // Does not exist in Robinhood API
+      interval = "week";
+      span = "3year";
+      break;
     case ChartDateSpan.year_5:
       interval = "week";
       span = "5year";
       break;
     case ChartDateSpan.all:
-      // interval = "week";
+      interval = "week";
       span = "all";
       break;
     //default:

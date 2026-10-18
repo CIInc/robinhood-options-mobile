@@ -1,0 +1,47 @@
+# Market Sentiment Analysis
+
+## Overview
+
+RealizeAlpha now includes a comprehensive **Market Sentiment Analysis** module designed to gauge the overall mood of the market. This feature leverages AI and quantitative data to provide a "Bullish", "Bearish", or "Neutral" outlook, helping traders align their strategies with the broader market direction.
+
+> **Current status:** The client implementation is retained but its Search card is disabled because its aggregate score overlaps with Macro Assessment. Consider evolving this surface into an **Alpha Feed** driven by distinct news, social, and community signals before re-enabling it.
+
+## Features
+
+### Market Sentiment Card
+The retained card implementation provides an at-a-glance view of market sentiment, but is currently hidden from Search.
+- **Visual Gauge:** A color-coded indicator (Green for Bullish, Red for Bearish, Grey for Neutral).
+- **Key Drivers:** A summary of the top factors influencing the current sentiment (e.g., "Tech Sector Rally", "Fed Rate Decision").
+
+### Sentiment Analysis Dashboard
+A dedicated dashboard for deeper analysis.
+- **Detailed Metrics:** Breakdown of sentiment by sector and asset class.
+- **Trending Sentiment:** Heatmap and list of symbols with the most significant sentiment shifts.
+- **Historical Trend:** A chart showing how sentiment has shifted over the last week or month.
+- **News & Social Feed:** Real-time integration of news stories and social signals driving the sentiment score.
+- **Market Impact:** AI-driven analysis of how current sentiment is likely to affect different market segments.
+
+## How It Works
+The sentiment score is derived from a combination of:
+1.  **Price Action:** Technical analysis of major indices (SPY, QQQ, IWM).
+2.  **Options Flow:** Put/Call ratios and "smart money" flow analysis.
+3.  **News & Social:** AI-aggregated sentiment from financial news headlines and social signals.
+
+## Usage
+Use the Market Sentiment Analysis to:
+- **Confirm Trends:** Look for alignment between your trade ideas and the broad market sentiment.
+- **Risk Management:** tightening stops or reducing size when sentiment opposes your position.
+- **Contrarian Trading:** Identify potential reversals when sentiment reaches extreme levels.
+
+## Monitored Assets
+
+The system tracks sentiment for major indices and a curated list of high-volume stocks.
+
+**Indices:**
+- SPY (S&P 500)
+- QQQ (Nasdaq-100)
+- IWM (Russell 2000)
+- DIA (Dow Jones Industrial Average)
+
+**Popular Symbols:**
+NVDA, TSLA, AAPL, AMD, MSFT, AMZN, GOOGL, META, NFLX, COIN, MSTR, GME, AMC, PLTR, SOFI, HOOD, SMCI, ARM, AVGO, PANW.

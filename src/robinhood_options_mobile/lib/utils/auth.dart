@@ -22,6 +22,9 @@ class AuthUtil {
   final firebase_auth.FirebaseAuth auth;
   AuthUtil(this.auth);
 
+  static bool isSignedIn(firebase_auth.User? user) =>
+      user != null && !user.isAnonymous;
+
   UserRole? _userRole;
 
   Future<UserRole> userRole() async {
@@ -33,19 +36,22 @@ class AuthUtil {
           role = token.claims!['role'];
         }
       }
-      _userRole = role.parseEnum(UserRole.values, UserRole.user) as UserRole;
+      _userRole = role.parseEnum(UserRole.values, UserRole.user);
     }
     return _userRole!;
   }
 
   void openLogin(BuildContext context, FirestoreService firestoreService,
-      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer) async {
+      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer,
+      {BrokerageSource? initialSource, String? initialUserName}) async {
     final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (BuildContext context) => LoginWidget(
                   analytics: analytics,
                   observer: observer,
+                  initialSource: initialSource,
+                  initialUserName: initialUserName,
                 )));
 
     if (result != null) {
@@ -71,6 +77,14 @@ class AuthUtil {
           behavior: SnackBarBehavior.floating,
         ));
     }
+  }
+
+  Future<firebase_auth.UserCredential> ensureFirebaseUserSession() async {
+    if (auth.currentUser == null) {
+      debugPrint('No Firebase user found. Signing in anonymously...');
+      return await auth.signInAnonymously();
+    }
+    throw Exception('User already signed in');
   }
 
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
@@ -118,15 +132,23 @@ class AuthUtil {
     String? fcmToken;
 
     //TODO: Disable Web Push Notifications for now until blank screen issue is resolved...
-    if (!kIsWeb) {
+    // Skip notification permission request during integration tests
+    const bool isIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
+    if (!kIsWeb && !isIntegrationTest) {
       // You may set the permission requests to "provisional" which allows the user to choose what type
       // of notifications they would like to receive once the user receives a notification.
-      final settings = await FirebaseMessaging.instance.requestPermission(
-          alert: true, badge: true, sound: true, carPlay: true
-          // provisional: true
-          );
+      // Throws on unsigned/debug desktop builds; user setup must still complete.
+      NotificationSettings? settings;
+      try {
+        settings = await FirebaseMessaging.instance.requestPermission(
+            alert: true, badge: true, sound: true, carPlay: true
+            // provisional: true
+            );
+      } catch (e) {
+        debugPrint('Notification permission request failed: $e');
+      }
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      if (settings?.authorizationStatus == AuthorizationStatus.authorized) {
         await FirebaseMessaging.instance
             .setForegroundNotificationPresentationOptions(
           alert: true, // Required to display a heads up notification
@@ -165,8 +187,7 @@ class AuthUtil {
           devices: [],
           dateCreated: DateTime.now(), //.toUtc(),
           // dateUpdated: DateTime.now(), //.toUtc(),
-          brokerageUsers: [],
-          accounts: []);
+          brokerageUsers: []);
     }
     user.name = firebaseUser.displayName;
     user.nameLower = firebaseUser.displayName?.toLowerCase();
@@ -241,7 +262,6 @@ class AuthUtil {
       'type': build.type,
       'isPhysicalDevice': build.isPhysicalDevice,
       'systemFeatures': build.systemFeatures,
-      'serialNumber': build.serialNumber,
       'isLowRamDevice': build.isLowRamDevice,
     };
   }

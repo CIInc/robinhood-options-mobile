@@ -48,3 +48,7 @@ app.*.map.json
 /android/app/release
 
 node_modules
+
+# Local App Store Connect credentials (never commit API keys).
+.testflight.env
+AuthKey_*.p8

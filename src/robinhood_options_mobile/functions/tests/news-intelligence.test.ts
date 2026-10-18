@@ -1,0 +1,156 @@
+import { describe, it, expect, jest } from "@jest/globals";
+import { HttpsError } from "firebase-functions/v2/https";
+
+jest.mock("firebase-admin", () => {
+  const mockSet = jest.fn(async () => ({}));
+  const mockGet = jest.fn(async () => ({
+    exists: false,
+    data: () => ({}),
+  }));
+  const mockDoc = jest.fn().mockReturnValue({ set: mockSet, get: mockGet });
+  const mockCollection = jest.fn().mockReturnValue({
+    doc: mockDoc,
+  });
+  return {
+    apps: [{}],
+    initializeApp: jest.fn(),
+    firestore: jest.fn().mockReturnValue({
+      collection: mockCollection,
+    }),
+  };
+});
+
+import {
+  scoreArticleText,
+  analyzeNewsArticles,
+  adjustSignalConfidence,
+  getNewsIntelligence,
+  getWatchlistNewsIntelligence,
+} from "../src/news-intelligence";
+
+describe("News Intelligence Analyzer", () => {
+  it("scores bullish breaking news correctly", () => {
+    const text =
+      "NVDA beats Q2 earnings estimates with record AI revenue, " +
+      "raises guidance";
+    const result = scoreArticleText(text);
+
+    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.label).toBe("Bullish");
+    expect(result.impact).toBe("High");
+  });
+
+  it("scores bearish news headlines with appropriate impact", () => {
+    const text =
+      "TSLA drops as delivery numbers miss expectations amid regulatory probe";
+    const result = scoreArticleText(text);
+
+    expect(result.score).toBeLessThanOrEqual(40);
+    expect(result.label).toBe("Bearish");
+    expect(result.impact).toBe("High");
+  });
+
+  it("analyzes multi-article news feed for symbol intelligence", () => {
+    const rawArticles = [
+      {
+        title: "Apple reports record iPhone revenue and announces buyback",
+        summary: "Q3 earnings surpassed analyst projections.",
+        source: "Bloomberg",
+        published_at: new Date().toISOString(),
+      },
+      {
+        title: "Apple expands AI partnership with OpenAI",
+        summary: "New features coming to Siri and iOS.",
+        source: "Reuters",
+        published_at: new Date().toISOString(),
+      },
+    ];
+
+    const intelligence = analyzeNewsArticles(rawArticles, "AAPL");
+
+    expect(intelligence.symbol).toBe("AAPL");
+    expect(intelligence.overallSentiment).toBeGreaterThanOrEqual(60);
+    expect(intelligence.sentimentLabel).toMatch(/Bullish/);
+    expect(intelligence.bullishCatalysts.length).toBeGreaterThan(0);
+    expect(intelligence.articles.length).toBe(2);
+    expect(intelligence.eventImpactPrediction.direction).toBe("Bullish");
+    expect(intelligence.eventImpactPrediction.expectedMovePercent)
+      .toBeGreaterThan(0);
+    expect(intelligence.eventImpactPrediction.drivers).toHaveLength(2);
+  });
+
+  it("returns a low-confidence neutral baseline without news", () => {
+    const intelligence = analyzeNewsArticles([], "AAPL");
+
+    expect(intelligence.eventImpactPrediction).toEqual({
+      direction: "Neutral",
+      expectedMovePercent: 0,
+      confidence: 15,
+      horizon: "1-2 weeks",
+      drivers: [],
+    });
+  });
+
+  it("boosts a signal confirmed by high-impact news", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company beats earnings and raises guidance" },
+    ], "AAPL");
+
+    const adjustment = adjustSignalConfidence(intelligence, "BUY");
+
+    expect(adjustment.applied).toBe(true);
+    expect(adjustment.signalStrengthDelta).toBeGreaterThan(0);
+    expect(adjustment.reason).toContain("confirms BUY");
+  });
+
+  it("penalizes a technical signal contradicted by news", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company misses earnings amid regulatory probe" },
+    ], "AAPL");
+
+    const adjustment = adjustSignalConfidence(intelligence, "BUY");
+
+    expect(adjustment.signalStrengthDelta).toBeLessThan(0);
+    expect(adjustment.reason).toContain("contradicts BUY");
+  });
+
+  it("does not adjust neutral or hold signals", () => {
+    const intelligence = analyzeNewsArticles([
+      { title: "Company beats earnings" },
+    ], "AAPL");
+
+    expect(adjustSignalConfidence(intelligence, "HOLD").applied).toBe(false);
+    expect(adjustSignalConfidence(analyzeNewsArticles([], "AAPL"), "BUY")
+      .applied).toBe(false);
+  });
+
+  it("rejects unauthenticated getNewsIntelligence calls", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: { symbol: "AAPL" },
+    };
+
+    const callFn = () =>
+      (getNewsIntelligence as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  it("rejects unauthenticated getWatchlistNewsIntelligence calls", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: { symbols: ["AAPL", "NVDA"] },
+    };
+
+    const callFn = () =>
+      (getWatchlistNewsIntelligence as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+});

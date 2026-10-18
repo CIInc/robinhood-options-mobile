@@ -3,6 +3,7 @@ import 'dart:collection';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 // import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 class InstrumentStore extends ChangeNotifier {
@@ -18,6 +19,11 @@ class InstrumentStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void add(Instrument item) {
+    // Added by LLM to fix missing logoUrl for some items. This is a workaround and should be removed once the data source is fixed.
+    if (item.logoUrl == null &&
+        RobinhoodService.logoUrls.containsKey(item.symbol)) {
+      item.logoUrl = RobinhoodService.logoUrls[item.symbol];
+    }
     _items.add(item);
     // var doc = await _firestoreService.addInstrument(item);
     // This call tells the widgets that are listening to this model to rebuild.
@@ -43,6 +49,11 @@ class InstrumentStore extends ChangeNotifier {
       return false;
     }
     // else {
+    // Added by LLM to fix missing logoUrl for some items. This is a workaround and should be removed once the data source is fixed.
+    if (item.logoUrl == null &&
+        RobinhoodService.logoUrls.containsKey(item.symbol)) {
+      item.logoUrl = RobinhoodService.logoUrls[item.symbol];
+    }
     _items[index] = item;
     // }
     // await _firestoreService.updateInstrument(item);

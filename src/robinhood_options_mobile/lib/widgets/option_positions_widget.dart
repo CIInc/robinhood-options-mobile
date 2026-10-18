@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -24,6 +26,14 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_defense_playbook_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_roll_assistant_widget.dart';
+import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
+import 'package:robinhood_options_mobile/widgets/animated_price_text.dart';
+import 'package:robinhood_options_mobile/services/live_activity_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_live_activity_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/synchronized_scroll_controller.dart';
+import 'package:robinhood_options_mobile/widgets/web_promotion_banner_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -34,83 +44,78 @@ final ItemPositionsListener itemPositionListener =
 
 class OptionPositionsWidget extends StatefulWidget {
   const OptionPositionsWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredOptionPositions, {
     this.showList = true,
     this.showGroupHeader = true,
     this.showFooter = true,
+    this.disableNavigation = false,
+    this.chartRowLimit,
     super.key,
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.user,
+    this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   final bool showList;
   final bool showGroupHeader;
   final bool showFooter;
+  final bool disableNavigation;
+
+  /// Caps how many bars the chart draws, so a summary card's height is bounded
+  /// by the limit rather than by the position count. Null draws every row.
+  ///
+  /// Applies to whichever rows the chart is showing: contracts when a single
+  /// underlying is held, underlyings otherwise.
+  final int? chartRowLimit;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionPositionsWidget> createState() => _OptionPositionsWidgetState();
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
-  // final FirestoreService _firestoreService = FirestoreService();
+  final SynchronizedScrollControllerGroup _scrollGroup =
+      SynchronizedScrollControllerGroup();
+  final ValueNotifier<dynamic> _selectedOptionDatumNotifier =
+      ValueNotifier<dynamic>(null);
 
-  // P&L badge helpers (mirrors instrument_positions_widget.dart for visual parity)
-  Color _pnlColor(BuildContext context, double v) {
-    if (v > 0) return Colors.green;
-    if (v < 0) return Colors.red;
-    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+  @override
+  void dispose() {
+    _selectedOptionDatumNotifier.dispose();
+    super.dispose();
   }
 
-  Widget _pnlBadge(BuildContext context, String? text, double? value,
-      {double fontSize = badgeValueFontSize}) {
-    final base = _pnlColor(context, value ?? 0);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w600, color: base),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
+  void _showAggregateTradeDisabled(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
-  // Neutral badge for Greeks & non-PnL metrics (avoid red/green sign semantics)
-  Widget _neutralBadge(BuildContext context, String? text,
-      {double fontSize = 12}) {
-    final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-    final bg =
-        Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.18);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text ?? '',
-        style: TextStyle(
-            fontSize: fontSize, fontWeight: FontWeight.w600, color: fg),
-        overflow: TextOverflow.fade,
-        softWrap: false,
-      ),
-    );
+  void _handleNavigation(BuildContext context, VoidCallback action) {
+    if (widget.disableNavigation) {
+      _showAggregateTradeDisabled(context);
+      return;
+    }
+    action();
   }
 
   @override
@@ -126,260 +131,349 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     }
 
     List<dynamic> sortedGroupedOptionAggregatePositions =
-        groupedOptionAggregatePositions.values.sortedBy<num>((i) => widget.user
-            .getDisplayValueOptionAggregatePosition(i,
-                displayValue: widget.user.sortOptions)!);
-    if (widget.user.sortDirection == SortDirection.desc) {
+        groupedOptionAggregatePositions.values.sortedBy<num>((i) =>
+            widget.brokerageUser.getDisplayValueOptionAggregatePosition(i,
+                displayValue: widget.brokerageUser.sortOptions)!);
+    if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedGroupedOptionAggregatePositions =
           sortedGroupedOptionAggregatePositions.reversed.toList();
     }
 
-    double? marketValue = widget.user.getDisplayValueOptionAggregatePosition(
-        widget.filteredOptionPositions,
-        displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.user
-        .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
+    double? marketValue = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(widget.filteredOptionPositions,
+            displayValue: DisplayValue.marketValue);
 
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
-    if (widget.user.showPositionDetails &&
-        groupedOptionAggregatePositions.length == 1) {
-      var results = _calculateGreekAggregates(widget.filteredOptionPositions);
-      deltaAvg = results[0];
-      gammaAvg = results[1];
-      thetaAvg = results[2];
-      vegaAvg = results[3];
-      rhoAvg = results[4];
-      ivAvg = results[5];
-      chanceAvg = results[6];
-      openInterestAvg = results[7];
+    GreekAggregates? greeks;
+    if (widget.brokerageUser.showPositionDetails) {
+      greeks = _calculateGreekAggregates(widget.filteredOptionPositions);
     }
 
     var brightness = MediaQuery.of(context).platformBrightness;
 
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
-    double minimum = 0, maximum = 0;
+    DisplayValue? secondaryDisplayValue;
+    if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+      secondaryDisplayValue = DisplayValue.totalCost;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalCost) {
+      secondaryDisplayValue = DisplayValue.marketValue;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
+      secondaryDisplayValue = DisplayValue.totalReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.totalReturnPercent) {
+      secondaryDisplayValue = DisplayValue.totalReturn;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
+      secondaryDisplayValue = DisplayValue.todayReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.todayReturnPercent) {
+      secondaryDisplayValue = DisplayValue.todayReturn;
+    }
+
+    final bool isDualAxis = secondaryDisplayValue != null &&
+        ((widget.brokerageUser.displayValue == DisplayValue.totalReturn &&
+                secondaryDisplayValue == DisplayValue.totalReturnPercent) ||
+            (widget.brokerageUser.displayValue ==
+                    DisplayValue.totalReturnPercent &&
+                secondaryDisplayValue == DisplayValue.totalReturn) ||
+            (widget.brokerageUser.displayValue == DisplayValue.todayReturn &&
+                secondaryDisplayValue == DisplayValue.todayReturnPercent) ||
+            (widget.brokerageUser.displayValue ==
+                    DisplayValue.todayReturnPercent &&
+                secondaryDisplayValue == DisplayValue.todayReturn));
+
+    var chartRowsOmitted = 0;
     if (groupedOptionAggregatePositions.length == 1) {
-      for (var op in groupedOptionAggregatePositions.values.first) {
-        double? value = widget.user.getDisplayValue(op);
-        String? trailingText = widget.user.getDisplayText(value);
+      final List<OptionAggregatePosition> legs =
+          groupedOptionAggregatePositions.values.first;
+      final chartLegs = _capForChart(legs);
+      chartRowsOmitted = legs.length - chartLegs.length;
+      for (var op in chartLegs) {
+        double value = widget.brokerageUser.getDisplayValue(op);
+        String trailingText = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user
-              .getDisplayValue(op, displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue,
-              displayValue: DisplayValue.totalCost);
-          // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
-          //   secondaryValue = widget.user.getDisplayValue(position,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue!,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          // } else if (widget.user.displayValue == DisplayValue.todayReturn) {
-          //   secondaryValue = widget.user.getDisplayValue(position,
-          //       displayValue: DisplayValue.todayReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue!,
-          //       displayValue: DisplayValue.todayReturnPercent);
+        if (secondaryDisplayValue != null) {
+          secondaryValue = widget.brokerageUser
+              .getDisplayValue(op, displayValue: secondaryDisplayValue);
+          secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
+              displayValue: secondaryDisplayValue);
         }
-        if (op.legs.length > 0) {
+        String combinedLabel = trailingText;
+        if (secondaryLabel != null && secondaryLabel.isNotEmpty) {
+          if (secondaryDisplayValue != DisplayValue.totalCost &&
+              secondaryDisplayValue != DisplayValue.marketValue) {
+            combinedLabel = '$trailingText ($secondaryLabel)';
+          }
+        }
+        if (op.legs.isNotEmpty) {
           data.add({
             'domain':
-                '${op.legs.first.expirationDate != null ? formatCompactDate.format(op.legs.first.expirationDate!) : ''} \$${op.legs.first.strikePrice != null ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.first.optionType}', // ${op.legs.first.positionType}
+                '${op.legs.first.expirationDate != null ? formatCompactDate.format(op.legs.first.expirationDate!) : ''} \$${op.legs.first.strikePrice != null ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.first.optionType}',
             'measure': value,
-            'label': trailingText,
+            'label': combinedLabel,
+            'primaryLabel': trailingText,
             'secondaryMeasure': secondaryValue,
-            'secondaryLabel': secondaryLabel
+            'secondaryLabel': secondaryLabel,
+            'op': op,
           });
         }
       }
+      var shades = PieChart.makeShades(
+          charts.ColorUtil.fromDartColor(
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.primaryContainer),
+          2);
       barChartSeriesList.add(charts.Series<dynamic, String>(
-          id: BrokerageUser.displayValueText(widget.user.displayValue!),
-          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary),
+          id: BrokerageUser.displayValueText(
+              widget.brokerageUser.displayValue!),
           data: data,
+          seriesColor: shades[0],
           domainFn: (var d, _) => d['domain'],
           measureFn: (var d, _) => d['measure'],
           labelAccessorFn: (d, _) => d['label'],
           insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-              fontSize: 14,
+              fontSize: 13,
               color: charts.ColorUtil.fromDartColor(
                 brightness == Brightness.light
                     ? Theme.of(context).colorScheme.surface
                     : Theme.of(context).colorScheme.inverseSurface,
               )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-              fontSize: 14,
+              fontSize: 13,
               color: charts.ColorUtil.fromDartColor(
                   Theme.of(context).textTheme.labelSmall!.color!))));
-      List<OptionAggregatePosition> oaps =
-          groupedOptionAggregatePositions.values.first;
-      Iterable<double> positionDisplayValues =
-          oaps.map((e) => widget.user.getDisplayValue(e));
-      minimum = positionDisplayValues.reduce(math.min);
-      if (minimum < 0) {
-        minimum -= 0.05;
-      } else if (minimum > 0) {
-        minimum = 0;
-      }
-      maximum = positionDisplayValues.reduce(math.max);
-      if (maximum > 0) {
-        maximum += 0.05;
-      } else if (maximum < 0) {
-        maximum = 0;
+      if (secondaryDisplayValue != null) {
+        var seriesData = charts.Series<dynamic, String>(
+          id: BrokerageUser.displayValueText(secondaryDisplayValue),
+          colorFn: (_, __) => shades[1],
+          domainFn: (var d, _) => d['domain'],
+          measureFn: (var d, _) => d['secondaryMeasure'],
+          labelAccessorFn: (d, _) => d['secondaryLabel'],
+          data: data,
+        )..setAttribute(charts.rendererIdKey, 'customLine');
+
+        if (isDualAxis) {
+          seriesData.setAttribute(
+              charts.measureAxisIdKey, charts.Axis.secondaryMeasureAxisId);
+        }
+
+        if (seriesData.data.isNotEmpty &&
+            seriesData.data[0]['secondaryMeasure'] != null) {
+          barChartSeriesList.add(seriesData);
+        }
       }
     } else if (groupedOptionAggregatePositions.length > 1) {
-      for (var position in sortedGroupedOptionAggregatePositions) {
-        double? value =
-            widget.user.getDisplayValueOptionAggregatePosition(position);
-        String? trailingText;
+      final chartGroups = _capForChart(sortedGroupedOptionAggregatePositions);
+      chartRowsOmitted =
+          sortedGroupedOptionAggregatePositions.length - chartGroups.length;
+      for (var position in chartGroups) {
+        double? value = widget.brokerageUser
+            .getDisplayValueOptionAggregatePosition(position);
+        String trailingText =
+            value != null ? widget.brokerageUser.getDisplayText(value) : '';
         double? secondaryValue;
         String? secondaryLabel;
-        if (value != null) {
-          trailingText = widget.user.getDisplayText(value);
+        if (secondaryDisplayValue != null) {
+          secondaryValue = widget.brokerageUser
+              .getDisplayValueOptionAggregatePosition(position,
+                  displayValue: secondaryDisplayValue);
+          if (secondaryValue != null) {
+            secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
+                displayValue: secondaryDisplayValue);
+          }
         }
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getDisplayValueOptionAggregatePosition(
-              position,
-              displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue!,
-              displayValue: DisplayValue.totalCost);
-          // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
-          //   secondaryValue = widget.user.getAggregateDisplayValue(position,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue!,
-          //       displayValue: DisplayValue.totalReturnPercent);
-          // } else if (widget.user.displayValue == DisplayValue.todayReturn) {
-          //   secondaryValue = widget.user.getAggregateDisplayValue(position,
-          //       displayValue: DisplayValue.todayReturnPercent);
-          //   secondaryLabel = widget.user.getDisplayText(secondaryValue!,
-          //       displayValue: DisplayValue.todayReturnPercent);
+        String combinedLabel = trailingText;
+        if (secondaryLabel != null && secondaryLabel.isNotEmpty) {
+          if (secondaryDisplayValue != DisplayValue.totalCost &&
+              secondaryDisplayValue != DisplayValue.marketValue) {
+            combinedLabel = '$trailingText ($secondaryLabel)';
+          }
         }
         data.add({
           'domain': position.first.symbol,
-          'measure': value!.isNaN ? null : value,
-          'label': trailingText,
+          'measure': value != null && value.isNaN ? null : value,
+          'label': combinedLabel,
+          'primaryLabel': trailingText,
           'secondaryMeasure': secondaryValue,
-          'secondaryLabel': secondaryLabel
+          'secondaryLabel': secondaryLabel,
+          'group': position,
         });
       }
       var shades = PieChart.makeShades(
           charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.primaryContainer),
           2);
       barChartSeriesList.add(charts.Series<dynamic, String>(
-          id: BrokerageUser.displayValueText(widget.user.displayValue!),
+          id: BrokerageUser.displayValueText(
+              widget.brokerageUser.displayValue!),
           data: data,
-          // colorFn: (_, __) => shades[
-          //     0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-          seriesColor:
-              shades[0], // charts.ColorUtil.fromDartColor(Colors.black),
+          seriesColor: shades[0],
           domainFn: (var d, _) => d['domain'],
           measureFn: (var d, _) => d['measure'],
           labelAccessorFn: (d, _) => d['label'],
           insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-              fontSize: 14,
+              fontSize: 13,
               color: charts.ColorUtil.fromDartColor(
                 brightness == Brightness.light
                     ? Theme.of(context).colorScheme.surface
                     : Theme.of(context).colorScheme.inverseSurface,
               )),
           outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
-              fontSize: 14,
+              fontSize: 13,
               color: charts.ColorUtil.fromDartColor(
                   Theme.of(context).textTheme.labelSmall!.color!))));
-      var seriesData = charts.Series<dynamic, String>(
-        id: (widget.user.displayValue == DisplayValue.marketValue)
-            ? BrokerageUser.displayValueText(DisplayValue.totalCost)
-            : '',
-        //charts.MaterialPalette.blue.shadeDefault,
-        colorFn: (_, __) => shades[1],
-        // Not working as replacement to colorFn, setting the 2nd measure as gray
-        // seriesColor: shades[1],
-        //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-        domainFn: (var d, _) => d['domain'],
-        measureFn: (var d, _) => d['secondaryMeasure'],
-        labelAccessorFn: (d, _) => d['secondaryLabel'],
-        data: data,
-      )..setAttribute(charts.rendererIdKey, 'customLine');
-      // if (widget.user.displayValue == DisplayValue.totalReturn ||
-      //     widget.user.displayValue == DisplayValue.todayReturn) {
-      //   seriesData.setAttribute(
-      //       charts.measureAxisIdKey, 'secondaryMeasureAxisId');
-      // }
-      if (seriesData.data.isNotEmpty &&
-          seriesData.data[0]['secondaryMeasure'] != null) {
-        barChartSeriesList.add(seriesData);
-      }
+      if (secondaryDisplayValue != null) {
+        var seriesData = charts.Series<dynamic, String>(
+          id: BrokerageUser.displayValueText(secondaryDisplayValue),
+          colorFn: (_, __) => shades[1],
+          domainFn: (var d, _) => d['domain'],
+          measureFn: (var d, _) => d['secondaryMeasure'],
+          labelAccessorFn: (d, _) => d['secondaryLabel'],
+          data: data,
+        )..setAttribute(charts.rendererIdKey, 'customLine');
 
-      var positionDisplayValues = groupedOptionAggregatePositions.values.map(
-          (e) => widget.user.getDisplayValueOptionAggregatePosition(e) ?? 0);
-      minimum = positionDisplayValues.reduce(math.min);
-      if (minimum < 0) {
-        minimum -= 0.05;
-      } else if (minimum > 0) {
-        minimum = 0;
-      }
-      maximum = positionDisplayValues.reduce(math.max);
-      if (maximum > 0) {
-        maximum += 0.05;
-      } else if (maximum < 0) {
-        maximum = 0;
+        if (isDualAxis) {
+          seriesData.setAttribute(
+              charts.measureAxisIdKey, charts.Axis.secondaryMeasureAxisId);
+        }
+
+        if (seriesData.data.isNotEmpty &&
+            seriesData.data[0]['secondaryMeasure'] != null) {
+          barChartSeriesList.add(seriesData);
+        }
       }
     }
-    /*
-        positionChart = charts.BarChart(
-          barChartSeriesList,
-          vertical: false,
-        );
-        */
+
     var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
       axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
-    var primaryMeasureAxis = charts.NumericAxisSpec(
-      //showAxisLine: true,
-      //renderSpec: charts.GridlineRendererSpec(),
-      renderSpec: charts.GridlineRendererSpec(
-          labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-      //renderSpec: charts.NoneRenderSpec(),
-      tickFormatterSpec: charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-          NumberFormat.compactSimpleCurrency()),
-      //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-      //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-      //tickProviderSpec:
-      //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-      //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-    );
-    if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-        widget.user.displayValue == DisplayValue.totalReturnPercent) {
-      primaryMeasureAxis = charts.PercentAxisSpec(
-          viewport: charts.NumericExtents(minimum, maximum),
-          renderSpec: charts.GridlineRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
+
+    final primaryNumericValues = data
+        .map((d) => (d['measure'] as num?)?.toDouble())
+        .whereType<double>()
+        .toList();
+
+    charts.NumericExtents primaryExtents;
+    charts.NumericExtents? secondaryExtents;
+    List<charts.TickSpec<num>>? secondaryTicks;
+
+    if (isDualAxis) {
+      final secondaryNumericValues = data
+          .map((d) => (d['secondaryMeasure'] as num?)?.toDouble())
+          .whereType<double>()
+          .toList();
+      final aligned = AlignedAxisExtents.compute(
+        primaryValues: primaryNumericValues,
+        secondaryValues: secondaryNumericValues,
+      );
+      primaryExtents = aligned.primaryExtents;
+      secondaryExtents = aligned.secondaryExtents;
+
+      final isSecondaryPercent =
+          secondaryDisplayValue == DisplayValue.totalReturnPercent ||
+              secondaryDisplayValue == DisplayValue.todayReturnPercent;
+
+      secondaryTicks = <charts.TickSpec<num>>[];
+      if (secondaryExtents.min < 0 && secondaryExtents.max > 0) {
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.min));
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.max));
+      } else if (secondaryExtents.min >= 0) {
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.max));
+      } else {
+        secondaryTicks.add(charts.TickSpec<num>(secondaryExtents.min));
+        secondaryTicks.add(charts.TickSpec<num>(0.0,
+            label: isSecondaryPercent ? '0%' : '\$0'));
+      }
+    } else {
+      if (secondaryDisplayValue != null) {
+        final secondaryNumericValues = data
+            .map((d) => (d['secondaryMeasure'] as num?)?.toDouble())
+            .whereType<double>()
+            .toList();
+        primaryNumericValues.addAll(secondaryNumericValues);
+      }
+      primaryExtents = primaryNumericValues.isNotEmpty
+          ? charts.NumericExtents.fromValues(primaryNumericValues)
+          : const charts.NumericExtents(0, 1);
+      double primaryPad =
+          primaryExtents.width > 0 ? primaryExtents.width * 0.1 : 0.05;
+      final bool startsAtZero =
+          widget.brokerageUser.displayValue == DisplayValue.marketValue ||
+              widget.brokerageUser.displayValue == DisplayValue.totalCost;
+      // Value-based bars anchor at zero but must still fit negative values (short options).
+      final double lowest = primaryExtents.min - primaryPad;
+      final double highest = primaryExtents.max + primaryPad;
+      final double minVal = startsAtZero ? (lowest < 0 ? lowest : 0.0) : lowest;
+      final double maxVal = startsAtZero && highest < 0 ? 0.0 : highest;
+      primaryExtents = charts.NumericExtents(minVal, maxVal);
     }
-    //debugPrint('rendering optionChart');
+
+    var primaryMeasureAxis = widget.brokerageUser.displayValue ==
+                DisplayValue.todayReturnPercent ||
+            widget.brokerageUser.displayValue == DisplayValue.totalReturnPercent
+        ? charts.PercentAxisSpec(
+            viewport: primaryExtents,
+            tickProviderSpec:
+                const charts.BasicNumericTickProviderSpec(zeroBound: true),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)))
+        : charts.NumericAxisSpec(
+            viewport: primaryExtents,
+            tickProviderSpec:
+                const charts.BasicNumericTickProviderSpec(zeroBound: true),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            tickFormatterSpec:
+                charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                    NumberFormat.compactSimpleCurrency()),
+          );
+
+    charts.NumericAxisSpec? secondaryMeasureAxis;
+    if (isDualAxis && secondaryExtents != null && secondaryTicks != null) {
+      if (secondaryDisplayValue == DisplayValue.totalReturnPercent ||
+          secondaryDisplayValue == DisplayValue.todayReturnPercent) {
+        secondaryMeasureAxis = charts.PercentAxisSpec(
+          viewport: secondaryExtents,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
+        );
+      } else {
+        secondaryMeasureAxis = charts.NumericAxisSpec(
+          viewport: secondaryExtents,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          tickFormatterSpec:
+              charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                  NumberFormat.compactSimpleCurrency()),
+          tickProviderSpec:
+              charts.StaticNumericTickProviderSpec(secondaryTicks),
+        );
+      }
+    }
+
     var optionChart = BarChart(barChartSeriesList,
         renderer: charts.BarRendererConfig(
+            groupingType: charts.BarGroupingType.stacked,
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
+        secondaryMeasureAxis: (barChartSeriesList.length > 1 && isDualAxis)
+            ? secondaryMeasureAxis
+            : null,
         customSeriesRenderers: [
           charts.BarTargetLineRendererConfig<String>(
-              //overDrawOuterPx: 10,
-              //overDrawPx: 10,
-              // strokeWidthPx: 4,
               customRendererId: 'customLine',
               groupingType: charts.BarGroupingType.grouped)
-          // charts.LineRendererConfig(
-          //     // ID used to link series to this renderer.
-          //     customRendererId: 'customLine')
         ],
         barGroupingType: null,
         domainAxis: charts.OrdinalAxisSpec(
@@ -387,53 +481,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
         behaviors: [
           charts.SeriesLegend(),
-        ], onSelected: (dynamic historical) {
-      debugPrint(historical
-          .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-      // TODO: This setState is not desirable but is needed to reset the selection
-      // or the bar will not be clickable until deselected or another selection is made.
-      // Find a better way to do this
-      setState(() {});
-      if (groupedOptionAggregatePositions.length == 1) {
-        var op = widget.filteredOptionPositions.firstWhere((element) =>
-            historical['domain'] ==
-            "${formatCompactDate.format(element.legs.first.expirationDate!)} \$${formatCompactNumber.format(element.legs.first.strikePrice)} ${element.legs.first.optionType}");
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => OptionInstrumentWidget(
-                      widget.user,
-                      widget.service,
-                      op.optionInstrument!,
-                      optionPosition: op,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                    )));
-      } else {
-        var op = widget.filteredOptionPositions
-            .firstWhere((element) => element.symbol == historical['domain']);
-        if (op.instrumentObj != null) {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
-                      widget.user, widget.service, op.instrumentObj!,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService)));
-        } else {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(
-                content: Text(
-                    "${op.symbol} ${formatExpirationDate.format(op.optionInstrument!.expirationDate!)} ${op.legs[0].optionType} option is not available."),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-        }
-      }
+        ], onSelected: (dynamic datum) {
+      _selectedOptionDatumNotifier.value = datum;
     });
 
     return SliverToBoxAdapter(
@@ -446,172 +495,150 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 //alignment: Alignment.centerLeft,
                 children: [
-              ListTile(
-                title: Wrap(children: [
-                  const Text(
-                    "Options",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                  if (!widget.showList) ...[
-                    SizedBox(
-                      height: 28,
-                      child: IconButton(
-                        // iconSize: 16,
-                        padding: EdgeInsets.zero,
-                        icon: Icon(Icons.chevron_right),
-                        onPressed: () {
-                          navigateToFullPage(context);
-                        },
-                      ),
-                    )
-                  ]
-                ]),
-                subtitle: Text(
-                    "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"),
-                trailing: InkWell(
-                  onTap:
-                      // widget.user.displayValue == DisplayValue.marketValue ? null :
-                      () {
-                    setState(() {
-                      widget.user.displayValue = DisplayValue.marketValue;
-                    });
-                    // var userStore =
-                    //     Provider.of<BrokerageUserStore>(context, listen: false);
-                    // userStore.addOrUpdate(widget.user);
-                    // userStore.save();
-                  },
-                  child: Wrap(spacing: 8, children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                      child: AnimatedSwitcher(
-                        duration: Duration(milliseconds: 200),
-                        // transitionBuilder:
-                        //     (Widget child, Animation<double> animation) {
-                        //   return SlideTransition(
-                        //       position: (Tween<Offset>(
-                        //               begin: Offset(0, -0.25), end: Offset.zero))
-                        //           .animate(animation),
-                        //       child: child);
-                        // },
-                        transitionBuilder:
-                            (Widget child, Animation<double> animation) {
-                          return ScaleTransition(
-                              scale: animation, child: child);
-                        },
-                        child: Text(
-                          key: ValueKey<String>(marketValueText),
-                          marketValueText,
-                          style: const TextStyle(fontSize: assetValueFontSize),
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    )
-                  ]),
-                ),
+              InkWell(
                 onTap: widget.showList
                     ? null
                     : () {
                         navigateToFullPage(context);
                       },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 6.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Wrap(children: [
+                              Text(
+                                "Options",
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.bold),
+                              ),
+                              if (!widget.showList) ...[
+                                SizedBox(
+                                  height: 28,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    icon: const Icon(Icons.chevron_right),
+                                    onPressed: () =>
+                                        navigateToFullPage(context),
+                                  ),
+                                )
+                              ]
+                            ]),
+                            Text(
+                              "${formatCompactNumber.format(widget.filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"
+                              // Say so rather than letting the missing bars read as
+                              // missing positions; the full page has all of them.
+                              "${chartRowsOmitted > 0 ? ", charting top ${widget.chartRowLimit}" : ""}",
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            widget.brokerageUser.displayValue =
+                                DisplayValue.marketValue;
+                          });
+                        },
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+                          child: AnimatedPriceText(
+                            price: marketValue ?? 0,
+                            format: formatCurrency,
+                            style:
+                                const TextStyle(fontSize: assetValueFontSize),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              _buildDetailScrollRow(
-                  widget.filteredOptionPositions,
-                  deltaAvg,
-                  gammaAvg,
-                  thetaAvg,
-                  vegaAvg,
-                  rhoAvg,
-                  ivAvg,
-                  chanceAvg,
-                  (openInterestAvg != null && !openInterestAvg.isNaN
-                          ? openInterestAvg
-                          : 0)
-                      .toInt(),
-                  summaryValueFontSize,
-                  summaryLabelFontSize,
-                  iconSize: 27.0),
+              Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 0,
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: _buildDetailScrollRow(
+                    widget.filteredOptionPositions,
+                    greeks,
+                    summaryValueFontSize,
+                    summaryLabelFontSize,
+                    iconSize: 27.0,
+                  ),
+                ),
+              ),
             ]
                 //)
                 )),
-        if (
-            //user.displayValue != DisplayValue.lastPrice &&
-            barChartSeriesList.isNotEmpty &&
-                barChartSeriesList.first.data.isNotEmpty) ...[
+        if (barChartSeriesList.isNotEmpty &&
+            barChartSeriesList.first.data.isNotEmpty) ...[
           SliverToBoxAdapter(
-            child: SizedBox(
-                height: barChartSeriesList.first.data.length * 25 +
-                    80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      10.0, 0, 10, 10), //EdgeInsets.zero
-                  child: optionChart,
-                )),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                    height: math.max(140.0,
+                        barChartSeriesList.first.data.length * 28.0 + 80.0),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          10.0, 0, 10, 0), //EdgeInsets.zero
+                      child: optionChart,
+                    )),
+                ValueListenableBuilder<dynamic>(
+                  valueListenable: _selectedOptionDatumNotifier,
+                  builder: (context, selectedDatum, child) {
+                    if (selectedDatum == null) return const SizedBox.shrink();
+                    return _buildInteractiveTooltip(context, selectedDatum);
+                  },
+                ),
+                _buildChartControls(context),
+              ],
+            ),
           ),
         ],
-        SliverToBoxAdapter(
-            child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0), //.all(8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 8.0,
-            children: [
-              TextButton.icon(
-                  // FilledButton.tonalIcon(
-                  // OutlinedButton.icon(
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        // isScrollControlled: true,
-                        //useRootNavigator: true,
-                        //constraints: const BoxConstraints(maxHeight: 200),
-                        builder: (_) => MoreMenuBottomSheet(widget.user,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlyPrimaryMeasure: true,
-                                onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  },
-                  label: Text(BrokerageUser.displayValueText(
-                      widget.user.displayValue!)),
-                  icon: Icon(Icons.line_axis)),
-              TextButton.icon(
-                  // FilledButton.tonalIcon(
-                  // OutlinedButton.icon(
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        // isScrollControlled: true,
-                        //useRootNavigator: true,
-                        //constraints: const BoxConstraints(maxHeight: 200),
-                        builder: (_) => MoreMenuBottomSheet(widget.user,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                showOnlySort: true, onSettingsChanged: (value) {
-                              setState(() {});
-                            }));
-                  },
-                  label: Text(
-                      BrokerageUser.displayValueText(widget.user.sortOptions!)),
-                  icon: Icon(widget.user.sortDirection == SortDirection.desc
-                      ? Icons.south
-                      : Icons.north)
-                  // Icon(Icons.sort)
-                  ),
-              // ListTile(
-              //   trailing: FilledButton.tonalIcon(
-              //       // OutlinedButton.icon(
-              //       onPressed: () {},
-              //       label: Text('Market Value'),
-              //       icon: Icon(Icons.sort)),
-              // ),
-            ],
-          ),
-        )),
         if (widget.showList) ...[
-          widget.user.optionsView == OptionsView.list
+          widget.brokerageUser.optionsView == OptionsView.list
               ? SliverList(
                   // delegate: SliverChildListDelegate(widgets),
                   delegate: SliverChildBuilderDelegate(
@@ -639,7 +666,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   }, childCount: sortedGroupedOptionAggregatePositions.length),
                 ),
           if (widget.showFooter) ...[
-            // TODO: Introduce web banner
+            if (kIsWeb) const WebPromotionBannerSliver(),
             if (!kIsWeb) ...[
               const SliverToBoxAdapter(
                   child: SizedBox(
@@ -666,241 +693,364 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     ));
   }
 
+  /// Trims chart rows to [OptionPositionsWidget.chartRowLimit].
+  List<T> _capForChart<T>(List<T> rows) {
+    final limit = widget.chartRowLimit;
+    if (limit == null || rows.length <= limit) return rows;
+    return rows.take(limit).toList();
+  }
+
+  /// Opens the full ledger.
+  ///
+  /// Deliberately not routed through [_handleNavigation]: reading the position
+  /// list is not a trade action, and blocking it would leave aggregate users
+  /// with no way to see holdings the summary chart caps off. The page carries
+  /// [OptionPositionsWidget.disableNavigation] forward instead, so the
+  /// trade-bearing rows inside it stay disabled.
   void navigateToFullPage(BuildContext pageContext) {
     Navigator.push(
         pageContext,
         MaterialPageRoute(
             builder: (context) => OptionPositionsPageWidget(
-                  widget.user,
+                  widget.brokerageUser,
                   widget.service,
                   widget.filteredOptionPositions,
                   analytics: widget.analytics,
                   observer: widget.observer,
                   generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  disableNavigation: widget.disableNavigation,
                 )));
   }
 
-  List<double> _calculateGreekAggregates(
+  GreekAggregates _calculateGreekAggregates(
       List<OptionAggregatePosition> filteredOptionPositions) {
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
-    var denominator = filteredOptionPositions
-        .map((OptionAggregatePosition e) => e.marketValue)
-        .reduce((a, b) => a + b);
+    double deltaSum = 0;
+    double gammaSum = 0;
+    double thetaSum = 0;
+    double vegaSum = 0;
+    double rhoSum = 0;
+    double ivSum = 0;
+    double chanceSum = 0;
+    double openInterestSum = 0;
+    double volumeSum = 0;
+    double marketValueSum = 0;
 
-    deltaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.delta != null
-                ? e.optionInstrument!.optionMarketData!.delta! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    gammaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.gamma != null
-                ? e.optionInstrument!.optionMarketData!.gamma! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    thetaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.theta != null
-                ? e.optionInstrument!.optionMarketData!.theta! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    vegaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.vega != null
-                ? e.optionInstrument!.optionMarketData!.vega! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    rhoAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.rho != null
-                ? e.optionInstrument!.optionMarketData!.rho! * e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    ivAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null &&
-                    e.optionInstrument!.optionMarketData!.impliedVolatility !=
-                        null
-                ? e.optionInstrument!.optionMarketData!.impliedVolatility! *
-                    e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    chanceAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => (e.direction == 'debit'
-                ? (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null &&
-                        e.optionInstrument!.optionMarketData!
-                                .chanceOfProfitLong !=
-                            null
-                    ? e.optionInstrument!.optionMarketData!
-                            .chanceOfProfitLong! *
-                        e.marketValue
-                    : 0)
-                : (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null &&
-                        e.optionInstrument!.optionMarketData!
-                                .chanceOfProfitShort !=
-                            null
-                    ? e.optionInstrument!.optionMarketData!
-                            .chanceOfProfitShort! *
-                        e.marketValue
-                    : 0)))
-            .reduce((a, b) => a + b) /
-        denominator;
-    openInterestAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
-                ? e.optionInstrument!.optionMarketData!.openInterest *
-                    e.marketValue
-                : 0)
-            .reduce((a, b) => a + b) /
-        denominator;
-    return [
-      deltaAvg,
-      gammaAvg,
-      thetaAvg,
-      vegaAvg,
-      rhoAvg,
-      ivAvg,
-      chanceAvg,
-      openInterestAvg
-    ];
+    for (var position in filteredOptionPositions) {
+      double marketValue = position.marketValue;
+      marketValueSum += marketValue;
+
+      if (position.optionInstrument?.optionMarketData != null) {
+        var data = position.optionInstrument!.optionMarketData!;
+        deltaSum += (data.delta ?? 0) * marketValue;
+        gammaSum += (data.gamma ?? 0) * marketValue;
+        thetaSum += (data.theta ?? 0) * marketValue;
+        vegaSum += (data.vega ?? 0) * marketValue;
+        rhoSum += (data.rho ?? 0) * marketValue;
+        ivSum += (data.impliedVolatility ?? 0) * marketValue;
+        openInterestSum += data.openInterest * marketValue;
+        volumeSum += data.volume * marketValue;
+
+        if (position.direction == 'debit') {
+          chanceSum += (data.chanceOfProfitLong ?? 0) * marketValue;
+        } else {
+          chanceSum += (data.chanceOfProfitShort ?? 0) * marketValue;
+        }
+      }
+    }
+
+    if (marketValueSum == 0) {
+      return GreekAggregates();
+    }
+
+    return GreekAggregates(
+      delta: deltaSum / marketValueSum,
+      gamma: gammaSum / marketValueSum,
+      theta: thetaSum / marketValueSum,
+      vega: vegaSum / marketValueSum,
+      rho: rhoSum / marketValueSum,
+      iv: ivSum / marketValueSum,
+      chance: chanceSum / marketValueSum,
+      openInterest: openInterestSum / marketValueSum,
+      volume: volumeSum / marketValueSum,
+    );
   }
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = widget.user.getDisplayValue(op);
-    String opTrailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.showPositionDetails ||
-            widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
+    double value = widget.brokerageUser
+        .getDisplayValue(op, displayValue: DisplayValue.marketValue);
+    String opTrailingText = widget.brokerageUser
+        .getDisplayText(value, displayValue: DisplayValue.marketValue);
+    Icon? icon = (widget.brokerageUser.showPositionDetails ||
+            widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+            widget.brokerageUser.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value, size: 31);
+        : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
     return Card(
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          leading: Hero(
-              tag: 'logo_${op.symbol}${op.id}',
-              child: op.logoUrl != null
-                  ? CircleAvatar(
-                      radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      child: Image.network(
-                        op.logoUrl!,
-                        width: 40,
-                        height: 40,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return Text(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              leading: Hero(
+                  tag: 'logo_${op.symbol}${op.id}',
+                  child: op.logoUrl != null
+                      ? CircleAvatar(
+                          radius: 25,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Image.network(
+                            op.logoUrl!,
+                            width: 32,
+                            height: 32,
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
+                              return Text(
+                                op.symbol,
+                                overflow: TextOverflow.fade,
+                                softWrap: false,
+                                style: const TextStyle(fontSize: 11),
+                              );
+                            },
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: 25,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          child: Text(
                             op.symbol,
                             overflow: TextOverflow.fade,
                             softWrap: false,
-                          );
-                        },
-                      ),
+                            style: const TextStyle(fontSize: 11),
+                          ))),
+              title: RichText(
+                text: TextSpan(
+                  style:
+                      DefaultTextStyle.of(context).style.copyWith(fontSize: 16),
+                  children: [
+                    TextSpan(
+                        text: '${op.symbol} ',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (op.legs.isNotEmpty) ...[
+                      TextSpan(
+                          text:
+                              '\$${formatCompactNumber.format(op.legs.first.strikePrice)} '),
+                      TextSpan(
+                          text: '${op.legs.first.optionType} ',
+                          style: const TextStyle(fontWeight: FontWeight.w500)),
+                      TextSpan(
+                          text: 'x ${formatCompactNumber.format(op.quantity!)}',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.outline)),
+                    ],
+                  ],
+                ),
+              ),
+              subtitle: Row(
+                children: [
+                  Text(
+                    '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                  if (LiveActivityService.instance
+                      .isPositionTracked(op.id)) ...[
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.sensors,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+              trailing: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (icon != null) ...[
+                      icon,
+                    ],
+                    Text(
+                      opTrailingText,
+                      style: const TextStyle(
+                          fontSize: summaryValueFontSize,
+                          fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.right,
                     )
-                  : CircleAvatar(
-                      radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      child: Text(
-                        op.symbol,
-                        overflow: TextOverflow.fade,
-                        softWrap: false,
-                      ))),
-          title: Text(
-              '${op.symbol} \$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.isNotEmpty ? op.legs.first.positionType : ''} ${op.legs.isNotEmpty ? op.legs.first.optionType : ''} x ${formatCompactNumber.format(op.quantity!)}'),
-          subtitle: Text(
-              '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}'),
-          trailing: Wrap(spacing: 8, children: [
-            if (icon != null) ...[
-              icon,
-            ],
-            Text(
-              opTrailingText,
-              style: const TextStyle(fontSize: summaryValueFontSize),
-              textAlign: TextAlign.right,
-            )
-          ]),
-
-          //isThreeLine: true,
-          onTap: () {
-            /* For navigation within this tab, uncomment
-            widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                builder: (context) => OptionInstrumentWidget(
-                    ru, accounts!.first, op.optionInstrument!,
-                    optionPosition: op)));
-                    */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => OptionInstrumentWidget(
-                          widget.user,
-                          widget.service,
-                          op.optionInstrument!,
-                          optionPosition: op,
-                          heroTag: 'logo_${op.symbol}${op.id}',
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                        )));
-          },
-        ),
-        if (widget.user.showPositionDetails) ...[
-          _buildDetailScrollRow(
-              [op],
-              op.optionInstrument!.optionMarketData!.delta!,
-              op.optionInstrument!.optionMarketData!.gamma!,
-              op.optionInstrument!.optionMarketData!.theta!,
-              op.optionInstrument!.optionMarketData!.vega!,
-              op.optionInstrument!.optionMarketData!.rho!,
-              op.optionInstrument!.optionMarketData!.impliedVolatility!,
-              op.direction == 'debit'
-                  ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong!
-                  : op.optionInstrument!.optionMarketData!.chanceOfProfitShort!,
-              op.optionInstrument!.optionMarketData!.openInterest,
-              greekValueFontSize,
-              greekLabelFontSize)
-        ]
-      ],
-    ));
+                  ]),
+              onTap: () {
+                _handleNavigation(context, () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => OptionInstrumentWidget(
+                                widget.brokerageUser,
+                                widget.service,
+                                op.optionInstrument!,
+                                optionPosition: op,
+                                heroTag: 'logo_${op.symbol}${op.id}',
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                                user: widget.user,
+                                userDocRef: widget.userDocRef,
+                              )));
+                });
+              },
+              onLongPress:
+                  op.optionInstrument != null && op.instrumentObj != null
+                      ? () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder: (sheetContext) => SafeArea(
+                              child: Wrap(
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.shield_outlined),
+                                    title: const Text('Defense Playbook'),
+                                    subtitle: const Text(
+                                        'Threat analysis and tactical defense maneuvers'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      _handleNavigation(context, () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                OptionDefensePlaybookWidget(
+                                              user: widget.brokerageUser,
+                                              service: widget.service,
+                                              instrument: op.instrumentObj!,
+                                              optionPosition: op,
+                                              optionInstrument:
+                                                  op.optionInstrument!,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              appUser: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                              initialIsPaperTrade:
+                                                  widget.brokerageUser.source ==
+                                                      BrokerageSource.paper,
+                                            ),
+                                          ),
+                                        );
+                                      });
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.sync_alt),
+                                    title: const Text('Roll Assistant'),
+                                    subtitle: const Text(
+                                        '1-tap roll wizard for credit, strikes, and DTE extension'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      _handleNavigation(context, () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                OptionRollAssistantWidget(
+                                              user: widget.brokerageUser,
+                                              service: widget.service,
+                                              instrument: op.instrumentObj!,
+                                              optionPosition: op,
+                                              optionInstrument:
+                                                  op.optionInstrument!,
+                                              analytics: widget.analytics,
+                                              observer: widget.observer,
+                                              generativeService:
+                                                  widget.generativeService,
+                                              appUser: widget.user,
+                                              userDocRef: widget.userDocRef,
+                                              initialIsPaperTrade:
+                                                  widget.brokerageUser.source ==
+                                                      BrokerageSource.paper,
+                                            ),
+                                          ),
+                                        );
+                                      });
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.sensors),
+                                    title: const Text(
+                                        'Live Activity & Dynamic Island'),
+                                    subtitle: const Text(
+                                        'Real-time lock screen position tracking & 0DTE trailing stop'),
+                                    onTap: () {
+                                      Navigator.pop(sheetContext);
+                                      showModalBottomSheet(
+                                        context: context,
+                                        showDragHandle: true,
+                                        isScrollControlled: true,
+                                        builder: (context) =>
+                                            OptionLiveActivitySheet(
+                                          position: op,
+                                          onSessionChanged: () {
+                                            setState(() {});
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
+            ),
+            if (widget.brokerageUser.showPositionDetails) ...[
+              _buildDetailScrollRow(
+                  [op],
+                  op.optionInstrument?.optionMarketData != null
+                      ? GreekAggregates(
+                          delta: op.optionInstrument!.optionMarketData!.delta,
+                          gamma: op.optionInstrument!.optionMarketData!.gamma,
+                          theta: op.optionInstrument!.optionMarketData!.theta,
+                          vega: op.optionInstrument!.optionMarketData!.vega,
+                          rho: op.optionInstrument!.optionMarketData!.rho,
+                          iv: op.optionInstrument!.optionMarketData!
+                              .impliedVolatility,
+                          chance: op.direction == 'debit'
+                              ? op.optionInstrument!.optionMarketData!
+                                  .chanceOfProfitLong
+                              : op.optionInstrument!.optionMarketData!
+                                  .chanceOfProfitShort,
+                          openInterest: op
+                              .optionInstrument!.optionMarketData!.openInterest
+                              .toDouble(),
+                          volume: op.optionInstrument!.optionMarketData!.volume
+                              .toDouble(),
+                        )
+                      : null,
+                  greekValueFontSize,
+                  greekLabelFontSize,
+                  clickable: false)
+            ]
+          ],
+        ));
   }
 
-  SingleChildScrollView _buildDetailScrollRow(
-      List<OptionAggregatePosition> ops,
-      double? delta,
-      double? gamma,
-      double? theta,
-      double? vega,
-      double? rho,
-      double? impliedVolatility,
-      double? chanceOfProfit,
-      int openInterest,
-      double valueFontSize,
-      double labelFontSize,
-      {double iconSize = 23.0}) {
-    List<Widget> tiles = [];
+  Widget _buildDetailScrollRow(List<OptionAggregatePosition> ops,
+      GreekAggregates? greeks, double valueFontSize, double labelFontSize,
+      {double iconSize = 23.0, bool clickable = true}) {
     /*
     double? marketValue = user.getAggregateDisplayValue(ops,
         displayValue: DisplayValue.marketValue);
@@ -908,202 +1058,154 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         displayValue: DisplayValue.marketValue);
         */
 
-    double? totalReturn = widget.user.getDisplayValueOptionAggregatePosition(
-        ops,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    double? totalReturn = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user
+    double? totalReturnPercent = widget.brokerageUser
         .getDisplayValueOptionAggregatePosition(ops,
             displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueOptionAggregatePosition(
-        ops,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    double? todayReturn = widget.brokerageUser
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user
+    double? todayReturnPercent = widget.brokerageUser
         .getDisplayValueOptionAggregatePosition(ops,
             displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    tiles = [
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.user.displayValue = DisplayValue.todayReturn;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
+    Widget buildTile(String label, String valueText, double? value,
+        {bool neutral = false, bool clickable = true}) {
+      return InkWell(
+        onTap: clickable
+            ? () {
+                if (label == "Return Today") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturn;
+                  });
+                } else if (label == "Return Today %") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturnPercent;
+                  });
+                } else if (label == "Total Return") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturn;
+                  });
+                } else if (label == "Total Return %") {
+                  setState(() {
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturnPercent;
+                  });
+                }
+              }
+            : null,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, todayReturnText, todayReturn),
-            const SizedBox(height: 4),
-            Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
+            PnlBadge(
+                text: valueText,
+                value: neutral ? null : value,
+                neutral: neutral),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: labelFontSize,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ]),
         ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.user.displayValue = DisplayValue.todayReturnPercent;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, todayReturnPercentText, todayReturnPercent),
-            const SizedBox(height: 4),
-            Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.user.displayValue = DisplayValue.totalReturn;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, totalReturnText, totalReturn),
-            const SizedBox(height: 4),
-            Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
-      InkWell(
-        onTap: () {
-          setState(() {
-            widget.user.displayValue = DisplayValue.totalReturnPercent;
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(summaryEgdeInset),
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            _pnlBadge(context, totalReturnPercentText, totalReturnPercent),
-            const SizedBox(height: 4),
-            Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
-          ]),
-        ),
-      ),
+      );
+    }
+
+    List<Widget> tiles = [
+      buildTile("Return Today", todayReturnText, todayReturn,
+          clickable: clickable),
+      buildTile("Return Today %", todayReturnPercentText, todayReturnPercent,
+          clickable: clickable),
+      buildTile("Total Return", totalReturnText, totalReturn,
+          clickable: clickable),
+      buildTile("Total Return %", totalReturnPercentText, totalReturnPercent,
+          clickable: clickable),
     ];
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              ...tiles,
-              if (delta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(delta)),
-                    const SizedBox(height: 4),
-                    Text("Delta Δ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (gamma != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(gamma)),
-                    const SizedBox(height: 4),
-                    Text("Gamma Γ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (theta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(theta)),
-                    const SizedBox(height: 4),
-                    Text("Theta Θ", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (vega != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(vega)),
-                    const SizedBox(height: 4),
-                    Text("Vega v", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (rho != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(context, formatNumber.format(rho)),
-                    const SizedBox(height: 4),
-                    Text("Rho p", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (impliedVolatility != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatPercentage.format(impliedVolatility)),
-                    const SizedBox(height: 4),
-                    Text("Impl. Vol.",
-                        style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (chanceOfProfit != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatPercentage.format(chanceOfProfit)),
-                    const SizedBox(height: 4),
-                    Text("Chance", style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ],
-              if (delta != null) ...[
-                Padding(
-                  padding: const EdgeInsets.all(
-                      greekEgdeInset), //.symmetric(horizontal: 6),
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    _neutralBadge(
-                        context, formatCompactNumber.format(openInterest)),
-                    const SizedBox(height: 4),
-                    Text("Open Interest",
-                        style: TextStyle(fontSize: labelFontSize)),
-                  ]),
-                )
-              ]
-            ])));
+
+    if (greeks != null) {
+      if (greeks.delta != null) {
+        tiles.add(buildTile(
+            "Delta Δ", formatNumber.format(greeks.delta), greeks.delta,
+            neutral: true));
+      }
+      if (greeks.gamma != null) {
+        tiles.add(buildTile(
+            "Gamma Γ", formatNumber.format(greeks.gamma), greeks.gamma,
+            neutral: true));
+      }
+      if (greeks.theta != null) {
+        tiles.add(buildTile(
+            "Theta Θ", formatNumber.format(greeks.theta), greeks.theta,
+            neutral: true));
+      }
+      if (greeks.vega != null) {
+        tiles.add(buildTile(
+            "Vega v", formatNumber.format(greeks.vega), greeks.vega,
+            neutral: true));
+      }
+      if (greeks.rho != null) {
+        tiles.add(buildTile(
+            "Rho p", formatNumber.format(greeks.rho), greeks.rho,
+            neutral: true));
+      }
+      if (greeks.iv != null) {
+        tiles.add(buildTile(
+            "Impl. Vol.", formatPercentage.format(greeks.iv), greeks.iv,
+            neutral: true));
+      }
+      if (greeks.chance != null) {
+        tiles.add(buildTile(
+            "Chance", formatPercentage.format(greeks.chance), greeks.chance,
+            neutral: true));
+      }
+      if (greeks.openInterest != null) {
+        tiles.add(buildTile(
+            "Open Interest",
+            formatCompactNumber.format(greeks.openInterest),
+            greeks.openInterest,
+            neutral: true));
+      }
+      if (greeks.volume != null) {
+        tiles.add(buildTile(
+            "Volume", formatCompactNumber.format(greeks.volume), greeks.volume,
+            neutral: true));
+      }
+    }
+
+    return SynchronizedDetailScrollRow(
+      scrollGroup: _scrollGroup,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: tiles,
+      ),
+    );
   }
 
   Widget _buildOptionPositionSymbolRow(
@@ -1114,36 +1216,24 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     List<Widget> cards = [];
 
-    double? value = widget.user.getDisplayValueOptionAggregatePosition(ops);
+    double? value = widget.brokerageUser.getDisplayValueOptionAggregatePosition(
+        ops,
+        displayValue: DisplayValue.marketValue);
     String? trailingText;
     Icon? icon;
     if (value != null) {
-      trailingText = widget.user.getDisplayText(value);
-      icon = (widget.user.showPositionDetails ||
-              widget.user.displayValue == DisplayValue.lastPrice ||
-              widget.user.displayValue == DisplayValue.marketValue)
+      trailingText = widget.brokerageUser
+          .getDisplayText(value, displayValue: DisplayValue.marketValue);
+      icon = (widget.brokerageUser.showPositionDetails ||
+              widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+              widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value, size: 31);
+          : widget.brokerageUser.getDisplayIcon(value, size: 31);
     }
 
-    double? deltaAvg,
-        gammaAvg,
-        thetaAvg,
-        vegaAvg,
-        rhoAvg,
-        ivAvg,
-        chanceAvg,
-        openInterestAvg;
-    if (widget.user.showPositionDetails) {
-      var results = _calculateGreekAggregates(ops);
-      deltaAvg = results[0];
-      gammaAvg = results[1];
-      thetaAvg = results[2];
-      vegaAvg = results[3];
-      rhoAvg = results[4];
-      ivAvg = results[5];
-      chanceAvg = results[6];
-      openInterestAvg = results[7];
+    GreekAggregates? greeks;
+    if (widget.brokerageUser.showPositionDetails) {
+      greeks = _calculateGreekAggregates(ops);
     }
 
     if (!excludeGroupRow) {
@@ -1209,37 +1299,29 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     builder: (context) =>
                         InstrumentWidget(user, account, instrument!)));
                         */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(
-                          widget.user,
-                          widget.service,
-                          ops.first.instrumentObj!,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                        )));
+            _handleNavigation(context, () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => InstrumentWidget(
+                            widget.brokerageUser,
+                            widget.service,
+                            ops.first.instrumentObj!,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                          )));
+            });
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
           },
         ),
-        if (widget.user.showPositionDetails && ops.length > 1) ...[
+        if (widget.brokerageUser.showPositionDetails && ops.length > 1) ...[
           _buildDetailScrollRow(
-              ops,
-              deltaAvg,
-              gammaAvg,
-              thetaAvg,
-              vegaAvg,
-              rhoAvg,
-              ivAvg,
-              chanceAvg,
-              openInterestAvg != null && !openInterestAvg.isNaN
-                  ? openInterestAvg.toInt()
-                  : 0,
-              summaryValueFontSize,
-              summaryLabelFontSize,
-              iconSize: 27.0)
+              ops, greeks, summaryValueFontSize, summaryLabelFontSize,
+              iconSize: 27.0, clickable: false)
         ]
       ]));
       /*
@@ -1252,13 +1334,15 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       */
     }
     for (OptionAggregatePosition op in ops) {
-      double value = widget.user.getDisplayValue(op);
-      String trailingText = widget.user.getDisplayText(value);
-      Icon? icon = (widget.user.showPositionDetails ||
-              widget.user.displayValue == DisplayValue.lastPrice ||
-              widget.user.displayValue == DisplayValue.marketValue)
+      double value = widget.brokerageUser
+          .getDisplayValue(op, displayValue: DisplayValue.marketValue);
+      String trailingText = widget.brokerageUser
+          .getDisplayText(value, displayValue: DisplayValue.marketValue);
+      Icon? icon = (widget.brokerageUser.showPositionDetails ||
+              widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+              widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value, size: 31);
+          : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
       cards.add(
           //Card(child:
@@ -1320,38 +1404,50 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     ru, accounts!.first, op.optionInstrument!,
                     optionPosition: op)));
                     */
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => OptionInstrumentWidget(
-                            widget.user,
-                            widget.service,
-                            op.optionInstrument!,
-                            optionPosition: op,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: widget.generativeService,
-                          )));
+              _handleNavigation(context, () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => OptionInstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              op.optionInstrument!,
+                              optionPosition: op,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            )));
+              });
             },
           ),
-          if (widget.user.showPositionDetails &&
+          if (widget.brokerageUser.showPositionDetails &&
               op.optionInstrument != null &&
               op.optionInstrument!.optionMarketData != null) ...[
             _buildDetailScrollRow(
                 [op],
-                op.optionInstrument!.optionMarketData!.delta,
-                op.optionInstrument!.optionMarketData!.gamma,
-                op.optionInstrument!.optionMarketData!.theta,
-                op.optionInstrument!.optionMarketData!.vega,
-                op.optionInstrument!.optionMarketData!.rho,
-                op.optionInstrument!.optionMarketData!.impliedVolatility,
-                op.direction == 'debit'
-                    ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong
-                    : op.optionInstrument!.optionMarketData!
-                        .chanceOfProfitShort,
-                op.optionInstrument!.optionMarketData!.openInterest,
+                GreekAggregates(
+                  delta: op.optionInstrument!.optionMarketData!.delta,
+                  gamma: op.optionInstrument!.optionMarketData!.gamma,
+                  theta: op.optionInstrument!.optionMarketData!.theta,
+                  vega: op.optionInstrument!.optionMarketData!.vega,
+                  rho: op.optionInstrument!.optionMarketData!.rho,
+                  iv: op.optionInstrument!.optionMarketData!.impliedVolatility,
+                  chance: op.direction == 'debit'
+                      ? op.optionInstrument!.optionMarketData!
+                          .chanceOfProfitLong
+                      : op.optionInstrument!.optionMarketData!
+                          .chanceOfProfitShort,
+                  openInterest: op
+                      .optionInstrument!.optionMarketData!.openInterest
+                      .toDouble(),
+                  volume:
+                      op.optionInstrument!.optionMarketData!.volume.toDouble(),
+                ),
                 greekValueFontSize,
-                greekLabelFontSize),
+                greekLabelFontSize,
+                clickable: false),
             /*
             const Divider(
               height: 10,
@@ -1363,8 +1459,413 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       ));
     }
     return Card(
+        elevation: 0,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
-      children: cards,
-    ));
+          children: cards,
+        ));
   }
+
+  Widget _buildInteractiveTooltip(BuildContext context, dynamic selectedDatum) {
+    if (selectedDatum == null) return const SizedBox.shrink();
+    final datum = selectedDatum;
+    final symbol = datum['domain'] as String? ?? '';
+    final OptionAggregatePosition? op = datum['op'] as OptionAggregatePosition?;
+    final List<OptionAggregatePosition>? group =
+        datum['group'] as List<OptionAggregatePosition>?;
+
+    final primaryLabel =
+        datum['primaryLabel'] as String? ?? datum['label'] as String? ?? '';
+    final secondaryLabel = datum['secondaryLabel'] as String?;
+    final primaryName =
+        BrokerageUser.displayValueText(widget.brokerageUser.displayValue!);
+
+    DisplayValue? secondaryDisplayValue;
+    if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+      secondaryDisplayValue = DisplayValue.totalCost;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalCost) {
+      secondaryDisplayValue = DisplayValue.marketValue;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.totalReturn) {
+      secondaryDisplayValue = DisplayValue.totalReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.totalReturnPercent) {
+      secondaryDisplayValue = DisplayValue.totalReturn;
+    } else if (widget.brokerageUser.displayValue == DisplayValue.todayReturn) {
+      secondaryDisplayValue = DisplayValue.todayReturnPercent;
+    } else if (widget.brokerageUser.displayValue ==
+        DisplayValue.todayReturnPercent) {
+      secondaryDisplayValue = DisplayValue.todayReturn;
+    }
+    final secondaryName = secondaryDisplayValue != null
+        ? BrokerageUser.displayValueText(secondaryDisplayValue)
+        : '';
+
+    final num? measureVal = datum['measure'] as num?;
+    final isPositive = (measureVal ?? 0) >= 0;
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  op != null ? op.symbol : symbol,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              if (op != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    symbol,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ] else if (group != null && group.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${group.length} contract types',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ] else
+                const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: 'Dismiss',
+                onPressed: () {
+                  _selectedOptionDatumNotifier.value = null;
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    primaryName,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.outline,
+                      fontSize: 10,
+                    ),
+                  ),
+                  Text(
+                    primaryLabel,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: (widget.brokerageUser.displayValue ==
+                                  DisplayValue.totalReturn ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.totalReturnPercent ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.todayReturn ||
+                              widget.brokerageUser.displayValue ==
+                                  DisplayValue.todayReturnPercent)
+                          ? (isPositive ? Colors.green : Colors.red)
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              if (secondaryLabel != null && secondaryLabel.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      secondaryName,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      secondaryLabel,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: (secondaryDisplayValue ==
+                                    DisplayValue.totalReturn ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.totalReturnPercent ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.todayReturn ||
+                                secondaryDisplayValue ==
+                                    DisplayValue.todayReturnPercent)
+                            ? (isPositive ? Colors.green : Colors.red)
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              if (op != null && op.quantity != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Contracts',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.outline,
+                        fontSize: 10,
+                      ),
+                    ),
+                    Text(
+                      formatCompactNumber.format(op.quantity),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+                icon: const Icon(Icons.arrow_forward, size: 16),
+                label: const Text('View Details'),
+                onPressed: () {
+                  if (op != null) {
+                    _handleNavigation(context, () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OptionInstrumentWidget(
+                            widget.brokerageUser,
+                            widget.service,
+                            op.optionInstrument!,
+                            optionPosition: op,
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                            generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
+                          ),
+                        ),
+                      );
+                    });
+                  } else if (group != null && group.isNotEmpty) {
+                    final targetOp = group.first;
+                    if (targetOp.instrumentObj != null) {
+                      _handleNavigation(context, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              targetOp.instrumentObj!,
+                              heroTag:
+                                  'logo_${targetOp.symbol}${targetOp.instrumentObj!.id}',
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef,
+                            ),
+                          ),
+                        );
+                      });
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartControls(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 6.0),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.5),
+              ),
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildToolbarButton(
+                    context,
+                    label: BrokerageUser.displayValueText(
+                        widget.brokerageUser.displayValue!),
+                    icon: Icons.bar_chart_rounded,
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) => MoreMenuBottomSheet(
+                                  widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  showOnlyPrimaryMeasure: true,
+                                  onSettingsChanged: (value) {
+                                setState(() {});
+                              }));
+                    },
+                  ),
+                  VerticalDivider(
+                    width: 1,
+                    thickness: 1,
+                    indent: 8,
+                    endIndent: 8,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                  _buildToolbarButton(
+                    context,
+                    label: BrokerageUser.displayValueText(
+                        widget.brokerageUser.sortOptions!),
+                    icon:
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                    onTap: () {
+                      showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) => MoreMenuBottomSheet(
+                                  widget.brokerageUser,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  showOnlySort: true,
+                                  onSettingsChanged: (value) {
+                                setState(() {});
+                              }));
+                    },
+                    iconColor: Theme.of(context).colorScheme.secondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton(BuildContext context,
+      {required String label,
+      required IconData icon,
+      required VoidCallback onTap,
+      Color? iconColor}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: iconColor ?? Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down,
+                size: 16,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.7)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class GreekAggregates {
+  final double? delta;
+  final double? gamma;
+  final double? theta;
+  final double? vega;
+  final double? rho;
+  final double? iv;
+  final double? chance;
+  final double? openInterest;
+  final double? volume;
+
+  GreekAggregates({
+    this.delta,
+    this.gamma,
+    this.theta,
+    this.vega,
+    this.rho,
+    this.iv,
+    this.chance,
+    this.openInterest,
+    this.volume,
+  });
 }

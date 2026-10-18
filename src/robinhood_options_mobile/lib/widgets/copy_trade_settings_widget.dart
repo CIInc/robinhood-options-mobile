@@ -23,11 +23,46 @@ class CopyTradeSettingsWidget extends StatefulWidget {
 }
 
 class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   CopyTradeSettings? _settings;
   String? _selectedTargetUserId;
+  final _copyPercentageController = TextEditingController();
   final _maxQuantityController = TextEditingController();
   final _maxAmountController = TextEditingController();
+  final _maxDailyAmountController = TextEditingController();
+  final _symbolWhitelistController = TextEditingController();
+  final _symbolBlacklistController = TextEditingController();
+  // final _sectorWhitelistController = TextEditingController();
+  final _minMarketCapController = TextEditingController();
+  final _maxMarketCapController = TextEditingController();
+  final _startTimeController = TextEditingController();
+  final _endTimeController = TextEditingController();
+  final _stopLossAdjustmentController = TextEditingController();
+  final _takeProfitAdjustmentController = TextEditingController();
+  final _maxAllocationPerTradeController = TextEditingController();
+  final _maxAllocationPctController = TextEditingController();
+  final _maxSlippageBpsController = TextEditingController();
+  final _maxLeaderDrawdownPctController = TextEditingController();
+  final _maxReturnDivergencePctController = TextEditingController();
+
+  final List<String> _availableSectors = [
+    'Technology',
+    'Health Care',
+    'Financials',
+    'Consumer Discretionary',
+    'Communication Services',
+    'Industrials',
+    'Consumer Staples',
+    'Energy',
+    'Utilities',
+    'Real Estate',
+    'Materials',
+  ];
+  List<String> _selectedSectors = [];
+
+  final List<String> _availableAssetClasses = ['equity', 'option', 'crypto'];
+  List<String> _selectedAssetClasses = [];
 
   @override
   void initState() {
@@ -37,29 +72,106 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
 
   @override
   void dispose() {
+    _copyPercentageController.dispose();
     _maxQuantityController.dispose();
     _maxAmountController.dispose();
+    _maxDailyAmountController.dispose();
+    _symbolWhitelistController.dispose();
+    _symbolBlacklistController.dispose();
+    // _sectorWhitelistController.dispose();
+    _minMarketCapController.dispose();
+    _maxMarketCapController.dispose();
+    _startTimeController.dispose();
+    _endTimeController.dispose();
+    _stopLossAdjustmentController.dispose();
+    _takeProfitAdjustmentController.dispose();
+    _maxAllocationPerTradeController.dispose();
+    _maxAllocationPctController.dispose();
+    _maxSlippageBpsController.dispose();
+    _maxLeaderDrawdownPctController.dispose();
+    _maxReturnDivergencePctController.dispose();
     super.dispose();
   }
 
   void _loadSettings() {
     if (auth.currentUser != null) {
-      final settings =
-          widget.group.getCopyTradeSettings(auth.currentUser!.uid);
+      final settings = widget.group.getCopyTradeSettings(auth.currentUser!.uid);
       if (settings != null) {
         setState(() {
           _settings = settings;
           _selectedTargetUserId = settings.targetUserId;
+          if (settings.copyPercentage != null) {
+            _copyPercentageController.text = settings.copyPercentage.toString();
+          }
           if (settings.maxQuantity != null) {
             _maxQuantityController.text = settings.maxQuantity.toString();
           }
           if (settings.maxAmount != null) {
             _maxAmountController.text = settings.maxAmount.toString();
           }
+          if (settings.maxDailyAmount != null) {
+            _maxDailyAmountController.text = settings.maxDailyAmount.toString();
+          }
+          if (settings.symbolWhitelist != null) {
+            _symbolWhitelistController.text =
+                settings.symbolWhitelist!.join(', ');
+          }
+          if (settings.symbolBlacklist != null) {
+            _symbolBlacklistController.text =
+                settings.symbolBlacklist!.join(', ');
+          }
+          if (settings.sectorWhitelist != null) {
+            _selectedSectors = List.from(settings.sectorWhitelist!);
+            // _sectorWhitelistController.text = _selectedSectors.join(', ');
+          }
+          if (settings.assetClassWhitelist != null) {
+            _selectedAssetClasses = List.from(settings.assetClassWhitelist!);
+          }
+          if (settings.minMarketCap != null) {
+            _minMarketCapController.text =
+                (settings.minMarketCap! / 1000000).toStringAsFixed(2);
+          }
+          if (settings.maxMarketCap != null) {
+            _maxMarketCapController.text =
+                (settings.maxMarketCap! / 1000000).toStringAsFixed(2);
+          }
+          if (settings.startTime != null) {
+            _startTimeController.text = settings.startTime!;
+          }
+          if (settings.endTime != null) {
+            _endTimeController.text = settings.endTime!;
+          }
+          if (settings.stopLossAdjustment != null) {
+            _stopLossAdjustmentController.text =
+                settings.stopLossAdjustment.toString();
+          }
+          if (settings.takeProfitAdjustment != null) {
+            _takeProfitAdjustmentController.text =
+                settings.takeProfitAdjustment.toString();
+          }
+          if (settings.maxAllocationPerTrade != null) {
+            _maxAllocationPerTradeController.text =
+                settings.maxAllocationPerTrade.toString();
+          }
+          if (settings.maxAllocationPct != null) {
+            _maxAllocationPctController.text =
+                settings.maxAllocationPct.toString();
+          }
+          _maxSlippageBpsController.text =
+              (settings.maxSlippageBps ?? 75.0).toStringAsFixed(0);
+          if (settings.maxLeaderDrawdownPct != null) {
+            _maxLeaderDrawdownPctController.text =
+                settings.maxLeaderDrawdownPct.toString();
+          }
+          if (settings.maxReturnDivergencePct != null) {
+            _maxReturnDivergencePctController.text =
+                settings.maxReturnDivergencePct.toString();
+          }
         });
       } else {
         setState(() {
           _settings = CopyTradeSettings();
+          _maxSlippageBpsController.text = '75';
         });
       }
     }
@@ -67,6 +179,7 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
 
   Future<void> _saveSettings() async {
     if (auth.currentUser == null) return;
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
@@ -75,13 +188,77 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
         enabled: _settings!.enabled,
         targetUserId: _selectedTargetUserId,
         autoExecute: _settings!.autoExecute,
+        copyPercentage: _copyPercentageController.text.isNotEmpty
+            ? double.tryParse(_copyPercentageController.text)
+            : null,
         maxQuantity: _maxQuantityController.text.isNotEmpty
             ? double.tryParse(_maxQuantityController.text)
             : null,
         maxAmount: _maxAmountController.text.isNotEmpty
             ? double.tryParse(_maxAmountController.text)
             : null,
+        maxDailyAmount: _maxDailyAmountController.text.isNotEmpty
+            ? double.tryParse(_maxDailyAmountController.text)
+            : null,
         overridePrice: _settings!.overridePrice,
+        symbolWhitelist: _symbolWhitelistController.text.isNotEmpty
+            ? _symbolWhitelistController.text
+                .split(',')
+                .map((e) => e.trim().toUpperCase())
+                .where((e) => e.isNotEmpty)
+                .toList()
+            : null,
+        symbolBlacklist: _symbolBlacklistController.text.isNotEmpty
+            ? _symbolBlacklistController.text
+                .split(',')
+                .map((e) => e.trim().toUpperCase())
+                .where((e) => e.isNotEmpty)
+                .toList()
+            : null,
+        sectorWhitelist: _selectedSectors.isNotEmpty ? _selectedSectors : null,
+        assetClassWhitelist:
+            _selectedAssetClasses.isNotEmpty ? _selectedAssetClasses : null,
+        minMarketCap: _minMarketCapController.text.isNotEmpty
+            ? double.tryParse(_minMarketCapController.text)! * 1000000
+            : null,
+        maxMarketCap: _maxMarketCapController.text.isNotEmpty
+            ? double.tryParse(_maxMarketCapController.text)! * 1000000
+            : null,
+        startTime: _startTimeController.text.isNotEmpty
+            ? _startTimeController.text
+            : null,
+        endTime:
+            _endTimeController.text.isNotEmpty ? _endTimeController.text : null,
+        copyStopLoss: _settings!.copyStopLoss,
+        copyTakeProfit: _settings!.copyTakeProfit,
+        copyTrailingStop: _settings!.copyTrailingStop,
+        stopLossAdjustment: _stopLossAdjustmentController.text.isNotEmpty
+            ? double.tryParse(_stopLossAdjustmentController.text)
+            : null,
+        takeProfitAdjustment: _takeProfitAdjustmentController.text.isNotEmpty
+            ? double.tryParse(_takeProfitAdjustmentController.text)
+            : null,
+        maxAllocationPerTrade: _maxAllocationPerTradeController.text.isNotEmpty
+            ? double.tryParse(_maxAllocationPerTradeController.text)
+            : null,
+        maxAllocationPct: _maxAllocationPctController.text.isNotEmpty
+            ? double.tryParse(_maxAllocationPctController.text)
+            : null,
+        maxSlippageBps: _maxSlippageBpsController.text.isNotEmpty
+            ? double.tryParse(_maxSlippageBpsController.text)
+            : 75.0,
+        autoDisconnectOnDivergence:
+            _settings!.autoDisconnectOnDivergence ?? false,
+        maxLeaderDrawdownPct: _maxLeaderDrawdownPctController.text.isNotEmpty
+            ? double.tryParse(_maxLeaderDrawdownPctController.text)
+            : null,
+        maxReturnDivergencePct:
+            _maxReturnDivergencePctController.text.isNotEmpty
+                ? double.tryParse(_maxReturnDivergencePctController.text)
+                : null,
+        isRiskGuardianTripped: _settings!.isRiskGuardianTripped,
+        riskGuardianTripReason: _settings!.riskGuardianTripReason,
+        riskGuardianTrippedAt: _settings!.riskGuardianTrippedAt,
       );
 
       widget.group.setCopyTradeSettings(auth.currentUser!.uid, settings);
@@ -123,181 +300,67 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Copy Trade Settings'),
+        actions: [
+          if (_settings != null)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Revert Changes',
+              onPressed: _loadSettings,
+            ),
+        ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Copy Trading',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Automatically or manually copy trades from other members in this group.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Enable Copy Trading'),
-                    subtitle: const Text('Copy trades from a group member'),
-                    value: _settings!.enabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _settings!.enabled = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_settings!.enabled) ...[
-            const SizedBox(height: 16),
+      floatingActionButton: _settings?.enabled == true
+          ? FloatingActionButton.extended(
+              onPressed: _isLoading || _selectedTargetUserId == null
+                  ? null
+                  : _saveSettings,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: const Text('Save'),
+            )
+          : null,
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 80.0),
+          children: [
             Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Copy From',
-                      style: Theme.of(context).textTheme.titleMedium,
+                      'Copy Trading',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 8),
-                    if (eligibleMembers.isEmpty)
-                      const Text('No other members in this group')
-                    else
-                      ...eligibleMembers.map((memberId) {
-                        return FutureBuilder(
-                          future: widget.firestoreService.userCollection
-                              .doc(memberId)
-                              .get(),
-                          builder: (context, snapshot) {
-                            String displayName = 'User';
-                            Widget avatar = const CircleAvatar(
-                              radius: 20,
-                              child: Icon(Icons.account_circle),
-                            );
-
-                            if (snapshot.hasData && snapshot.data!.exists) {
-                              final user = snapshot.data!.data();
-                              displayName = user?.name ??
-                                  user?.providerId?.capitalize() ??
-                                  'Guest';
-                              if (user?.photoUrl != null) {
-                                avatar = CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage:
-                                      CachedNetworkImageProvider(
-                                          user!.photoUrl!),
-                                );
-                              }
-                            }
-
-                            return RadioListTile<String>(
-                              title: Text(displayName),
-                              value: memberId,
-                              groupValue: _selectedTargetUserId,
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedTargetUserId = value;
-                                });
-                              },
-                              secondary: avatar,
-                            );
-                          },
-                        );
-                      }),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
                     Text(
-                      'Trade Execution',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      title: const Text('Auto-Execute Trades'),
-                      subtitle: const Text(
-                          'Automatically execute trades without confirmation'),
-                      value: _settings!.autoExecute,
-                      onChanged: _selectedTargetUserId != null
-                          ? (value) {
-                              setState(() {
-                                _settings!.autoExecute = value;
-                              });
-                            }
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trade Limits',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _maxQuantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Max Quantity (optional)',
-                        helperText:
-                            'Maximum quantity of shares/contracts to copy',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.numbers),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _maxAmountController,
-                      decoration: const InputDecoration(
-                        labelText: 'Max Amount (optional)',
-                        helperText: 'Maximum dollar amount per trade',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.attach_money),
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d+\.?\d{0,2}')),
-                      ],
+                      'Automatically or manually copy trades from other members in this group.',
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 16),
                     SwitchListTile(
-                      title: const Text('Override Price'),
-                      subtitle: const Text(
-                          'Use current market price instead of copied price'),
-                      value: _settings!.overridePrice ?? false,
+                      title: const Text('Enable Copy Trading'),
+                      subtitle: const Text('Copy trades from a group member'),
+                      value: _settings!.enabled,
                       onChanged: (value) {
                         setState(() {
-                          _settings!.overridePrice = value;
+                          _settings!.enabled = value;
                         });
                       },
                     ),
@@ -305,25 +368,887 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isLoading || _selectedTargetUserId == null
-                    ? null
-                    : _saveSettings,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save),
-                label: const Text('Save Settings'),
+            if (_settings!.enabled) ...[
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Copy From',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (eligibleMembers.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.people_outline,
+                                  size: 48,
+                                  color: Theme.of(context).disabledColor,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No other members in this group',
+                                  style: TextStyle(
+                                    color: Theme.of(context).disabledColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        ...eligibleMembers.map((memberId) {
+                          return FutureBuilder(
+                            future: widget.firestoreService.userCollection
+                                .doc(memberId)
+                                .get(),
+                            builder: (context, snapshot) {
+                              String displayName = 'User';
+                              Widget avatar = const CircleAvatar(
+                                radius: 20,
+                                child: Icon(Icons.account_circle),
+                              );
+
+                              if (snapshot.hasData && snapshot.data!.exists) {
+                                final user = snapshot.data!.data();
+                                displayName = user?.name ??
+                                    // user?.providerId?.capitalize() ??
+                                    'Guest';
+                                if (user?.photoUrl != null) {
+                                  avatar = CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        user!.photoUrl!),
+                                  );
+                                }
+                              }
+
+                              return RadioListTile<String>(
+                                title: Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontWeight:
+                                        _selectedTargetUserId == memberId
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                  ),
+                                ),
+                                value: memberId,
+                                groupValue: _selectedTargetUserId,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedTargetUserId = value;
+                                  });
+                                },
+                                secondary: avatar,
+                                activeColor: Theme.of(context).primaryColor,
+                                selected: _selectedTargetUserId == memberId,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: _selectedTargetUserId == memberId
+                                      ? BorderSide(
+                                          color: Theme.of(context).primaryColor,
+                                          width: 2,
+                                        )
+                                      : BorderSide.none,
+                                ),
+                              );
+                            },
+                          );
+                        }),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trade Execution',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        title: const Text('Auto-Execute Trades'),
+                        subtitle: const Text(
+                            'Automatically execute trades without confirmation'),
+                        value: _settings!.autoExecute,
+                        onChanged: _selectedTargetUserId != null
+                            ? (value) {
+                                setState(() {
+                                  _settings!.autoExecute = value;
+                                });
+                              }
+                            : null,
+                      ),
+                      SwitchListTile(
+                        title: const Text('Inverse Copying'),
+                        subtitle: const Text(
+                            'Take opposite positions (e.g. Buy -> Sell)'),
+                        value: _settings!.inverse ?? false,
+                        onChanged: _selectedTargetUserId != null
+                            ? (value) {
+                                setState(() {
+                                  _settings!.inverse = value;
+                                });
+                              }
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final time = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (time != null) {
+                                  setState(() {
+                                    _startTimeController.text =
+                                        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                                  });
+                                }
+                              },
+                              child: IgnorePointer(
+                                child: TextField(
+                                  controller: _startTimeController,
+                                  decoration: InputDecoration(
+                                    labelText: 'Start Time',
+                                    helperText:
+                                        'Start time for trading (HH:mm)',
+                                    border: const OutlineInputBorder(),
+                                    filled: true,
+                                    prefixIcon: const Icon(Icons.access_time),
+                                    suffixIcon: _startTimeController
+                                            .text.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear),
+                                            onPressed: () {
+                                              setState(() {
+                                                _startTimeController.clear();
+                                              });
+                                            },
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final time = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+                                if (time != null) {
+                                  setState(() {
+                                    _endTimeController.text =
+                                        '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                                  });
+                                }
+                              },
+                              child: IgnorePointer(
+                                child: TextField(
+                                  controller: _endTimeController,
+                                  decoration: InputDecoration(
+                                    labelText: 'End Time',
+                                    helperText: 'End time for trading (HH:mm)',
+                                    border: const OutlineInputBorder(),
+                                    filled: true,
+                                    prefixIcon:
+                                        const Icon(Icons.access_time_filled),
+                                    suffixIcon:
+                                        _endTimeController.text.isNotEmpty
+                                            ? IconButton(
+                                                icon: const Icon(Icons.clear),
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _endTimeController.clear();
+                                                  });
+                                                },
+                                              )
+                                            : null,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Exit Strategy',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 8),
+                      SwitchListTile(
+                        title: const Text('Copy Stop Loss'),
+                        subtitle:
+                            const Text('Automatically copy stop loss orders'),
+                        value: _settings!.copyStopLoss ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyStopLoss = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.copyStopLoss ?? false)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: TextFormField(
+                            controller: _stopLossAdjustmentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Stop Loss Adjustment (%)',
+                              helperText:
+                                  'Negative to tighten, positive to loosen',
+                              border: OutlineInputBorder(),
+                              suffixText: '%',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                signed: true, decimal: true),
+                          ),
+                        ),
+                      SwitchListTile(
+                        title: const Text('Copy Take Profit'),
+                        subtitle:
+                            const Text('Automatically copy take profit orders'),
+                        value: _settings!.copyTakeProfit ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyTakeProfit = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.copyTakeProfit ?? false)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: TextFormField(
+                            controller: _takeProfitAdjustmentController,
+                            decoration: const InputDecoration(
+                              labelText: 'Take Profit Adjustment (%)',
+                              helperText:
+                                  'Positive to increase, negative to decrease',
+                              border: OutlineInputBorder(),
+                              suffixText: '%',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                signed: true, decimal: true),
+                          ),
+                        ),
+                      SwitchListTile(
+                        title: const Text('Trailing Stop'),
+                        subtitle: const Text('Copy trailing stop orders'),
+                        value: _settings!.copyTrailingStop ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.copyTrailingStop = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Trade Limits',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        key: const Key('copyPercentageField'),
+                        controller: _copyPercentageController,
+                        decoration: const InputDecoration(
+                          labelText: 'Copy Percentage (optional)',
+                          helperText:
+                              'Percentage of original trade size to copy (e.g. 50 for 50%)',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.percent),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            final n = double.tryParse(value);
+                            if (n == null) return 'Invalid number';
+                            if (n < 0 || n > 100) {
+                              return 'Percentage must be between 0 and 100';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      if (_copyPercentageController.text.isNotEmpty &&
+                          double.tryParse(_copyPercentageController.text) !=
+                              null)
+                        Slider(
+                          value: double.tryParse(_copyPercentageController.text)
+                                  ?.clamp(0.0, 100.0) ??
+                              0,
+                          min: 0,
+                          max: 100,
+                          divisions: 100,
+                          label: _copyPercentageController.text,
+                          onChanged: (value) {
+                            setState(() {
+                              _copyPercentageController.text =
+                                  value.toInt().toString();
+                            });
+                          },
+                        ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _maxQuantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Quantity (optional)',
+                          helperText:
+                              'Maximum quantity of shares/contracts to copy',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.numbers),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _maxAmountController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Amount (optional)',
+                          helperText: 'Maximum dollar amount per trade',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _maxDailyAmountController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Daily Amount (optional)',
+                          helperText: 'Maximum total dollar amount per day',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.attach_money),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        title: Row(
+                          children: [
+                            const Text('Override Price'),
+                            const SizedBox(width: 8),
+                            Tooltip(
+                              message:
+                                  'If enabled, trades will be executed at the current market price instead of the price specified in the original order.',
+                              child: Icon(
+                                Icons.info_outline,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: const Text(
+                            'Use current market price instead of copied price'),
+                        value: _settings!.overridePrice ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.overridePrice = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: (_settings!.isRiskGuardianTripped)
+                      ? BorderSide(
+                          color: Theme.of(context).colorScheme.error,
+                          width: 1.5)
+                      : BorderSide.none,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _settings!.isRiskGuardianTripped
+                                ? Icons.gpp_bad
+                                : Icons.gpp_good,
+                            color: _settings!.isRiskGuardianTripped
+                                ? Theme.of(context).colorScheme.error
+                                : Colors.teal,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Risk Guardian & Capital Safeguards',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                          if (_settings!.isRiskGuardianTripped)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'TRIPPED',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Follower-specific protections against sudden drawdowns, outsized positions, and unfavorable execution slippage.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).hintColor,
+                            ),
+                      ),
+                      if (_settings!.isRiskGuardianTripped) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .errorContainer
+                                .withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Circuit Breaker Active',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _settings!.riskGuardianTripReason ??
+                                    'Risk Guardian has paused copy trading.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onErrorContainer,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    _settings!.isRiskGuardianTripped = false;
+                                    _settings!.riskGuardianTripReason = null;
+                                    _settings!.riskGuardianTrippedAt = null;
+                                  });
+                                },
+                                icon: const Icon(Icons.restart_alt, size: 16),
+                                label: const Text('Reset Circuit Breaker'),
+                                style: ElevatedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      // Max Allocation Per Trade ($)
+                      TextFormField(
+                        key: const Key('maxAllocationPerTradeField'),
+                        controller: _maxAllocationPerTradeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Allocation Per Trade (\$, optional)',
+                          helperText:
+                              'Hard dollar cap for any single copied trade',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.shield_outlined),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max Allocation % of Equity
+                      TextFormField(
+                        key: const Key('maxAllocationPctField'),
+                        controller: _maxAllocationPctController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Allocation % of Portfolio (optional)',
+                          helperText:
+                              'Max % of follower equity per trade (e.g. 5 for 5%)',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.pie_chart_outline),
+                          suffixText: '%',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,2}')),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Max Slippage Abort Threshold
+                      TextFormField(
+                        key: const Key('maxSlippageBpsField'),
+                        controller: _maxSlippageBpsController,
+                        decoration: const InputDecoration(
+                          labelText: 'Max Slippage Abort Threshold (bps)',
+                          helperText:
+                              'Abort trade if market price slippage exceeds this limit (e.g. 75 bps = 0.75%)',
+                          border: OutlineInputBorder(),
+                          filled: true,
+                          prefixIcon: Icon(Icons.speed),
+                          suffixText: 'bps',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d+\.?\d{0,1}')),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [25, 50, 75, 100, 200].map((bps) {
+                          final isSelected =
+                              _maxSlippageBpsController.text == bps.toString();
+                          return ChoiceChip(
+                            label: Text(
+                                '$bps bps (${(bps / 100).toStringAsFixed(2)}%)'),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _maxSlippageBpsController.text =
+                                      bps.toString();
+                                });
+                              }
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      // Auto-Disconnect on Divergence
+                      SwitchListTile(
+                        title: const Text('Auto-Disconnect on Divergence'),
+                        subtitle: const Text(
+                            'Safely disconnect if leader drawdown or return divergence exceeds limits'),
+                        value: _settings!.autoDisconnectOnDivergence ?? false,
+                        onChanged: (value) {
+                          setState(() {
+                            _settings!.autoDisconnectOnDivergence = value;
+                          });
+                        },
+                      ),
+                      if (_settings!.autoDisconnectOnDivergence ?? false) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                key: const Key('maxLeaderDrawdownPctField'),
+                                controller: _maxLeaderDrawdownPctController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Max Leader DD (%)',
+                                  helperText: 'Disconnect if DD exceeds',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  suffixText: '%',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d+\.?\d{0,1}')),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                key: const Key('maxReturnDivergencePctField'),
+                                controller: _maxReturnDivergencePctController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Max Divergence (%)',
+                                  helperText: 'Disconnect if lag exceeds',
+                                  border: OutlineInputBorder(),
+                                  filled: true,
+                                  suffixText: '%',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                      RegExp(r'^\d+\.?\d{0,1}')),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ExpansionTile(
+                  title: Text(
+                    'Advanced Filtering',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: _symbolWhitelistController,
+                            decoration: const InputDecoration(
+                              labelText: 'Symbol Whitelist',
+                              helperText:
+                                  'Comma separated list of symbols to allow',
+                              border: OutlineInputBorder(),
+                              filled: true,
+                              prefixIcon: Icon(Icons.check_circle_outline),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _symbolBlacklistController,
+                            decoration: const InputDecoration(
+                              labelText: 'Symbol Blacklist',
+                              helperText:
+                                  'Comma separated list of symbols to block',
+                              border: OutlineInputBorder(),
+                              filled: true,
+                              prefixIcon: Icon(Icons.block),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Asset Class Whitelist',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 4.0,
+                            children: _availableAssetClasses.map((assetClass) {
+                              return FilterChip(
+                                label: Text(assetClass.capitalize()),
+                                selected:
+                                    _selectedAssetClasses.contains(assetClass),
+                                onSelected: (bool selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedAssetClasses.add(assetClass);
+                                    } else {
+                                      _selectedAssetClasses.remove(assetClass);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Sector Whitelist',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 4.0,
+                            children: _availableSectors.map((sector) {
+                              return FilterChip(
+                                label: Text(sector),
+                                selected: _selectedSectors.contains(sector),
+                                onSelected: (bool selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedSectors.add(sector);
+                                    } else {
+                                      _selectedSectors.remove(sector);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _minMarketCapController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Min Market Cap',
+                                    helperText:
+                                        'Minimum market cap (in millions)',
+                                    border: OutlineInputBorder(),
+                                    filled: true,
+                                    prefixIcon: Icon(Icons.trending_up),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'^\d+\.?\d{0,2}')),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: TextField(
+                                  controller: _maxMarketCapController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Max Market Cap',
+                                    helperText:
+                                        'Maximum market cap (in millions)',
+                                    border: OutlineInputBorder(),
+                                    filled: true,
+                                    prefixIcon: Icon(Icons.trending_down),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(
+                                        RegExp(r'^\d+\.?\d{0,2}')),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:collection/collection.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:collection/collection.dart';
+import 'package:flutter/services.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -13,52 +14,111 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 // import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
-import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
-import 'package:robinhood_options_mobile/model/generative_provider.dart';
-import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
+// import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
-import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
-import 'package:robinhood_options_mobile/model/futures_position_store.dart';
-import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
-import 'package:robinhood_options_mobile/utils/ai.dart';
+// import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
-import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart'
-    hide formatCurrency;
-import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
+import 'package:robinhood_options_mobile/widgets/welcome_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
+import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
+import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
+import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_grid_widget.dart';
+import 'package:robinhood_options_mobile/services/portfolio_benchmark_service.dart';
+import 'package:robinhood_options_mobile/services/offline_cache_service.dart';
+import 'package:robinhood_options_mobile/services/offline_sync_service.dart';
+import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_hero_stats_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_movers_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_navigator.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
+
+class _AggregateUserData {
+  final BrokerageUser user;
+  final List<Account> accounts;
+  final List<Portfolio> portfolios;
+  final List<InstrumentPosition> stockPositions;
+  final List<OptionAggregatePosition> optionPositions;
+  final List<ForexHolding> forexHoldings;
+  final List<dynamic> dividends;
+  final List<dynamic> interests;
+
+  const _AggregateUserData({
+    required this.user,
+    required this.accounts,
+    required this.portfolios,
+    required this.stockPositions,
+    required this.optionPositions,
+    required this.forexHoldings,
+    required this.dividends,
+    required this.interests,
+  });
+}
+
+class _BrokerBreakdownRow {
+  final BrokerageSource source;
+  final double totalValue;
+  final int accountCount;
+  final int positionCount;
+
+  const _BrokerBreakdownRow({
+    required this.source,
+    required this.totalValue,
+    required this.accountCount,
+    required this.positionCount,
+  });
+}
 
 /*
 class DrawerItem {
@@ -68,13 +128,14 @@ class DrawerItem {
 }
 */
 class HomePage extends StatefulWidget {
-  final BrokerageUser brokerageUser;
-  final UserInfo userInfo;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
+  final UserInfo? userInfo;
+  final IBrokerageService? service;
   final GenerativeService generativeService;
 
   final User? user;
-  final DocumentReference? userDoc;
+  final DocumentReference<User>? userDoc;
+  final VoidCallback? onLogin;
   //final Account account;
   /*
   final drawerItems = [
@@ -95,13 +156,16 @@ class HomePage extends StatefulWidget {
     required this.generativeService,
     this.title,
     this.navigatorKey,
-    this.user,
-    this.userDoc,
+    required this.user,
+    required this.userDoc,
+    this.onLogin,
+    this.onTabChanged,
     //required this.onUserChanged,
     //required this.onAccountsChanged
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final ValueChanged<int>? onTabChanged;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   //final ValueChanged<RobinhoodUser?> onUserChanged;
@@ -143,6 +207,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Bounds chartBoundsFilter = Bounds.t24_7;
   ChartDateSpan prevChartDateSpanFilter = ChartDateSpan.day;
   Bounds prevChartBoundsFilter = Bounds.t24_7;
+  ChartDateSpan benchmarkChartDateSpanFilter = ChartDateSpan.rolling_30;
   // EquityHistorical? selection;
   bool animateChart = true;
 
@@ -150,9 +215,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<List<dynamic>>? futureInterests;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
+  Future<BenchmarkComparison?>? futureBenchmarkComparison;
+
+  /// Shared by the Performance, Risk, Insights, and Taxes sections so the
+  /// metrics are computed once per period rather than once per screen.
+  PortfolioAnalyticsController? _analyticsController;
   Future<dynamic>? futureMarketIndexHistoricalsSp500;
   Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
   Future<dynamic>? futureMarketIndexHistoricalsDow;
+  Future<dynamic>? futureMarketIndexHistoricalsRussell2000;
   // final marketIndexHistoricalsNotifier = ValueNotifier<dynamic>(null);
 
   Future<InstrumentPositionStore>? futureStockPositions;
@@ -160,8 +231,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<OptionPositionStore>? futureOptionPositions;
   //Stream<OptionPositionStore>? optionPositionStoreStream;
 
-  Future<List<dynamic>>? futureFuturesAccounts;
-  Stream<List<dynamic>>? futuresStream;
+  // Future<List<dynamic>>? futureFuturesAccounts;
+  String? futuresAccountId;
+  // StreamSubscription? _futuresSubscription;
+  // Stream<List<dynamic>>? futuresStream;
 
   /*
   Stream<List<StockPosition>>? positionStream;
@@ -187,35 +260,1325 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Timer? refreshTriggerTime;
   AppLifecycleState? _notification;
+  bool _lastAggregateMode = false;
+  String? _lastSelectedAccountNumber;
+  bool _dependencyReloadScheduled = false;
+  AccountStore? _accountStore;
+  List<_BrokerBreakdownRow> _brokerBreakdownRows = [];
 
-  late final CarouselController _carouselController;
-  // late final Timer _carouselTimer;
-  final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
+  final ScrollController _scrollController = ScrollController();
+  PaperTradingStore? _paperStore;
+  bool _refreshingPaperQuotes = false;
+  String? _lastPaperQuoteRefreshKey;
 
   _HomePageState();
 
-  // Badge helpers for portfolio historical chart change metrics
-  Color _pnlColor(double? value) {
-    if (value == null) return Colors.grey;
-    if (value > 0) return Colors.green;
-    if (value < 0) return Colors.red;
-    return Colors.grey;
+  String _selectionStorageKey() {
+    final user = widget.brokerageUser;
+    return AccountStore.selectionStorageKey(
+      source: user?.source.enumValue() ?? 'unknown',
+      userName: user?.userName,
+    );
   }
 
-  Widget _pnlBadge(String text, double? value, double fontSize,
-      {bool neutral = false}) {
-    var color = neutral ? Colors.grey : _pnlColor(value);
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.25))),
-        child: Text(text,
-            style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: FontWeight.w600,
-                color: color)));
+  bool _isAggregateMode() {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    return userStore.aggregateAllAccounts && userStore.items.length > 1;
+  }
+
+  bool _supportsRobinhoodFeatures() {
+    if (!_isAggregateMode()) {
+      return widget.brokerageUser!.source == BrokerageSource.robinhood ||
+          widget.brokerageUser!.source == BrokerageSource.demo ||
+          widget.brokerageUser!.source == BrokerageSource.paper;
+    }
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    return userStore.items.any((user) =>
+        user.source == BrokerageSource.robinhood ||
+        user.source == BrokerageSource.demo ||
+        user.source == BrokerageSource.paper);
+  }
+
+  IBrokerageService _serviceForUser(BrokerageUser user) {
+    return user.source == BrokerageSource.robinhood
+        ? RobinhoodService()
+        : user.source == BrokerageSource.schwab
+            ? SchwabService()
+            : user.source == BrokerageSource.fidelity
+                ? FidelityService()
+                : user.source == BrokerageSource.plaid
+                    ? PlaidService()
+                    : user.source == BrokerageSource.paper
+                        ? PaperService()
+                        : DemoService();
+  }
+
+  Quote _buildSyntheticQuote({
+    required String symbol,
+    required double price,
+    String instrumentId = '',
+  }) {
+    return Quote(
+      askPrice: price,
+      askSize: 0,
+      bidPrice: price,
+      bidSize: 0,
+      lastTradePrice: price,
+      lastExtendedHoursTradePrice: price,
+      previousClose: price,
+      adjustedPreviousClose: price,
+      previousCloseDate: DateTime.now(),
+      symbol: symbol,
+      tradingHalted: false,
+      hasTraded: true,
+      lastTradePriceSource: 'synthetic',
+      updatedAt: DateTime.now(),
+      instrument: '',
+      instrumentId: instrumentId,
+    );
+  }
+
+  OptionMarketData _buildSyntheticOptionMarketData({
+    required String symbol,
+    required String instrumentId,
+    required double markPrice,
+  }) {
+    return OptionMarketData(
+      markPrice,
+      markPrice,
+      0,
+      markPrice,
+      0,
+      null,
+      null,
+      '',
+      instrumentId,
+      markPrice,
+      0,
+      null,
+      markPrice,
+      0,
+      DateTime.now(),
+      markPrice,
+      0,
+      symbol,
+      '',
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      DateTime.now(),
+    );
+  }
+
+  ForexQuote _buildSyntheticForexQuote({
+    required String symbol,
+    required String id,
+    required double markPrice,
+  }) {
+    return ForexQuote(
+      markPrice,
+      markPrice,
+      markPrice,
+      markPrice,
+      markPrice,
+      markPrice,
+      symbol,
+      id,
+      null,
+      DateTime.now(),
+    );
+  }
+
+  Future<_AggregateUserData> _fetchAggregateUserData(
+      BrokerageUser user, DocumentReference<User>? userDoc) async {
+    final service = _serviceForUser(user);
+    final instrumentStore =
+        Provider.of<InstrumentStore>(context, listen: false);
+    final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+
+    final tempAccountStore = AccountStore();
+    final tempPortfolioStore = PortfolioStore();
+    final tempOptionStore = OptionPositionStore();
+    final tempInstrumentStore = InstrumentPositionStore();
+    final tempForexStore = ForexHoldingStore();
+    final tempDividendStore = DividendStore();
+    final tempInterestStore = InterestStore();
+
+    try {
+      await service.getAccounts(
+        user,
+        tempAccountStore,
+        tempPortfolioStore,
+        tempOptionStore,
+        instrumentPositionStore: tempInstrumentStore,
+        userDoc: userDoc,
+      );
+    } catch (e) {
+      debugPrint('Aggregate: getAccounts failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getPortfolios(user, tempPortfolioStore);
+    } catch (e) {
+      debugPrint('Aggregate: getPortfolios failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getNummusHoldings(
+        user,
+        tempForexStore,
+        nonzero: !hasQuantityFilters[1],
+        userDoc: userDoc,
+      );
+    } catch (e) {
+      debugPrint(
+          'Aggregate: getNummusHoldings failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getOptionPositionStore(
+        user,
+        tempOptionStore,
+        instrumentStore,
+        nonzero: !hasQuantityFilters[1],
+        userDoc: userDoc,
+      );
+    } catch (e) {
+      debugPrint(
+          'Aggregate: getOptionPositionStore failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getStockPositionStore(
+        user,
+        tempInstrumentStore,
+        instrumentStore,
+        quoteStore,
+        nonzero: !hasQuantityFilters[1],
+        userDoc: userDoc,
+      );
+    } catch (e) {
+      debugPrint(
+          'Aggregate: getStockPositionStore failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getDividends(user, tempDividendStore, instrumentStore);
+    } catch (e) {
+      debugPrint('Aggregate: getDividends failed for ${user.userName}: $e');
+    }
+
+    try {
+      await service.getInterests(user, tempInterestStore);
+    } catch (e) {
+      debugPrint('Aggregate: getInterests failed for ${user.userName}: $e');
+    }
+
+    return _AggregateUserData(
+      user: user,
+      accounts: tempAccountStore.items.toList(),
+      portfolios: tempPortfolioStore.items.toList(),
+      stockPositions: tempInstrumentStore.items.toList(),
+      optionPositions: tempOptionStore.items.toList(),
+      forexHoldings: tempForexStore.items.toList(),
+      dividends: tempDividendStore.items.toList(),
+      interests: tempInterestStore.items.toList(),
+    );
+  }
+
+  Account _buildAggregatedAccount(List<Account> accounts) {
+    double sumOrZero(Iterable<double?> values) =>
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
+
+    return Account(
+      'aggregate',
+      sumOrZero(accounts.map((e) => e.portfolioCash)),
+      'ALL',
+      'aggregate',
+      sumOrZero(accounts.map((e) => e.buyingPower)),
+      '',
+      sumOrZero(accounts.map((e) => e.cashHeldForOptionsCollateral)),
+      sumOrZero(accounts.map((e) => e.unsettledDebit)),
+      sumOrZero(accounts.map((e) => e.settledAmountBorrowed)),
+      totalValue: sumOrZero(accounts.map((e) => e.totalValue)),
+    );
+  }
+
+  Portfolio? _buildAggregatedPortfolio(List<Portfolio> portfolios) {
+    if (portfolios.isEmpty) {
+      return null;
+    }
+
+    double sumOrZero(Iterable<double?> values) =>
+        values.fold(0.0, (sum, value) => sum + (value ?? 0.0));
+
+    return Portfolio(
+      'aggregate',
+      'ALL',
+      null,
+      sumOrZero(portfolios.map((e) => e.marketValue)),
+      sumOrZero(portfolios.map((e) => e.equity)),
+      sumOrZero(portfolios.map((e) => e.extendedHoursMarketValue)),
+      sumOrZero(portfolios.map((e) => e.extendedHoursEquity)),
+      sumOrZero(portfolios.map((e) => e.extendedHoursPortfolioEquity)),
+      sumOrZero(portfolios.map((e) => e.lastCoreMarketValue)),
+      sumOrZero(portfolios.map((e) => e.lastCoreEquity)),
+      sumOrZero(portfolios.map((e) => e.lastCorePortfolioEquity)),
+      sumOrZero(portfolios.map((e) => e.excessMargin)),
+      sumOrZero(portfolios.map((e) => e.excessMaintenance)),
+      sumOrZero(portfolios.map((e) => e.excessMarginWithUnclearedDeposits)),
+      sumOrZero(
+          portfolios.map((e) => e.excessMaintenanceWithUnclearedDeposits)),
+      sumOrZero(portfolios.map((e) => e.equityPreviousClose)),
+      sumOrZero(portfolios.map((e) => e.portfolioEquityPreviousClose)),
+      sumOrZero(portfolios.map((e) => e.adjustedEquityPreviousClose)),
+      sumOrZero(portfolios.map((e) => e.adjustedPortfolioEquityPreviousClose)),
+      sumOrZero(portfolios.map((e) => e.withdrawableAmount)),
+      sumOrZero(portfolios.map((e) => e.unwithdrawableDeposits)),
+      sumOrZero(portfolios.map((e) => e.unwithdrawableGrants)),
+      DateTime.now(),
+    );
+  }
+
+  List<InstrumentPosition> _aggregateInstrumentPositions(
+      List<InstrumentPosition> positions) {
+    final grouped = <String, List<InstrumentPosition>>{};
+    for (final position in positions) {
+      final symbol = position.instrumentObj?.symbol;
+      final instrumentId = position.instrumentId;
+      final instrument = position.instrument;
+      final key = symbol != null && symbol.isNotEmpty
+          ? 'sym:$symbol'
+          : instrumentId.isNotEmpty
+              ? 'id:$instrumentId'
+              : instrument.isNotEmpty
+                  ? 'inst:$instrument'
+                  : 'unknown';
+      grouped.putIfAbsent(key, () => []).add(position);
+    }
+
+    double sumField(Iterable<double?> values) =>
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
+
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = items.fold(
+              0.0,
+              (acc, e) =>
+                  acc + ((e.averageBuyPrice ?? 0.0) * (e.quantity ?? 0.0)));
+          final intradayQuantity =
+              sumField(items.map((e) => e.intradayQuantity));
+          final intradayTotalCost = items.fold(
+              0.0,
+              (acc, e) =>
+                  acc +
+                  ((e.intradayAverageBuyPrice ?? 0.0) *
+                      (e.intradayQuantity ?? 0.0)));
+
+          final avgBuyPrice =
+              totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
+          final avgIntradayPrice = intradayQuantity != 0
+              ? intradayTotalCost / intradayQuantity
+              : avgBuyPrice;
+
+          final aggregated = InstrumentPosition(
+            'aggregate/${template.instrumentId}',
+            template.instrument,
+            'ALL',
+            'ALL',
+            avgBuyPrice,
+            avgBuyPrice,
+            totalQuantity,
+            avgIntradayPrice,
+            intradayQuantity,
+            sumField(items.map((e) => e.sharesAvailableForExercise)),
+            sumField(items.map((e) => e.sharesHeldForBuys)),
+            sumField(items.map((e) => e.sharesHeldForSells)),
+            sumField(items.map((e) => e.sharesHeldForStockGrants)),
+            sumField(items.map((e) => e.sharesHeldForOptionsCollateral)),
+            sumField(items.map((e) => e.sharesHeldForOptionsEvents)),
+            sumField(items.map((e) => e.sharesPendingFromOptionsEvents)),
+            sumField(
+                items.map((e) => e.sharesAvailableForClosingShortPosition)),
+            items.any((e) => e.averageCostAffected),
+            DateTime.now(),
+            template.createdAt,
+          );
+          aggregated.instrumentObj = template.instrumentObj;
+          Quote? latestQuote;
+          for (final item in items) {
+            final quote = item.instrumentObj?.quoteObj;
+            if (quote == null) continue;
+            if (latestQuote == null) {
+              latestQuote = quote;
+              continue;
+            }
+            final quoteUpdated = quote.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
+            if (quoteUpdated.isAfter(latestUpdated)) {
+              latestQuote = quote;
+            }
+          }
+          if (latestQuote == null &&
+              aggregated.instrumentObj != null &&
+              avgBuyPrice > 0) {
+            latestQuote = _buildSyntheticQuote(
+              symbol: aggregated.instrumentObj!.symbol,
+              price: avgBuyPrice,
+              instrumentId: template.instrumentId,
+            );
+          }
+          if (latestQuote != null && aggregated.instrumentObj != null) {
+            aggregated.instrumentObj!.quoteObj = latestQuote;
+          }
+          return aggregated;
+        })
+        .whereType<InstrumentPosition>()
+        .toList();
+  }
+
+  List<OptionAggregatePosition> _aggregateOptionPositions(
+      List<OptionAggregatePosition> positions) {
+    final grouped = <String, List<OptionAggregatePosition>>{};
+    for (final position in positions) {
+      final key = [
+        position.id,
+        position.direction,
+        position.strategy,
+        position.strategyCode
+      ].join('|');
+      grouped.putIfAbsent(key, () => []).add(position);
+    }
+
+    double sumField(Iterable<double?> values) =>
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
+
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = items.fold(
+              0.0,
+              (acc, e) =>
+                  acc + ((e.averageOpenPrice ?? 0.0) * (e.quantity ?? 0.0)));
+          final avgOpenPrice =
+              totalQuantity != 0 ? totalCost / totalQuantity : 0.0;
+
+          final aggregated = OptionAggregatePosition(
+            template.id,
+            template.chain,
+            'ALL',
+            template.symbol,
+            template.strategy,
+            avgOpenPrice,
+            template.legs,
+            totalQuantity,
+            template.intradayAverageOpenPrice,
+            template.intradayQuantity,
+            template.direction,
+            template.intradayDirection,
+            template.tradeValueMultiplier,
+            template.createdAt,
+            template.updatedAt,
+            template.strategyCode,
+          );
+          OptionMarketData? latestMarketData;
+          for (final item in items) {
+            final md = item.optionInstrument?.optionMarketData;
+            if (md == null) continue;
+            if (latestMarketData == null) {
+              latestMarketData = md;
+              continue;
+            }
+            final mdUpdated = md.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestMarketData.updatedAt ?? DateTime(1970);
+            if (mdUpdated.isAfter(latestUpdated)) {
+              latestMarketData = md;
+            }
+          }
+          if (latestMarketData == null &&
+              template.optionInstrument != null &&
+              avgOpenPrice > 0) {
+            final markPrice = avgOpenPrice / 100;
+            if (markPrice > 0) {
+              latestMarketData = _buildSyntheticOptionMarketData(
+                symbol: template.symbol,
+                instrumentId: template.optionInstrument!.id,
+                markPrice: markPrice,
+              );
+            }
+          }
+          if (latestMarketData != null && template.optionInstrument != null) {
+            template.optionInstrument!.optionMarketData = latestMarketData;
+          }
+          aggregated.optionInstrument = template.optionInstrument;
+          aggregated.instrumentObj = template.instrumentObj;
+          aggregated.logoUrl = template.logoUrl;
+          return aggregated;
+        })
+        .whereType<OptionAggregatePosition>()
+        .toList();
+  }
+
+  List<ForexHolding> _aggregateForexHoldings(List<ForexHolding> holdings) {
+    final grouped = <String, List<ForexHolding>>{};
+    for (final holding in holdings) {
+      grouped.putIfAbsent(holding.currencyCode, () => []).add(holding);
+    }
+
+    double sumField(Iterable<double?> values) =>
+        values.fold(0.0, (acc, value) => acc + (value ?? 0.0));
+
+    return grouped.entries
+        .map((entry) {
+          final items = entry.value;
+          final template = items.first;
+          final totalQuantity = sumField(items.map((e) => e.quantity));
+          if (totalQuantity == 0) {
+            return null;
+          }
+          final totalCost = sumField(items.map((e) => e.directCostBasis));
+          final aggregated = ForexHolding(
+            'aggregate-${template.currencyCode}',
+            template.currencyId,
+            template.currencyCode,
+            template.currencyName,
+            totalQuantity,
+            totalCost,
+            template.createdAt,
+            template.updatedAt,
+          );
+          ForexQuote? latestQuote;
+          for (final item in items) {
+            final quote = item.quoteObj;
+            if (quote == null) continue;
+            if (latestQuote == null) {
+              latestQuote = quote;
+              continue;
+            }
+            final quoteUpdated = quote.updatedAt ?? DateTime(1970);
+            final latestUpdated = latestQuote.updatedAt ?? DateTime(1970);
+            if (quoteUpdated.isAfter(latestUpdated)) {
+              latestQuote = quote;
+            }
+          }
+          if (latestQuote == null && totalQuantity > 0 && totalCost > 0) {
+            final avgPrice = totalCost / totalQuantity;
+            latestQuote = _buildSyntheticForexQuote(
+              symbol: template.currencyCode,
+              id: template.id,
+              markPrice: avgPrice,
+            );
+          }
+          aggregated.quoteObj = latestQuote;
+          aggregated.historicalsObj = template.historicalsObj;
+          return aggregated;
+        })
+        .whereType<ForexHolding>()
+        .toList();
+  }
+
+  PortfolioHistoricals? _mergePortfolioHistoricals(
+      List<PortfolioHistoricals> historials) {
+    if (historials.isEmpty) {
+      return null;
+    }
+
+    final base = historials.first;
+    final merged = <DateTime, Map<String, double>>{};
+    final hasValue = <DateTime, Map<String, bool>>{};
+
+    void addValue(DateTime key, String field, double? value) {
+      if (value == null) return;
+      merged.putIfAbsent(key, () => {});
+      hasValue.putIfAbsent(key, () => {});
+      merged[key]![field] = (merged[key]![field] ?? 0.0) + value;
+      hasValue[key]![field] = true;
+    }
+
+    for (final hist in historials) {
+      for (final point in hist.equityHistoricals) {
+        final beginsAt = point.beginsAt;
+        if (beginsAt == null) continue;
+        addValue(beginsAt, 'adjustedOpenEquity', point.adjustedOpenEquity);
+        addValue(beginsAt, 'adjustedCloseEquity', point.adjustedCloseEquity);
+        addValue(beginsAt, 'openEquity', point.openEquity);
+        addValue(beginsAt, 'closeEquity', point.closeEquity);
+        addValue(beginsAt, 'openMarketValue', point.openMarketValue);
+        addValue(beginsAt, 'closeMarketValue', point.closeMarketValue);
+      }
+    }
+
+    final sortedKeys = merged.keys.toList()..sort();
+    final equityHistoricals = sortedKeys.map((key) {
+      final values = merged[key] ?? {};
+      final flags = hasValue[key] ?? {};
+      double? pick(String field) => flags[field] == true ? values[field] : null;
+      return EquityHistorical(
+        pick('adjustedOpenEquity'),
+        pick('adjustedCloseEquity'),
+        pick('openEquity'),
+        pick('closeEquity'),
+        pick('openMarketValue'),
+        pick('closeMarketValue'),
+        key,
+        null,
+        base.equityHistoricals.isNotEmpty
+            ? base.equityHistoricals.first.session
+            : '',
+      );
+    }).toList();
+
+    if (equityHistoricals.isEmpty) {
+      return PortfolioHistoricals(
+        base.adjustedOpenEquity,
+        base.adjustedPreviousCloseEquity,
+        base.openEquity,
+        base.previousCloseEquity,
+        base.openTime,
+        base.interval,
+        base.span,
+        base.bounds,
+        base.totalReturn,
+        [],
+        base.useNewHp,
+      );
+    }
+
+    final first = equityHistoricals.first;
+    final last = equityHistoricals.last;
+    double? totalReturn;
+    if (first.adjustedOpenEquity != null &&
+        first.adjustedOpenEquity != 0 &&
+        last.adjustedCloseEquity != null) {
+      totalReturn = (last.adjustedCloseEquity! - first.adjustedOpenEquity!) /
+          first.adjustedOpenEquity!;
+    }
+
+    return PortfolioHistoricals(
+      first.adjustedOpenEquity,
+      base.adjustedPreviousCloseEquity,
+      first.openEquity,
+      base.previousCloseEquity,
+      base.openTime,
+      base.interval,
+      base.span,
+      base.bounds,
+      totalReturn,
+      equityHistoricals,
+      base.useNewHp,
+    );
+  }
+
+  Future<List<Account>> _loadAggregatedData() async {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    final users = userStore.items;
+    if (users.isEmpty) return [];
+
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
+    final optionStore =
+        Provider.of<OptionPositionStore>(context, listen: false);
+    final instrumentStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+    final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
+    final dividendStore = Provider.of<DividendStore>(context, listen: false);
+    final interestStore = Provider.of<InterestStore>(context, listen: false);
+    final futuresStore =
+        Provider.of<FuturesPositionStore>(context, listen: false);
+
+    instrumentStore.setLoading(true);
+    optionStore.setLoading(true);
+    forexStore.setLoading(true);
+
+    final results = await Future.wait(
+        users.map((user) => _fetchAggregateUserData(user, widget.userDoc)));
+
+    for (final result in results) {
+      result.user.accounts = result.accounts;
+    }
+
+    // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+    // Save accounts to SharedPreferences
+    await userStore.save();
+
+    final breakdownRows = _buildBrokerBreakdown(results);
+    if (mounted) {
+      setState(() {
+        _brokerBreakdownRows = breakdownRows;
+      });
+    }
+
+    final allAccounts = results.expand((e) => e.accounts).toList();
+    final allPortfolios = results.expand((e) => e.portfolios).toList();
+    final allStockPositions = results.expand((e) => e.stockPositions).toList();
+    final allOptionPositions =
+        results.expand((e) => e.optionPositions).toList();
+    final allForexHoldings = results.expand((e) => e.forexHoldings).toList();
+    final allDividends = results.expand((e) => e.dividends).toList();
+    final allInterests = results.expand((e) => e.interests).toList();
+
+    final aggregatedAccount = _buildAggregatedAccount(allAccounts);
+    final aggregatedPortfolio = _buildAggregatedPortfolio(allPortfolios);
+    final aggregatedStocks = _aggregateInstrumentPositions(allStockPositions);
+    final aggregatedOptions = _aggregateOptionPositions(allOptionPositions);
+    final aggregatedForex = _aggregateForexHoldings(allForexHoldings);
+
+    accountStore.removeAll();
+    portfolioStore.removeAll();
+    optionStore.removeAll();
+    instrumentStore.removeAll();
+    forexStore.removeAll();
+    dividendStore.removeAll();
+    interestStore.removeAll();
+    futuresStore.removeAll();
+    futuresAccountId = null;
+
+    accountStore.add(aggregatedAccount);
+    if (aggregatedPortfolio != null) {
+      portfolioStore.add(aggregatedPortfolio);
+    }
+    for (final position in aggregatedStocks) {
+      instrumentStore.add(position);
+    }
+    for (final position in aggregatedOptions) {
+      optionStore.add(position);
+    }
+    for (final holding in aggregatedForex) {
+      forexStore.add(holding);
+    }
+    for (final dividend in allDividends) {
+      dividendStore.add(dividend);
+    }
+    for (final interest in allInterests) {
+      interestStore.add(interest);
+    }
+
+    instrumentStore.setLoading(false);
+    optionStore.setLoading(false);
+    forexStore.setLoading(false);
+
+    return [aggregatedAccount];
+  }
+
+  List<_BrokerBreakdownRow> _buildBrokerBreakdown(
+      List<_AggregateUserData> results) {
+    final Map<BrokerageSource, _BrokerBreakdownRow> breakdown = {};
+    for (final result in results) {
+      final source = result.user.source;
+      final totalValue = _resolveAggregateUserValue(result);
+      final accountCount = result.accounts.length;
+      final positionCount = result.stockPositions.length +
+          result.optionPositions.length +
+          result.forexHoldings.length;
+      final existing = breakdown[source];
+      if (existing == null) {
+        breakdown[source] = _BrokerBreakdownRow(
+          source: source,
+          totalValue: totalValue,
+          accountCount: accountCount,
+          positionCount: positionCount,
+        );
+      } else {
+        breakdown[source] = _BrokerBreakdownRow(
+          source: source,
+          totalValue: existing.totalValue + totalValue,
+          accountCount: existing.accountCount + accountCount,
+          positionCount: existing.positionCount + positionCount,
+        );
+      }
+    }
+
+    final rows = breakdown.values.toList();
+    rows.sort((a, b) => b.totalValue.compareTo(a.totalValue));
+    return rows;
+  }
+
+  double _resolveAggregateUserValue(_AggregateUserData data) {
+    double? portfolioValue;
+    if (data.portfolios.isNotEmpty) {
+      portfolioValue = data.portfolios
+          .map((p) => (p.equity ?? p.marketValue ?? 0.0))
+          .fold<double>(0.0, (sum, value) => sum + value);
+    }
+
+    if ((portfolioValue == null || portfolioValue == 0) &&
+        data.accounts.isNotEmpty) {
+      final accountTotal = data.accounts
+          .map((a) => (a.totalValue ?? 0.0))
+          .fold<double>(0.0, (sum, value) => sum + value);
+      if (accountTotal > 0) {
+        portfolioValue = accountTotal;
+      }
+    }
+
+    final stockValue = data.stockPositions
+        .fold<double>(0.0, (sum, position) => sum + position.marketValue);
+    final optionValue = data.optionPositions
+        .fold<double>(0.0, (sum, position) => sum + position.marketValue);
+    final forexValue = data.forexHoldings.fold<double>(
+        0.0,
+        (sum, holding) =>
+            sum + (holding.quoteObj != null ? holding.marketValue : 0.0));
+    final positionsTotal = stockValue + optionValue + forexValue;
+
+    if (portfolioValue == null || portfolioValue == 0) {
+      return positionsTotal;
+    }
+    return portfolioValue;
+  }
+
+  String _brokerLabel(BrokerageSource source) {
+    switch (source) {
+      case BrokerageSource.robinhood:
+        return 'Robinhood';
+      case BrokerageSource.schwab:
+        return 'Schwab';
+      case BrokerageSource.fidelity:
+        return 'Fidelity';
+      case BrokerageSource.plaid:
+        return 'Plaid';
+      case BrokerageSource.demo:
+        return 'Demo';
+      case BrokerageSource.paper:
+        return 'Paper';
+    }
+  }
+
+  Future<PortfolioHistoricals> _loadAggregatedPortfolioHistoricals(
+      ChartDateSpan span, Bounds bounds) async {
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    final users = userStore.items;
+    if (users.isEmpty) {
+      var rtn = convertChartSpanFilterWithInterval(span);
+      String rhSpan = rtn[0];
+      String rhInterval = rtn[1];
+      String rhBounds = convertChartBoundsFilter(bounds);
+      return PortfolioHistoricals(
+          0, 0, 0, 0, null, rhInterval, rhSpan, rhBounds, 0, [], false);
+    }
+
+    final historials = <PortfolioHistoricals>[];
+    for (final user in users) {
+      final service = _serviceForUser(user);
+      if (user.accounts.isEmpty) continue;
+      for (final acct in user.accounts) {
+        try {
+          final tempStore = PortfolioHistoricalsStore();
+          final hist = await service.getPortfolioPerformance(
+            user,
+            tempStore,
+            acct.accountNumber,
+            chartBoundsFilter: bounds,
+            chartDateSpanFilter: span,
+          );
+          historials.add(hist);
+        } catch (e) {
+          debugPrint(
+              'Aggregate: getPortfolioPerformance failed for ${user.userName}: $e');
+        }
+      }
+    }
+
+    final aggregated = _mergePortfolioHistoricals(historials);
+    if (aggregated != null) {
+      if (!mounted) return aggregated;
+      Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+          .set(aggregated);
+      return aggregated;
+    }
+
+    var rtn = convertChartSpanFilterWithInterval(span);
+    String rhSpan = rtn[0];
+    String rhInterval = rtn[1];
+    String rhBounds = convertChartBoundsFilter(bounds);
+    return PortfolioHistoricals(
+        0, 0, 0, 0, null, rhInterval, rhSpan, rhBounds, 0, [], false);
+  }
+
+  void _loadData() {
+    if (widget.brokerageUser == null || widget.service == null) return;
+
+    final existingAccountStore =
+        Provider.of<AccountStore>(context, listen: false);
+    if (existingAccountStore.items.isEmpty) {
+      _restoreFromOfflineCache();
+    }
+
+    if (_isAggregateMode()) {
+      futureAccounts = _loadAggregatedData();
+      futurePortfolios = null;
+      futureNummusHoldings = null;
+      futureOptionPositions = null;
+      futureStockPositions = null;
+      futureAccounts!.then((accounts) {
+        if (mounted && accounts.isNotEmpty) {
+          final accountStore =
+              Provider.of<AccountStore>(context, listen: false);
+          setState(() {
+            final selectedNo = accountStore.selectedAccountNumber;
+            account = (selectedNo != null)
+                ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                    orElse: () => accounts[0])
+                : accounts[0];
+            _loadPortfolioHistoricals();
+          });
+          _persistCurrentPortfolioSnapshot();
+        }
+      }).catchError((error) async {
+        debugPrint('Error loading aggregated accounts: $error');
+        if (mounted) {
+          try {
+            Provider.of<OfflineSyncService>(context, listen: false)
+                .setOffline(true, reason: error.toString());
+          } catch (_) {}
+          await _restoreFromOfflineCache();
+        }
+      });
+      return;
+    }
+
+    if (_brokerBreakdownRows.isNotEmpty) {
+      setState(() {
+        _brokerBreakdownRows = [];
+      });
+    }
+
+    futureAccounts = widget.service!.getAccounts(
+        widget.brokerageUser!,
+        Provider.of<AccountStore>(context, listen: false),
+        Provider.of<PortfolioStore>(context, listen: false),
+        Provider.of<OptionPositionStore>(context, listen: false),
+        instrumentPositionStore:
+            Provider.of<InstrumentPositionStore>(context, listen: false),
+        userDoc: widget.userDoc);
+
+    futureAccounts!.then((accounts) async {
+      if (mounted && accounts.isNotEmpty) {
+        // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+        widget.brokerageUser!.accounts = accounts;
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+
+        if (accountStore.selectedAccountNumber == null) {
+          await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
+        }
+        await userStore.save();
+
+        setState(() {
+          final selectedNo = accountStore.selectedAccountNumber;
+          account = (selectedNo != null)
+              ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                  orElse: () => accounts[0])
+              : accounts[0];
+          _loadPortfolioHistoricals();
+        });
+
+        if (accountStore.selectedAccountNumber == null) {
+          accountStore.setSelectedAccountNumber(account!.accountNumber);
+        }
+        await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
+        _persistCurrentPortfolioSnapshot();
+      }
+    }).catchError((error) async {
+      debugPrint('Error loading accounts: $error');
+      if (mounted) {
+        try {
+          Provider.of<OfflineSyncService>(context, listen: false)
+              .setOffline(true, reason: error.toString());
+        } catch (_) {}
+        await _restoreFromOfflineCache();
+      }
+    });
+
+    if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+        widget.brokerageUser!.source == BrokerageSource.demo ||
+        widget.brokerageUser!.source == BrokerageSource.paper) {
+      futurePortfolios = widget.service!.getPortfolios(widget.brokerageUser!,
+          Provider.of<PortfolioStore>(context, listen: false));
+      futureNummusHoldings = widget.service!.getNummusHoldings(
+          widget.brokerageUser!,
+          Provider.of<ForexHoldingStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+
+      futureOptionPositions = widget.service!.getOptionPositionStore(
+          widget.brokerageUser!,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+
+      futureStockPositions = widget.service!.getStockPositionStore(
+          widget.brokerageUser!,
+          Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+    } else if (widget.brokerageUser!.source == BrokerageSource.schwab) {
+      final instrumentPositionStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+      final optionPositionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+
+      futureStockPositions = (futureAccounts ?? Future.value(<Account>[]))
+          .catchError((_) => <Account>[])
+          .then<InstrumentPositionStore>((accounts) async {
+        if (accounts.isEmpty) {
+          return instrumentPositionStore;
+        }
+        return await widget.service!.getStockPositionStore(
+            widget.brokerageUser!,
+            instrumentPositionStore,
+            instrumentStore,
+            quoteStore,
+            nonzero: !hasQuantityFilters[1],
+            userDoc: widget.userDoc);
+      }).catchError((error) {
+        debugPrint('Error loading stock positions: $error');
+        return instrumentPositionStore;
+      });
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+
+      futureOptionPositions = (futureAccounts ?? Future.value(<Account>[]))
+          .catchError((_) => <Account>[])
+          .then<OptionPositionStore>((accounts) async {
+        if (accounts.isEmpty) {
+          return optionPositionStore;
+        }
+        return await widget.service!.getOptionPositionStore(
+            widget.brokerageUser!, optionPositionStore, instrumentStore,
+            nonzero: !hasQuantityFilters[1], userDoc: widget.userDoc);
+      }).catchError((error) {
+        debugPrint('Error loading option positions: $error');
+        return optionPositionStore;
+      });
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+    } else if (widget.brokerageUser!.source == BrokerageSource.fidelity) {
+      futureStockPositions = widget.service!.getStockPositionStore(
+          widget.brokerageUser!,
+          Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+      futureStockPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+
+      futureOptionPositions = widget.service!.getOptionPositionStore(
+          widget.brokerageUser!,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
+      futureOptionPositions?.then((_) => _persistCurrentPortfolioSnapshot());
+    }
+  }
+
+  void _loadPortfolioHistoricals() {
+    if (account == null) return;
+    if (_isAggregateMode()) {
+      futurePortfolioHistoricals = _loadAggregatedPortfolioHistoricals(
+          chartDateSpanFilter, chartBoundsFilter);
+      futurePortfolioHistoricalsYear = _loadAggregatedPortfolioHistoricals(
+          benchmarkChartDateSpanFilter, chartBoundsFilter);
+      futureDividends = Future.value(
+          Provider.of<DividendStore>(context, listen: false).items.toList());
+      futureInterests = Future.value(
+          Provider.of<InterestStore>(context, listen: false).items.toList());
+      return;
+    }
+    if (widget.brokerageUser!.source == BrokerageSource.robinhood ||
+        widget.brokerageUser!.source == BrokerageSource.demo ||
+        widget.brokerageUser!.source == BrokerageSource.paper) {
+      futurePortfolioHistoricals = widget.service!.getPortfolioPerformance(
+          widget.brokerageUser!,
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+          account!.accountNumber,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+
+      futurePortfolioHistoricalsYear = widget.service!.getPortfolioPerformance(
+          widget.brokerageUser!,
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+          account!.accountNumber,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: benchmarkChartDateSpanFilter);
+
+      futureDividends = widget.service!.getDividends(
+        widget.brokerageUser!,
+        Provider.of<DividendStore>(context, listen: false),
+        Provider.of<InstrumentStore>(context, listen: false),
+      );
+      futureInterests = widget.service!.getInterests(
+        widget.brokerageUser!,
+        Provider.of<InterestStore>(context, listen: false),
+      );
+
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood &&
+          widget.service is RobinhoodService) {
+        (widget.service! as RobinhoodService)
+            .getFuturesAccounts(widget.brokerageUser!, account!)
+            .then((accounts) => _updateFuturesPositions(accounts));
+      }
+    } else {
+      futurePortfolioHistoricals = null;
+      futurePortfolioHistoricalsYear = null;
+      futureDividends = null;
+      futureInterests = null;
+    }
+
+    // Historicals load only once an account is selected, which happens after
+    // the first frame. Without this the analytics controller keeps the null
+    // future it was built with and the sections stay stuck on "no data".
+    _refreshAnalyticsController();
+  }
+
+  void _loadMarketIndices() {
+    final yahooService = YahooService();
+    String range = "ytd";
+    switch (benchmarkChartDateSpanFilter) {
+      case ChartDateSpan.hour:
+      case ChartDateSpan.day:
+        range = "1d";
+        break;
+      case ChartDateSpan.week:
+        range = "5d";
+        break;
+      case ChartDateSpan.month:
+      case ChartDateSpan.rolling_30:
+        range = "1mo";
+        break;
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+      case ChartDateSpan.month_3:
+        range = "3mo";
+        break;
+      case ChartDateSpan.ytd:
+        range = "ytd";
+        break;
+      case ChartDateSpan.year:
+        range = "1y";
+        break;
+      case ChartDateSpan.year_2:
+        range = "2y";
+        break;
+      case ChartDateSpan.year_3:
+      case ChartDateSpan.year_5:
+        range = "5y"; // Yahoo doesn't support 3y
+        break;
+      case ChartDateSpan.all:
+        range = "max";
+        break;
+    }
+    futureMarketIndexHistoricalsSp500 = yahooService.getMarketIndexHistoricals(
+        symbol: '^GSPC', range: range); // ^IXIC
+    futureMarketIndexHistoricalsNasdaq =
+        yahooService.getMarketIndexHistoricals(symbol: '^IXIC', range: range);
+    futureMarketIndexHistoricalsDow =
+        yahooService.getMarketIndexHistoricals(symbol: '^DJI', range: range);
+    futureMarketIndexHistoricalsRussell2000 =
+        yahooService.getMarketIndexHistoricals(symbol: 'IWM', range: range);
+
+    // The overview hero shows "vs SPY" before the full analytics suite has been
+    // computed, so derive just that comparison here.
+    futureBenchmarkComparison = PortfolioBenchmarkService.compare(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      benchmarkHistoricalsFuture: futureMarketIndexHistoricalsSp500,
+    );
+
+    _refreshAnalyticsController();
+  }
+
+  /// Points the analytics controller at the newly-loaded historicals.
+  ///
+  /// The instance is kept for the life of the page and only its inputs change.
+  /// The section pages are pushed routes holding the context they were opened
+  /// with, so replacing the controller here would strand a visible Performance
+  /// or Risk page on a disposed notifier — which is exactly what changing the
+  /// period from those pages would trigger.
+  void _refreshAnalyticsController() {
+    (_analyticsController ??= PortfolioAnalyticsController()).updateInputs(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      benchmarkHistoricals: {
+        'SPY': futureMarketIndexHistoricalsSp500,
+        'QQQ': futureMarketIndexHistoricalsNasdaq,
+        'DIA': futureMarketIndexHistoricalsDow,
+        'IWM': futureMarketIndexHistoricalsRussell2000,
+      },
+      fallbackHistoricals:
+          Provider.of<PortfolioHistoricalsStore>(context, listen: false).items,
+      span: benchmarkChartDateSpanFilter,
+    );
+  }
+
+  @override
+  void didUpdateWidget(HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final userChanged = widget.brokerageUser != oldWidget.brokerageUser;
+    if (userChanged || widget.service != oldWidget.service) {
+      if (userChanged) {
+        _lastSelectedAccountNumber = null;
+      }
+      _updatePaperStoreBinding();
+      _loadData();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updatePaperStoreBinding();
+    final aggregateMode =
+        Provider.of<BrokerageUserStore>(context).aggregateAllAccounts;
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (!identical(_accountStore, accountStore)) {
+      _accountStore?.removeListener(_handleAccountStoreChanged);
+      _accountStore = accountStore;
+      _accountStore?.addListener(_handleAccountStoreChanged);
+    }
+    final selectedNo = accountStore.selectedAccountNumber;
+
+    bool needsReload = false;
+
+    if (_lastAggregateMode != aggregateMode) {
+      _lastAggregateMode = aggregateMode;
+      needsReload = true;
+    }
+
+    if (_lastSelectedAccountNumber != selectedNo) {
+      _lastSelectedAccountNumber = selectedNo;
+      needsReload = true;
+    }
+
+    if (needsReload) _scheduleDependencyReload();
+  }
+
+  void _handleAccountStoreChanged() {
+    final selectedNo = _accountStore?.selectedAccountNumber;
+    if (_lastSelectedAccountNumber == selectedNo) return;
+    _lastSelectedAccountNumber = selectedNo;
+    setState(() {
+      account = _isAggregateMode() ? null : _accountStore?.selectedAccount;
+    });
+    _scheduleDependencyReload();
+  }
+
+  void _scheduleDependencyReload() {
+    if (_dependencyReloadScheduled) return;
+    _dependencyReloadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _dependencyReloadScheduled = false;
+      if (!mounted) return;
+
+      final currentAccountStore =
+          Provider.of<AccountStore>(context, listen: false);
+      setState(() {
+        account =
+            _isAggregateMode() ? null : currentAccountStore.selectedAccount;
+
+        Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+            .removeAll();
+        Provider.of<PortfolioStore>(context, listen: false).removeAll();
+        Provider.of<DividendStore>(context, listen: false).removeAll();
+        Provider.of<InterestStore>(context, listen: false).removeAll();
+        futuresAccountId = null;
+        Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+        Provider.of<InstrumentPositionStore>(context, listen: false)
+            .removeAll();
+        Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+
+        _loadData();
+      });
+    });
+  }
+
+  void _updatePaperStoreBinding() {
+    final nextStore = widget.brokerageUser?.source == BrokerageSource.paper
+        ? Provider.of<PaperTradingStore>(context, listen: false)
+        : null;
+    if (identical(nextStore, _paperStore)) return;
+
+    _paperStore?.removeListener(_syncPaperPositions);
+    _paperStore = nextStore;
+    _paperStore?.addListener(_syncPaperPositions);
+    if (_paperStore != null) {
+      Future.microtask(_syncPaperPositions);
+    }
+  }
+
+  void _syncPaperPositions() {
+    if (!mounted ||
+        widget.brokerageUser?.source != BrokerageSource.paper ||
+        _paperStore == null) {
+      return;
+    }
+
+    final stockStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+    stockStore.removeAll();
+    for (final position in _paperStore!.positions) {
+      stockStore.add(position);
+    }
+
+    final optionStore =
+        Provider.of<OptionPositionStore>(context, listen: false);
+    optionStore.removeAll();
+    for (final position in _paperStore!.optionPositions) {
+      optionStore.add(position);
+    }
+
+    _refreshMissingPaperQuotes();
+  }
+
+  void _refreshMissingPaperQuotes() {
+    final store = _paperStore;
+    final service = widget.service;
+    final user = widget.brokerageUser;
+    if (store == null || service == null || user == null) return;
+
+    final missing = store.positions
+        .where(
+            (p) => p.instrumentObj != null && p.instrumentObj!.quoteObj == null)
+        .map((p) => p.instrumentObj!.symbol)
+        .toList()
+      ..sort();
+    if (missing.isEmpty) return;
+
+    // Skip repeats so a symbol with no available quote can't loop refresh -> notify -> sync.
+    final key = missing.join(',');
+    if (_refreshingPaperQuotes || key == _lastPaperQuoteRefreshKey) return;
+    _refreshingPaperQuotes = true;
+    _lastPaperQuoteRefreshKey = key;
+    store
+        .refreshQuotes(service, Provider.of<QuoteStore>(context, listen: false),
+            Provider.of<OptionInstrumentStore>(context, listen: false), user)
+        .whenComplete(() => _refreshingPaperQuotes = false);
   }
 
   /*
@@ -234,19 +1597,141 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
   }
 
+  Future<void> _persistCurrentPortfolioSnapshot() async {
+    if (!mounted) return;
+    try {
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final portfolioStore =
+          Provider.of<PortfolioStore>(context, listen: false);
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
+      final futuresStore =
+          Provider.of<FuturesPositionStore>(context, listen: false);
+
+      if (accountStore.items.isNotEmpty ||
+          stockStore.items.isNotEmpty ||
+          optionStore.items.isNotEmpty) {
+        await OfflineCacheService.savePortfolioSnapshot(
+          accounts: accountStore.items.toList(),
+          portfolios: portfolioStore.items.toList(),
+          stockPositions: stockStore.items.toList(),
+          optionPositions: optionStore.items.toList(),
+          forexHoldings: forexStore.items.toList(),
+          futuresPositions: futuresStore.items.toList(),
+        );
+        if (mounted) {
+          try {
+            Provider.of<OfflineSyncService>(context, listen: false)
+                .recordSuccessfulSync();
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('Error persisting offline snapshot: $e');
+    }
+  }
+
+  Future<bool> _restoreFromOfflineCache() async {
+    if (!mounted) return false;
+    try {
+      final snapshot = await OfflineCacheService.loadPortfolioSnapshot();
+      if (snapshot == null) return false;
+
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final portfolioStore =
+          Provider.of<PortfolioStore>(context, listen: false);
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final forexStore = Provider.of<ForexHoldingStore>(context, listen: false);
+      final futuresStore =
+          Provider.of<FuturesPositionStore>(context, listen: false);
+
+      if (accountStore.items.isEmpty && snapshot.accounts.isNotEmpty) {
+        accountStore.removeAll();
+        for (final a in snapshot.accounts) {
+          accountStore.add(a);
+        }
+      }
+      if (portfolioStore.items.isEmpty && snapshot.portfolios.isNotEmpty) {
+        portfolioStore.removeAll();
+        for (final p in snapshot.portfolios) {
+          portfolioStore.add(p);
+        }
+      }
+      if (stockStore.items.isEmpty && snapshot.stockPositions.isNotEmpty) {
+        stockStore.removeAll();
+        for (final s in snapshot.stockPositions) {
+          stockStore.add(s);
+        }
+      }
+      if (optionStore.items.isEmpty && snapshot.optionPositions.isNotEmpty) {
+        optionStore.removeAll();
+        for (final o in snapshot.optionPositions) {
+          optionStore.add(o);
+        }
+      }
+      if (forexStore.items.isEmpty && snapshot.forexHoldings.isNotEmpty) {
+        forexStore.removeAll();
+        for (final f in snapshot.forexHoldings) {
+          forexStore.add(f);
+        }
+      }
+      if (futuresStore.items.isEmpty && snapshot.futuresPositions.isNotEmpty) {
+        futuresStore.removeAll();
+        for (final fut in snapshot.futuresPositions) {
+          futuresStore.add(fut);
+        }
+      }
+
+      if (mounted) {
+        try {
+          final offlineSync =
+              Provider.of<OfflineSyncService>(context, listen: false);
+          offlineSync.setShowingCachedData(true);
+        } catch (_) {}
+
+        if (account == null && accountStore.items.isNotEmpty) {
+          setState(() {
+            account = accountStore.selectedAccount ?? accountStore.items.first;
+          });
+        }
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Error restoring from offline cache: $e');
+      return false;
+    }
+  }
+
+  Future<void> _handleReconnectSync() async {
+    if (mounted) {
+      _pullRefresh();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
 
+    _loadData();
+    _loadMarketIndices();
     _startRefreshTimer();
     WidgetsBinding.instance.addObserver(this);
 
-    _carouselController = CarouselController();
-    _carouselController.addListener(_onCarouselScroll);
-    // _carouselTimer = Timer.periodic(
-    //   const Duration(seconds: 4),
-    //   (_) => _animateToNextItem(),
-    // );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          final offlineSync =
+              Provider.of<OfflineSyncService>(context, listen: false);
+          offlineSync.registerReconnectCallback(_handleReconnectSync);
+        } catch (_) {}
+      }
+    });
 
     widget.analytics.logScreenView(
       screenName: 'Home',
@@ -255,38 +1740,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
-    // _carouselTimer.cancel();
-    _carouselController.removeListener(_onCarouselScroll);
-    _carouselController.dispose();
-    _currentCarouselPageNotifier.dispose();
+    try {
+      final offlineSync =
+          Provider.of<OfflineSyncService>(context, listen: false);
+      offlineSync.unregisterReconnectCallback(_handleReconnectSync);
+    } catch (_) {}
+    _accountStore?.removeListener(_handleAccountStoreChanged);
+    _paperStore?.removeListener(_syncPaperPositions);
+    _analyticsController?.dispose();
+    _scrollController.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    /*
+    if (_futuresSubscription != null) {
+      _futuresSubscription?.cancel();
+    }
+    */
     _stopRefreshTimer();
     super.dispose();
-  }
-
-  void _onCarouselScroll() {
-    if (!_carouselController.hasClients) return;
-    // Calculate page based on scroll position and viewport width
-    // itemExtent is double.infinity, so each item takes full viewport width
-    final viewportWidth = _carouselController.position.viewportDimension;
-    final page =
-        ((_carouselController.offset + viewportWidth / 2) / viewportWidth)
-            .floor();
-    if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 4) {
-      _currentCarouselPageNotifier.value = page;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     //super.build(context);
 
-    /*
-    return Navigator(
-        key: widget.navigatorKey,
-        onGenerateRoute: (_) =>
-            MaterialPageRoute(builder: (_) => _buildScaffold()));
-            */
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.
         onPopInvokedWithResult: (didPop, result) {
@@ -299,223 +1775,118 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    // Commented out, the BrokerageUserStore change detection occurs one level up at NavigationStatefulWidget which will pass in the new user in the ctor.
-    // Provider.of<BrokerageUserStore>(context, listen: true);
-
-    futureAccounts = widget.service.getAccounts(
-        widget.brokerageUser,
-        Provider.of<AccountStore>(context, listen: false),
-        Provider.of<PortfolioStore>(context, listen: false),
-        Provider.of<OptionPositionStore>(context, listen: false),
-        instrumentPositionStore:
-            Provider.of<InstrumentPositionStore>(context, listen: false),
-        userDoc: widget.userDoc);
-
-    if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-        widget.brokerageUser.source == BrokerageSource.demo) {
-      futurePortfolios = widget.service.getPortfolios(widget.brokerageUser,
-          Provider.of<PortfolioStore>(context, listen: false));
-      futureNummusHoldings = widget.service.getNummusHoldings(
-          widget.brokerageUser,
-          Provider.of<ForexHoldingStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1],
-          userDoc: widget.userDoc);
-
-      futureOptionPositions = widget.service.getOptionPositionStore(
-          widget.brokerageUser,
-          Provider.of<OptionPositionStore>(context, listen: false),
-          Provider.of<InstrumentStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1],
-          userDoc: widget.userDoc);
-
-      futureStockPositions = widget.service.getStockPositionStore(
-          widget.brokerageUser,
-          Provider.of<InstrumentPositionStore>(context, listen: false),
-          Provider.of<InstrumentStore>(context, listen: false),
-          Provider.of<QuoteStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1],
-          userDoc: widget.userDoc);
+    final accountStore = Provider.of<AccountStore>(context);
+    bool isSessionExpired = false;
+    if (widget.brokerageUser?.source == BrokerageSource.robinhood) {
+      isSessionExpired =
+          widget.brokerageUser?.oauth2Client?.credentials.isExpired ?? true;
     }
-    /*
-    positionStoreStream = widget.service.streamStockPositionStore(
-        widget.user,
-        Provider.of<StockPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        Provider.of<QuoteStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-    optionPositionStoreStream = widget.service.streamOptionPositionStore(
-        widget.user,
-        Provider.of<OptionPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-        */
 
-    return FutureBuilder(
-      future: Future.wait([
-        futureAccounts as Future,
-        //futurePortfolios as Future,
-        //futureNummusHoldings as Future,
-        // myBanner.load()
-      ]),
-      builder: (context1, dataSnapshot) {
-        if (dataSnapshot.hasData &&
-            dataSnapshot.connectionState == ConnectionState.done) {
-          List<dynamic> data = dataSnapshot.data as List<dynamic>;
-          List<Account> accts = data[0] as List<Account>;
-          if (accts.isNotEmpty) {
-            account = accts[0];
-          } else {
-            account = null;
+    if (widget.brokerageUser == null ||
+        widget.service == null ||
+        isSessionExpired) {
+      return Scaffold(
+          body: RefreshIndicator(
+        onRefresh: () async {
+          if (widget.onLogin != null) {
+            widget.onLogin!();
           }
-
-          if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-            futureFuturesAccounts = (widget.service as RobinhoodService)
-                .getFuturesAccounts(widget.brokerageUser, account!);
-          }
-
-          // var futuresAccounts = data[1] as List<dynamic>;
-
-          // for (var acct in accts) {
-          //   var existingAccount = accounts!.firstWhereOrNull((element) =>
-          //       element.userId == widget.user.id &&
-          //       element.accountNumber == acct.accountNumber);
-          //   if (existingAccount == null) {
-          //     accounts!.add(acct);
-          //     /*
-          //     WidgetsBinding.instance.addPostFrameCallback(
-          //         (_) => widget.onAccountsChanged(accounts!));
-          //         */
-          //     account = acct;
-          //   }
-          // }
-
-          if (widget.brokerageUser.source == BrokerageSource.schwab) {
-            // futurePortfolios = widget.service.getPortfolios(
-            //     widget.user, Provider.of<PortfolioStore>(context, listen: false));
-            // futureNummusHoldings = widget.service.getNummusHoldings(
-            //     widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
-            //     nonzero: !hasQuantityFilters[1]);
-
-            // futureOptionPositions = widget.service.getOptionPositionStore(
-            //     widget.user,
-            //     Provider.of<OptionPositionStore>(context, listen: false),
-            //     Provider.of<InstrumentStore>(context, listen: false),
-            //     nonzero: !hasQuantityFilters[1]);
-
-            futureStockPositions = widget.service.getStockPositionStore(
-                widget.brokerageUser,
-                Provider.of<InstrumentPositionStore>(context, listen: false),
-                Provider.of<InstrumentStore>(context, listen: false),
-                Provider.of<QuoteStore>(context, listen: false),
-                nonzero: !hasQuantityFilters[1],
-                userDoc: widget.userDoc);
-          }
-
-          if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-              widget.brokerageUser.source == BrokerageSource.demo) {
-            // futurePortfolioHistoricals = widget.service.getPortfolioHistoricals(
-            //     widget.brokerageUser,
-            //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-            //     account!.accountNumber,
-            //     chartBoundsFilter,
-            //     chartDateSpanFilter);
-
-            futurePortfolioHistoricals = widget.service.getPortfolioPerformance(
-                widget.brokerageUser,
-                Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-                account!.accountNumber,
-                chartBoundsFilter: chartBoundsFilter,
-                chartDateSpanFilter: chartDateSpanFilter);
-
-            // futurePortfolioHistoricalsYear = widget.service
-            //     .getPortfolioHistoricals(
-            //         widget.brokerageUser,
-            //         Provider.of<PortfolioHistoricalsStore>(context,
-            //             listen: false),
-            //         account!.accountNumber,
-            //         chartBoundsFilter,
-            //         ChartDateSpan.ytd);
-
-            futurePortfolioHistoricalsYear = widget.service
-                .getPortfolioPerformance(
-                    widget.brokerageUser,
-                    Provider.of<PortfolioHistoricalsStore>(context,
-                        listen: false),
-                    account!.accountNumber,
-                    chartBoundsFilter: chartBoundsFilter,
-                    chartDateSpanFilter: ChartDateSpan.ytd);
-
-            // Future.delayed(Duration(seconds: 1), () {
-            //   if (mounted) {
-            futureDividends = widget.service.getDividends(
-              widget.brokerageUser,
-              Provider.of<DividendStore>(context, listen: false),
-              Provider.of<InstrumentStore>(context, listen: false),
+        },
+        child: CustomScrollView(
+          primary: true,
+          slivers: [
+            ExpandedSliverAppBar(
+              title: Text(widget.title ?? 'Home'),
+              auth: auth,
+              firestoreService: FirestoreService(),
+              automaticallyImplyLeading: true,
+              onChange: () {
+                setState(() {
+                  _loadData();
+                });
+              },
+              analytics: widget.analytics,
+              observer: widget.observer,
+              user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
+              service: widget.service,
+              scrollController: _scrollController,
+            ),
+            SliverFillRemaining(
+              child: WelcomeWidget(
+                onLogin: widget.onLogin,
+                onExploreDemo: () async {
+                  final user = BrokerageUser(
+                      BrokerageSource.demo, "Demo Account", null, null);
+                  final userStore =
+                      Provider.of<BrokerageUserStore>(context, listen: false);
+                  userStore.addOrUpdate(user);
+                  userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+                  await userStore.save();
+                },
+                message: (widget.brokerageUser?.oauth2Client?.credentials
+                            .isExpired ??
+                        false)
+                    ? "Session expired. Please log in again."
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ));
+    }
+    return Scaffold(
+      primary: false,
+      body: FutureBuilder<List<Account>>(
+        future: futureAccounts,
+        builder: (context1, dataSnapshot) {
+          if (dataSnapshot.hasData &&
+              dataSnapshot.connectionState == ConnectionState.done) {
+            final accts = dataSnapshot.data!;
+            if (accts.isNotEmpty) {
+              final selectedNo = accountStore.selectedAccountNumber;
+              account = (selectedNo != null)
+                  ? accts.firstWhere((a) => a.accountNumber == selectedNo,
+                      orElse: () => accts[0])
+                  : accts[0];
+            } else {
+              account = null;
+            }
+            return PrimaryScrollController(
+              controller: _scrollController,
+              child: _buildPage(context,
+                  userInfo: widget.userInfo,
+                  account: account,
+                  done: dataSnapshot.connectionState == ConnectionState.done),
             );
-            //   }
-            // });
-            futureInterests = widget.service.getInterests(
-              widget.brokerageUser,
-              Provider.of<InterestStore>(context, listen: false),
+          } else if (dataSnapshot.hasError) {
+            debugPrint("${dataSnapshot.error}");
+            return PrimaryScrollController(
+              controller: _scrollController,
+              child: _buildPage(context,
+                  userInfo: widget.userInfo,
+                  account: account ??
+                      (_isAggregateMode()
+                          ? null
+                          : accountStore.selectedAccount),
+                  welcomeWidget: Text("${dataSnapshot.error}"),
+                  done: dataSnapshot.connectionState == ConnectionState.done),
             );
           } else {
-            // Needed when switching users or linking new
-            futurePortfolioHistoricals = null;
-            futurePortfolioHistoricalsYear = null;
-            futureDividends = null;
-            futureInterests = null;
+            return PrimaryScrollController(
+                controller: _scrollController,
+                child: _buildPage(context,
+                    userInfo: widget.userInfo,
+                    account: account ??
+                        (_isAggregateMode()
+                            ? null
+                            : accountStore.selectedAccount),
+                    done: false));
           }
-
-          // FUTURES
-          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-          //   futuresStream = (widget.service as RobinhoodService)
-          //       .streamFuturePositions(
-          //           widget.brokerageUser,
-          //           futuresAccounts.firstWhereOrNull(
-          //               (f) => f['accountType'] == 'FUTURES')['id']);
-          // }
-
-          /*
-          return MultiProvider(
-              providers: [
-                StreamProvider<StockPositionStore>.value(
-                  value: positionStoreStream,
-                  initialData: StockPositionStore(),
-                ),
-                StreamProvider<OptionPositionStore>.value(
-                  value: optionPositionStoreStream,
-                  initialData: OptionPositionStore(),
-                )
-              ],
-              builder: (BuildContext context, Widget? subwidget) {
-                */
-          return _buildPage(context,
-              userInfo: widget.userInfo,
-              account: account,
-              done: dataSnapshot.connectionState == ConnectionState.done);
-          //});
-        } else if (dataSnapshot.hasError) {
-          debugPrint("${dataSnapshot.error}");
-          return _buildPage(context,
-              //ru: snapshotUser,
-              welcomeWidget: Text("${dataSnapshot.error}"),
-              done: dataSnapshot.connectionState == ConnectionState.done);
-        } else {
-          return _buildPage(context);
-        }
-      },
+        },
+      ),
     );
-
-    /*
-      floatingActionButton:
-          (robinhoodUser != null && widget.user.userName != null)
-              ? FloatingActionButton(
-                  onPressed: _generateCsvFile,
-                  tooltip: 'Export to CSV',
-                  child: const Icon(Icons.download),
-                )
-              : null,
-              */
   }
 
   Widget _buildPage(BuildContext context,
@@ -529,2236 +1900,623 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //List<OptionAggregatePosition>? optionPositions,
       //List<StockPosition>? positions,
       bool done = false}) {
+    final isAggregateMode = _isAggregateMode();
     // var indices = RobinhoodService().getMarketIndices(user: widget.user);
-    final yahooService = YahooService();
-    futureMarketIndexHistoricalsSp500 =
-        yahooService.getMarketIndexHistoricals(symbol: '^GSPC'); // ^IXIC
-    futureMarketIndexHistoricalsNasdaq =
-        yahooService.getMarketIndexHistoricals(symbol: '^IXIC');
-    futureMarketIndexHistoricalsDow =
-        yahooService.getMarketIndexHistoricals(symbol: '^DJI');
     //debugPrint('_buildPage');
     return RefreshIndicator(
       onRefresh: _pullRefresh,
       child: CustomScrollView(
-          // physics: ClampingScrollPhysics(),
-          slivers: [
-            ExpandedSliverAppBar(
-              title: Text(widget.title!),
-              auth: auth,
-              firestoreService: FirestoreService(),
-              automaticallyImplyLeading: true,
-              onChange: () {
-                setState(() {});
-              },
-              analytics: widget.analytics,
-              observer: widget.observer,
-              user: widget.brokerageUser,
-            ),
-
-            if (welcomeWidget != null) ...[
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
-              SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 150.0,
-                child: Align(alignment: Alignment.center, child: welcomeWidget),
-              ))
-            ],
-            Consumer5<PortfolioStore, InstrumentPositionStore,
-                    OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
-                builder: (context,
-                    portfolioStore,
-                    stockPositionStore,
-                    optionPositionStore,
-                    forexHoldingStore,
-                    generativeProvider,
-                    child) {
-              return SliverToBoxAdapter(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.fromLTRB(
-                      12.0,
-                      0, // 16.0,
-                      16.0,
-                      0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // const CircleAvatar(
-                      //   child: Icon(Icons.lightbulb_circle_outlined),
-                      // ),
-                      // const SizedBox(width: 10),
-                      // const Text(
-                      //   'AI Insight',
-                      //   style: TextStyle(
-                      //       fontWeight: FontWeight.bold, fontSize: 18),
-                      // ),
-                      // const SizedBox(width: 16),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'portfolio-summary'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.summarize_outlined),
-                          label: const Text('Portfolio Summary'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts.firstWhere(
-                                  (p) => p.key == 'portfolio-summary'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'portfolio-recommendations'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.recommend_outlined),
-                          label: const Text('Recommendations'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts.firstWhere(
-                                  (p) => p.key == 'portfolio-recommendations'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'market-summary'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.public),
-                          label: const Text('Market Summary'),
-                          onPressed: () async {
-                            await generateContent(
-                                generativeProvider,
-                                widget.generativeService,
-                                widget.generativeService.prompts.firstWhere(
-                                    (p) => p.key == 'market-summary'),
-                                context,
-                                stockPositionStore: stockPositionStore,
-                                optionPositionStore: optionPositionStore,
-                                forexHoldingStore: forexHoldingStore,
-                                localInference:
-                                    false, // Needed for googleTools RAG only available in cloud rn.
-                                user: widget.user);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt ==
-                                      'market-predictions'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.batch_prediction_outlined),
-                          label: const Text('Market Predictions'),
-                          onPressed: () async {
-                            await generateContent(
-                                generativeProvider,
-                                widget.generativeService,
-                                widget.generativeService.prompts.firstWhere(
-                                    (p) => p.key == 'market-predictions'),
-                                context,
-                                stockPositionStore: stockPositionStore,
-                                optionPositionStore: optionPositionStore,
-                                forexHoldingStore: forexHoldingStore,
-                                localInference:
-                                    false, // Needed for googleTools RAG only available in cloud rn.
-                                user: widget.user);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ActionChip(
-                          avatar: generativeProvider.generating &&
-                                  generativeProvider.generatingPrompt == 'ask'
-                              ? const CircularProgressIndicator()
-                              : const Icon(Icons.question_answer),
-                          label: const Text('Ask a question'),
-                          onPressed: () async {
-                            await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts
-                                  .firstWhere((p) => p.key == 'ask'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                              user: widget.user,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+        primary: true,
+        // physics: ClampingScrollPhysics(),
+        slivers: [
+          ExpandedSliverAppBar(
+            title: Text(widget.title ?? ""),
+            auth: auth,
+            firestoreService: FirestoreService(),
+            automaticallyImplyLeading: true,
+            onChange: () {
+              setState(() {
+                _loadData();
+              });
+            },
+            analytics: widget.analytics,
+            observer: widget.observer,
+            user: widget.brokerageUser,
+            firestoreUser: widget.user,
+            userDocRef: widget.userDoc,
+            service: widget.service,
+            scrollController: _scrollController,
+          ),
+          const SliverToBoxAdapter(child: OfflineStatusBanner()),
+          if (isAggregateMode)
+            SliverToBoxAdapter(child: _buildAggregateBanner(context)),
+          if (widget.brokerageUser?.source == BrokerageSource.fidelity) ...[
+            SliverToBoxAdapter(
+                child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Wrap(
+                spacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      if (widget.service is FidelityService) {
+                        (widget.service as FidelityService)
+                            .importFidelityCsv(context);
+                      }
+                    },
+                    icon: const Icon(Icons.file_upload),
+                    label: const Text("Import CSV"),
                   ),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      if (widget.service is FidelityService) {
+                        (widget.service as FidelityService)
+                            .clearImportedData(context);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text("Reset Data"),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+
+          if (welcomeWidget != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 16.0,
+            )),
+            SliverToBoxAdapter(
+                child: SizedBox(
+              height: 150.0,
+              child: Align(alignment: Alignment.center, child: welcomeWidget),
+            ))
+          ],
+          if (_supportsRobinhoodFeatures() && !isAggregateMode) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: PortfolioChartWidget(
+                  key: ValueKey(
+                      'portfolio-chart-${_isAggregateMode() ? 'all' : "${widget.brokerageUser?.userName ?? ""}-${Provider.of<AccountStore>(context, listen: false).selectedAccountNumber ?? ""}"}'),
+                  brokerageUser: widget.brokerageUser!,
+                  chartDateSpanFilter: chartDateSpanFilter,
+                  chartBoundsFilter: chartBoundsFilter,
+                  onFilterChanged: (span, bounds) {
+                    resetChart(span, bounds);
+                  },
                 ),
-              );
-            }),
+              ),
+            ),
+          ] else if (!isAggregateMode) ...[
+            SliverToBoxAdapter(
+              child: _buildAccountBanner(context, account),
+            ),
+          ],
+          // "What happened?" — benchmark delta, dry powder, and cash weight
+          // sit directly under the value and chart so the first screen answers
+          // the question on its own.
+          SliverToBoxAdapter(
+            child: FutureBuilder<BenchmarkComparison?>(
+              future: futureBenchmarkComparison,
+              builder: (context, snapshot) => PortfolioHeroStatsWidget(
+                account: account,
+                totalEquity: _totalEquity(context, account: account),
+                benchmark: snapshot.data,
+                onBenchmarkTap: () => PortfolioNavigator.openSection(
+                  context,
+                  PortfolioSection.performance,
+                  _sectionContext(account),
+                ),
+              ),
+            ),
+          ),
+          if (isAggregateMode)
+            SliverToBoxAdapter(child: _buildBrokerBreakdownCard(context)),
 
-            // AI Recommendations Promotional Card
-            if (widget.user != null)
-              Consumer<GenerativeProvider>(
-                builder: (context, generativeProvider, child) {
-                  final hasInvestmentProfile =
-                      widget.user!.investmentGoals != null ||
-                          widget.user!.timeHorizon != null ||
-                          widget.user!.riskTolerance != null ||
-                          widget.user!.totalPortfolioValue != null;
+          // "What should I do?" — ranked alerts, above everything explanatory.
+          SliverToBoxAdapter(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
+                builder: (context, stockStore, optionStore, child) {
+                  return FutureBuilder<BenchmarkComparison?>(
+                    future: futureBenchmarkComparison,
+                    builder: (context, snapshot) {
+                      final comparison = snapshot.data;
+                      final filteredStocks = stockStore.items
+                          .where((p) => _matchesAccount(p.account, account))
+                          .toList();
+                      final filteredOptions = optionStore.items
+                          .where((p) => _matchesAccount(p.account, account))
+                          .toList();
+                      final dayPnLData = _calcDayPnL(account);
+                      final alerts = PortfolioAlertService.buildAlerts(
+                        instrumentPositions: filteredStocks,
+                        optionPositions: filteredOptions,
+                        dividendItems:
+                            Provider.of<DividendStore>(context, listen: false)
+                                .items
+                                .toList(),
+                        account: account,
+                        totalEquity: _totalEquity(context, account: account),
+                        dayPnL: dayPnLData.$1,
+                        dayPnLPercent: dayPnLData.$2,
+                        riskCircuitBreakerConfig:
+                            widget.user?.riskCircuitBreakerConfig,
+                        automatedDripConfig: widget.user?.automatedDripConfig,
+                        // The full metrics suite only runs once the user opens
+                        // Performance, so feed the alert rules the one figure
+                        // the overview computes for itself.
+                        analytics: comparison == null
+                            ? null
+                            : {'excessReturn': comparison.excessReturn},
+                        benchmarkSymbol: comparison?.symbol ?? 'SPY',
+                      );
+                      return ActionCenterWidget(
+                        alerts: alerts,
+                        onAlertTap: (alert) => PortfolioNavigator.openAlert(
+                            context, alert, _sectionContext(account)),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
 
-                  // Check if user has ever generated recommendations
-                  final hasUsedRecommendations = generativeProvider
-                      .promptResponses
-                      .containsKey('portfolio-recommendations');
-
-                  // Hide card if user has already used the feature
-                  if (hasUsedRecommendations) {
-                    return const SliverToBoxAdapter(child: SizedBox.shrink());
-                  }
-
-                  final theme = Theme.of(context);
-                  final colorScheme = theme.colorScheme;
-
-                  return SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        color: hasInvestmentProfile
-                            ? colorScheme.primaryContainer.withOpacity(0.90)
-                            : colorScheme.secondaryContainer.withOpacity(0.90),
-                        child: InkWell(
-                          onTap: hasInvestmentProfile
-                              ? null
-                              : () async {
-                                  // Navigate to Investment Profile Settings
-                                  final firestoreService =
-                                      Provider.of<FirestoreService>(context,
-                                          listen: false);
-                                  if (auth.currentUser != null) {
-                                    final userDoc = await firestoreService
-                                        .userCollection
-                                        .doc(auth.currentUser!.uid)
-                                        .get();
-                                    if (userDoc.exists && context.mounted) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              InvestmentProfileSettingsWidget(
-                                            user: userDoc.data()!,
-                                            firestoreService: firestoreService,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: hasInvestmentProfile
-                                ? Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(Icons.stars,
-                                          color: colorScheme.primary, size: 34),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Personalized AI Recommendations',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: colorScheme
-                                                    .onPrimaryContainer,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Tap "Recommendations" above to generate tailored insights based on your profile.',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: colorScheme
-                                                    .onPrimaryContainer
-                                                    .withOpacity(0.75),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.arrow_forward_ios,
-                                          color: colorScheme.primary, size: 16),
-                                    ],
-                                  )
-                                : Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Icon(Icons.psychology_outlined,
-                                          color: colorScheme.secondary,
-                                          size: 34),
-                                      const SizedBox(width: 16),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: colorScheme.secondary
-                                              .withOpacity(0.15),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          'NEW',
-                                          style: theme.textTheme.labelSmall
-                                              ?.copyWith(
-                                            color: colorScheme.secondary,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Unlock AI-Powered Recommendations',
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                fontWeight: FontWeight.w600,
-                                                color: colorScheme
-                                                    .onSecondaryContainer,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Complete your investment profile to receive personalized portfolio guidance.',
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: colorScheme
-                                                    .onSecondaryContainer
-                                                    .withOpacity(0.75),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.touch_app,
-                                                    size: 16,
-                                                    color:
-                                                        colorScheme.secondary),
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  'Tap to configure profile',
-                                                  style: theme
-                                                      .textTheme.labelSmall
-                                                      ?.copyWith(
-                                                    color:
-                                                        colorScheme.secondary,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(Icons.arrow_forward_ios,
-                                          color: colorScheme.secondary,
-                                          size: 16),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
+          // "Why did it happen?" — the shortest useful answer, with the full
+          // breakdown one tap away in the Positions section.
+          SliverToBoxAdapter(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Consumer<InstrumentPositionStore>(
+                builder: (context, stockStore, child) {
+                  final selectedAccount =
+                      Provider.of<AccountStore>(context).selectedAccount;
+                  return PortfolioMoversWidget(
+                    positions: stockStore.items
+                        .where((position) => _matchesAccount(position.account,
+                            isAggregateMode ? null : selectedAccount))
+                        .toList(),
+                    onTap: () => PortfolioNavigator.openSection(
+                      context,
+                      PortfolioSection.positions,
+                      _sectionContext(account),
                     ),
                   );
                 },
               ),
+            ),
+          ),
 
-            // Consumer4<PortfolioStore, InstrumentPositionStore,
-            //         OptionPositionStore, ForexHoldingStore>(
-            //     builder: (context, portfolioStore, stockPositionStore,
-            //         optionPositionStore, forexHoldingStore, child) {
-            //   double close = 0;
-            //   DateTime? updatedAt;
-            //   if (portfolioStore.items.isNotEmpty && account != null) {
-            //     // close = (portfolioStore.items[0].equity ?? 0) +
-            //     //     forexHoldingStore.equity;
-            //     close = account.portfolioCash! +
-            //         // (account.unsettledDebit ?? 0) +
-            //         // (account.settledAmountBorrowed ?? 0) +
-            //         stockPositionStore.equity +
-            //         optionPositionStore.equity +
-            //         forexHoldingStore.equity;
-            //     updatedAt = portfolioStore.items[0].updatedAt!;
-            //   }
-
-            //   return SliverToBoxAdapter(
-            //       child: ListTile(
-            //     // leading: Icon(Icons.account_balance),
-            //     title: const Text(
-            //       "Portfolio",
-            //       style: TextStyle(fontSize: 19.0),
-            //     ),
-            //     subtitle: Text(
-            //       // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-            //       updatedAt != null
-            //           ? formatLongDateTime.format(updatedAt.toLocal())
-            //           : '',
-            //       // selection != null
-            //       // ? selection!.beginsAt!.toLocal()
-            //       // : lastHistorical!.beginsAt!.toLocal()),
-            //       style: const TextStyle(fontSize: 10.0),
-            //       overflow: TextOverflow.ellipsis,
-            //     ),
-            //     trailing: Wrap(spacing: 8, children: [
-            //       AnimatedSwitcher(
-            //         duration: Duration(milliseconds: 200),
-            //         // transitionBuilder:
-            //         //     (Widget child, Animation<double> animation) {
-            //         //   return SlideTransition(
-            //         //       position: (Tween<Offset>(
-            //         //               begin: Offset(0, -0.25), end: Offset.zero))
-            //         //           .animate(animation),
-            //         //       child: child);
-            //         // },
-            //         transitionBuilder:
-            //             (Widget child, Animation<double> animation) {
-            //           return ScaleTransition(scale: animation, child: child);
-            //         },
-            //         child: Text(
-            //           key: ValueKey<String>(close.toString()),
-            //           formatCurrency.format(close),
-            //           // selection != null
-            //           //  ? selection!.adjustedCloseEquity
-            //           //  : close),
-            //           style: const TextStyle(
-            //               fontSize: totalValueFontSize), //  21.0
-            //           textAlign: TextAlign.right,
-            //         ),
-            //       )
-            //     ]),
-            //   ));
-            // }),
-            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-                widget.brokerageUser.source == BrokerageSource.demo) ...[
-              Consumer<
-                  PortfolioHistoricalsStore
-                  // PortfolioStore,
-                  // InstrumentPositionStore,
-                  // OptionPositionStore,
-                  // ForexHoldingStore
-                  >(builder: (context,
-                  portfolioHistoricalsStore,
-                  // portfolioStore,
-                  // instrumentPositionStore,
-                  // optionPositionStore,
-                  // forexHoldingStore,
-                  child) {
-                // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
-                /*
-                if (portfolioHistoricals != null) {
-                  debugPrint(
-                      'data: ${portfolioHistoricals!.bounds} ${portfolioHistoricals!.span} chip: ${chartBoundsFilter.toString()} ${chartDateSpanFilter.toString()}');
-                }
-                */
-                portfolioHistoricals = portfolioHistoricalsStore.items
-                    .firstWhereOrNull((element) =>
-                            element.span ==
-                            convertChartSpanFilter(chartDateSpanFilter)
-                        //      &&
-                        // element.bounds ==
-                        //     convertChartBoundsFilter(chartBoundsFilter)
-                        //&& element.interval == element.interval
-                        );
-                if (portfolioHistoricals == null) {
-                  // portfolioHistoricals = portfolioHistoricalsStore.items
-                  //     .firstWhereOrNull((element) =>
-                  //             element.span ==
-                  //             convertChartSpanFilter(prevChartDateSpanFilter)
-                  //         //         &&
-                  //         // element.bounds ==
-                  //         //     convertChartBoundsFilter(
-                  //         //         prevChartBoundsFilter)
-                  //         //&& element.interval == element.interval
-                  //         );
-
-                  // if (portfolioHistoricals == null) {
-                  return SliverToBoxAdapter(child: Container());
-                  // }
-                }
-
-                /* Removed because it was causing PortfolioHistoricalStore to updateListeners when the next http request was no different.  
-                if (portfolioHistoricals!.span == "day") {
-                  final DateTime now = DateTime.now();
-                  final DateTime today = DateTime(now.year, now.month, now.day);
-
-                  portfolioHistoricals!.equityHistoricals =
-                      portfolioHistoricals!.equityHistoricals
-                          .where((element) =>
-                              element.beginsAt!.compareTo(today) >= 0)
-                          .toList();
-                }
-                */
-
-                EquityHistorical? firstHistorical;
-                EquityHistorical? lastHistorical;
-                double open = 0;
-                double close = 0;
-                double changeInPeriod = 0;
-                double changePercentInPeriod = 0;
-
-                firstHistorical = portfolioHistoricals!.equityHistoricals.first;
-                lastHistorical = portfolioHistoricals!.equityHistoricals.last;
-                var allHistoricals = portfolioHistoricals!.equityHistoricals;
-                // Update last historical from day span to deal with the issue that
-                // lastHistorical return different values at different increment spans.
-                // var hourHistoricals = portfolioHistoricalsStore.items
-                //     .singleWhereOrNull((e) => e.span == 'hour');
-                // var dayHistoricals = portfolioHistoricalsStore.items
-                //     .singleWhereOrNull((e) => e.span == 'day');
-                // final DateTime now = DateTime.now();
-                // final DateTime today = DateTime(now.year, now.month, now.day);
-                // final maxDate = portfolioHistoricals!.equityHistoricals
-                //     .map((e) => e.beginsAt!)
-                //     .reduce((a, b) => a.isAfter(b) ? a : b);
-                // var allHistoricals = (portfolioHistoricals!.span == "day"
-                //         // || portfolioHistoricals!.span == "hour"
-                //         ? portfolioHistoricals!.equityHistoricals
-                //             .where((element) =>
-                //                 element.beginsAt!.compareTo(today) >= 0)
-                //             .toList()
-                //         : portfolioHistoricals!.equityHistoricals) +
-                //     (hourHistoricals != null
-                //         ? hourHistoricals.equityHistoricals
-                //             .where((element) =>
-                //                 element.beginsAt!.compareTo(today) >= 0 &&
-                //                 element.beginsAt!.compareTo(maxDate) >= 0)
-                //             .toList()
-                //         : [dayHistoricals!.equityHistoricals.last]);
-                // if (allHistoricals.isNotEmpty) {
-                //   firstHistorical = allHistoricals.first;
-                //   lastHistorical = allHistoricals.last;
-                // }
-
-                open = firstHistorical
-                    .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
-                // Issue with using lastHistorical is that different increments return different values.
-                close = lastHistorical.adjustedCloseEquity!;
-
-                // close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-                // if (account != null) {
-                //   close = account.portfolioCash! +
-                //       instrumentPositionStore.equity +
-                //       optionPositionStore.equity +
-                //       forexHoldingStore.equity;
-                //   // updatedAt = portfolioStore.items[0].updatedAt!;
-                // }
-
-                changeInPeriod = close - open;
-                changePercentInPeriod = (close / open) - 1;
-                // Wrong change percent calculation.
-                // changePercentInPeriod = changeInPeriod / close;
-
-                // Since the chart is not candlesticks, each point is the opening value of the time span,
-                // so add a final point at an extra increment of time span to account for the closing value.
-                // Duration intervalDuration = Duration.zero;
-                // switch (portfolioHistoricals!.interval) {
-                //   case 'month':
-                //     intervalDuration = Duration(days: 30);
-                //     break;
-                //   case 'week':
-                //     intervalDuration = Duration(days: 7);
-                //     break;
-                //   case 'day':
-                //     intervalDuration = Duration(days: 1);
-                //     break;
-                //   case 'hour':
-                //     intervalDuration = Duration(hours: 1);
-                //     break;
-                //   case '10minute':
-                //     intervalDuration = Duration(minutes: 10);
-                //     break;
-                //   case '5minute':
-                //     intervalDuration = Duration(minutes: 5);
-                //     break;
-                //   case '15second':
-                //     intervalDuration = Duration(seconds: 15);
-                //     break;
-                // }
-                // var adjDate =
-                //     allHistoricals.last.beginsAt!.add(intervalDuration);
-                // if (adjDate.compareTo(now) >= 0) {
-                //   adjDate = now;
-                // }
-                // allHistoricals.add(EquityHistorical(
-                //     allHistoricals.last.adjustedCloseEquity,
-                //     allHistoricals.last.adjustedCloseEquity,
-                //     allHistoricals.last.closeEquity,
-                //     allHistoricals.last.closeEquity,
-                //     allHistoricals.last.closeMarketValue,
-                //     allHistoricals.last.closeMarketValue,
-                //     adjDate,
-                //     allHistoricals.last.netReturn,
-                //     allHistoricals.last.session));
-
-                /*
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var textColor = Theme.of(context).colorScheme.background;
-              if (brightness == Brightness.dark) {
-                textColor = Colors.grey.shade200;
-              } else {
-                textColor = Colors.grey.shade800;
-              }
-              */
-                var provider = Provider.of<PortfolioHistoricalsSelectionStore>(
-                    context,
-                    listen: false);
-                TimeSeriesChart historicalChart = TimeSeriesChart(
-                  [
-                    charts.Series<EquityHistorical, DateTime>(
-                      id: 'Adjusted Equity',
-                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                          Theme.of(context).colorScheme.primary),
-                      // strokeWidthPxFn: (EquityHistorical history, index) => 1,
-                      //charts.MaterialPalette.blue.shadeDefault,
-                      domainFn: (EquityHistorical history, _) =>
-                          history.beginsAt!,
-                      //filteredEquityHistoricals.indexOf(history),
-                      measureFn: (EquityHistorical history, index) =>
-                          history.adjustedOpenEquity,
-                      labelAccessorFn: (EquityHistorical history, index) =>
-                          formatCompactNumber
-                              .format((history.adjustedOpenEquity)),
-                      data:
-                          allHistoricals, // portfolioHistoricals!.equityHistoricals,
-                    ),
-                    charts.Series<EquityHistorical, DateTime>(
-                        id: 'Equity',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.green.shadeDefault,
-                        // strokeWidthPxFn: (EquityHistorical history, index) => 1,
-                        domainFn: (EquityHistorical history, _) =>
-                            history.beginsAt!,
-                        //filteredEquityHistoricals.indexOf(history),
-                        measureFn: (EquityHistorical history, index) =>
-                            history.openEquity,
-                        data:
-                            allHistoricals // portfolioHistoricals!.equityHistoricals
-                        ),
-                    charts.Series<EquityHistorical, DateTime>(
-                        id: 'Market Value',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.red.shadeDefault,
-                        // strokeWidthPxFn: (EquityHistorical history, index) => 1,
-                        domainFn: (EquityHistorical history, _) =>
-                            history.beginsAt!,
-                        //filteredEquityHistoricals.indexOf(history),
-                        measureFn: (EquityHistorical history, index) =>
-                            history.openMarketValue,
-                        data:
-                            allHistoricals // portfolioHistoricals!.equityHistoricals
-                        ),
-                  ],
-                  animate: animateChart,
-                  zeroBound: false,
-                  open: open,
-                  close: close,
-                  seriesLegend: charts.SeriesLegend(
-                    horizontalFirst: true,
-                    position: charts.BehaviorPosition.top,
-                    defaultHiddenSeries: const ['Equity', 'Market Value'],
-                    // To show value on legend upon selection
-                    // showMeasures: true,
-                    measureFormatter: (measure) =>
-                        measure != null ? formatPercentage.format(measure) : '',
-                    // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                  ),
-                  onSelected: (charts.SelectionModel<dynamic>? model) {
-                    provider.selectionChanged(
-                        model?.selectedDatum.first.datum); //?.first
-                  },
-                  symbolRenderer: TextSymbolRenderer(() {
-                    firstHistorical =
-                        portfolioHistoricals!.equityHistoricals[0];
-                    open = firstHistorical!.adjustedOpenEquity!;
-                    if (provider.selection != null) {
-                      changeInPeriod =
-                          provider.selection!.adjustedCloseEquity! -
-                              open; // portfolios![0].equityPreviousClose!;
-                      changePercentInPeriod = provider
-                                  .selection!.adjustedCloseEquity! /
-                              open -
-                          1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
-                    } else {
-                      changeInPeriod = close - open;
-                      changePercentInPeriod =
-                          (close / open) - 1; // changeInPeriod / close;
-                    }
-                    // String? returnText = widget.user.getDisplayText(changeInPeriod,
-                    //     displayValue: DisplayValue.totalReturn);
-                    // String? returnPercentText = widget.user.getDisplayText(
-                    //     changePercentInPeriod,
-                    //     displayValue: DisplayValue.totalReturnPercent);
-                    return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
-                    // \n$returnText $returnPercentText
-                  }, marginBottom: 16),
-                );
-
-                return SliverToBoxAdapter(
-                    child: Stack(
-                  children: [
-                    if (done == false) ...[
-                      const SizedBox(
-                        height: 3, //150.0,
-                        child: Align(
-                            alignment: Alignment.center,
-                            child: Center(
-                                child: LinearProgressIndicator(
-                                    //value: controller.value,
-                                    //semanticsLabel: 'Linear progress indicator',
-                                    ) //CircularProgressIndicator(),
-                                )),
-                      )
-                    ],
-                    Column(children: [
-                      // Badges moved above the chart
-                      Consumer<PortfolioHistoricalsSelectionStore>(
-                          builder: (context, value, child) {
-                        var selection = value.selection;
-                        if (selection != null) {
-                          changeInPeriod = selection.adjustedCloseEquity! -
-                              open; // portfolios![0].equityPreviousClose!;
-                          changePercentInPeriod = selection
-                                      .adjustedCloseEquity! /
-                                  open -
-                              1; // changeInPeriod / selection.adjustedCloseEquity!;
-                        } else {
-                          changeInPeriod = close - open;
-                          changePercentInPeriod =
-                              close / open - 1; // changeInPeriod / close;
-                        }
-                        String? returnText = widget.brokerageUser
-                            .getDisplayText(changeInPeriod,
-                                displayValue: DisplayValue.totalReturn);
-                        String? returnPercentText = widget.brokerageUser
-                            .getDisplayText(changePercentInPeriod,
-                                displayValue: DisplayValue.totalReturnPercent);
-                        // Icon todayIcon = widget.brokerageUser
-                        //     .getDisplayIcon(changeInPeriod, size: 26.0);
-
-                        //return Text(value.selection!.beginsAt.toString());
-                        return SizedBox(
-                            //height: 72,
-                            child: Column(
-                          children: [
-                            SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 5),
-                                    child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.all(
-                                                summaryEgdeInset), //.symmetric(horizontal: 6),
-                                            child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: <Widget>[
-                                                  _pnlBadge(
-                                                      formatCurrency.format(
-                                                          selection != null
-                                                              ? selection
-                                                                  .adjustedCloseEquity
-                                                              : close),
-                                                      null,
-                                                      summaryValueFontSize,
-                                                      neutral: true),
-                                                  Text(
-                                                      formatMediumDateTime
-                                                          .format(selection !=
-                                                                  null
-                                                              ? selection
-                                                                  .beginsAt!
-                                                                  .toLocal()
-                                                              : lastHistorical!
-                                                                  .beginsAt!
-                                                                  .toLocal()), // "Value",
-                                                      style: const TextStyle(
-                                                          fontSize:
-                                                              summaryLabelFontSize)),
-                                                ]),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.all(
-                                                summaryEgdeInset), //.symmetric(horizontal: 6),
-                                            child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: <Widget>[
-                                                  _pnlBadge(
-                                                      returnText,
-                                                      changeInPeriod,
-                                                      summaryValueFontSize),
-                                                  const Text("Change",
-                                                      style: TextStyle(
-                                                          fontSize:
-                                                              summaryLabelFontSize)),
-                                                ]),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.all(
-                                                summaryEgdeInset), //.symmetric(horizontal: 6),
-                                            child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: <Widget>[
-                                                  _pnlBadge(
-                                                      returnPercentText,
-                                                      changePercentInPeriod,
-                                                      summaryValueFontSize),
-                                                  const Text("Change %",
-                                                      style: TextStyle(
-                                                          fontSize:
-                                                              summaryLabelFontSize)),
-                                                ]),
-                                          ),
-                                          // Padding(
-                                          //   padding: const EdgeInsets.all(
-                                          //       summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          //   child: Column(
-                                          //       mainAxisSize: MainAxisSize.min,
-                                          //       children: <Widget>[
-                                          //         const Text(
-                                          //           "",
-                                          //           // formatLongDate.format(selection != null
-                                          //           // ? selection!.beginsAt!.toLocal()
-                                          //           //: lastHistorical!.beginsAt!.toLocal()),
-                                          //         textAlign: TextAlign.right,
-                                          //             style: TextStyle(
-                                          //                 fontSize:
-                                          //                     summaryValueFontSize)),
-                                          //         Text(formatLongDate.format(selection != null
-                                          //           ? selection!.beginsAt!.toLocal()
-                                          //           : lastHistorical!.beginsAt!.toLocal()),
-                                          //           //"Date",
-                                          //             style: TextStyle(
-                                          //                 fontSize:
-                                          //                     summaryLabelFontSize)),
-                                          //       ]),
-                                          // ),
-                                        ])))
-
-                            /*
-                            ListTile(
-                              title:
-                                  Wrap(
-                                children: [
-                                  Text(
-                                      formatCurrency.format(selection != null
-                                          ? selection!.adjustedCloseEquity
-                                          : close),
-                                      style: TextStyle(
-                                          fontSize: 19, color: textColor)),
-                                  Container(
-                                    width: 10,
-                                  ),
-                                  Icon(
-                                    changeInPeriod > 0
-                                        ? Icons.trending_up
-                                        : (changeInPeriod < 0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: (changeInPeriod > 0
-                                        ? Colors.green
-                                        : (changeInPeriod < 0
-                                            ? Colors.red
-                                            : Colors.grey)),
-                                    //size: 16.0
-                                  ),
-                                  Container(
-                                    width: 2,
-                                  ),
-                                  Text(
-                                      formatPercentage
-                                          //.format(selection!.netReturn!.abs()),
-                                          .format(changePercentInPeriod.abs()),
-                                      style: TextStyle(
-                                          fontSize: 19.0, color: textColor)),
-                                  Container(
-                                    width: 10,
-                                  ),
-                                  Text(
-                                      "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                      style: TextStyle(
-                                          fontSize: 19.0, color: textColor)),
-                                ],
-                              ),
-                              subtitle: Text(
-                                  '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                  style: const TextStyle(fontSize: 12.0)),
-                            )
-                            */
-                            /*
-                      trailing: Wrap(
-                        children: [
-                          Text(
-                              formatCurrency.format(selection != null
-                                  ? selection!.adjustedCloseEquity
-                                  : close),
-                              style: TextStyle(fontSize: 19, color: textColor)),
-                          Container(
-                            width: 10,
-                          ),
-                          Icon(
-                            changeInPeriod > 0
-                                ? Icons.trending_up
-                                : (changeInPeriod < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (changeInPeriod > 0
-                                ? Colors.green
-                                : (changeInPeriod < 0
-                                    ? Colors.red
-                                    : Colors.grey)),
-                            //size: 16.0
-                          ),
-                          Container(
-                            width: 2,
-                          ),
-                          Text(
-                              formatPercentage
-                                  //.format(selection!.netReturn!.abs()),
-                                  .format(changePercentInPeriod.abs()),
-                              style: TextStyle(fontSize: 19.0, color: textColor)),
-                          Container(
-                            width: 10,
-                          ),
-                          Text(
-                              "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                              style: TextStyle(fontSize: 19.0, color: textColor)),
-                        ],
-                      ),
-                      */
-                            /*
-                    Wrap(
-                      children: [
-                        Text(formatCurrency.format(close),
-                            style: TextStyle(fontSize: 20, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Icon(
-                          changeInPeriod > 0
-                              ? Icons.trending_up
-                              : (changeInPeriod < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (changeInPeriod > 0
-                              ? Colors.green
-                              : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                          //size: 16.0
-                        ),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            formatPercentage
-                                //.format(selection!.netReturn!.abs()),
-                                .format(changePercentInPeriod.abs()),
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Text(
-                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                      ],
-                    ),
-                    Text(
-                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                        style: TextStyle(fontSize: 10, color: textColor)),
-                        */
-                          ],
-                        ));
-                      }),
-                      SizedBox(
-                          height: 460, // 240,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                10.0, 0.0, 10.0, 10.0),
-                            child: historicalChart,
-                          )),
-                      SizedBox(
-                          height: 56,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.all(5.0),
-                            scrollDirection: Axis.horizontal,
-                            itemBuilder: (context, index) {
-                              return Row(children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Hour'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.hour,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.hour,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    //selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                                    //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
-                                    label: const Text('Day'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.day,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.day,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Week'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.week,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.week,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Month'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.month,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.month,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('3 Months'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.month_3,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.month_3,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('YTD'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.ytd,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.ytd,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Year'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.year,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.year,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                // Padding(
-                                //   padding: const EdgeInsets.all(4.0),
-                                //   child: ChoiceChip(
-                                //     //avatar: const Icon(Icons.history_outlined),
-                                //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                //     label: const Text('5 Years'),
-                                //     selected: chartDateSpanFilter ==
-                                //         ChartDateSpan.year_5,
-                                //     onSelected: (bool value) {
-                                //       if (value) {
-                                //         resetChart(ChartDateSpan.year_5,
-                                //             chartBoundsFilter);
-                                //       }
-                                //     },
-                                //   ),
-                                // ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('All'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.all,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.all,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Container(
-                                  width: 10,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('Regular Hours'),
-                                    selected:
-                                        chartBoundsFilter == Bounds.regular,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(chartDateSpanFilter,
-                                            Bounds.regular);
-                                      }
-                                    },
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('24/7 Hours'),
-                                    selected: chartBoundsFilter == Bounds.t24_7,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(
-                                            chartDateSpanFilter, Bounds.t24_7);
-                                      }
-                                    },
-                                  ),
-                                ),
-                              ]);
-                            },
-                            itemCount: 1,
-                          )),
-                    ])
-                  ],
-                ));
-              }),
-            ],
-            Consumer4<PortfolioStore, InstrumentPositionStore,
-                    OptionPositionStore, ForexHoldingStore>(
-                builder: (context, portfolioStore, stockPositionStore,
-                    optionPositionStore, forexHoldingStore, child) {
-              final charts.ChartBehavior<String> legendBehavior =
-                  charts.DatumLegend(
-                // Positions for "start" and "end" will be left and right respectively
-                // for widgets with a build context that has directionality ltr.
-                // For rtl, "start" and "end" will be right and left respectively.
-                // Since this example has directionality of ltr, the legend is
-                // positioned on the right side of the chart.
-                position: charts.BehaviorPosition.end,
-                // By default, if the position of the chart is on the left or right of
-                // the chart, [horizontalFirst] is set to false. This means that the
-                // legend entries will grow as new rows first instead of a new column.
-                horizontalFirst: false,
-                // This defines the padding around each legend entry.
-                cellPadding: EdgeInsets.only(right: 4.0, bottom: 4.0),
-                // Set [showMeasures] to true to display measures in series legend.
-                showMeasures: true,
-                // Configure the measure value to be shown by default in the legend.
-                legendDefaultMeasure: charts.LegendDefaultMeasure.firstValue,
-                // Optionally provide a measure formatter to format the measure value.
-                // If none is specified the value is formatted as a decimal.
-                measureFormatter: (num? value) {
-                  return value == null
-                      ? '-'
-                      : '\$${formatCompactNumber.format(value)}';
-                },
-                // entryTextStyle: charts.TextStyleSpec(fontSize: 12)
-              );
-
-              double portfolioValue = 0.0;
-              // double stockAndOptionsEquityPercent = 0.0;
-              double optionEquityPercent = 0.0;
-              double positionEquityPercent = 0.0;
-              double portfolioCash =
-                  account != null ? account.portfolioCash! : 0;
-              double cashPercent = 0.0;
-              double cryptoPercent = 0.0;
-              if (portfolioStore.items.isNotEmpty) {
-                portfolioValue = (portfolioStore.items[0].equity ?? 0) +
-                    forexHoldingStore.equity;
-                // stockAndOptionsEquityPercent =
-                //     portfolioStore.items[0].marketValue! / portfolioValue;
-                optionEquityPercent =
-                    optionPositionStore.equity / portfolioValue;
-                positionEquityPercent =
-                    stockPositionStore.equity / portfolioValue;
-                cashPercent = portfolioCash / portfolioValue;
-                cryptoPercent = forexHoldingStore.equity / portfolioValue;
-              }
-
-              List<PieChartData> data = [];
-              //if (portfolioStore.items.isNotEmpty) {
-              //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-              //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
-              data.add(PieChartData(
-                  'Options ${formatPercentageInteger.format(optionEquityPercent)}',
-                  optionPositionStore.equity));
-              data.add(PieChartData(
-                  'Stocks ${formatPercentageInteger.format(positionEquityPercent)}',
-                  stockPositionStore.equity));
-              data.add(PieChartData(
-                  'Crypto ${formatPercentageInteger.format(cryptoPercent)}',
-                  forexHoldingStore.equity));
-              data.add(PieChartData(
-                  'Cash ${formatPercentageInteger.format(cashPercent)}',
-                  portfolioCash));
-              //}
-              data.sort((a, b) => b.value.compareTo(a.value));
-
-              const maxLabelChars = 15;
-              const maxPositions = 5;
-              const maxSectors = 5;
-              const maxIndustries = 5;
-
-              // Position diversification - group by individual stock symbol
-              List<PieChartData> diversificationPositionData = [];
-              var groupedByPosition = stockPositionStore.items.groupListsBy(
-                  (item) => item.instrumentObj != null
-                      ? item.instrumentObj!.symbol
-                      : 'Unknown');
-              final groupedPositions = groupedByPosition
-                  .map((k, v) {
-                    return MapEntry(k,
-                        v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b));
-                  })
-                  .entries
-                  .toList();
-              groupedPositions.sort((a, b) => b.value.compareTo(a.value));
-              for (var position in groupedPositions.take(maxPositions)) {
-                final positionPercent =
-                    portfolioValue > 0 ? position.value / portfolioValue : 0.0;
-                diversificationPositionData.add(PieChartData(
-                    '${position.key} ${formatPercentageInteger.format(positionPercent)}',
-                    position.value));
-              }
-              if (groupedPositions.length > maxPositions) {
-                final othersValue = groupedPositions
-                    .skip(maxPositions)
-                    .map((e) => e.value)
-                    .fold(0.0, (a, b) => a + b);
-                final othersPercent =
-                    portfolioValue > 0 ? othersValue / portfolioValue : 0.0;
-                diversificationPositionData.add(PieChartData(
-                    'Others ${formatPercentageInteger.format(othersPercent)}',
-                    othersValue));
-              }
-
-              List<PieChartData> diversificationSectorData = [];
-              var groupedBySector = stockPositionStore.items.groupListsBy(
-                  (item) => item.instrumentObj != null &&
-                          item.instrumentObj!.fundamentalsObj != null
-                      ? item.instrumentObj!.fundamentalsObj!.sector
-                      : 'Unknown');
-              final groupedSectors = groupedBySector
-                  .map((k, v) {
-                    return MapEntry(
-                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
-                  })
-                  .entries
-                  .toList();
-              groupedSectors.sort((a, b) => b.value.compareTo(a.value));
-              for (var groupedSector in groupedSectors.take(maxSectors)) {
-                diversificationSectorData
-                    .add(PieChartData(groupedSector.key, groupedSector.value));
-              }
-              diversificationSectorData
-                  .sort((a, b) => b.value.compareTo(a.value));
-              if (groupedSectors.length > maxSectors) {
-                diversificationSectorData.add(PieChartData(
-                    'Others',
-                    groupedSectors
-                        .skip(maxSectors)
-                        .map((e) => e.value)
-                        .reduce((a, b) => a + b)));
-              }
-
-              List<PieChartData> diversificationIndustryData = [];
-              var groupedByIndustry = stockPositionStore.items.groupListsBy(
-                  (item) => item.instrumentObj != null &&
-                          item.instrumentObj!.fundamentalsObj != null
-                      ? item.instrumentObj!.fundamentalsObj!.industry
-                      : 'Unknown');
-              final groupedIndustry = groupedByIndustry
-                  .map((k, v) {
-                    return MapEntry(
-                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
-                  })
-                  .entries
-                  .toList();
-              groupedIndustry.sort((a, b) => b.value.compareTo(a.value));
-
-              for (var groupedSector in groupedIndustry.take(maxIndustries)) {
-                diversificationIndustryData
-                    .add(PieChartData(groupedSector.key, groupedSector.value));
-              }
-              diversificationIndustryData
-                  .sort((a, b) => b.value.compareTo(a.value));
-              if (groupedIndustry.length > maxIndustries) {
-                diversificationIndustryData.add(PieChartData(
-                    'Others',
-                    groupedIndustry
-                        .skip(maxIndustries)
-                        .map((e) => e.value)
-                        .reduce((a, b) => a + b)));
-              }
-              // for (var stock in stockPositionStore.items) {
-              //   // var stockPositionStore.items.reduce((a, b)=> a.marketValue + b.marketValue)
-              //   diversificationData.add(PieChartData(
-              //       stock.instrumentObj!.symbol,
-              //       stock.marketValue)); // / portfolioValue
-              // }
-
-              var shades = PieChart.makeShades(
-                  charts.ColorUtil.fromDartColor(Theme.of(context)
-                      .colorScheme
-                      .primary), // .withOpacity(0.75)
-                  4);
-              // var total = data.map((e) => e.value).reduce((a, b) => a + b);
-
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var axisLabelColor = charts.MaterialPalette.gray.shade500;
-              if (brightness == Brightness.light) {
-                axisLabelColor = charts.MaterialPalette.gray.shade700;
-              }
-              // double portfolioValue = 0.0;
-              // double optionEquityPercent = 0.0;
-              // double positionEquityPercent = 0.0;
-              // double cashPercent = 0.0;
-              // double cryptoPercent = 0.0;
-              // if (account != null) {
-              //   portfolioCash = account.portfolioCash ?? 0;
-              // }
-              // if (portfolioStore.items.isNotEmpty) {
-              //   portfolioValue = (portfolioStore.items[0].equity ?? 0) +
-              //       forexHoldingStore.equity;
-              //   optionEquityPercent =
-              //       optionPositionStore.equity / portfolioValue;
-              //   positionEquityPercent =
-              //       stockPositionStore.equity / portfolioValue;
-              //   cashPercent = portfolioCash / portfolioValue;
-              //   cryptoPercent = forexHoldingStore.equity / portfolioValue;
-              // }
-              return SliverToBoxAdapter(
-                  child: Column(
-                children: [
-                  ListTile(
-                    title: const Text(
-                      "Allocation",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    // subtitle: Text("last 12 months"),
-                    // trailing: Wrap(spacing: 8, children: [
-                    //   Text(
-                    //     "${(positionEquityPercent * 100).round()}:${(optionEquityPercent * 100).round()}:${(cryptoPercent * 100).round()}:${(cashPercent * 100).round()}%",
-                    //     style: const TextStyle(fontSize: assetValueFontSize),
-                    //     textAlign: TextAlign.right,
-                    //   )
-                    // ]),
-                  ),
-                  ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: 180), // 320
-                      child:
-                          // ListView(
-                          //     padding: const EdgeInsets.all(5.0),
-                          //     scrollDirection: Axis.horizontal,
-                          //     children: [
-                          CarouselView(
-                              enableSplash: false,
-                              // padding: const EdgeInsets.all(5.0),
-                              scrollDirection: Axis.horizontal,
-                              itemSnapping: true,
-                              itemExtent: double.infinity, // 360, //
-                              shrinkExtent: 245,
-                              controller: _carouselController,
-                              onTap: (value) {},
-                              children: [
-                            //if (total > 0) ...[
-                            PieChart(
-                              [
-                                charts.Series<PieChartData, String>(
-                                  id: 'Portfolio Breakdown',
-                                  colorFn: (_, index) => shades[index!],
-                                  domainFn: (PieChartData val, index) =>
-                                      val.label,
-                                  measureFn: (PieChartData val, index) =>
-                                      val.value,
-                                  labelAccessorFn: (PieChartData val, _) =>
-                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                  data: data,
-                                ),
-                              ],
-                              animate: false,
-                              renderer: charts.ArcRendererConfig(),
-                              // renderer: charts.ArcRendererConfig(
-                              //     //arcWidth: 60,
-                              //     arcRendererDecorators: [
-                              //       charts.ArcLabelDecorator(
-                              //           // insideLabelStyleSpec:
-                              //           //     charts.TextStyleSpec(fontSize: 14),
-                              //           // labelPadding: 0,
-                              //           outsideLabelStyleSpec:
-                              //               charts.TextStyleSpec(
-                              //                   fontSize: 12,
-                              //                   color: axisLabelColor))
-                              //     ]),
-                              behaviors: [
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
-                                legendBehavior,
-                                charts.ChartTitle('Asset',
-                                    titleStyleSpec: charts.TextStyleSpec(
-                                        color: axisLabelColor),
-                                    behaviorPosition:
-                                        charts.BehaviorPosition.end),
-                                charts.LinePointHighlighter(
-                                  symbolRenderer: TextSymbolRenderer(() =>
-                                      // widget.chartSelectionStore.selection != null
-                                      //     ? formatCurrency
-                                      //         .format(widget.chartSelectionStore.selection!.value)
-                                      //     :
-                                      ''),
-                                  // chartSelectionStore.selection
-                                  //     ?.map((s) => s.value.round().toString())
-                                  //     .join(' ') ??
-                                  // ''),
-                                  // seriesIds: [
-                                  //   dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
-                                  // ], // , 'Interest'
-                                  // drawFollowLinesAcrossChart: true,
-                                  // formatCompactCurrency
-                                  //     .format(chartSelection?.value)),
-                                  showHorizontalFollowLine: charts
-                                      .LinePointHighlighterFollowLineType
-                                      .none, //.nearest,
-                                  showVerticalFollowLine: charts
-                                      .LinePointHighlighterFollowLineType
-                                      .none, //.nearest,
-                                )
-                              ],
-                              onSelected: (value) {
-                                if (value != null) {
-                                  debugPrint(value.value.toString());
-                                }
-                              },
-                            ),
-                            PieChart(
-                              [
-                                charts.Series<PieChartData, String>(
-                                  id: 'Diversification Position',
-                                  colorFn: (_, index) =>
-                                      charts.ColorUtil.fromDartColor(
-                                          Colors.accents[index! %
-                                              Colors.accents
-                                                  .length]), // shades[index!],
-                                  domainFn: (PieChartData val, index) =>
-                                      val.label.length > maxLabelChars
-                                          ? val.label.replaceRange(
-                                              maxLabelChars,
-                                              val.label.length,
-                                              '...')
-                                          : val.label,
-                                  measureFn: (PieChartData val, index) =>
-                                      val.value,
-                                  labelAccessorFn: (PieChartData val, _) =>
-                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                  data: diversificationPositionData,
-                                ),
-                              ],
-                              animate: false,
-                              renderer: charts.ArcRendererConfig(),
-                              onSelected: (value) {
-                                if (value != null) {
-                                  debugPrint(value.value.toString());
-                                }
-                              },
-                              behaviors: [
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
-                                legendBehavior,
-                                charts.ChartTitle('Position',
-                                    titleStyleSpec: charts.TextStyleSpec(
-                                        color: axisLabelColor),
-                                    behaviorPosition:
-                                        charts.BehaviorPosition.end)
-                              ],
-                            ),
-                            PieChart(
-                              [
-                                charts.Series<PieChartData, String>(
-                                  id: 'Diversification Sector',
-                                  colorFn: (_, index) =>
-                                      charts.ColorUtil.fromDartColor(
-                                          Colors.accents[index! %
-                                              Colors.accents
-                                                  .length]), // shades[index!],
-                                  /*
-                                                        colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                            .makeShades(4)[index!],
-                                                        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                            Theme.of(context).colorScheme.primary),
-                                                        */
-                                  domainFn: (PieChartData val, index) =>
-                                      val.label.length > maxLabelChars
-                                          ? val.label.replaceRange(
-                                              maxLabelChars,
-                                              val.label.length,
-                                              '...')
-                                          : val.label,
-                                  measureFn: (PieChartData val, index) =>
-                                      val.value,
-                                  labelAccessorFn: (PieChartData val, _) =>
-                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                  data: diversificationSectorData,
-                                ),
-                              ],
-                              animate: false,
-                              renderer: charts.ArcRendererConfig(),
-                              // renderer: charts.ArcRendererConfig(
-                              //     arcWidth: 14,
-                              //     arcRendererDecorators: [
-                              //       charts.ArcLabelDecorator(
-                              //           // insideLabelStyleSpec:
-                              //           //     charts.TextStyleSpec(fontSize: 14),
-                              //           // labelPadding: 0,
-                              //           outsideLabelStyleSpec:
-                              //               charts.TextStyleSpec(
-                              //                   fontSize: 12,
-                              //                   color: axisLabelColor))
-                              //     ]),
-                              onSelected: (value) {
-                                if (value != null) {
-                                  debugPrint(value.value.toString());
-                                }
-                              },
-                              behaviors: [
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
-                                legendBehavior,
-                                charts.ChartTitle('Sector',
-                                    titleStyleSpec: charts.TextStyleSpec(
-                                        color: axisLabelColor),
-                                    behaviorPosition:
-                                        charts.BehaviorPosition.end)
-                              ],
-                            ),
-                            PieChart(
-                              [
-                                charts.Series<PieChartData, String>(
-                                  id: 'Diversification Industry',
-                                  colorFn: (_, index) =>
-                                      charts.ColorUtil.fromDartColor(
-                                          Colors.accents[index! %
-                                              Colors.accents
-                                                  .length]), // shades[index!],
-                                  domainFn: (PieChartData val, index) =>
-                                      val.label.length > maxLabelChars
-                                          ? val.label.replaceRange(
-                                              maxLabelChars,
-                                              val.label.length,
-                                              '...')
-                                          : val.label,
-                                  measureFn: (PieChartData val, index) =>
-                                      val.value,
-                                  labelAccessorFn: (PieChartData val, _) =>
-                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                  data: diversificationIndustryData,
-                                ),
-                              ],
-                              animate: false,
-                              renderer: charts.ArcRendererConfig(),
-                              // renderer: charts.ArcRendererConfig(
-                              //     arcWidth: 14,
-                              //     arcRendererDecorators: [
-                              //       charts.ArcLabelDecorator(
-                              //           // insideLabelStyleSpec:
-                              //           //     charts.TextStyleSpec(fontSize: 14),
-                              //           // labelPadding: 0,
-                              //           outsideLabelStyleSpec:
-                              //               charts.TextStyleSpec(
-                              //                   fontSize: 12,
-                              //                   color: axisLabelColor))
-                              //     ]),
-                              onSelected: (value) {
-                                if (value != null) {
-                                  debugPrint(value.value.toString());
-                                }
-                              },
-                              behaviors: [
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
-                                legendBehavior,
-                                charts.ChartTitle('Industry',
-                                    titleStyleSpec: charts.TextStyleSpec(
-                                        color: axisLabelColor),
-                                    behaviorPosition:
-                                        charts.BehaviorPosition.end)
-                              ],
-                            )
-                            //],
-                          ])),
-                  // Carousel page indicators
-                  ValueListenableBuilder<int>(
-                    valueListenable: _currentCarouselPageNotifier,
-                    builder: (context, currentPage, child) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(4, (index) {
-                            return Container(
-                              width: 8.0,
-                              height: 8.0,
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 4.0),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: currentPage == index
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.3),
-                              ),
-                            );
-                          }),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ));
-            }),
-            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
-                widget.brokerageUser.source == BrokerageSource.demo) ...[
-              Consumer2<DividendStore, InterestStore>(
-                  //, ChartSelectionStore
-                  builder: (context, dividendStore, interestStore, child) {
-                //, chartSelectionStore
-                // var dividendStore =
-                //     Provider.of<DividendStore>(context, listen: false);
-                // var interestStore =
-                //     Provider.of<InterestStore>(context, listen: false);
-                var instrumentPositionStore =
-                    Provider.of<InstrumentPositionStore>(context,
-                        listen: false);
-                var instrumentOrderStore =
-                    Provider.of<InstrumentOrderStore>(context, listen: false);
-                var chartSelectionStore =
-                    Provider.of<ChartSelectionStore>(context, listen: false);
-                return IncomeTransactionsWidget(
-                    widget.brokerageUser,
-                    widget.service,
-                    dividendStore,
-                    instrumentPositionStore,
-                    instrumentOrderStore,
-                    chartSelectionStore,
-                    interestStore: interestStore,
-                    showChips: false,
-                    showList: false,
-                    showFooter: false,
-                    analytics: widget.analytics,
-                    observer: widget.observer);
-              }),
-            ],
-            FutureBuilder(
-              future: Future.wait([
-                futureMarketIndexHistoricalsSp500 as Future,
-                futureMarketIndexHistoricalsNasdaq as Future,
-                futureMarketIndexHistoricalsDow as Future,
-                futurePortfolioHistoricalsYear != null
-                    ? futurePortfolioHistoricalsYear as Future
-                    : Future.value(null)
-              ]),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  var sp500 = snapshot.data![0];
-                  var nasdaq = snapshot.data![1];
-                  var dow = snapshot.data![2];
-                  var portfolioHistoricals =
-                      snapshot.data![3] as PortfolioHistoricals?;
-                  if (portfolioHistoricals != null) {
-                    final DateTime now = DateTime.now();
-                    final DateTime newYearsDay = DateTime(now.year, 1, 1);
-                    // var ytdportfolio = portfolioHistoricals.equityHistoricals
-                    //     // .where((element) =>
-                    //     //     element.beginsAt!.compareTo(newYearsDay) >= 0)
-                    //     .toList();
-                    // Update last historical from day span to deal with the issue that
-                    // lastHistorical return different values at different increment spans.
-                    var portfolioHistoricalsStore =
-                        Provider.of<PortfolioHistoricalsStore>(context,
-                            listen: true);
-                    var dayHistoricals = portfolioHistoricalsStore.items
-                        .singleWhereOrNull((e) => e.span == 'day');
-                    if (dayHistoricals != null &&
-                        !portfolioHistoricals.equityHistoricals.any((e) =>
-                            e.beginsAt ==
-                            dayHistoricals.equityHistoricals.last.beginsAt)) {
-                      portfolioHistoricals.equityHistoricals
-                          .add(dayHistoricals.equityHistoricals.last);
-                    }
-
-                    var regularsp500 = sp500['chart']['result'][0]['meta']
-                        ['currentTradingPeriod']['regular'];
-                    // var postsp500 = sp500['chart']['result'][0]['meta']
-                    //     ['currentTradingPeriod']['post'];
-                    var sp500PreviousClose = sp500['chart']['result'][0]['meta']
-                        ['chartPreviousClose'];
-                    var nasdaqPreviousClose = nasdaq['chart']['result'][0]
-                        ['meta']['chartPreviousClose'];
-                    var dowPreviousClose =
-                        dow['chart']['result'][0]['meta']['chartPreviousClose'];
-                    var enddiffsp500 =
-                        regularsp500['end'] - regularsp500['start'];
-                    // var enddiffsp500 = postsp500['end'] - regularsp500['start'];
-                    // var quotesp500 =
-                    //     sp500['chart']['result'][0]['indicators']['quote'][0];
-                    // var quotenasdaq =
-                    //     nasdaq['chart']['result'][0]['indicators']['quote'][0];
-                    // var seriesOpensp500 = quotesp500['open'][0];
-                    // var seriesOpennasdaq = quotenasdaq['open'][0];
-                    var seriesDatasp500 =
-                        (sp500['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (sp500['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          sp500PreviousClose -
-                                      1
-                                })
-                            .toList();
-                    seriesDatasp500
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
-                    var seriesDatanasdaq =
-                        (nasdaq['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (nasdaq['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          nasdaqPreviousClose -
-                                      1
-                                })
-                            .toList();
-                    seriesDatanasdaq
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
-                    var seriesDatadow =
-                        (dow['chart']['result'][0]['timestamp'] as List)
-                            .mapIndexed((index, e) => {
-                                  'date': DateTime.fromMillisecondsSinceEpoch(
-                                      (e + enddiffsp500) * 1000),
-                                  'value': (dow['chart']['result'][0]
-                                                  ['indicators']['adjclose'][0]
-                                              ['adjclose'] as List)[index] /
-                                          dowPreviousClose -
-                                      1
-                                })
-                            .toList();
-                    seriesDatadow
-                        .insert(0, {'date': newYearsDay, 'value': 0.0});
-                    var seriesOpenportfolio = portfolioHistoricals
-                        .equityHistoricals[0].adjustedOpenEquity;
-                    var seriesDataportfolio =
-                        portfolioHistoricals.equityHistoricals
-                            .mapIndexed((index, e) => {
-                                  'date': e.beginsAt,
-                                  'value':
-                                      // index == 0 ? 0.0 :
-                                      e.adjustedCloseEquity! /
-                                              seriesOpenportfolio! -
-                                          1
-                                })
-                            .toList();
-                    // seriesDataportfolio
-                    //     .insert(0, {'date': newYearsDay, 'value': 0});
-                    // var portfoliodiffsp500 =
-                    //     (seriesDataportfolio.last['value'] as double) -
-                    //         seriesDatasp500.last['value'];
-                    // var portfoliodiffnasdaq =
-                    //     (seriesDataportfolio.last['value'] as double) -
-                    //         seriesDatanasdaq.last['value'];
-                    var extents = charts.NumericExtents.fromValues(
-                        (seriesDatasp500 +
-                                seriesDatanasdaq +
-                                seriesDatadow +
-                                seriesDataportfolio)
-                            .map((e) => e['value']));
-                    extents = charts.NumericExtents(
-                        extents.min - (extents.width * 0.1),
-                        extents.max + (extents.width * 0.1));
-                    var brightness = MediaQuery.of(context).platformBrightness;
-                    var axisLabelColor = charts.MaterialPalette.gray.shade500;
-                    if (brightness == Brightness.light) {
-                      axisLabelColor = charts.MaterialPalette.gray.shade700;
-                    }
-                    var chartSelectionStore = Provider.of<ChartSelectionStore>(
-                        context,
-                        listen: false);
-                    // provider.selectionChanged(MapEntry(
-                    //     seriesDataportfolio.first['date'] as DateTime,
-                    //     seriesDataportfolio.first['value'] as double));
-
-                    // var seriesData = Map<DateTime, double>.fromIterables(
-                    //     (snapshot.data['chart']['result'][0]['timestamp'] as List)
-                    //         .map((e) => (e as Timestamp).toDate()),
-                    //     snapshot.data['chart']['result'][0]['indicators']
-                    //         ['adjClose'][0]['adjClose'] as List<double>);
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      // chartSelectionStore.selection = MapEntry(
-                      //     seriesDatasp500.last['date'] as DateTime,
-                      //     seriesDatasp500.last['value'] as double);
-                      // In order to highlight the last data point domain (date).
-                      chartSelectionStore.selectionChanged(MapEntry(
-                          seriesDataportfolio.last['date'] as DateTime,
-                          seriesDataportfolio.last['value'] as double));
-                    });
-                    TimeSeriesChart marketIndicesChart = TimeSeriesChart(
-                      [
-                        charts.Series<dynamic, DateTime>(
-                          id: 'Portfolio',
-                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                              Colors.accents[0 % Colors.accents.length]),
-                          // strokeWidthPxFn: (dynamic data, index) => 1,
-                          //charts.MaterialPalette.blue.shadeDefault,
-                          domainFn: (dynamic data, _) => data['date'],
-                          //filteredEquityHistoricals.indexOf(history),
-                          measureFn: (dynamic data, index) => data['value'],
-                          // labelAccessorFn: (dynamic data, index) =>
-                          //     formatCompactNumber.format(data['value']),
-                          data: seriesDataportfolio,
-                        ),
-                        charts.Series<dynamic, DateTime>(
-                          id: 'S&P 500',
-                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                              Colors.accents[4 % Colors.accents.length]),
-                          // strokeWidthPxFn: (dynamic data, index) => 1,
-                          //charts.MaterialPalette.blue.shadeDefault,
-                          domainFn: (dynamic data, _) => data['date'],
-                          //filteredEquityHistoricals.indexOf(history),
-                          measureFn: (dynamic data, index) => data['value'],
-                          // labelAccessorFn: (dynamic data, index) =>
-                          //     formatCompactNumber.format(data['value']),
-                          data: seriesDatasp500,
-                        ),
-                        charts.Series<dynamic, DateTime>(
-                          id: 'Nasdaq',
-                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                              Colors.accents[2 % Colors.accents.length]),
-                          // strokeWidthPxFn: (dynamic data, index) => 1,
-                          //charts.MaterialPalette.blue.shadeDefault,
-                          domainFn: (dynamic data, _) => data['date'],
-                          //filteredEquityHistoricals.indexOf(history),
-                          measureFn: (dynamic data, index) => data['value'],
-                          // labelAccessorFn: (dynamic data, index) =>
-                          //     formatCompactNumber.format(data['value']),
-                          data: seriesDatanasdaq,
-                        ),
-                        charts.Series<dynamic, DateTime>(
-                          id: 'Dow 30',
-                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
-                              Colors.accents[6 % Colors.accents.length]),
-                          // strokeWidthPxFn: (dynamic data, index) => 1,
-                          //charts.MaterialPalette.blue.shadeDefault,
-                          domainFn: (dynamic data, _) => data['date'],
-                          //filteredEquityHistoricals.indexOf(history),
-                          measureFn: (dynamic data, index) => data['value'],
-                          // labelAccessorFn: (dynamic data, index) =>
-                          //     formatCompactNumber.format(data['value']),
-                          data: seriesDatadow,
-                        ),
-                      ],
-                      animate: animateChart,
-                      zeroBound: false,
-                      primaryMeasureAxis: charts.PercentAxisSpec(
-                          viewport: extents,
-                          renderSpec: charts.GridlineRendererSpec(
-                              labelStyle:
-                                  charts.TextStyleSpec(color: axisLabelColor))),
-                      seriesLegend: charts.SeriesLegend(
-                        horizontalFirst: true,
-                        desiredMaxColumns: 2,
-                        cellPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
-                        position: charts.BehaviorPosition.top,
-                        defaultHiddenSeries: const [
-                          // 'Dow 30',
-                          // 'Nasdaq',
-                          // 'S&P 500'
-                        ],
-                        // To show value on legend upon selection
-                        showMeasures: true,
-                        measureFormatter: (measure) => measure != null
-                            ? formatPercentage.format(measure)
-                            : '',
-                        // Causes null exception when series are toggled from visible to hidden.
-                        // legendDefaultMeasure:
-                        //     charts.LegendDefaultMeasure.lastValue
-                      ),
-                      onSelected: (charts.SelectionModel? model) {
-                        chartSelectionStore.selectionChanged(model != null
-                            ? MapEntry(model.selectedDatum.first.datum['date'],
-                                model.selectedDatum.first.datum['value'])
-                            : null); //?.first
-                      },
-                      initialSelection:
-                          charts.InitialSelection(selectedDataConfig: [
-                        charts.SeriesDatumConfig<DateTime>('Portfolio',
-                            seriesDataportfolio.last['date'] as DateTime),
-                        charts.SeriesDatumConfig<DateTime>('S&P 500',
-                            seriesDatasp500.last['date'] as DateTime),
-                        charts.SeriesDatumConfig<DateTime>('Nasdaq',
-                            seriesDatanasdaq.last['date'] as DateTime),
-                        charts.SeriesDatumConfig<DateTime>(
-                            'Dow 30', seriesDatadow.last['date'] as DateTime)
-                      ], shouldPreserveSelectionOnDraw: true),
-                      symbolRenderer: TextSymbolRenderer(() {
-                        return chartSelectionStore.selection != null
-                            // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
-                            ? formatCompactDateTimeWithHour.format(
-                                (chartSelectionStore.selection as MapEntry)
-                                    .key
-                                    .toLocal())
-                            : '';
-                      }, marginBottom: 16),
-                    );
-                    return SliverToBoxAdapter(
-                        child: ShrinkWrappingViewport(
-                            offset: ViewportOffset.zero(),
-                            slivers: [
-                          SliverToBoxAdapter(
-                            child: ListTile(
-                              title: const Text(
-                                "Performance",
-                                style: TextStyle(fontSize: 19.0),
-                              ),
-                              subtitle: Text(
-                                  "Compare market indices and benchmarks (YTD)"),
-                              // trailing: Wrap(spacing: 8, children: [
-                              //   Text(
-                              //     '${portfoliodiffsp500 > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffsp500)}  ${portfoliodiffnasdaq > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffnasdaq)}', // seriesDataportfolio.last['value']
-                              //     style: const TextStyle(fontSize: assetValueFontSize),
-                              //     textAlign: TextAlign.right,
-                              //   )
-                              // ]),
-                            ),
-                          ),
-                          SliverToBoxAdapter(
-                            child: SizedBox(
-                                height: 380, // 460, // 240,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      10.0, 10.0, 10.0, 10.0),
-                                  //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                                  //padding: const EdgeInsets.all(10.0),
-                                  child: marketIndicesChart,
-                                )),
-                          )
-                        ]));
-                  }
-                }
-                debugPrint("${snapshot.error}");
-
-                return SliverToBoxAdapter(
-                  child: Container(),
+          // "What do I own?" — one summary per asset class: totals, a capped
+          // bar chart, and a chevron to that class's full ledger.
+          //
+          // Summaries rather than ledgers, so the overview's length is bounded
+          // by the number of asset classes instead of the number of positions.
+          if (widget.brokerageUser != null && widget.service != null) ...[
+            if (widget.brokerageUser!.source == BrokerageSource.robinhood)
+              Consumer<FuturesPositionStore>(
+                builder: (context, store, child) => FuturesPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
+                  disableNavigation: isAggregateMode,
+                ),
+              ),
+            Consumer<OptionPositionStore>(
+              builder: (context, store, child) {
+                final selectedAccount =
+                    Provider.of<AccountStore>(context).selectedAccount;
+                return OptionPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items
+                      .where((position) => _matchesAccount(position.account,
+                          isAggregateMode ? null : selectedAccount))
+                      .toList(),
+                  showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  disableNavigation: isAggregateMode,
                 );
               },
             ),
-            // FUTURES: If we have futures accounts, stream aggregated positions
-            if (widget.brokerageUser.source == BrokerageSource.robinhood) ...[
-              FutureBuilder<List<dynamic>>(
-                  future: futureFuturesAccounts,
-                  builder: (context, snapshotAccounts) {
-                    if (snapshotAccounts.hasData &&
-                        snapshotAccounts.data != null) {
-                      var accounts = snapshotAccounts.data!;
-                      var futuresAccount = accounts.firstWhere(
-                          (f) => f['accountType'] == 'FUTURES',
-                          orElse: () => null);
-                      if (futuresAccount != null) {
-                        var accountId = futuresAccount['id'];
-                        var stream = (widget.service as RobinhoodService)
-                            .streamFuturePositions(
-                                widget.brokerageUser, accountId);
-                        return StreamBuilder<List<dynamic>>(
-                            stream: stream,
-                            builder: (context, futSnapshot) {
-                              if (futSnapshot.hasData &&
-                                  futSnapshot.data != null) {
-                                var list = futSnapshot.data!;
-                                // Build a store and provide it to descendants
-                                var store = FuturesPositionStore();
-                                store.addAll(list);
-                                return ChangeNotifierProvider<
-                                    FuturesPositionStore>.value(
-                                  value: store,
-                                  child: FuturesPositionsWidget(
-                                    showList: false,
-                                    onTapHeader: () {
-                                      // navigate to a full futures page if desired
-                                    },
-                                  ),
-                                );
-                              } else if (futSnapshot.hasError) {
-                                return SliverToBoxAdapter(
-                                  child: Text('${futSnapshot.error}'),
-                                );
-                              } else {
-                                return const SliverToBoxAdapter(
-                                  child: Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(12.0),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                );
-                              }
-                            });
-                      }
-                      return SliverToBoxAdapter();
-                    } else {
-                      return SliverToBoxAdapter();
-                    }
-                  }),
-            ],
-            Consumer<OptionPositionStore>(
-                builder: (context, optionPositionStore, child) {
-              //if (optionPositions != null) {
-              var filteredOptionAggregatePositions = optionPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      (positionFilters.isEmpty ||
-                          positionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionFilters.isEmpty ||
-                          optionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionSymbolFilters.isEmpty ||
-                          optionSymbolFilters.contains(element.symbol)))
-                  .toList();
-
-              return OptionPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
-                filteredOptionAggregatePositions,
-                showList: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-              );
-            }),
             Consumer<InstrumentPositionStore>(
-                builder: (context, stockPositionStore, child) {
-              //if (positions != null) {
-              var filteredPositions = stockPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                      (stockSymbolFilters.isEmpty ||
-                          stockSymbolFilters
-                              .contains(element.instrumentObj!.symbol)))
-                  // widget.user.displayValue == DisplayValue.totalReturnPercent ? : i.marketValue
-                  .toList();
-
-              /*
-              double? value = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions);
-              String? trailingText;
-              Icon? icon;
-              if (value != null) {
-                trailingText = widget.user.getDisplayText(value);
-                icon = widget.user.getDisplayIcon(value);
-              }
-              */
-              return InstrumentPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
-                filteredPositions,
+              builder: (context, store, child) {
+                final selectedAccount =
+                    Provider.of<AccountStore>(context).selectedAccount;
+                return InstrumentPositionsWidget(
+                  widget.brokerageUser!,
+                  widget.service!,
+                  store.items
+                      .where((position) =>
+                          position.instrumentObj != null &&
+                          _matchesAccount(position.account,
+                              isAggregateMode ? null : selectedAccount))
+                      .toList(),
+                  showList: false,
+                  chartRowLimit: _overviewChartRowLimit,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDoc,
+                  disableNavigation: isAggregateMode,
+                );
+              },
+            ),
+            Consumer<ForexHoldingStore>(
+              builder: (context, store, child) => ForexPositionsWidget(
+                widget.brokerageUser!,
+                widget.service!,
+                store.items,
                 showList: false,
                 analytics: widget.analytics,
                 observer: widget.observer,
                 generativeService: widget.generativeService,
-              );
-            }),
-            Consumer<ForexHoldingStore>(
-              builder: (context, forexHoldingStore, child) {
-                var nummusHoldings = forexHoldingStore.items;
-                cryptoSymbols =
-                    nummusHoldings.map((e) => e.currencyCode).toSet().toList();
-                cryptoSymbols.sort((a, b) => (a.compareTo(b)));
-                var filteredHoldings = nummusHoldings
-                    .where((element) =>
-                        ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                            (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                                (!hasQuantityFilters[1] ||
-                                    element.quantity! <= 0)) &&
-                        /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                        (cryptoFilters.isEmpty ||
-                            cryptoFilters.contains(element.currencyCode)))
-                    // .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
-                    // .reversed
-                    .toList();
+                user: widget.user,
+                userDocRef: widget.userDoc,
+              ),
+            ),
+          ],
 
-                return SliverToBoxAdapter(
-                    child: ShrinkWrappingViewport(
-                        offset: ViewportOffset.zero(),
-                        slivers: [
-                      //if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                      /*
-                      const SliverToBoxAdapter(
-                          child: SizedBox(
-                        height: 25.0,
-                      )),
-                      */
-                      ForexPositionsWidget(
-                        widget.brokerageUser,
-                        widget.service,
-                        filteredHoldings,
-                        showList: false,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      ),
-                      //],
-                      // const SliverToBoxAdapter(
-                      //     child: SizedBox(
-                      //   height: 25.0,
-                      // ))
-                    ]));
+          // Everything else now lives behind a section rather than below the
+          // fold of a single scroll.
+          SliverToBoxAdapter(
+            child: Consumer2<InstrumentPositionStore, OptionPositionStore>(
+              builder: (context, stockStore, optionStore, child) {
+                final isPaper =
+                    widget.brokerageUser?.source == BrokerageSource.paper ||
+                        account?.accountNumber == 'paper_account';
+                return PortfolioSectionGridWidget(
+                  summaries: _sectionSummaries(
+                      context, stockStore, optionStore, account),
+                  flagged: _flaggedSections(
+                      context, stockStore, optionStore, account),
+                  disabled: {
+                    if (isPaper) PortfolioSection.taxes,
+                  },
+                  disabledReasons: {
+                    if (isPaper)
+                      PortfolioSection.taxes:
+                          'Not applicable to paper trading',
+                  },
+                  onSectionTap: (section) => PortfolioNavigator.openSection(
+                      context, section, _sectionContext(account)),
+                );
               },
-            ), // TODO: Introduce web banner
-            if (!kIsWeb) ...[
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
-              SliverToBoxAdapter(
-                  child: AdBannerWidget(
-                size: AdSize.mediumRectangle,
-                // searchBanner: true,
-              )),
-            ],
+            ),
+          ),
+
+          if (!kIsWeb) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 16.0,
             )),
-            const SliverToBoxAdapter(child: DisclaimerWidget()),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
+            SliverToBoxAdapter(
+                child: AdBannerWidget(
+              size: AdSize.mediumRectangle,
+              // searchBanner: true,
             )),
-          ]), //controller: _controller,
+          ],
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 16.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget()),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 16.0,
+          )),
+        ],
+      ),
     );
+  }
+
+  /// Bars each asset-class summary draws before deferring to its full page.
+  ///
+  /// Chosen so the tallest summary stays inside one screen: the charts size
+  /// themselves at 26px a row, so eight rows plus chrome is roughly 290px.
+  static const int _overviewChartRowLimit = 8;
+
+  /// In aggregate mode every linked account contributes; otherwise only the
+  /// selected one does.
+  bool _matchesAccount(String? positionAccountUrl, Account? account) {
+    if (_isAggregateMode() || account == null) return true;
+    return positionAccountUrl == account.accountNumber ||
+        positionAccountUrl == account.url;
+  }
+
+  /// Bundles everything the drill-down sections need into one object.
+  ///
+  /// Rebuilt per frame rather than cached because the selected account and the
+  /// historicals futures both change as the user switches brokerages.
+  PortfolioSectionContext _sectionContext(Account? account) {
+    final isAggregateMode = _isAggregateMode();
+    // Created lazily so a context built before the first historicals load still
+    // hands the sections a usable controller.
+    _analyticsController ??= PortfolioAnalyticsController(
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      span: benchmarkChartDateSpanFilter,
+    );
+    return PortfolioSectionContext(
+      analyticsController: _analyticsController!,
+      brokerageUser: widget.brokerageUser!,
+      service: widget.service!,
+      analytics: widget.analytics,
+      observer: widget.observer,
+      generativeService: widget.generativeService,
+      appUser: widget.user,
+      userDocRef: widget.userDoc,
+      account: account,
+      accountNumber: isAggregateMode ? null : account?.accountNumber,
+      isAggregateMode: isAggregateMode,
+      portfolioHistoricalsFuture: futurePortfolioHistoricalsYear,
+      futureMarketIndexHistoricalsSp500: futureMarketIndexHistoricalsSp500,
+      futureMarketIndexHistoricalsNasdaq: futureMarketIndexHistoricalsNasdaq,
+      futureMarketIndexHistoricalsDow: futureMarketIndexHistoricalsDow,
+      futureMarketIndexHistoricalsRussell2000:
+          futureMarketIndexHistoricalsRussell2000,
+      benchmarkChartDateSpanFilter: benchmarkChartDateSpanFilter,
+      onBenchmarkFilterChanged: (span) {
+        setState(() {
+          benchmarkChartDateSpanFilter = span;
+          _loadPortfolioHistoricals();
+          _loadMarketIndices();
+        });
+      },
+      onTabChanged: widget.onTabChanged,
+    );
+  }
+
+  /// Total account equity, used to express cash and position weights.
+  double? _totalEquity(BuildContext context, {Account? account}) {
+    final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
+
+    // In single-account mode, scope strictly to the selected account.
+    if (!_isAggregateMode()) {
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      final target = account ?? accountStore.selectedAccount;
+      if (target != null) {
+        if (portfolioStore.items.isNotEmpty) {
+          final match = portfolioStore.items.firstWhereOrNull(
+            (p) =>
+                p.account == target.accountNumber ||
+                p.account == target.url ||
+                (target.accountNumber.isNotEmpty &&
+                    p.account.contains(target.accountNumber)),
+          );
+          if (match != null && (match.equity ?? 0) > 0) return match.equity;
+        }
+        if ((target.totalValue ?? 0) > 0) return target.totalValue;
+        if ((target.portfolioCash ?? 0) > 0) return target.portfolioCash;
+      }
+      return null;
+    }
+
+    if (portfolioStore.items.isEmpty) return null;
+    final equity = portfolioStore.items
+        .fold<double>(0, (sum, portfolio) => sum + (portfolio.equity ?? 0));
+    return equity > 0 ? equity : null;
+  }
+
+  /// Live summary text for each Browse tile, so the grid still carries state.
+  Map<PortfolioSection, String> _sectionSummaries(
+    BuildContext context,
+    InstrumentPositionStore stockStore,
+    OptionPositionStore optionStore,
+    Account? account,
+  ) {
+    final summaries = <PortfolioSection, String>{};
+
+    final stocks = stockStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+    final options = optionStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+
+    final holdings = stocks.length + options.length;
+    if (holdings > 0) {
+      summaries[PortfolioSection.positions] =
+          '$holdings ${holdings == 1 ? 'holding' : 'holdings'}';
+    }
+
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
+    if (!isPaper) {
+      final suggestions =
+          TaxOptimizationService.calculateTaxHarvestingOpportunities(
+        instrumentPositions: stocks,
+        optionPositions: options,
+      );
+      if (suggestions.isNotEmpty) {
+        final total = suggestions.fold<double>(
+            0, (totalLoss, suggestion) => totalLoss + suggestion.estimatedLoss);
+        summaries[PortfolioSection.taxes] =
+            '${NumberFormat.simpleCurrency(decimalDigits: 0).format(total.abs())} '
+            'harvestable';
+      }
+    } else {
+      summaries[PortfolioSection.taxes] = 'Not applicable to paper trading';
+    }
+
+    return summaries;
+  }
+
+  /// Sections carrying an unresolved alert, marked with a dot on their tile.
+  Set<PortfolioSection> _flaggedSections(
+    BuildContext context,
+    InstrumentPositionStore stockStore,
+    OptionPositionStore optionStore,
+    Account? account,
+  ) {
+    final filteredStocks = stockStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+    final filteredOptions = optionStore.items
+        .where((p) => _matchesAccount(p.account, account))
+        .toList();
+    final alerts = PortfolioAlertService.buildAlerts(
+      instrumentPositions: filteredStocks,
+      optionPositions: filteredOptions,
+      dividendItems:
+          Provider.of<DividendStore>(context, listen: false).items.toList(),
+      account: account,
+      totalEquity: _totalEquity(context, account: account),
+    );
+
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
+    final flagged = <PortfolioSection>{};
+    for (final alert in alerts) {
+      if (alert.severity == PortfolioAlertSeverity.positive) continue;
+      switch (alert.target) {
+        case PortfolioAlertTarget.instrument:
+        case PortfolioAlertTarget.positions:
+        case PortfolioAlertTarget.optionPositions:
+          flagged.add(PortfolioSection.positions);
+        case PortfolioAlertTarget.dividends:
+        case PortfolioAlertTarget.performance:
+          flagged.add(PortfolioSection.performance);
+        case PortfolioAlertTarget.pdtMonitor:
+        case PortfolioAlertTarget.risk:
+        case PortfolioAlertTarget.riskCopilot:
+        case PortfolioAlertTarget.zeroDteRadar:
+        case PortfolioAlertTarget.earningsIvCrush:
+        case PortfolioAlertTarget.volatilityCone:
+        case PortfolioAlertTarget.ivSurface:
+        case PortfolioAlertTarget.deltaNeutral:
+          flagged.add(PortfolioSection.risk);
+        case PortfolioAlertTarget.newsIntelligence:
+        case PortfolioAlertTarget.insights:
+        case PortfolioAlertTarget.congressionalTrading:
+          flagged.add(PortfolioSection.insights);
+        case PortfolioAlertTarget.taxes:
+          if (!isPaper) {
+            flagged.add(PortfolioSection.taxes);
+          }
+        case PortfolioAlertTarget.optionDefense:
+        case PortfolioAlertTarget.dripSettings:
+        case PortfolioAlertTarget.strategies:
+        case PortfolioAlertTarget.rebalance:
+          flagged.add(PortfolioSection.strategies);
+        case PortfolioAlertTarget.search:
+        case PortfolioAlertTarget.none:
+          break;
+      }
+    }
+    return flagged;
+  }
+
+  (double?, double?) _calcDayPnL(Account? targetAccount) {
+    final portfolioStore =
+        Provider.of<PortfolioStore>(context, listen: false);
+    final portfolio = portfolioStore.items.firstWhereOrNull(
+      (p) =>
+          targetAccount != null &&
+          (p.account == targetAccount.accountNumber ||
+              p.account == targetAccount.url ||
+              (targetAccount.accountNumber.isNotEmpty &&
+                  p.account.contains(targetAccount.accountNumber))),
+    );
+
+    final totalValue = portfolio?.equity ??
+        targetAccount?.totalValue ??
+        _totalEquity(context, account: targetAccount) ??
+        targetAccount?.portfolioCash ??
+        0.0;
+
+    double? changeToday;
+    double? changePercentToday;
+
+    if (portfolio != null &&
+        portfolio.equityPreviousClose != null &&
+        portfolio.equityPreviousClose! > 0 &&
+        portfolio.equity != null) {
+      final prevClose = portfolio.equityPreviousClose!;
+      final diff = portfolio.equity! - prevClose;
+      changeToday = diff;
+      changePercentToday = diff / prevClose;
+    } else {
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final stocks = stockStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      final options = optionStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      double sumToday = 0.0;
+      bool hasToday = false;
+      for (final s in stocks) {
+        sumToday += s.gainLossToday;
+        hasToday = true;
+      }
+      for (final o in options) {
+        if (o.changeToday != 0) {
+          sumToday += o.changeToday;
+          hasToday = true;
+        }
+      }
+      if (hasToday && totalValue > 0) {
+        changeToday = sumToday;
+        final base = totalValue - sumToday;
+        if (base > 0) {
+          changePercentToday = sumToday / base;
+        }
+      }
+    }
+    return (changeToday, changePercentToday);
+  }
+
+  void _updateFuturesPositions([List<dynamic>? accounts]) async {
+    if (accounts != null && accounts.isNotEmpty) {
+      futuresAccountId = null;
+      var futuresAccount = accounts.firstWhere(
+          (f) => f != null && f['accountType'] == 'FUTURES',
+          orElse: () => null);
+      if (futuresAccount != null) {
+        futuresAccountId = futuresAccount['id'];
+      }
+    }
+    if (futuresAccountId != null) {
+      if (!mounted) return;
+      final robinhoodService = widget.service;
+      if (robinhoodService is! RobinhoodService ||
+          widget.brokerageUser?.source != BrokerageSource.robinhood) {
+        return;
+      }
+      var store = Provider.of<FuturesPositionStore>(context, listen: false);
+      if (futuresAccountId == null) {
+        store.removeAll();
+        return;
+      }
+      await robinhoodService.getFuturesPositions(
+          widget.brokerageUser!, store, futuresAccountId!);
+    }
   }
 
   void _startRefreshTimer() {
@@ -2777,12 +2535,461 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
   }
 
+  Widget _buildAggregateBanner(BuildContext context) {
+    if (_brokerBreakdownRows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final totalValue = _brokerBreakdownRows.fold<double>(
+        0.0, (sum, row) => sum + row.totalValue);
+    final accountStore = Provider.of<AccountStore>(context);
+    final showBalances = accountStore.showBalances;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+              Theme.of(context)
+                  .colorScheme
+                  .surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TOTAL AGGREGATE VALUE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      showBalances
+                          ? formatCurrency.format(totalValue)
+                          : '\$••••••',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    showBalances
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 22,
+                  ),
+                  onPressed: () => accountStore.toggleShowBalances(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Colors.amber,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Combined view. Trading disabled.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountBanner(BuildContext context, Account? account) {
+    final accountStore = Provider.of<AccountStore>(context);
+    final portfolioStore = Provider.of<PortfolioStore>(context);
+    final showBalances = accountStore.showBalances;
+
+    final targetAccount =
+        account ?? (_isAggregateMode() ? null : accountStore.selectedAccount);
+
+    final portfolio = portfolioStore.items.firstWhereOrNull(
+      (p) =>
+          targetAccount != null &&
+          (p.account == targetAccount.accountNumber ||
+              p.account == targetAccount.url ||
+              (targetAccount.accountNumber.isNotEmpty &&
+                  p.account.contains(targetAccount.accountNumber))),
+    );
+
+    final totalValue = portfolio?.equity ??
+        targetAccount?.totalValue ??
+        _totalEquity(context, account: targetAccount) ??
+        targetAccount?.portfolioCash ??
+        0.0;
+
+    double? changeToday;
+    double? changePercentToday;
+
+    if (portfolio != null &&
+        portfolio.equityPreviousClose != null &&
+        portfolio.equityPreviousClose! > 0 &&
+        portfolio.equity != null) {
+      final prevClose = portfolio.equityPreviousClose!;
+      final diff = portfolio.equity! - prevClose;
+      changeToday = diff;
+      changePercentToday = diff / prevClose;
+    } else {
+      // Fall back to sum of positions' today returns if available
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+      final stocks = stockStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      final options = optionStore.items
+          .where((p) => _matchesAccount(p.account, targetAccount));
+      double sumToday = 0.0;
+      bool hasToday = false;
+      for (final s in stocks) {
+        sumToday += s.gainLossToday;
+        hasToday = true;
+      }
+      for (final o in options) {
+        if (o.changeToday != 0) {
+          sumToday += o.changeToday;
+          hasToday = true;
+        }
+      }
+      if (hasToday && totalValue > 0) {
+        changeToday = sumToday;
+        final base = totalValue - sumToday;
+        if (base > 0) {
+          changePercentToday = sumToday / base;
+        }
+      }
+    }
+
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final onSurface = theme.colorScheme.onSurface;
+    final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
+
+    final isPositive = (changeToday ?? 0) >= 0;
+    final changeColor = changeToday == null
+        ? onSurfaceVariant
+        : (isPositive ? Colors.green : Colors.red);
+
+    final sourceName = widget.brokerageUser?.source != null
+        ? _brokerLabel(widget.brokerageUser!.source)
+        : 'Brokerage';
+    final accountType = targetAccount?.displayType ?? 'Individual';
+    final accountNum = targetAccount?.accountNumber.isNotEmpty == true
+        ? ' • Acct ${targetAccount!.accountNumber}'
+        : '';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              primary.withValues(alpha: 0.15),
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: primary.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PORTFOLIO VALUE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      showBalances
+                          ? formatCurrency.format(totalValue)
+                          : '\$••••••',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(
+                    showBalances
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: primary,
+                    size: 22,
+                  ),
+                  onPressed: () => accountStore.toggleShowBalances(),
+                ),
+              ],
+            ),
+            if (changeToday != null && showBalances) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    isPositive ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                    color: changeColor,
+                    size: 20,
+                  ),
+                  Text(
+                    '${isPositive ? '+' : ''}${formatCurrency.format(changeToday)}${changePercentToday != null ? ' (${isPositive ? '+' : ''}${formatPercentage.format(changePercentToday)})' : ''} Today',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: changeColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    sourceName,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$accountType$accountNum',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrokerBreakdownCard(BuildContext context) {
+    if (_brokerBreakdownRows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final totalValue = _brokerBreakdownRows.fold<double>(
+        0.0, (sum, row) => sum + row.totalValue);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Card(
+        elevation: 0,
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondaryContainer
+                          .withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.account_balance_outlined,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Totals by Broker',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              for (final row in _brokerBreakdownRows) ...[
+                _buildBrokerRow(context, row, totalValue),
+                if (row != _brokerBreakdownRows.last)
+                  const SizedBox(height: 12),
+              ]
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrokerRow(
+      BuildContext context, _BrokerBreakdownRow row, double totalValue) {
+    final accountStore = Provider.of<AccountStore>(context);
+    final showBalances = accountStore.showBalances;
+    final details = <String>[];
+    if (row.accountCount > 0) {
+      details.add(
+          '${row.accountCount} account${row.accountCount == 1 ? '' : 's'}');
+    }
+    if (row.positionCount > 0) {
+      details.add(
+          '${row.positionCount} position${row.positionCount == 1 ? '' : 's'}');
+    }
+    final detailText = details.isNotEmpty ? details.join(' • ') : 'No data';
+
+    double? progress;
+    if (totalValue > 0 && row.totalValue >= 0) {
+      progress = (row.totalValue / totalValue).clamp(0.0, 1.0);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _brokerLabel(row.source),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    detailText,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              showBalances ? formatCurrency.format(row.totalValue) : '\$••••••',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ],
+        ),
+        if (progress != null) ...[
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor:
+                Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: Theme.of(context).colorScheme.primary,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _refresh() async {
     var random = Random();
     final maxDelay = 15000;
-    if (widget.brokerageUser.refreshEnabled &&
+    if (widget.brokerageUser != null &&
+        widget.brokerageUser!.refreshEnabled &&
         (_notification == null || _notification == AppLifecycleState.resumed)) {
-      if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+      if (_isAggregateMode()) {
+        return;
+      }
+      if (widget.brokerageUser!.source == BrokerageSource.robinhood &&
+          widget.service is RobinhoodService) {
         if (account != null) {
           // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
           // await service.getAccounts(
@@ -2794,16 +3001,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           debugPrint('getPortfolioHistoricals scheduled in $newRandom');
           Future.delayed(Duration(milliseconds: newRandom), () async {
             if (!mounted) return;
-            await widget.service.getPortfolioPerformance(
-                widget.brokerageUser,
+            // Always fetch hour data for real-time updates
+            await widget.service!.getPortfolioPerformance(
+                widget.brokerageUser!,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
                 chartBoundsFilter: chartBoundsFilter,
-                chartDateSpanFilter: chartDateSpanFilter == ChartDateSpan.day
-                    ? ChartDateSpan.hour
-                    : chartDateSpanFilter);
-            // await widget.service.getPortfolioHistoricals(
-            //     widget.brokerageUser,
+                chartDateSpanFilter: ChartDateSpan.hour);
+            // await widget.service!.getPortfolioHistoricals(
+            //     widget.brokerageUser!,
             //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
             //     account!.accountNumber,
             //     chartBoundsFilter,
@@ -2812,13 +3018,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //         ? ChartDateSpan.hour
             //         : chartDateSpanFilter);
           });
+
+          newRandom = (random.nextDouble() * maxDelay).toInt();
+          debugPrint('refreshFutures scheduled in $newRandom');
+          Future.delayed(Duration(milliseconds: newRandom), () async {
+            if (!mounted) return;
+            // setState(() {
+            if (futuresAccountId == null && account != null) {
+              var accounts = await (widget.service! as RobinhoodService)
+                  .getFuturesAccounts(widget.brokerageUser!, account!);
+              _updateFuturesPositions(accounts);
+            } else {
+              _updateFuturesPositions();
+            }
+            // });
+          });
         }
         var newRandom = (random.nextDouble() * maxDelay).toInt();
         debugPrint('refreshOptionMarketData scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshOptionMarketData(
-              widget.brokerageUser,
+          await widget.service!.refreshOptionMarketData(
+              widget.brokerageUser!,
               Provider.of<OptionPositionStore>(context, listen: false),
               Provider.of<OptionInstrumentStore>(context, listen: false));
         });
@@ -2827,8 +3048,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('refreshPositionQuote scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshPositionQuote(
-              widget.brokerageUser,
+          await widget.service!.refreshPositionQuote(
+              widget.brokerageUser!,
               Provider.of<InstrumentPositionStore>(context, listen: false),
               Provider.of<QuoteStore>(context, listen: false));
         });
@@ -2837,7 +3058,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('getPortfolios scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.getPortfolios(widget.brokerageUser,
+          await widget.service!.getPortfolios(widget.brokerageUser!,
               Provider.of<PortfolioStore>(context, listen: false));
         });
 
@@ -2845,21 +3066,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         debugPrint('refreshNummusHoldings scheduled in $newRandom');
         Future.delayed(Duration(milliseconds: newRandom), () async {
           if (!mounted) return;
-          await widget.service.refreshNummusHoldings(
-            widget.brokerageUser,
+          await widget.service!.refreshNummusHoldings(
+            widget.brokerageUser!,
             Provider.of<ForexHoldingStore>(context, listen: false),
           );
         });
       }
-      if (widget.brokerageUser.source == BrokerageSource.schwab) {
-        futureAccounts = widget.service.getAccounts(
-            widget.brokerageUser,
-            Provider.of<AccountStore>(context, listen: false),
-            Provider.of<PortfolioStore>(context, listen: false),
-            Provider.of<OptionPositionStore>(context, listen: false),
-            instrumentPositionStore:
-                Provider.of<InstrumentPositionStore>(context, listen: false),
+      if (widget.brokerageUser!.source == BrokerageSource.schwab ||
+          widget.brokerageUser!.source == BrokerageSource.fidelity) {
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+        final portfolioStore =
+            Provider.of<PortfolioStore>(context, listen: false);
+        final optionPositionStore =
+            Provider.of<OptionPositionStore>(context, listen: false);
+        final instrumentPositionStore =
+            Provider.of<InstrumentPositionStore>(context, listen: false);
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+        final optionInstrumentStore =
+            Provider.of<OptionInstrumentStore>(context, listen: false);
+
+        futureAccounts = widget.service!.getAccounts(widget.brokerageUser!,
+            accountStore, portfolioStore, optionPositionStore,
+            instrumentPositionStore: instrumentPositionStore,
             userDoc: widget.userDoc);
+        // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+        futureAccounts!.then((accounts) async {
+          if (mounted && accounts.isNotEmpty) {
+            widget.brokerageUser!.accounts = accounts;
+            await userStore.save();
+            await widget.service!.refreshPositionQuote(
+                widget.brokerageUser!, instrumentPositionStore, quoteStore);
+            await widget.service!.refreshOptionMarketData(widget.brokerageUser!,
+                optionPositionStore, optionInstrumentStore);
+          }
+        });
       }
     }
   }
@@ -2873,6 +3115,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   // }
 
   void resetChart(ChartDateSpan span, Bounds bounds) async {
+    if (widget.brokerageUser == null || widget.service == null) return;
     // setState(() {
     prevChartDateSpanFilter = chartDateSpanFilter;
     chartDateSpanFilter = span;
@@ -2881,13 +3124,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     // futurePortfolioHistoricals = null;
     var portfolioHistoricalStore =
         Provider.of<PortfolioHistoricalsStore>(context, listen: false);
-    // futurePortfolioHistoricals =
-    await widget.service.getPortfolioPerformance(
-        widget.brokerageUser, portfolioHistoricalStore, account!.accountNumber,
-        chartBoundsFilter: chartBoundsFilter,
-        chartDateSpanFilter: chartDateSpanFilter);
-    // await widget.service.getPortfolioHistoricals(
-    //     widget.brokerageUser,
+    if (_isAggregateMode()) {
+      await _loadAggregatedPortfolioHistoricals(
+          chartDateSpanFilter, chartBoundsFilter);
+    } else {
+      await widget.service!.getPortfolioPerformance(widget.brokerageUser!,
+          portfolioHistoricalStore, account!.accountNumber,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+    }
+    // await widget.service!.getPortfolioHistoricals(
+    //     widget.brokerageUser!,
     //     portfolioHistoricalStore,
     //     account!.accountNumber,
     //     chartBoundsFilter,
@@ -2896,17 +3143,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Future<void> _pullRefresh() async {
+    HapticFeedback.mediumImpact();
     Provider.of<AccountStore>(context, listen: false).removeAll();
     Provider.of<PortfolioStore>(context, listen: false).removeAll();
+    Provider.of<PortfolioHistoricalsStore>(context, listen: false).removeAll();
     Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
     Provider.of<OptionPositionStore>(context, listen: false).removeAll();
     Provider.of<InstrumentPositionStore>(context, listen: false).removeAll();
+    Provider.of<FuturesPositionStore>(context, listen: false).removeAll();
+    Provider.of<DividendStore>(context, listen: false).removeAll();
+    Provider.of<InterestStore>(context, listen: false).removeAll();
+    /*
+    if (_futuresSubscription != null) {
+      _futuresSubscription?.cancel();
+      _futuresSubscription = null;
+    }
+    */
     setState(() {
       futureAccounts = null;
+      // futureFuturesAccounts = null;
       futurePortfolios = null;
       futureNummusHoldings = null;
       futureOptionPositions = null;
       futureStockPositions = null;
+      _loadData();
     });
   }
 
@@ -2917,7 +3177,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //isScrollControlled: true,
         //useRootNavigator: true,
         //constraints: const BoxConstraints(maxHeight: 200),
-        builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
+        builder: (_) => MoreMenuBottomSheet(widget.brokerageUser!,
             analytics: widget.analytics,
             observer: widget.observer,
             chainSymbols: chainSymbols,

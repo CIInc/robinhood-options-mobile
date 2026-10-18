@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 @immutable
 class Fundamentals {
   final double? open;
@@ -58,84 +60,26 @@ class Fundamentals {
       this.yearFounded});
 
   Fundamentals.fromJson(dynamic json)
-      : open = json['open'] != null
-            ? (json['open'] is double
-                ? json['open']
-                : double.tryParse(json['open']))
-            : null,
-        high = json['high'] != null
-            ? (json['high'] is double
-                ? json['high']
-                : double.tryParse(json['high']))
-            : null,
-        low = json['low'] != null
-            ? (json['low'] is double
-                ? json['low']
-                : double.tryParse(json['low']))
-            : null,
-        volume = json['volume'] != null
-            ? (json['volume'] is double
-                ? json['volume']
-                : double.tryParse(json['volume']))
-            : null,
+      : open = parseDouble(json['open']),
+        high = parseDouble(json['high']),
+        low = parseDouble(json['low']),
+        volume = parseDouble(json['volume']),
         marketDate = json['market_date'] is Timestamp
             ? (json['market_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['market_date']),
-        averageVolume2Weeks = json['average_volume_2_weeks'] != null
-            ? (json['average_volume_2_weeks'] is double
-                ? json['average_volume_2_weeks']
-                : double.tryParse(json['average_volume_2_weeks']))
-            : null,
-        averageVolume30Days = json['average_volume_30_days'] != null
-            ? (json['average_volume_30_days'] is double
-                ? json['average_volume_30_days']
-                : double.tryParse(json['average_volume_30_days']))
-            : null,
-        averageVolume = json['average_volume'] != null
-            ? (json['average_volume'] is double
-                ? json['average_volume']
-                : double.tryParse(json['average_volume']))
-            : null,
-        high52Weeks = json['high_52_weeks'] != null
-            ? json['high_52_weeks'] is double
-                ? json['high_52_weeks']
-                : double.tryParse(json['high_52_weeks'])
-            : null,
-        dividendYield = json['dividend_yield'] != null
-            ? (json['dividend_yield'] is double
-                ? json['dividend_yield']
-                : double.tryParse(json['dividend_yield']))
-            : null,
-        float = json['float'] != null
-            ? (json['float'] is double
-                ? json['float']
-                : double.tryParse(json['float']))
-            : null,
-        low52Weeks = json['low_52_weeks'] != null
-            ? json['low_52_weeks'] is double
-                ? json['low_52_weeks']
-                : double.tryParse(json['low_52_weeks'])
-            : null,
-        marketCap = json['market_cap'] != null
-            ? (json['market_cap'] is double
-                ? json['market_cap']
-                : double.tryParse(json['market_cap']))
-            : null,
-        pbRatio = json['pb_ratio'] != null
-            ? (json['pb_ratio'] is double
-                ? json['pb_ratio']
-                : double.tryParse(json['pb_ratio']))
-            : null,
-        peRatio = json['pe_ratio'] != null
-            ? (json['pe_ratio'] is double
-                ? json['pe_ratio']
-                : double.tryParse(json['pe_ratio']))
-            : null,
-        sharesOutstanding = json['shares_outstanding'] != null
-            ? (json['shares_outstanding'] is double
-                ? json['shares_outstanding']
-                : double.tryParse(json['shares_outstanding']))
-            : null,
+            : (json['market_date'] is String
+                ? DateTime.tryParse(json['market_date'])
+                : null),
+        averageVolume2Weeks = parseDouble(json['average_volume_2_weeks']),
+        averageVolume30Days = parseDouble(json['average_volume_30_days']),
+        averageVolume = parseDouble(json['average_volume']),
+        high52Weeks = parseDouble(json['high_52_weeks']),
+        dividendYield = parseDouble(json['dividend_yield']),
+        float = parseDouble(json['float']),
+        low52Weeks = parseDouble(json['low_52_weeks']),
+        marketCap = parseDouble(json['market_cap']),
+        pbRatio = parseDouble(json['pb_ratio']),
+        peRatio = parseDouble(json['pe_ratio']),
+        sharesOutstanding = parseDouble(json['shares_outstanding']),
         description = json['description'],
         instrument = json['instrument'],
         ceo = json['ceo'],
@@ -143,6 +87,51 @@ class Fundamentals {
         headquartersState = json['headquarters_state'],
         sector = json['sector'],
         industry = json['industry'],
+        numEmployees = json['num_employees'],
+        yearFounded = json['year_founded'];
+
+  Fundamentals.fromSchwabJson(dynamic json,
+      {this.instrument = '',
+      String description = '',
+      this.sector = '',
+      this.industry = ''})
+      : open = parseDouble(json['open']),
+        high = parseDouble(json['high']),
+        low = parseDouble(json['low']),
+        volume = parseDouble(json['fundamental']?['vol1DayAvg'] ??
+            json['vol1DayAvg'] ??
+            json['volume']),
+        marketDate = null,
+        averageVolume2Weeks = parseDouble(
+            json['fundamental']?['vol10DayAvg'] ?? json['vol10DayAvg']),
+        averageVolume30Days = parseDouble(
+            json['fundamental']?['vol3MonthAvg'] ?? json['vol3MonthAvg']),
+        averageVolume = parseDouble(
+            json['fundamental']?['vol3MonthAvg'] ?? json['vol3MonthAvg']),
+        high52Weeks =
+            parseDouble(json['fundamental']?['high52'] ?? json['high52']),
+        dividendYield = parseDouble(
+            json['fundamental']?['dividendYield'] ?? json['dividendYield']),
+        float = parseDouble(
+            json['fundamental']?['marketCapFloat'] ?? json['marketCapFloat']),
+        low52Weeks =
+            parseDouble(json['fundamental']?['low52'] ?? json['low52']),
+        marketCap =
+            parseDouble(json['fundamental']?['marketCap'] ?? json['marketCap']),
+        pbRatio =
+            parseDouble(json['fundamental']?['pbRatio'] ?? json['pbRatio']),
+        peRatio =
+            parseDouble(json['fundamental']?['peRatio'] ?? json['peRatio']),
+        sharesOutstanding = parseDouble(json['fundamental']
+                ?['sharesOutstanding'] ??
+            json['sharesOutstanding']),
+        description = (json['description'] is String &&
+                (json['description'] as String).isNotEmpty)
+            ? json['description']
+            : description,
+        ceo = json['ceo'] ?? '',
+        headquartersCity = json['headquarters_city'] ?? '',
+        headquartersState = json['headquarters_state'] ?? '',
         numEmployees = json['num_employees'],
         yearFounded = json['year_founded'];
 

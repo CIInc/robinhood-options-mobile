@@ -7,14 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/src/text_style.dart' as style;
 import 'package:community_charts_flutter/src/text_element.dart' as element;
-import 'package:community_charts_common/community_charts_common.dart' as common
-    show
-        // ChartBehavior,
-        // SelectNearest,
-        SelectionMode
-    // SelectionModelType,
-    // SelectionTrigger
-    ;
+import 'package:community_charts_common/community_charts_common.dart' as common;
 import 'package:robinhood_options_mobile/constants.dart';
 
 class TimeSeriesChart extends StatefulWidget {
@@ -22,11 +15,13 @@ class TimeSeriesChart extends StatefulWidget {
   final bool animate;
   final double? open;
   final double? close;
+  final bool showRangeAnnotationValues;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
   final List<charts.SeriesRendererConfig<DateTime>>? customSeriesRenderers;
   final charts.NumericExtents? viewport;
   final bool zeroBound;
   final bool dataIsInWholeNumbers;
+  final bool hidePrimaryMeasureAxisValues;
   final common.SelectionMode selectionMode;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.ChartBehavior<DateTime>? seriesLegend;
@@ -38,6 +33,8 @@ class TimeSeriesChart extends StatefulWidget {
   final charts.CircleSymbolRenderer? symbolRenderer;
   // final String Function()? getTextForTextSymbolRenderer;
   final void Function(charts.SelectionModel<DateTime>?) onSelected;
+  final charts.LinePointHighlighterFollowLineType showVerticalFollowLine;
+  final bool? drawFollowLinesAcrossChart;
 
   const TimeSeriesChart(this.seriesList,
       {super.key,
@@ -47,9 +44,10 @@ class TimeSeriesChart extends StatefulWidget {
       // this.getTextForTextSymbolRenderer,
       this.open,
       this.close,
+      this.showRangeAnnotationValues = true,
       this.seriesRendererConfig,
       this.customSeriesRenderers,
-      this.selectionMode = common.SelectionMode.selectOverlapping,
+      this.selectionMode = common.SelectionMode.expandToDomain,
       this.behaviors,
       this.seriesLegend,
       this.initialSelection,
@@ -58,7 +56,11 @@ class TimeSeriesChart extends StatefulWidget {
       this.secondaryMeasureAxis,
       this.viewport,
       this.zeroBound = true,
-      this.dataIsInWholeNumbers = true});
+      this.dataIsInWholeNumbers = true,
+      this.hidePrimaryMeasureAxisValues = false,
+      this.showVerticalFollowLine =
+          charts.LinePointHighlighterFollowLineType.all,
+      this.drawFollowLinesAcrossChart});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -78,11 +80,34 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
+    final measureAxisLabelColor = widget.hidePrimaryMeasureAxisValues
+        ? charts.ColorUtil.fromDartColor(Colors.transparent)
+        : axisLabelColor;
+
+    final safeViewport = (widget.viewport != null &&
+            widget.viewport!.min.isFinite &&
+            widget.viewport!.max.isFinite &&
+            !widget.viewport!.min.isNaN &&
+            !widget.viewport!.max.isNaN &&
+            (widget.viewport!.max - widget.viewport!.min).abs() > 0.0001)
+        ? widget.viewport
+        : (widget.viewport != null &&
+                widget.viewport!.min.isFinite &&
+                widget.viewport!.max.isFinite &&
+                !widget.viewport!.min.isNaN &&
+                !widget.viewport!.max.isNaN
+            ? charts.NumericExtents(
+                widget.viewport!.min - 1.0, widget.viewport!.max + 1.0)
+            : null);
 
     return charts.TimeSeriesChart(
       widget.seriesList,
       defaultRenderer: widget.seriesRendererConfig ??
-          charts.LineRendererConfig(includeArea: true, stacked: false),
+          charts.LineRendererConfig(
+              includeArea: true,
+              stacked: false,
+              strokeWidthPx: 1.0,
+              symbolRenderer: CustomLineSymbolRenderer()),
       customSeriesRenderers: widget.customSeriesRenderers ?? [],
       // defaultInteractions:
       //     widget.seriesRendererConfig is charts.LineRendererConfig
@@ -91,11 +116,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       animate: widget.animate,
       primaryMeasureAxis: widget.primaryMeasureAxis ??
           charts.NumericAxisSpec(
-            viewport: widget.viewport,
+            viewport: safeViewport,
             //showAxisLine: true,
             //renderSpec: charts.GridlineRendererSpec(),
             renderSpec: charts.SmallTickRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+                labelStyle: charts.TextStyleSpec(color: measureAxisLabelColor)),
             //renderSpec: charts.NoneRenderSpec(),
             tickProviderSpec: charts.BasicNumericTickProviderSpec(
                 zeroBound: widget.zeroBound,
@@ -149,12 +174,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             charts.LinePointHighlighter(
                 // showHorizontalFollowLine:
                 //     charts.LinePointHighlighterFollowLineType.all, // .none
-                showVerticalFollowLine:
-                    charts.LinePointHighlighterFollowLineType.all,
+                showVerticalFollowLine: widget.showVerticalFollowLine,
                 dashPattern: const [1], // const [10],
                 defaultRadiusPx: 3,
                 // radiusPaddingPx: 6,
-                // drawFollowLinesAcrossChart: false,
+                drawFollowLinesAcrossChart: widget.drawFollowLinesAcrossChart,
                 // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
                 symbolRenderer: widget.symbolRenderer),
             // symbolRenderer: widget.getTextForTextSymbolRenderer != null
@@ -174,11 +198,15 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                         : widget.open!,
                     charts.RangeAnnotationAxisType.measure,
                     startLabel: widget.open! <= widget.close!
-                        ? 'open ${formatCurrency.format(widget.open!)}'
-                        : 'close ${formatCurrency.format(widget.close!)}',
+                        ? _rangeAnnotationLabel('open', widget.open!,
+                            widget.showRangeAnnotationValues)
+                        : _rangeAnnotationLabel('close', widget.close!,
+                            widget.showRangeAnnotationValues),
                     endLabel: widget.open! <= widget.close!
-                        ? 'close ${formatCurrency.format(widget.close!)}'
-                        : 'open ${formatCurrency.format(widget.open!)}',
+                        ? _rangeAnnotationLabel('close', widget.close!,
+                            widget.showRangeAnnotationValues)
+                        : _rangeAnnotationLabel('open', widget.open!,
+                            widget.showRangeAnnotationValues),
                     labelStyleSpec: charts.TextStyleSpec(
                         fontSize: 14,
                         color: rangeAnnotationLabelColor), //axisLabelColor
@@ -206,6 +234,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   */
 }
 
+String _rangeAnnotationLabel(String label, double value, bool showValue) {
+  return showValue ? '$label ${formatCurrency.format(value)}' : label;
+}
+
 // import 'package:charts_flutter/flutter.dart';
 // import 'package:charts_flutter/src/text_style.dart' as style;
 // import 'package:charts_flutter/src/text_element.dart' as element;
@@ -213,16 +245,22 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
 
 typedef GetText = String Function();
 
-class TextSymbolRenderer extends charts.CircleSymbolRenderer {
+class TextSymbolRenderer extends CustomCircleSymbolRenderer {
   TextSymbolRenderer(this.getText,
       {this.marginBottom = 8,
       this.padding = const EdgeInsets.all(8),
-      this.placeAbovePoint = false});
+      this.placeAbovePoint = false,
+      this.textColor = Colors.black,
+      this.backgroundColor = Colors.white,
+      this.fontSize = 12});
 
   final GetText getText;
   final double marginBottom;
   final EdgeInsets padding;
   final bool placeAbovePoint;
+  final Color textColor;
+  final Color backgroundColor;
+  final int fontSize;
 
   @override
   void paint(charts.ChartCanvas canvas, Rectangle<num> bounds,
@@ -239,8 +277,8 @@ class TextSymbolRenderer extends charts.CircleSymbolRenderer {
         strokeWidthPx: strokeWidthPx);
 
     style.TextStyle textStyle = style.TextStyle();
-    textStyle.color = charts.Color.black;
-    textStyle.fontSize = 14;
+    textStyle.color = charts.ColorUtil.fromDartColor(textColor);
+    textStyle.fontSize = fontSize;
 
     element.TextElement textElement =
         element.TextElement(getText.call(), style: textStyle);
@@ -263,7 +301,7 @@ class TextSymbolRenderer extends charts.CircleSymbolRenderer {
         width + (padding.left + padding.right),
         height + (padding.top + padding.bottom),
       ),
-      fill: charts.Color.white,
+      fill: charts.ColorUtil.fromDartColor(backgroundColor),
       radius: 16,
       roundTopLeft: true,
       roundTopRight: true,
@@ -275,5 +313,21 @@ class TextSymbolRenderer extends charts.CircleSymbolRenderer {
       (centerX - (width / 2)).round(),
       (centerY - (height / 2)).round(),
     );
+  }
+}
+
+/// A line symbol renderer that accepts any old renderer in [shouldRepaint]
+/// to prevent type errors when switching between series types (e.g. Bar to Line).
+class CustomLineSymbolRenderer extends common.LineSymbolRenderer {
+  @override
+  bool shouldRepaint(covariant common.SymbolRenderer oldRenderer) {
+    return this != oldRenderer;
+  }
+}
+
+class CustomCircleSymbolRenderer extends common.CircleSymbolRenderer {
+  @override
+  bool shouldRepaint(covariant common.SymbolRenderer oldRenderer) {
+    return this != oldRenderer;
   }
 }

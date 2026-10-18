@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -5,13 +6,14 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 class OptionOrdersWidget extends StatefulWidget {
   const OptionOrdersWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.optionOrders,
@@ -20,29 +22,35 @@ class OptionOrdersWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    required this.authUser,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
+  final User? authUser;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<OptionOrdersWidget> createState() => _OptionOrdersWidgetState();
 }
 
 class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
-  //final List<String> orderFilters = <String>["confirmed", "filled"];
+  List<String> orderFilters = [];
+  bool _showAllOptionOrders = false;
 
   _OptionOrdersWidgetState();
 
   @override
   void initState() {
     super.initState();
+    orderFilters = List.from(widget.orderFilters);
   }
 
   @override
@@ -54,7 +62,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
     );
     */
     var optionOrders = widget.optionOrders;
-    var orderFilters = widget.orderFilters;
+    // var orderFilters = widget.orderFilters;
     var optionOrdersPremiumBalance = optionOrders.isNotEmpty
         ? optionOrders
             .map((e) =>
@@ -62,6 +70,18 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                 (e.direction == "credit" ? 1 : -1))
             .reduce((a, b) => a + b) as double
         : 0;
+
+    var filteredOptionOrders = optionOrders
+        .where((element) =>
+            orderFilters.isEmpty || orderFilters.contains(element.state))
+        .toList();
+    filteredOptionOrders.sort((a, b) =>
+        (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
+
+    final displayCount = _showAllOptionOrders
+        ? filteredOptionOrders.length
+        : (filteredOptionOrders.length > 3 ? 3 : filteredOptionOrders.length);
+    final showButton = filteredOptionOrders.length > 3;
 
     return SliverStickyHeader(
       header: Material(
@@ -73,7 +93,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
               child: ListTile(
                 title: const Text(
                   "Option Orders",
-                  style: TextStyle(fontSize: 19.0),
+                  style: TextStyle(fontSize: 20.0),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
@@ -95,7 +115,9 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",
-                                  style: TextStyle(fontSize: 19.0),
+                                  style: TextStyle(
+                                      fontSize: 20.0,
+                                      fontWeight: FontWeight.bold),
                                 ),
                                 /*
                                   trailing: TextButton(
@@ -112,12 +134,25 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          if ( //optionOrders[index] == null ||
-              (orderFilters.isNotEmpty &&
-                  !orderFilters.contains(optionOrders[index].state))) {
-            return Container();
+          if (index >= displayCount) {
+            return Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllOptionOrders = !_showAllOptionOrders;
+                    });
+                  },
+                  icon: Icon(_showAllOptionOrders
+                      ? Icons.expand_less
+                      : Icons.expand_more),
+                  label: Text(_showAllOptionOrders
+                      ? 'Show Less'
+                      : 'Show All (${filteredOptionOrders.length})')),
+            );
           }
-          var optionOrder = optionOrders[index];
+
+          var optionOrder = filteredOptionOrders[index];
           var subtitle =
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
@@ -147,14 +182,14 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                         : Text('${optionOrder.quantity!.round()}',
                             style: const TextStyle(fontSize: 17))),
                 title: Text(
-                    "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: subtitle,
                 trailing: Wrap(spacing: 8, children: [
                   Text(
-                    (optionOrders[index].direction == "credit" ? "+" : "-") +
-                        (optionOrders[index].processedPremium != null
+                    (optionOrder.direction == "credit" ? "+" : "-") +
+                        (optionOrder.processedPremium != null
                             ? formatCurrency
-                                .format(optionOrders[index].processedPremium)
+                                .format(optionOrder.processedPremium)
                             : ""),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
@@ -198,24 +233,26 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => OptionOrderWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
-                                optionOrders[index],
+                                optionOrder,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
                                 generativeService: widget.generativeService,
+                                user: widget.authUser,
+                                userDocRef: widget.userDocRef,
                               )));
                 },
               ),
             ],
           ));
-        }, childCount: optionOrders.length),
+        }, childCount: displayCount + (showButton ? 1 : 0)),
       ),
     );
   }
 
   Widget get orderFilterWidget {
-    var orderFilters = widget.orderFilters;
+    // var orderFilters = widget.orderFilters;
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -223,6 +260,24 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
           scrollDirection: Axis.horizontal,
           itemBuilder: (context, index) {
             return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  label: const Text('Queued'),
+                  selected: orderFilters.contains("queued"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("queued");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "queued";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(

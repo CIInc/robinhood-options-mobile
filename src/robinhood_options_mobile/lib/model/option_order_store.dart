@@ -19,9 +19,19 @@ class OptionOrderStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addAll(List<OptionOrder> items) {
+    _items.addAll(items);
+    notifyListeners();
+  }
+
   void removeAll() {
     _items.clear();
     // This call tells the widgets that are listening to this model to rebuild.
+    notifyListeners();
+  }
+
+  void removeWhere(bool Function(OptionOrder) test) {
+    _items.removeWhere(test);
     notifyListeners();
   }
 

@@ -5,17 +5,18 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/main.dart';
-import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/watchlist_grid_item_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 enum SortType { alphabetical, change }
@@ -24,7 +25,7 @@ enum SortDirection { asc, desc }
 
 class ListWidget extends StatefulWidget {
   const ListWidget(
-      this.user,
+      this.brokerageUser,
       this.service,
       //this.account,
       this.listKey,
@@ -32,16 +33,22 @@ class ListWidget extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
-      this.navigatorKey});
+      this.navigatorKey,
+      required this.user,
+      required this.userDocRef,
+      this.ownerType = "robinhood"});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GlobalKey<NavigatorState>? navigatorKey;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   //final Account account;
   final String listKey;
+  final String ownerType;
 
   @override
   State<ListWidget> createState() => _ListWidgetState();
@@ -73,16 +80,16 @@ class _ListWidgetState extends State<ListWidget>
   }
 
   Widget _buildPage() {
-    if (widget.user.userName == null) {
+    if (widget.brokerageUser.userName == null) {
       return Container();
     }
 
     watchlistStream ??= widget.service.streamList(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false),
         widget.listKey,
-        ownerType: "robinhood");
+        ownerType: widget.ownerType);
     return StreamBuilder(
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
@@ -133,10 +140,16 @@ class _ListWidgetState extends State<ListWidget>
               spacing: 20,
               //runSpacing: 5,
               children: [
-                const Text('Lists', style: TextStyle(fontSize: 20.0)),
+                Text(
+                    widget.ownerType == "robinhood"
+                        ? 'Robinhood List'
+                        : 'Watchlist',
+                    style: TextStyle(fontSize: 20.0)),
                 Text(
                   "${formatCompactNumber.format(totalItems)} items",
-                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 )
               ]),
           actions: [
@@ -150,7 +163,7 @@ class _ListWidgetState extends State<ListWidget>
                                 auth.currentUser!.photoURL!
                                 //  ?? Constants .placeholderImage, // No longer used
                                 )))
-                    : const Icon(Icons.login),
+                    : const Icon(Icons.account_circle_outlined),
                 onPressed: () async {
                   var response = await showProfile(
                       context,
@@ -158,7 +171,8 @@ class _ListWidgetState extends State<ListWidget>
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
-                      widget.user);
+                      widget.brokerageUser,
+                      widget.service);
                   if (response != null) {
                     setState(() {});
                   }
@@ -269,9 +283,25 @@ class _ListWidgetState extends State<ListWidget>
                       //padding: EdgeInsets.symmetric(horizontal: 16.0),
                       alignment: Alignment.centerLeft,
                       child: ListTile(
+                        leading: (watchlist?.imageUrls?['circle_64:3'] != null)
+                            ? CircleAvatar(
+                                backgroundImage: CachedNetworkImageProvider(
+                                    watchlist!.imageUrls!['circle_64:3']),
+                              )
+                            : (watchlist?.iconEmoji != null
+                                ? CircleAvatar(
+                                    backgroundColor: Colors.transparent,
+                                    child: Text(
+                                      watchlist!.iconEmoji!,
+                                      style:
+                                          const TextStyle(fontSize: 40), // 28
+                                    ),
+                                  )
+                                : null),
                         title: Text(
                           watchlist != null ? watchlist!.displayName : '',
-                          style: const TextStyle(fontSize: 19.0),
+                          style: const TextStyle(
+                              fontSize: 20.0, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                             "${formatCompactNumber.format(watchlist != null ? watchlist!.items.length : 0)} items"),
@@ -295,7 +325,9 @@ class _ListWidgetState extends State<ListWidget>
                                         //     .primary,
                                         title: const Text(
                                           "Sort Watch List",
-                                          style: TextStyle(fontSize: 19.0),
+                                          style: TextStyle(
+                                              fontSize: 20.0,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                         //trailing: TextButton(
                                         //    child: const Text("APPLY"),
@@ -432,7 +464,15 @@ class _ListWidgetState extends State<ListWidget>
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildWatchlistGridItem(watchLists, index, widget.user);
+              return WatchlistGridItemWidget(
+                  watchLists[index],
+                  widget.brokerageUser,
+                  widget.service,
+                  widget.analytics,
+                  widget.observer,
+                  widget.generativeService,
+                  widget.user,
+                  widget.userDocRef);
               /*
           return Container(
             alignment: Alignment.center,
@@ -462,187 +502,5 @@ class _ListWidgetState extends State<ListWidget>
       ),
     );
     */
-  }
-
-  Widget _buildWatchlistGridItem(
-      List<WatchlistItem> watchLists, int index, BrokerageUser ru) {
-    var instrumentObj = watchLists[index].instrumentObj;
-    var forexObj = watchLists[index].forexObj;
-    var changePercentToday = 0.0;
-    if (forexObj != null) {
-      changePercentToday =
-          (forexObj.markPrice! - forexObj.openPrice!) / forexObj.openPrice!;
-    }
-
-    final isPositive = instrumentObj != null && instrumentObj.quoteObj != null
-        ? instrumentObj.quoteObj!.changeToday > 0
-        : changePercentToday > 0;
-    final isNegative = instrumentObj != null && instrumentObj.quoteObj != null
-        ? instrumentObj.quoteObj!.changeToday < 0
-        : changePercentToday < 0;
-
-    return Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          side: BorderSide(
-            color: isPositive
-                ? Colors.green.withOpacity(0.3)
-                : (isNegative
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.2)),
-            width: 1.5,
-          ),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12.0),
-          child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        if (instrumentObj != null)
-                          Expanded(
-                            child: Text(instrumentObj.symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                        if (forexObj != null)
-                          Expanded(
-                            child: Text(forexObj.symbol,
-                                style: const TextStyle(
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isPositive
-                                ? Colors.green.withOpacity(0.15)
-                                : (isNegative
-                                    ? Colors.red.withOpacity(0.15)
-                                    : Colors.grey.withOpacity(0.15)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (instrumentObj != null &&
-                                  instrumentObj.quoteObj != null) ...[
-                                Icon(
-                                    instrumentObj.quoteObj!.changeToday > 0
-                                        ? Icons.trending_up
-                                        : (instrumentObj.quoteObj!.changeToday <
-                                                0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color:
-                                        (instrumentObj.quoteObj!.changeToday > 0
-                                            ? Colors.green
-                                            : (instrumentObj
-                                                        .quoteObj!.changeToday <
-                                                    0
-                                                ? Colors.red
-                                                : Colors.grey)),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                    formatPercentage.format(instrumentObj
-                                        .quoteObj!.changePercentToday
-                                        .abs()),
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          (instrumentObj.quoteObj!.changeToday >
-                                                  0
-                                              ? Colors.green
-                                              : (instrumentObj.quoteObj!
-                                                          .changeToday <
-                                                      0
-                                                  ? Colors.red
-                                                  : Colors.grey)),
-                                    )),
-                              ],
-                              if (forexObj != null) ...[
-                                Icon(
-                                    changePercentToday > 0
-                                        ? Icons.trending_up
-                                        : (changePercentToday < 0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: (changePercentToday > 0
-                                        ? Colors.green
-                                        : (changePercentToday < 0
-                                            ? Colors.red
-                                            : Colors.grey)),
-                                    size: 16),
-                                const SizedBox(width: 4),
-                                Text(
-                                    formatPercentage
-                                        .format(changePercentToday.abs()),
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.bold,
-                                      color: (changePercentToday > 0
-                                          ? Colors.green
-                                          : (changePercentToday < 0
-                                              ? Colors.red
-                                              : Colors.grey)),
-                                    )),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(children: [
-                      if (watchLists[index].instrumentObj != null) ...[
-                        Text(
-                            watchLists[index].instrumentObj!.simpleName ??
-                                watchLists[index].instrumentObj!.name,
-                            style: TextStyle(
-                                fontSize: 12.0, color: Colors.grey.shade600),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis)
-                      ],
-                    ]),
-                  ])),
-          onTap: () {
-            /* For navigation within this tab, uncomment
-              widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(ru, widget.account,
-                      watchLists[index].instrumentObj as Instrument)));
-                      */
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(
-                          ru,
-                          widget.service,
-                          watchLists[index].instrumentObj as Instrument,
-                          analytics: widget.analytics,
-                          observer: widget.observer,
-                          generativeService: widget.generativeService,
-                        )));
-          },
-        ));
   }
 }

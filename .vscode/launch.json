@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Integration Test",
+            "type": "dart",
+            "request": "launch",
+            "program": "src/robinhood_options_mobile/integration_test/app_test.dart",
+            "cwd": "src/robinhood_options_mobile",
+            "args": [
+                "--dart-define=INTEGRATION_TEST=true"
+            ]
+        },
+        {
             "name": "Flutter",
             "type": "dart",
             "request": "launch",

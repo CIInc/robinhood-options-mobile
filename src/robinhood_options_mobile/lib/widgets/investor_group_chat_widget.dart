@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/group_message.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:intl/intl.dart';
 
@@ -57,15 +59,19 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
               final messages = snapshot.data?.docs ?? [];
 
               if (messages.isEmpty) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.chat_bubble_outline,
-                          size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
+                          size: 64,
+                          color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 16),
                       Text('No messages yet. Start the conversation!',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -82,7 +88,42 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                   final showHeader = index == messages.length - 1 ||
                       messages[index + 1].data().senderId != message.senderId;
 
-                  return _buildMessageBubble(message, isMe, showHeader);
+                  // Check if date changed compared to next message (which is physically below in list but newer in time?)
+                  // NO, list is reverse: true.
+                  // Index 0: Newest message (Bottom of screen)
+                  // Index N: Oldest message (Top of screen)
+
+                  // We want to show date header ABOVE the message if the message ABOVE it (older) is from a different day.
+                  // Message "above" it in UI is at index + 1 in the list.
+
+                  bool showDateHeader = false;
+                  if (index == messages.length - 1) {
+                    // Oldest message, always show date
+                    showDateHeader = true;
+                  } else {
+                    final nextMessage = messages[index + 1].data();
+                    if (!_isSameDay(message.timestamp, nextMessage.timestamp)) {
+                      showDateHeader = true;
+                    }
+                  }
+
+                  // Mark as read if it's not my message and I haven't read it yet
+                  if (!isMe &&
+                      auth.currentUser != null &&
+                      !message.readBy.containsKey(auth.currentUser!.uid)) {
+                    // Use microtask or just call it. Since it returns Future, it's async enough.
+                    // To avoid spamming while scrolling, maybe check if it's visible?
+                    // But ListView.builder only builds visible items.
+                    widget.firestoreService.markGroupMessageAsRead(
+                        widget.group.id, message.id, auth.currentUser!.uid);
+                  }
+
+                  return Column(
+                    children: [
+                      if (showDateHeader) _buildDateHeader(message.timestamp),
+                      _buildMessageBubble(message, isMe, showHeader),
+                    ],
+                  );
                 },
               );
             },
@@ -93,6 +134,50 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
     );
   }
 
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
+  }
+
+  Widget _buildDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final messageDate = DateTime(date.year, date.month, date.day);
+
+    String text;
+    if (messageDate == today) {
+      text = 'Today';
+    } else if (messageDate == yesterday) {
+      text = 'Yesterday';
+    } else {
+      text = DateFormat.yMMMd().format(date);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context)
+                .colorScheme
+                .surfaceContainerHighest
+                .withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(GroupMessage message, bool isMe, bool showHeader) {
     final isAdmin =
         auth.currentUser != null && widget.group.isAdmin(auth.currentUser!.uid);
@@ -100,95 +185,209 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
     final canEdit = isMe;
     final canDelete = isMe || isAdmin || isCreator;
 
+    // Read receipts info
+    int readCount = message.readBy.length;
+    bool isRead = readCount > 0;
+    final theme = Theme.of(context);
+
     return GestureDetector(
       onLongPress: () {
         if (canEdit || canDelete) {
           _showMessageOptions(context, message, canEdit, canDelete);
         }
       },
-      child: Column(
-        crossAxisAlignment:
-            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          if (showHeader && !isMe) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (message.senderPhotoUrl != null)
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundImage:
-                        CachedNetworkImageProvider(message.senderPhotoUrl!),
-                  )
-                else
-                  const CircleAvatar(
-                    radius: 12,
-                    child: Icon(Icons.person, size: 16),
-                  ),
-                const SizedBox(width: 8),
-                Text(
-                  message.senderName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          mainAxisAlignment:
+              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isMe && showHeader) ...[
+              if (message.senderPhotoUrl != null)
+                CircleAvatar(
+                  radius: 16,
+                  backgroundImage:
+                      CachedNetworkImageProvider(message.senderPhotoUrl!),
+                )
+              else
+                const CircleAvatar(
+                  radius: 16,
+                  child: Icon(Icons.person, size: 20),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat.jm().format(message.timestamp),
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-          ],
-          if (showHeader && isMe) const SizedBox(height: 16),
-          Container(
-            margin: const EdgeInsets.only(bottom: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isMe
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
-                bottomLeft: isMe ? const Radius.circular(20) : Radius.zero,
-                bottomRight: isMe ? Radius.zero : const Radius.circular(20),
-              ),
-            ),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.text,
-                  style: TextStyle(
-                    color: isMe
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (isMe && showHeader)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      DateFormat.jm().format(message.timestamp),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimary
-                            .withOpacity(0.7),
+              const SizedBox(width: 8),
+            ] else if (!isMe && !showHeader) ...[
+              const SizedBox(width: 40), // 32 (avatar) + 8 (spacing)
+            ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                children: [
+                  if (showHeader && !isMe) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0, left: 4.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            message.senderName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateFormat.jm().format(message.timestamp),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                  ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(20),
+                        topRight: const Radius.circular(20),
+                        bottomLeft:
+                            isMe ? const Radius.circular(20) : Radius.zero,
+                        bottomRight:
+                            isMe ? Radius.zero : const Radius.circular(20),
+                      ),
+                      border: !isMe
+                          ? Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5),
+                            )
+                          : null,
+                    ),
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          message.text,
+                          style: TextStyle(
+                            color: isMe
+                                ? theme.colorScheme.onPrimary
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (isMe)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  DateFormat.jm().format(message.timestamp),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: theme.colorScheme.onPrimary
+                                        .withValues(alpha: 0.7),
+                                  ),
+                                ),
+                                if (isMe) ...[
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    isRead ? Icons.done_all : Icons.done,
+                                    size: 14,
+                                    color: theme.colorScheme.onPrimary
+                                        .withValues(alpha: isRead ? 1.0 : 0.7),
+                                  ),
+                                  if (isRead && readCount > 0)
+                                    GestureDetector(
+                                      onTap: () {
+                                        _showReadReceipts(context, message);
+                                      },
+                                      child: Text(
+                                        ' $readCount',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.onPrimary
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                    )
+                                ],
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-              ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReadReceipts(BuildContext context, GroupMessage message) {
+    if (message.readBy.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Read by',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
+          ...message.readBy.entries.map((entry) {
+            final userId = entry.key;
+            final time = entry.value;
+            // Fetch user info or use just ID if extensive, but here we likely want names.
+            // Since we don't have user names readily available in message.readBy map,
+            // we can try to look it up from group members helper if available, or just
+            // show "User matching ID" or fetch.
+            // For now, let's use StreamBuilder or FutureBuilder to fetch specific user name?
+            // Or just check group.members to see if we have names cached?
+            // InvestorGroup stores Member IDs.
+            // We'll use a FutureBuilder to fetch basic user info.
+
+            return FutureBuilder<DocumentSnapshot<User>>(
+                future: widget.firestoreService.getUser(userId).first,
+                builder: (context, snapshot) {
+                  final user = snapshot.data?.data();
+                  final name = user?.name ?? 'Unknown User';
+                  final photoUrl = user?.photoUrl;
+
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: photoUrl != null
+                          ? CachedNetworkImageProvider(photoUrl)
+                          : null,
+                      child: photoUrl == null ? const Icon(Icons.person) : null,
+                    ),
+                    title: Text(name),
+                    subtitle: Text(DateFormat.jm().format(time)),
+                  );
+                });
+          }),
         ],
       ),
     );
@@ -201,7 +400,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, -1),
             blurRadius: 5,
           ),

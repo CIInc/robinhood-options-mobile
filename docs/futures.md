@@ -1,9 +1,9 @@
 # Futures Positions
 
-RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing both Open P&L and Day P&L calculations per contract.
+RealizeAlpha now enriches futures positions with contract & product metadata, real-time quotes, and settlement prices, exposing Open P&L, Day P&L, Realized P&L, and margin requirement calculations per contract.
 
 ## Overview
-Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L and Day P&L; realized P&L, margin analytics, and roll logic are planned.
+Futures data is aggregated client-side from brokerage APIs, then augmented with metadata (contract + product), live quotes, and previous close prices before being displayed. The implementation provides transparent Open P&L, Day P&L, Realized P&L, and margin requirement estimates. Contract roll logic remains planned.
 
 ## Data Sources
 - **Aggregated Positions:** Base quantity and average trade price.
@@ -24,8 +24,12 @@ Futures data is aggregated client-side from brokerage APIs, then augmented with 
 | `lastTradePrice` | Latest trade price from quote feed. |
 | `previousClosePrice` | Previous close (settlement) price from closes endpoint. |
 | `quantity` | Number of contracts held (signed). |
+| `startOfDayPnl` | P&L since the start of the trading day. |
+| `realizedPnl` | Realized P&L for the day. |
 | `openPnlCalc` | Computed Open P&L value (see formula). |
 | `dayPnlCalc` | Computed Day P&L value (see formula). |
+| `notionalValue` | Computed Notional Value (Last Price * |Quantity| * Multiplier). |
+| `marginRequirement` | Estimated margin requirement for the position when supplied by the brokerage data. |
 
 ## P&L Formulas
 
@@ -41,11 +45,10 @@ LastTradePrice = 4527.25
 Quantity = 3
 Multiplier = 50
 OpenPnlCalc = (4527.25 - 4520.00) * 3 * 50 = 1087.50
-## UI Integration
-- Both Day P&L and Open P&L are displayed in the Futures Positions widget with color-coded values (green for positive, red for negative, grey for zero).
-- Day P&L is shown above Open P&L for each position.
-- Precision: last trade price shown with 2–4 decimals depending on instrument.
-- Contract & product metadata shown as supplemental descriptive text.lose price, scaled by contract quantity and multiplier.
+```
+
+### Day P&L
+The Day P&L compares the last trade price against the previous close price, scaled by contract quantity and multiplier.
 
 $Day\ P\&L = (Last\ Price - Previous\ Close\ Price) \times Quantity \times Multiplier$
 
@@ -58,10 +61,69 @@ Multiplier = 50
 DayPnlCalc = (4527.25 - 4518.50) * 3 * 50 = 1312.50
 ```
 
+### Realized P&L
+Realized P&L is calculated based on closed positions during the current session, factoring in execution prices and quantities.
+
+### Risk Metrics
+Basic risk metrics are provided to monitor exposure.
+
+**Margin Requirement**
+
+Margin requirements are displayed when the brokerage supplies the data needed for the position. Treat the value as an estimate of capital required for the position; broker-specific maintenance rules, intraday rules, and portfolio offsets may change the final requirement.
+
+**Notional Value**
+Represents the total value of the assets controlled by the futures position.
+
+$Notional\ Value = Last\ Price \times |Quantity| \times Multiplier$
+
+Example:
+```
+LastTradePrice = 4527.25
+Quantity = -3 (Short)
+Multiplier = 50
+NotionalValue = 4527.25 * 3 * 50 = 679,087.50
+```
+
+### Risk Distribution
+A pie chart visualizes the distribution of Notional Value across different futures products (e.g., /ES, /NQ), highlighting concentration risk.
+
 ## UI Integration
-- Displayed in the Futures Positions widget with color-coded value (positive/negative).
-- Precision: last trade price shown with 2–4 decimals depending on instrument.
-- Contract & product metadata shown as supplemental descriptive text.
+- **Summary Header:** Displays aggregated Total Notional, Total Open P&L, and Total Day P&L.
+- **Risk Chart:** Interactive pie chart showing notional exposure by root symbol.
+- **Position List (`FuturesPositionsWidget`):**
+    - Day P&L and Open P&L with color-coded values.
+    - Notional Value per position.
+    - Contract details and multipliers.
+    - Bounded lazy scrolling via `SliverMainAxisGroup` and `SliverList.builder` to optimize scroll performance on long positions lists.
+
+## Futures Order Entry
+
+Users can place live futures orders directly from `FutureInstrumentWidget` via the modal `FuturesOrderEntrySheet`.
+
+### Order Sheet Features
+- **Order Types:** Supports **Market** and **Limit** orders.
+- **Side:** Toggle between **Buy** (Long) and **Sell** (Short).
+- **Quantity & Price:** Enter contract quantities and custom limit prices with live tick step increments.
+- **Time-in-Force (TIF):** Configurable between `Day` and `Good 'Til Canceled (GTC)`.
+- **Live Quote Banner:** Surfaces the real-time mark price, bid/ask prices, spread, and contract multiplier.
+- **Notional Calculation:** Dynamically calculates the estimated total notional order value ($P \times Q \times \text{Multiplier}$).
+- **Two-Step Order Confirmation:** An explicit modal review dialog confirms contract details, action, order type, price, and total estimated value before routing to the brokerage API.
+
+### Brokerage Integration (`IBrokerageService`)
+- Added `placeFuturesOrder` to `IBrokerageService` (`RobinhoodService` implements active order placement calling `/marketdata/futures/orders/`).
+- Service implementations in `PaperService`, `DemoService`, `FidelityService`, `PlaidService`, and `SchwabService` provide graceful stub/preview handling.
+
+## Futures Auto-Trading
+
+Futures Auto-Trading adds automated strategy execution on futures contracts with configurable rules, activity logging, and safety controls.
+
+### Key Elements
+- **Provider:** `FuturesAutoTradingProvider` manages config, countdown timers, and trade history.
+- **Settings UI:** `FuturesTradingSettingsWidget` exposes strategy templates, risk controls, and save state.
+- **Performance UI:** `FuturesTradingPerformanceWidget` summarizes P&L, win rate, and recent trades.
+- **Home Cards:** Quick visibility into daily trades, total P&L, and active contracts.
+- **Backend:** `agentic-futures-trading.ts` and cron jobs generate futures signals and execution flow.
+
 ## Technical Implementation
 - Service layer method (`streamFuturePositions`) fetches aggregated positions, then sequentially:
   1. Fetches contract & product metadata via `getFuturesContractsByIds` and `getFuturesProductsByIds`.
@@ -71,21 +133,17 @@ DayPnlCalc = (4527.25 - 4518.50) * 3 * 50 = 1312.50
 - Enriched positions exposed as a stream for reactive UI updates.
 - No secrets: all sensitive logic (if any future brokerage write operations are needed) should move to Firebase Functions.
 ## Limitations
-- No realized P&L yet (requires trade history processing).
-- Margin impact / maintenance requirement not shown.
+- Contract roll detection and calendar spread awareness are not yet available.
 - No contract roll detection or calendar spread awareness.
 - No Greeks or implied volatility surface metrics.
 - Assumes multiplier is available and non-null; positions without multiplier may show `openPnlCalc = null` and `dayPnlCalc = null`.
 - Day P&L calculation depends on availability of previous close price; if unavailable, `dayPnlCalc` will be null.
-- No Greeks or implied volatility surface metrics.
-## Roadmap
-Planned enhancements:
-- Margin metrics & risk layer (SPAN-style summary).
+
+## Planned Enhancements
+- Expanded margin metrics and a SPAN-style portfolio risk layer.
 - Realized P&L tracking using trade history.
 - Contract roll assistant (alerts near expiration, auto-suggest roll strikes/months).
 - Greeks and term structure analytics for rate-sensitive products.
-- Volatility overlays and seasonal tendencies.
-- Aggregated portfolio risk (VaR / expected shortfall) including futures.
 - Volatility overlays and seasonal tendencies.
 - Aggregated portfolio risk (VaR / expected shortfall) including futures.
 
@@ -100,6 +158,4 @@ Before extending futures logic:
 2. Add unit tests for new calculations (especially margin, realized P&L).
 3. Maintain consistent naming (snake_case files, UpperCamelCase classes).
 ## Summary
-Futures support now delivers enriched contract context with transparent Open P&L and Day P&L calculations, providing comprehensive position tracking and forming the foundation for advanced risk and analytics to come.
-## Summary
-Initial futures support delivers enriched contract context and transparent Open P&L, forming the foundation for advanced risk and analytics to come.
+Futures support now delivers enriched contract context with transparent Open P&L and Day P&L calculations, and futures auto-trading extends the platform with configurable automated execution.

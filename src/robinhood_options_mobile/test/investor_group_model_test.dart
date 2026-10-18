@@ -45,10 +45,11 @@ void main() {
       // Verify all fields are correctly deserialized
       expect(deserializedGroup.id, equals('test-group-id'));
       expect(deserializedGroup.name, equals('Tech Investors'));
-      expect(
-          deserializedGroup.description, equals('A group for tech stock enthusiasts'));
+      expect(deserializedGroup.description,
+          equals('A group for tech stock enthusiasts'));
       expect(deserializedGroup.createdBy, equals('user123'));
-      expect(deserializedGroup.members, equals(['user123', 'user456', 'user789']));
+      expect(
+          deserializedGroup.members, equals(['user123', 'user456', 'user789']));
       expect(deserializedGroup.admins, equals(['user123', 'user456']));
       expect(deserializedGroup.pendingInvitations, equals(['user999']));
       expect(deserializedGroup.isPrivate, equals(true));
@@ -205,7 +206,9 @@ void main() {
       expect(groups[1].isPrivate, isFalse);
     });
 
-    test('InvestorGroup.hasPendingInvitation should correctly identify pending invitations', () {
+    test(
+        'InvestorGroup.hasPendingInvitation should correctly identify pending invitations',
+        () {
       final group = InvestorGroup(
         id: 'test-group',
         name: 'Test Group',
@@ -294,8 +297,8 @@ void main() {
       group.setCopyTradeSettings('user123', settings);
       expect(group.getCopyTradeSettings('user123'), isNotNull);
       expect(group.getCopyTradeSettings('user123')!.enabled, equals(true));
-      expect(
-          group.getCopyTradeSettings('user123')!.targetUserId, equals('user456'));
+      expect(group.getCopyTradeSettings('user123')!.targetUserId,
+          equals('user456'));
       expect(group.getCopyTradeSettings('user456'), isNull);
     });
 
@@ -335,8 +338,7 @@ void main() {
       expect(deserializedGroup.getCopyTradeSettings('user123'), isNotNull);
       expect(deserializedGroup.getCopyTradeSettings('user123')!.enabled,
           equals(true));
-      expect(
-          deserializedGroup.getCopyTradeSettings('user123')!.targetUserId,
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.targetUserId,
           equals('user456'));
       expect(deserializedGroup.getCopyTradeSettings('user123')!.maxQuantity,
           equals(50));

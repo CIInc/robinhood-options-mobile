@@ -13,7 +13,7 @@ import { initializeApp } from "firebase-admin/app";
 
 initializeApp();
 
-import * as plaidfunc from "./plaid";
+// import * as plaidfunc from "./plaid";
 import * as authfunc from "./auth";
 import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
@@ -23,8 +23,38 @@ import * as agenticTradingIntradayCron from "./agentic-trading-intraday-cron";
 import * as riskguardAgent from "./riskguard-agent";
 import * as copyTrading from "./copy-trading";
 import * as tradeSignalNotifications from "./trade-signal-notifications";
+import * as agenticTradingNotifications from "./agentic-trading-notifications";
 import * as cronDiagnosticsFuncs from "./cron-diagnostics";
 import * as signalDiagnosticsFuncs from "./signal-diagnostics";
+import * as backtesting from "./backtesting";
+import * as optionsFlow from "./options-flow";
+import * as optionsFlowCron from "./options-flow-cron";
+import * as sentimentAnalysis from "./sentiment-analysis";
+import * as chatNotifications from "./chat-notifications";
+import * as macroAgent from "./macro-agent";
+import * as alphaFactorDiscovery from "./alpha-factor-discovery";
+import * as marketData from "./market-data";
+import * as futuresTrading from "./agentic-futures-trading";
+import * as futuresSignalsCron from "./agentic-futures-trading-signals-cron";
+import * as groupWatchlists from "./group-watchlists";
+import * as watchlistAlerts from "./watchlist-alerts-cron";
+import * as customAlertsCron from "./custom-alerts-cron";
+import * as paperTradingCron from "./paper-trading-cron";
+import * as paperAccountMigration from "./paper-account-migration";
+import * as yahooProxyFuncs from "./yahoo-proxy";
+import * as rebalancingCronFuncs from "./rebalancing-cron";
+import * as whaleWatchCron from "./whale-watch-cron";
+import * as migrations from "./migrations";
+import * as paperLedgerRepair from "./paper-ledger-repair";
+import * as gammaExposureFuncs from "./gamma-exposure";
+import * as eventStudy from "./event-study";
+import * as screenerUniverse from "./screener-universe";
+import * as newsIntelligence from "./news-intelligence";
+import * as secEdgar from "./sec-edgar";
+import * as congressTrading from "./congress-trading";
+import * as groupPerformanceAnalytics from "./group-performance-analytics";
+import * as instrumentOrderSync from "./instrument-order-sync";
+import { verifySubscription as verifySubscriptionFunc } from "./subscriptions";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -35,24 +65,35 @@ import * as signalDiagnosticsFuncs from "./signal-diagnostics";
 //   response.send("Hello from Firebase!");
 // });
 
-export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
-export const exchangePublicTokenForAccessToken =
-  plaidfunc.exchangePublicTokenForAccessToken;
-export const getInvestmentsHoldings =
-  plaidfunc.getInvestmentsHoldings;
-export const getInvestmentsTransactions =
-  plaidfunc.getInvestmentsTransactions;
+export const discoverAlphaFactors = alphaFactorDiscovery.discoverAlphaFactors;
+export const analyzeEventStudy = eventStudy.analyzeEventStudy;
+export const seedScreenerUniverse =
+  screenerUniverse.seedScreenerUniverseCall;
+
+// export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
+// export const exchangePublicTokenForAccessToken =
+//   plaidfunc.exchangePublicTokenForAccessToken;
+// export const getInvestmentsHoldings =
+//   plaidfunc.getInvestmentsHoldings;
+// export const getInvestmentsTransactions =
+//   plaidfunc.getInvestmentsTransactions;
+export const onGroupMessageCreated = chatNotifications.onGroupMessageCreated;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
-export const generateContent = gemini.generateContent;
-export const generateContent2 = gemini.generateContent2;
+export const getSentimentAnalysis = sentimentAnalysis.getSentimentAnalysis;
+// export const generateContent = gemini.generateContent;
+// export const generateContent2 = gemini.generateContent2;
+export const generateContent31 = gemini.generateContent31;
+export const generateContent35 = gemini.generateContent35;
+export const generateContent38 = gemini.generateContent38;
+export const generateContent3 = gemini.generateContent3;
 export const generateContent25 = gemini.generateContent25;
+export const analyzePriceTargets = gemini.analyzePriceTargets;
+export const stressTestTradeThesis = gemini.stressTestTradeThesis;
+export const analyzeTradePostMortem = gemini.analyzeTradePostMortem;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;
-export const getAgenticTradingConfig =
-  agenticTradingfunc.getAgenticTradingConfig;
-export const setAgenticTradingConfig =
-  agenticTradingfunc.setAgenticTradingConfig;
+export const seedAgenticTrading = agenticTradingfunc.seedAgenticTrading;
 export const agenticTradingCronJob = agenticTradingCron.agenticTradingCron;
 export const agenticTradingCronInvoke =
   agenticTradingCron.agenticTradingCronInvoke;
@@ -62,11 +103,70 @@ export const agenticTrading15mCronJob =
   agenticTradingIntradayCron.agenticTrading15mCron;
 // export const alphaagentTask = alphaagent.alphaagentTask;
 export const riskguardTask = riskguardAgent.riskguardTask;
+export const calculatePositionSize = riskguardAgent.calculatePositionSize;
 export const onInstrumentOrderCreated = copyTrading.onInstrumentOrderCreated;
 export const onOptionOrderCreated = copyTrading.onOptionOrderCreated;
+export const syncInstrumentOrders = instrumentOrderSync.syncInstrumentOrders;
 export const onTradeSignalCreated =
   tradeSignalNotifications.onTradeSignalCreated;
 export const onTradeSignalUpdated =
   tradeSignalNotifications.onTradeSignalUpdated;
+export const sendAgenticTradeNotification =
+  agenticTradingNotifications.sendAgenticTradeNotification;
 export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
 export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;
+export const runBacktest = backtesting.runBacktest;
+export const getOptionsFlow = optionsFlow.getOptionsFlow;
+export const createOptionAlert = optionsFlow.createOptionAlert;
+export const getOptionAlerts = optionsFlow.getOptionAlerts;
+export const deleteOptionAlert = optionsFlow.deleteOptionAlert;
+export const migrateSignalsDate = migrations.migrateSignalsDate;
+export const repairPaperLedger = paperLedgerRepair.repairPaperLedger;
+export const voidPaperPhantomFills = paperLedgerRepair.voidPaperPhantomFills;
+export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
+export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
+export const verifySubscription = verifySubscriptionFunc;
+export const getMacroAssessment = macroAgent.getMacroAssessmentCall;
+export const getMacroHistory = macroAgent.getMacroHistoryCall;
+export const macroAssessmentCronJob = macroAgent.macroAssessmentCron;
+export const getQuotes = marketData.getQuotesCall;
+export const getFuturesSignals = futuresTrading.getFuturesSignals;
+export const createGroupWatchlist =
+  groupWatchlists.createGroupWatchlist;
+export const deleteGroupWatchlist =
+  groupWatchlists.deleteGroupWatchlist;
+export const addSymbolToWatchlist =
+  groupWatchlists.addSymbolToWatchlist;
+export const removeSymbolFromWatchlist =
+  groupWatchlists.removeSymbolFromWatchlist;
+export const createPriceAlert = groupWatchlists.createPriceAlert;
+export const deletePriceAlert = groupWatchlists.deletePriceAlert;
+export const setWatchlistMemberPermission =
+  groupWatchlists.setWatchlistMemberPermission;
+export const removeWatchlistMemberPermission =
+  groupWatchlists.removeWatchlistMemberPermission;
+export const watchlistAlertsCronJob = watchlistAlerts.watchlistAlertsCron;
+export const checkWatchlistAlerts = watchlistAlerts.checkWatchlistAlerts;
+export const checkCustomAlerts = customAlertsCron.checkCustomAlerts;
+export const updatePaperHistoricalsCronJob =
+  paperTradingCron.updatePaperHistoricalsCron;
+export const migrateGuestPaperAccount =
+  paperAccountMigration.migrateGuestPaperAccount;
+export const yahooProxy = yahooProxyFuncs.yahooProxy;
+export const evaluatePaperOrdersCronJob =
+  paperTradingCron.evaluatePaperOrdersCron;
+export const rebalancingCronJob = rebalancingCronFuncs.rebalancingCron;
+export const futuresSignalsCronJob = futuresSignalsCron.futuresSignalsCron;
+export const aggregateWhaleWatch = whaleWatchCron.aggregateWhaleWatch;
+export const getGammaExposure = gammaExposureFuncs.getGammaExposure;
+export const getTopGammaExposure = gammaExposureFuncs.getTopGammaExposure;
+export const getNewsIntelligence = newsIntelligence.getNewsIntelligence;
+export const getSecDisclosures = secEdgar.getSecDisclosures;
+export const refreshTrackedSecDisclosures =
+  secEdgar.refreshTrackedSecDisclosures;
+export const getWatchlistNewsIntelligence =
+  newsIntelligence.getWatchlistNewsIntelligence;
+export const getGroupPerformanceAnalytics =
+  groupPerformanceAnalytics.getGroupPerformanceAnalytics;
+export const getCongressTrades = congressTrading.getCongressTrades;
+export const refreshCongressTrades = congressTrading.refreshCongressTrades;

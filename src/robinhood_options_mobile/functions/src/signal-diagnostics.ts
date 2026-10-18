@@ -12,8 +12,9 @@ export const signalDiagnostics = onRequest(async (request, response) => {
 
   try {
     // Get signal document
-    const signalDoc = await db.doc(`agentic_trading/signals_${symbol}`).get();
-    const spyCache = await db.doc("agentic_trading/chart_SPY").get();
+    const signalDocId = symbol;
+    const signalDoc = await db.doc(`signals/${signalDocId}`).get();
+    const spyCache = await db.doc("charts/SPY").get();
 
     const result: any = {
       symbol,

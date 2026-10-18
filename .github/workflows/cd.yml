@@ -10,34 +10,41 @@ on:
   push:
     branches:
       - main
-    paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
+    # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
+    paths:
+      - "src/robinhood_options_mobile/lib/**"
+      - "src/robinhood_options_mobile/android/**"
+      - "src/robinhood_options_mobile/ios/**"
+      - "src/robinhood_options_mobile/pubspec.yaml"
+      - "src/robinhood_options_mobile/assets/**"
+      - "src/robinhood_options_mobile/web/**"
+      - "src/robinhood_options_mobile/firebase.json"
+      - "src/robinhood_options_mobile/.firebaserc"
+      - "src/robinhood_options_mobile/firebase/**"
+      - "src/robinhood_options_mobile/functions/**"
   pull_request:
     # branches: [ main ]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    # TODO: Reintroduce macos-latest once we resolve the IPA build failure below. 
-    #runs-on: macos-latest
+permissions:
+  contents: write
 
+jobs:
+  analyze_and_test:
+    name: Analyze and Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
-
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable # or: beta, master (or main)
-          # cache: true
-          # # optional parameters follow
-          # cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
-          # cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-          # pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
-          # pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          channel: stable
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
@@ -48,7 +55,7 @@ jobs:
         continue-on-error: true
 
       - name: Analyze project source
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
         continue-on-error: true
 
       # Your project will need to have tests in test/ and a dependency on
@@ -56,75 +63,431 @@ jobs:
       # want to change this to 'flutter test'.
       - name: Run tests
         run: flutter test
-        continue-on-error: true
+
+  check_version:
+    name: Check Version Change
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.check.outputs.new_version }}
+      tag_name: ${{ steps.check.outputs.tag_name }}
+      release_notes: ${{ steps.check.outputs.release_notes }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Check and Create Tag
+        id: check
+        working-directory: src/robinhood_options_mobile
+        run: |
+          VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
+          TAG_NAME="v$VERSION"
+
+          echo "Checking tag: $TAG_NAME"
+
+          # Extract release notes from ROADMAP.md
+          ROADMAP_PATH="ROADMAP.md"
+          # In workflow default working directory is src/robinhood_options_mobile
+          # But ROADMAP.md is at root. We're currently in src/robinhood_options_mobile because of defaults.run
+          # So we need to go up two levels
+          ROADMAP_PATH="../../ROADMAP.md"
+
+          if [ -f "$ROADMAP_PATH" ]; then
+            # Extract content between the current version header and the next version header
+            # Version header format: ### v0.31.4 ...
+            # We want to match "### v0.31.4" where 0.31.4 is VERSION
+            
+            # Escape dots for regex
+            ESCAPED_VERSION=$(echo $VERSION | sed 's/\./\\./g')
+            
+            # awk pattern:
+            # Start: Line starts with "### v" followed by VERSION
+            # End: Next line starting with "### v"
+            
+            RELEASE_NOTES=$(awk "/^### v$ESCAPED_VERSION/{flag=1;next}/^### v/{flag=0}flag" $ROADMAP_PATH)
+            
+            # If empty, default to something
+            if [ -z "$RELEASE_NOTES" ]; then
+              RELEASE_NOTES="Release $TAG_NAME"
+              echo "Warning: No release notes found in ROADMAP.md for v$VERSION"
+            fi
+            
+            echo "Extracted Release Notes:"
+            echo "$RELEASE_NOTES"
+            
+            # Output multiline string
+            echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+            echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+             echo "ROADMAP.md not found at $ROADMAP_PATH"
+             echo "release_notes=Release $TAG_NAME" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if tag exists on remote
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists."
+            echo "new_version=false" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG_NAME does not exist. Will be created after successful builds."
+            echo "new_version=true" >> $GITHUB_OUTPUT
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          fi
+
+  build_android:
+    name: Build Android
+    needs: [analyze_and_test, check_version]
+    if: needs.check_version.outputs.new_version == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable # or: beta, master (or main)
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
 
       # - name: Build web
       #   run: flutter build web --web-renderer html
 
-      # Ucomment the following steps to build Android
+      # Uncomment the following steps to build Android
 
-      # - name: Install Java
-      #   uses: actions/setup-java@v4
-      #   with:
-      #     distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
-      #     java-version: '17'
+      - name: Install Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
 
-      # - name: Setup Android Signing
-      #   run: |
-      #     echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
-      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+      - name: Setup Android Signing
+        run: |
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      # - name: Build Android APK
-      #   run: flutter build apk --release
-      #   continue-on-error: false
+      - name: Build Android APK
+        run: flutter build apk --release
+        continue-on-error: false
 
-      # - name: Upload Android APK Build Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     # Artifact name
-      #     name: release-apk
-      #     # A file, directory or wildcard pattern that describes what to upload
-      #     path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
-      #     # The desired behavior if no files are found using the provided path.
-      #   continue-on-error: false
+      - name: Upload Android APK Build Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          # Artifact name
+          name: release-apk
+          # A file, directory or wildcard pattern that describes what to upload
+          path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+          # The desired behavior if no files are found using the provided path.
+        continue-on-error: false
 
+      - name: Build Android AppBundle
+        run: flutter build appbundle --release
+        continue-on-error: false
 
+      - name: Upload App Bundle (.aab) Build Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-aab
+          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+        continue-on-error: false
 
-      # - name: Build Android AppBundle
-      #   run: flutter build appbundle --release
-      #   continue-on-error: false
+      - name: Prepare Google Play Release Notes
+        env:
+          RELEASE_NOTES: ${{ needs.check_version.outputs.release_notes }}
+        run: |
+          mkdir -p distribution/whatsnew
+          python3 -c '
+          import os
+          notes = os.environ.get("RELEASE_NOTES", "").strip()
+          # Clean markdown bold/code markers
+          notes = notes.replace("**", "").replace("`", "")
+          # Google Play Console strictly enforces a 500 character limit on release notes
+          if len(notes) > 500:
+              lines = notes.splitlines()
+              result = []
+              curr = 0
+              for line in lines:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  add = len(line) + (1 if result else 0)
+                  if curr + add <= 500:
+                      result.append(line)
+                      curr += add
+                  else:
+                      break
+              if result:
+                  notes = "\n".join(result)
+              else:
+                  notes = notes[:497].rsplit(" ", 1)[0] + "..."
+          with open("distribution/whatsnew/whatsnew-en-US", "w", encoding="utf-8") as f:
+              f.write(notes)
+          '
+          echo "Generated Google Play release notes (whatsnew-en-US):"
+          cat distribution/whatsnew/whatsnew-en-US
 
-      # - name: Build iOS IPA
-      #   id: build-ipa
-      #   run: flutter build ipa --release
-      #   continue-on-error: false
+      - name: Publish Google Play Internal Release
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
+          packageName: com.cidevelop.robinhood_options_mobile
+          releaseFiles: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+          whatsNewDirectory: src/robinhood_options_mobile/distribution/whatsnew
+        continue-on-error: false
 
-      # - name: Upload iOS IPA Build Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     # Artifact name
-      #     name: release-ipa
-      #     # A file, directory or wildcard pattern that describes what to upload
-      #     path: src/robinhood_options_mobile/build/ios/ipa/robinhood_options_mobile.ipa
-      #     # The desired behavior if no files are found using the provided path.
-      #   continue-on-error: false
+  build_ios:
+    name: Build iOS
+    needs: [analyze_and_test, check_version]
+    if: needs.check_version.outputs.new_version == 'true'
+    runs-on: macos-latest # Uses latest available macOS runner
+    timeout-minutes: 60
+    env:
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
 
-#      - name: Build AppBundle
-#        id: build
-#        run: flutter build appbundle --build-number=`git rev-list --count HEAD`
-#        continue-on-error: false
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
-#      - name: Upload App Bundle (.aab) Build Artifact
-#        uses: actions/upload-artifact@v2.2.4
-#        with:
-#          name: release-aab
-#          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
-#        continue-on-error: false
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
 
-#      - name: Upload to Play Store
-#        uses: r0adkll/upload-google-play@v1.0.15
-#        with:
-#          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
-#          packageName: com.gdgkansascity.flutter_ci
-#          releaseFiles: ${{ steps.build.outputs.bundlePath }}
-#          track: internal
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v5
+        with:
+          path: src/robinhood_options_mobile/ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('src/robinhood_options_mobile/ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
+
+      - name: Setup iOS Signing
+        run: |
+          # Import Certificate
+          echo "${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}" | base64 --decode > certificate.p12
+
+          # Import Provisioning Profiles
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision
+          if [ -n "${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}" ]; then
+            echo "${{ secrets.IOS_WIDGET_PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision
+          fi
+
+          # Create and configure Keychain
+          security create-keychain -p "" build.keychain
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -l ~/Library/Keychains/build.keychain
+
+          # Import Certificate to Keychain
+          security import certificate.p12 -k build.keychain -P "${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+          # Create ExportOptions.plist
+          echo "${{ secrets.IOS_EXPORT_OPTIONS_PLIST }}" > ios/ExportOptions.plist
+
+      - name: Prepare TestFlight Test Details
+        env:
+          RELEASE_NOTES: ${{ needs.check_version.outputs.release_notes }}
+        run: |
+          mkdir -p ios/TestFlight TestFlight
+          python3 -c '
+          import os
+          notes = os.environ.get("RELEASE_NOTES", "").strip()
+          # TestFlight "What to Test" allows up to 4000 characters
+          if len(notes) > 4000:
+              notes = notes[:3997] + "..."
+          for path in ["ios/TestFlight/WhatToTest.en-US.txt", "TestFlight/WhatToTest.en-US.txt"]:
+              with open(path, "w", encoding="utf-8") as f:
+                  f.write(notes)
+          '
+          echo "Generated TestFlight WhatToTest.en-US.txt:"
+          cat ios/TestFlight/WhatToTest.en-US.txt
+
+      - name: Build iOS IPA
+        # run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+        run: |
+          # Extract Profile UUIDs and rename to UUIDs in Provisioning Profiles folder
+          MAIN_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision))
+          cp ~/Library/MobileDevice/Provisioning\ Profiles/main_app.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$MAIN_UUID.mobileprovision
+          echo "Using Main Profile UUID: $MAIN_UUID"
+
+          WIDGET_UUID=""
+          if [ -f ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision ]; then
+            WIDGET_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision))
+            cp ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision ~/Library/MobileDevice/Provisioning\ Profiles/$WIDGET_UUID.mobileprovision
+            echo "Using Widget Profile UUID: $WIDGET_UUID"
+          fi
+
+          # Force Manual Signing and set Profile match
+          sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = ".*";/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/PROVISIONING_PROFILE_SPECIFIER = .*;/PROVISIONING_PROFILE_SPECIFIER = "";/g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' 's/DEVELOPMENT_TEAM = .*;//g' ios/Runner.xcodeproj/project.pbxproj
+          sed -i '' "s/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]\" = \"iPhone Developer\";/CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Distribution\";/g" ios/Runner.xcodeproj/project.pbxproj
+
+          # Update Main App target(s)
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile; PROVISIONING_PROFILE = $MAIN_UUID;/g" ios/Runner.xcodeproj/project.pbxproj
+
+          # Update Widget target(s) if applicable
+          if [ -n "$WIDGET_UUID" ]; then
+            sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget;/PRODUCT_BUNDLE_IDENTIFIER = com.cidevelop.robinhoodOptionsMobile.PortfolioWidget; PROVISIONING_PROFILE = $WIDGET_UUID;/g" ios/Runner.xcodeproj/project.pbxproj
+          fi
+
+          # Update ExportOptions.plist with the profile(s)
+          /usr/libexec/PlistBuddy -c "Delete :provisioningProfiles" ios/ExportOptions.plist || true
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles dict" ios/ExportOptions.plist
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile string $MAIN_UUID" ios/ExportOptions.plist
+          if [ -n "$WIDGET_UUID" ]; then
+            /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.cidevelop.robinhoodOptionsMobile.PortfolioWidget string $WIDGET_UUID" ios/ExportOptions.plist
+          fi
+
+          /usr/libexec/PlistBuddy -c "Delete :signingStyle" ios/ExportOptions.plist || true
+          /usr/libexec/PlistBuddy -c "Add :signingStyle string manual" ios/ExportOptions.plist
+
+          flutter build ipa --release --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload iOS IPA Build Artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-ipa
+          path: src/robinhood_options_mobile/build/ios/ipa/*.ipa
+          # path: build/ios/ipa/*.ipa
+
+      - name: Resolve IPA path
+        id: resolve_ipa
+        run: |
+          IPA_PATH=$(find build/ios/ipa -maxdepth 1 -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: No IPA found in build/ios/ipa" >&2
+            exit 1
+          fi
+          echo "Found IPA: $IPA_PATH"
+          echo "ipa_path=$IPA_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload to TestFlight with Test Details (API Key)
+        if: env.APP_STORE_CONNECT_API_KEY_ID != '' && env.APP_STORE_CONNECT_API_ISSUER_ID != ''
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: src/robinhood_options_mobile/${{ steps.resolve_ipa.outputs.ipa_path }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+          release-notes: ${{ needs.check_version.outputs.release_notes }}
+
+      - name: Upload to App Store (Legacy Username/Password fallback)
+        if: env.APP_STORE_CONNECT_API_KEY_ID == '' || env.APP_STORE_CONNECT_API_ISSUER_ID == ''
+        run: |
+          echo "Using Username/Password for authentication"
+          xcrun altool --upload-app --type ios -f build/ios/ipa/*.ipa --username "${{ secrets.APP_STORE_CONNECT_USERNAME }}" --password "${{ secrets.APP_STORE_CONNECT_PASSWORD }}"
+
+  deploy_firebase:
+    name: Deploy Firebase
+    needs: [analyze_and_test]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build web app for Firebase Hosting
+        run: flutter build web --release
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_REALIZEALPHA }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/robinhood_options_mobile/functions/package-lock.json
+
+      - name: Install Firebase Functions dependencies
+        run: npm ci
+        working-directory: src/robinhood_options_mobile/functions
+
+      - name: Deploy Firebase resources
+        run: npx --yes firebase-tools deploy --project realizealpha
+
+  create_release:
+    name: Create GitHub Release
+    needs: [check_version, build_android, build_ios]
+    if: needs.check_version.outputs.new_version == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.check_version.outputs.tag_name }}
+          git push origin ${{ needs.check_version.outputs.tag_name }}
+
+      - name: Download Android Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: release-apk
+          path: release-artifacts/android/
+
+      - name: Download iOS Artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: release-ipa
+          path: release-artifacts/ios/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.check_version.outputs.tag_name }}
+          body: ${{ needs.check_version.outputs.release_notes }}
+          generate_release_notes: true
+          files: |
+            release-artifacts/android/*.apk
+            release-artifacts/ios/*.ipa

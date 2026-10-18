@@ -2,12 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
@@ -37,8 +42,16 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
+import 'package:robinhood_options_mobile/model/retirement.dart';
+import 'package:robinhood_options_mobile/model/spending_account.dart';
+import 'package:robinhood_options_mobile/model/external_token.dart';
+import 'package:robinhood_options_mobile/model/notification_item.dart';
 
 abstract class IBrokerageService {
   late String name;
@@ -88,7 +101,8 @@ abstract class IBrokerageService {
       Instrument instrument,
       String? expirationDates, // 2021-03-05
       String? type, // call or put
-      {String? state = "active"});
+      {String? state = "active",
+      bool includeMarketData = false});
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
       BrokerageUser user, List<String> ids);
   Future<OptionMarketData?> getOptionMarketData(
@@ -108,6 +122,29 @@ abstract class IBrokerageService {
   Future<List<OptionChain>> getOptionChainsByIds(
       BrokerageUser user, List<String> ids);
   Future<OptionChain> getOptionChains(BrokerageUser user, String id);
+
+  /// Fetches multi-leg strategy option chains from brokerage market data where supported.
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) =>
+      Future.value(null);
 
   // Instruments
   Future<Instrument> getInstrument(
@@ -157,6 +194,10 @@ abstract class IBrokerageService {
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
 
   // Dividends & Interests
   Stream<List<dynamic>> streamDividends(
@@ -199,6 +240,13 @@ abstract class IBrokerageService {
       {String ownerType = "custom"});
   Future<Watchlist> getList(String key, BrokerageUser user,
       {String ownerType = "custom"});
+  Future<List<Watchlist>> getAllLists(BrokerageUser user);
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId);
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId);
+  Future<void> createList(BrokerageUser user, String name, {String? emoji});
+  Future<void> deleteList(BrokerageUser user, String listId);
 
   // Orders
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
@@ -212,19 +260,25 @@ abstract class IBrokerageService {
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
       InstrumentOrderStore store, List<String> instrumentUrls);
 
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol);
+
   Future<dynamic> placeInstrumentOrder(
       BrokerageUser user,
       Account account,
       Instrument instrument,
       String symbol, // Ticker of the stock to trade.
       String side, // Either 'buy' or 'sell'
-      double price, // Limit price to trigger a buy of the option.
+      double? price, // Limit price to trigger a buy of the option.
       int quantity, // Number of options to buy.
       {String type = 'limit', // market
       String trigger = 'immediate', // stop
+      double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      });
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots});
   Future<dynamic> placeOptionsOrder(
       BrokerageUser user,
       Account account,
@@ -242,12 +296,393 @@ abstract class IBrokerageService {
       //String optionType, // This should be 'call' or 'put'
       {String type = 'limit', // market
       String trigger = 'immediate',
+      double? stopPrice,
       String timeInForce =
-          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
-      });
+          'gtc', // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      Map<String, dynamic>? trailingPeg});
+
+  Future<dynamic> placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'});
+
+  /// Previews an order before execution for pre-trade margin and validation checks.
+  Future<dynamic> previewOrder(
+      BrokerageUser user, Account account, Map<String, dynamic> orderPayload) {
+    return Future.value(null);
+  }
+
+  // Combo Orders (Stock + Option Packages)
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) {
+    throw UnimplementedError(
+        'getComboOrders is not implemented for this brokerage service');
+  }
+
+  Stream<List<ComboOrder>> streamComboOrders(
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc, String? symbol, String? accountNumber}) {
+    throw UnimplementedError(
+        'streamComboOrders is not implemented for this brokerage service');
+  }
+
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) {
+    throw UnimplementedError(
+        'placeComboOrder is not implemented for this brokerage service');
+  }
+
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) {
+    return cancelOrder(user, cancelUrl);
+  }
+
+  // Futures
+  Future<List<dynamic>> getFuturesOrders(BrokerageUser user, String account);
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds);
+  Future<dynamic> getFuturesContractBySymbol(BrokerageUser user, String symbol);
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols);
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds);
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId);
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  });
+
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user);
+
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice});
 
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
     return Future.error(
         'cancelOrder is not implemented for this brokerage service');
   }
+
+  /// Fetches rolling 5-day equity and option day trade counts to monitor Pattern Day Trader status
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  /// Fetches short interest fundamentals (free float short %, shares short, days to cover)
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  /// Fetches real-time shorting availability, borrow inventory range, and borrow fee rates
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches daily Robinhood retail customer net buy/sell percentages and volume shifts
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches monthly aggregate insider transactions and net sentiment score for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/summary/{instrument_id}/
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches detailed officer/director Form 4 insider transactions for an instrument
+  /// https://api.robinhood.com/marketdata/insiders/transactions/{instrument_id}/
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches quarterly institutional hedge fund sentiment summary for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/summary/{instrument_id}/
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches detailed quarterly institutional hedge fund transactions and holdings for an instrument
+  /// https://api.robinhood.com/marketdata/hedgefunds/transactions/{instrument_id}/
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches Robinhood-curated screener presets
+  /// https://bonfire.robinhood.com/screeners/presets/
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches available screeners and criteria
+  /// https://bonfire.robinhood.com/screeners?include_filters={includeFilters}
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return null;
+  }
+
+  /// Fetches saved custom desktop and Legend trading workspaces/layouts
+  /// https://api.robinhood.com/hippo/bw/layouts
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches layout definition and widget grid configuration for a specific layout
+  /// https://api.robinhood.com/hippo/bw/layouts/{layoutId}
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    return null;
+  }
+
+  /// Fetches unified account balances, buying power breakdown, margin health buffer, and collateral allocations
+  /// https://bonfire.robinhood.com/phoenix/accounts/unified
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches active margin calls, regulatory calls, and maintenance deficit demands
+  /// https://api.robinhood.com/margin/calls/
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  /// Fetches monthly margin interest debits and financing fee history
+  /// https://api.robinhood.com/cash_journal/margin_interest_charges/
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
+
+  /// Fetches instrument-specific buying power and short-selling buying power for an account
+  /// https://bonfire.robinhood.com/accounts/{account}/instrument_buying_power/{instrument_id}/
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches volatility, illiquidity, and risk warnings for an instrument
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/v2/warnings/
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches cash and equity collateral locked by an options chain for a given account
+  /// https://api.robinhood.com/options/chains/{chainId}/collateral/?account_number={account}
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return null;
+  }
+
+  /// Checks options tier upgrade eligibility (Level 2 vs Level 3 multi-leg)
+  /// https://api.robinhood.com/options/should_show_options_upgrade_on_sdp/?account_number={account}
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  /// Fetches stock loan payments from the Stock Lending Program
+  /// https://api.robinhood.com/accounts/stock_loan_payments/
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  /// Fetches Stock Lending Program (SLIP) eligibility and enrollment status
+  /// https://bonfire.robinhood.com/slip/eligibility/
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches current cash sweep interest rates (Gold, standard, boosted)
+  /// https://api.robinhood.com/accounts/sweeps/interest/
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
+
+  /// Fetches deposit and withdrawal transfers with status, clearing dates, and amounts
+  /// https://api.robinhood.com/ach/transfers/
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches linked bank account relationships and verification state
+  /// https://api.robinhood.com/ach/relationships/
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches typed AchTransfer models
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    final raw = await getAchTransfers(user);
+    return raw.map((item) => AchTransfer.fromJson(item)).toList();
+  }
+
+  /// Fetches typed AchRelationship models
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
+    final raw = await getAchRelationships(user);
+    return raw.map((item) => AchRelationship.fromJson(item)).toList();
+  }
+
+  /// Cancels a pending ACH transfer by cancel URL
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    return false;
+  }
+
+  /// Fetches tax forms (1099), monthly account statements, or trade confirmations
+  /// https://api.robinhood.com/documents/?type={type}
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  /// Fetches foreign stock American Depositary Receipt (ADR) pass-through fees
+  /// https://api.robinhood.com/corp_actions/adr_fees/
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  /// Fetches foreign tax withholding classification and status for an instrument
+  /// https://bonfire.robinhood.com/tax_info/instrument/{instrument_id}/withholding_status/
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches typed AccountDocument models
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    final raw = await getDocuments(user, type: type);
+    return raw.map((item) => AccountDocument.fromJson(item)).toList();
+  }
+
+  /// Fetches typed AdrFee models
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    final raw = await getAdrFees(user);
+    return raw.map((item) => AdrFee.fromJson(item)).toList();
+  }
+
+  /// Fetches typed TaxWithholdingStatus model
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getTaxWithholdingStatus(user, instrumentId);
+    if (raw == null) return null;
+    return TaxWithholdingStatus.fromJson(raw, defaultSymbol: symbol);
+  }
+
+  /// Fetches corporate action stock split cash/share adjustments
+  /// https://api.robinhood.com/corp_actions/v2/split_payments/
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  /// Fetches typed SplitPayment models
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    final raw = await getSplitPayments(user, instrumentId: instrumentId);
+    return raw.map((item) => SplitPayment.fromJson(item)).toList();
+  }
+
+  /// Aggregates corporate action stock split summary metrics
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    final payments = await getSplitPaymentsModel(user);
+    return CorporateActionSplitsSummary.fromPayments(payments);
+  }
+
+  /// Fetches shareholder question & answer events for earnings calls via Say Technologies
+  /// https://bonfire.robinhood.com/instruments/{instrument_id}/qa/events-section/
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  /// Fetches typed ShareholderQaSection model
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getShareholderQaEvents(user, instrumentId);
+    if (raw == null) return null;
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
+  }
+
+  /// Upvotes or toggles a vote on a shareholder question
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    return false;
+  }
+
+  /// Submits a verified shareholder question for an active Q&A event
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    return null;
+  }
+
+  /// Fetches connected external OAuth applications and AI trading agents
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
+  Future<List<ExternalToken>> getExternalTokensModel(
+          BrokerageUser user) async =>
+      [];
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
+
+  /// In-app notification center and Midlands stack
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
+  Future<List<NotificationItem>> getNotificationStackModel(
+          BrokerageUser user) async =>
+      [];
+  Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
+  Future<List<NotificationItem>> getInboxThreadsModel(
+          BrokerageUser user) async =>
+      [];
+
+  /// Robinhood Spending / Cash Management account
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
+
+  /// Annual IRA contribution history, matches, and limits
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+          {String? accountNumber}) async =>
+      null;
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+          {String? accountNumber}) async =>
+      const RetirementHistory();
 }

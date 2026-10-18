@@ -2,13 +2,82 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccountStore extends ChangeNotifier {
+  static const _selectedAccountPrefPrefix = 'selected_account_number';
+  static const _showBalancesPref = 'show_balances';
+
   /// Internal, private state of the store.
   final List<Account> _items = [];
+  String? _selectedAccountNumber;
+  bool _showBalances = true;
+
+  static String selectionStorageKey(
+      {required String source, String? userName}) {
+    final normalizedUser =
+        (userName == null || userName.isEmpty) ? 'unknown' : userName;
+    return '$_selectedAccountPrefPrefix::$source::$normalizedUser';
+  }
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<Account> get items => UnmodifiableListView(_items);
+
+  /// Accounts categorized as standard brokerage accounts.
+  List<Account> get brokerageAccounts =>
+      _items.where((a) => !a.isRetirement).toList();
+
+  /// Accounts categorized as retirement (Traditional IRA, Roth IRA, etc.).
+  List<Account> get retirementAccounts =>
+      _items.where((a) => a.isRetirement).toList();
+
+  String? get selectedAccountNumber => _selectedAccountNumber;
+  bool get showBalances => _showBalances;
+
+  Account? get selectedAccount {
+    if (_items.isEmpty) return null;
+    if (_selectedAccountNumber != null) {
+      try {
+        return _items
+            .firstWhere((a) => a.accountNumber == _selectedAccountNumber);
+      } catch (_) {}
+    }
+    // Default to the first account when no explicit selection exists.
+    return _items.first;
+  }
+
+  void setSelectedAccountNumber(String? accountNumber) {
+    if (_selectedAccountNumber != accountNumber) {
+      _selectedAccountNumber = accountNumber;
+      notifyListeners();
+    }
+  }
+
+  void toggleShowBalances() async {
+    _showBalances = !_showBalances;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_showBalancesPref, _showBalances);
+    notifyListeners();
+  }
+
+  Future<void> saveSelectedAccountNumber(String storageKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_selectedAccountNumber == null || _selectedAccountNumber!.isEmpty) {
+      await prefs.remove(storageKey);
+      return;
+    }
+    await prefs.setString(storageKey, _selectedAccountNumber!);
+  }
+
+  Future<void> loadSelectedAccountNumber(String storageKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(storageKey);
+    if (_selectedAccountNumber != stored) {
+      _selectedAccountNumber = stored;
+    }
+    _showBalances = prefs.getBool(_showBalancesPref) ?? true;
+    notifyListeners();
+  }
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
@@ -22,6 +91,11 @@ class AccountStore extends ChangeNotifier {
   void removeAll() {
     _items.clear();
     // This call tells the widgets that are listening to this model to rebuild.
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    _selectedAccountNumber = null;
     notifyListeners();
   }
 

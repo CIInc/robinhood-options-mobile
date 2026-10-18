@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'realizealpha.firebasestorage.app',
     measurementId: 'G-YEWHE2RF85',
   );
-
 }

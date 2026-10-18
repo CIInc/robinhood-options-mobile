@@ -1,0 +1,2176 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
+import 'package:http/http.dart' as http;
+import 'package:robinhood_options_mobile/enums.dart';
+
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
+import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_chain.dart';
+import 'package:robinhood_options_mobile/model/option_event.dart';
+import 'package:robinhood_options_mobile/model/option_event_store.dart';
+import 'package:robinhood_options_mobile/model/option_historicals.dart';
+import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
+import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
+import 'package:robinhood_options_mobile/model/retirement.dart';
+import 'package:robinhood_options_mobile/model/spending_account.dart';
+import 'package:robinhood_options_mobile/model/external_token.dart';
+import 'package:robinhood_options_mobile/model/notification_item.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
+import 'package:robinhood_options_mobile/main.dart';
+
+import 'package:robinhood_options_mobile/model/equity_historical.dart';
+
+/// Point-in-time valuation of the paper account, shared by the account,
+/// portfolio, and historicals endpoints so every surface reports the same
+/// numbers.
+class PaperEquitySnapshot {
+  final double cashBalance;
+  final double positionsValue;
+  final double initialCapital;
+
+  /// Close of the last daily equity snapshot from a prior day, if any.
+  final double? previousClose;
+
+  /// Saved daily snapshots, ascending, without the live point.
+  final List<EquityHistorical> equityHistoricals;
+
+  PaperEquitySnapshot({
+    required this.cashBalance,
+    required this.positionsValue,
+    required this.initialCapital,
+    required this.previousClose,
+    required this.equityHistoricals,
+  });
+
+  double get equity => cashBalance + positionsValue;
+}
+
+class PaperService implements IBrokerageService {
+  final YahooService yahooService = YahooService();
+  final FidelityService fidelityService = FidelityService();
+  final FirestoreService _firestoreService = FirestoreService();
+
+  PaperService();
+
+  /// Maps the app's chart spans to range/interval combinations supported by
+  /// Yahoo Finance, which is the market-data source for paper trading.
+  static ({String range, String interval, String appInterval})
+      chartDataParameters(ChartDateSpan chartDateSpanFilter,
+          {String? chartInterval}) {
+    final appInterval = chartInterval ??
+        switch (chartDateSpanFilter) {
+          ChartDateSpan.month_3 ||
+          ChartDateSpan.rolling_30 ||
+          ChartDateSpan.rolling_60 ||
+          ChartDateSpan.rolling_90 ||
+          ChartDateSpan.ytd ||
+          ChartDateSpan.year =>
+            'day',
+          ChartDateSpan.year_2 ||
+          ChartDateSpan.year_3 ||
+          ChartDateSpan.year_5 ||
+          ChartDateSpan.all =>
+            'week',
+          _ => '5minute',
+        };
+
+    final range = switch (chartDateSpanFilter) {
+      ChartDateSpan.hour => '1d',
+      ChartDateSpan.day => '1d',
+      ChartDateSpan.week => '5d',
+      ChartDateSpan.month => '1mo',
+      ChartDateSpan.month_3 => '3mo',
+      ChartDateSpan.rolling_30 => '1mo',
+      ChartDateSpan.rolling_60 => '3mo',
+      ChartDateSpan.rolling_90 => '3mo',
+      ChartDateSpan.ytd => 'ytd',
+      ChartDateSpan.year => '1y',
+      ChartDateSpan.year_2 => '2y',
+      ChartDateSpan.year_3 => '5y',
+      ChartDateSpan.year_5 => '5y',
+      ChartDateSpan.all => 'max',
+    };
+
+    final interval = switch (appInterval) {
+      '15second' => '1m',
+      '5minute' => '5m',
+      '10minute' => '15m',
+      'hour' => '1h',
+      'day' => '1d',
+      'week' => '1wk',
+      _ => '5m',
+    };
+
+    return (range: range, interval: interval, appInterval: appInterval);
+  }
+
+  @override
+  String name = 'Paper Trading - Integrated';
+  @override
+  Uri endpoint = Uri.parse('https://realizealpha.web.app/api/v1');
+  @override
+  Uri authEndpoint = Uri.parse('https://realizealpha.web.app/oauth2/auth/');
+  @override
+  Uri tokenEndpoint = Uri.parse('https://realizealpha.web.app/oauth2/token/');
+  @override
+  String clientId = 'robinhood_options_mobile';
+  @override
+  String redirectUrl = ''; // http://localhost:8080
+
+  @override
+  Future<UserInfo?> getUser(BrokerageUser user) async {
+    return user.userInfo;
+  }
+
+  @override
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
+    final userId = userDoc?.id ??
+        auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    final snapshot = await _equitySnapshot(user, userId);
+
+    final account = Account(
+      'paper_account', // url; must match the account stored on paper positions
+      snapshot.cashBalance, // portfolioCash
+      'paper_account', // accountNumber
+      'Paper Account', // type
+      snapshot.cashBalance, // buyingPower
+      'Level 3', // optionLevel
+      0.0, // cashHeldForOptionsCollateral
+      0.0, // unsettledDebit
+      0.0, // settledAmountBorrowed
+    );
+
+    store.removeAll();
+    store.add(account);
+
+    if (portfolioStore != null) {
+      portfolioStore.removeAll();
+      portfolioStore.add(_buildPortfolio(snapshot));
+    }
+
+    if (instrumentPositionStore != null) {
+      await getStockPositionStore(
+          user, instrumentPositionStore, InstrumentStore(), QuoteStore(),
+          userDoc: userDoc);
+    }
+
+    return [account];
+  }
+
+  @override
+  Future<List<Portfolio>> getPortfolios(
+      BrokerageUser user, PortfolioStore store) async {
+    final userId = auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    final snapshot = await _equitySnapshot(user, userId);
+    final portfolio = _buildPortfolio(snapshot);
+    store.removeAll();
+    store.add(portfolio);
+    return [portfolio];
+  }
+
+  /// Builds the Portfolio surfaced to the home cards: equity marks positions
+  /// to market (not just cash), and previous-close fields come from the last
+  /// daily equity snapshot so day-change math is meaningful.
+  Portfolio _buildPortfolio(PaperEquitySnapshot snapshot) {
+    final equity = snapshot.equity;
+    final previousClose = snapshot.previousClose ?? equity;
+    return Portfolio(
+      'paper_portfolio',
+      'paper_account',
+      DateTime.now(),
+      equity, // marketValue
+      equity, // equity
+      equity, // extendedHoursMarketValue
+      equity, // extendedHoursEquity
+      equity, // extendedHoursPortfolioEquity
+      equity, // lastCoreMarketValue
+      equity, // lastCoreEquity
+      equity, // lastCorePortfolioEquity
+      equity, // excessMargin
+      equity, // excessMaintenance
+      equity, // excessMarginWithUnclearedDeposits
+      equity, // excessMaintenanceWithUnclearedDeposits
+      previousClose, // equityPreviousClose
+      previousClose, // portfolioEquityPreviousClose
+      previousClose, // adjustedEquityPreviousClose
+      previousClose, // adjustedPortfolioEquityPreviousClose
+      snapshot.cashBalance, // withdrawableAmount
+      0.0, // unwithdrawableDeposits
+      0.0, // unwithdrawableGrants
+      DateTime.now(), // updatedAt
+    );
+  }
+
+  @override
+  Future<InstrumentPositionStore> getStockPositionStore(
+      BrokerageUser user,
+      InstrumentPositionStore store,
+      InstrumentStore instrumentStore,
+      QuoteStore quoteStore,
+      {bool nonzero = true,
+      DocumentReference? userDoc}) async {
+    final engine = await _engine();
+    final positions = engine.positions.toList();
+
+    if (positions.isNotEmpty) {
+      // Collect symbols from positions that already have instrumentObj
+      var symbols = positions
+          .map((p) => p.instrumentObj?.symbol ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      // For positions without instrumentObj, fetch instruments by ID from instrument URL
+      final positionsNeedingInstrument = positions
+          .where((p) => p.instrumentObj == null && p.instrument.isNotEmpty)
+          .toList();
+      if (positionsNeedingInstrument.isNotEmpty) {
+        final instrumentIds = positionsNeedingInstrument
+            .map((p) => p.instrumentId)
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList();
+        if (instrumentIds.isNotEmpty) {
+          final fetchedById =
+              await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+          for (var pos in positionsNeedingInstrument) {
+            final match = fetchedById
+                .firstWhereOrNull((i) => pos.instrument.contains(i.id));
+            if (match != null) {
+              pos.instrumentObj = match;
+              if (!symbols.contains(match.symbol)) {
+                symbols.add(match.symbol);
+              }
+            }
+          }
+        }
+      }
+
+      if (symbols.isNotEmpty) {
+        final fetchedInstruments = await yahooService.getInstruments(symbols);
+        final fetchedFundamentals = await yahooService.getFundamentals(symbols);
+
+        for (var pos in positions) {
+          if (pos.instrumentObj != null) {
+            pos.instrumentObj = fetchedInstruments.firstWhereOrNull(
+                    (i) => i.symbol == pos.instrumentObj!.symbol) ??
+                pos.instrumentObj;
+          } else {
+            pos.instrumentObj = fetchedInstruments.firstWhereOrNull((i) =>
+                pos.instrument.contains(i.symbol) ||
+                pos.instrument.contains(i.id));
+          }
+          if (pos.instrumentObj != null) {
+            pos.instrumentObj!.fundamentalsObj = fetchedFundamentals
+                .firstWhereOrNull((fundamentals) => fundamentals.instrument
+                    .contains('/${pos.instrumentObj!.symbol}/'));
+          }
+        }
+        await getQuoteByIds(user, quoteStore, symbols);
+        for (var pos in positions) {
+          if (pos.instrumentObj != null &&
+              pos.instrumentObj!.quoteObj == null &&
+              quoteStore.items.isNotEmpty) {
+            final quote = quoteStore.items
+                .firstWhereOrNull((q) => q.symbol == pos.instrumentObj!.symbol);
+            if (quote != null) {
+              pos.instrumentObj!.quoteObj = quote;
+            }
+          }
+        }
+      }
+    }
+
+    store.removeAll();
+    for (var pos in positions) {
+      store.add(pos);
+    }
+    return store;
+  }
+
+  @override
+  Future<List<ForexHolding>> getNummusHoldings(
+      BrokerageUser user, ForexHoldingStore store,
+      {bool nonzero = true, DocumentReference? userDoc}) async {
+    return [];
+  }
+
+  @override
+  Future<List<ForexHolding>> refreshNummusHoldings(
+      BrokerageUser user, ForexHoldingStore store) async {
+    return [];
+  }
+
+  @override
+  Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
+    return await yahooService.getForexQuote(id);
+  }
+
+  @override
+  Future<List<ForexQuote>> getForexQuoteByIds(
+      BrokerageUser user, List<String> ids) async {
+    return await yahooService.getForexQuotesByIds(ids);
+  }
+
+  @override
+  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
+      OptionPositionStore store, InstrumentStore instrumentStore,
+      {bool nonzero = true, DocumentReference? userDoc}) async {
+    final userId = userDoc?.id ??
+        auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    final List<OptionAggregatePosition> positions;
+    if (auth.currentUser == null) {
+      final engine = await _engine();
+      positions = engine.optionPositions.toList();
+    } else {
+      positions = await _firestoreService.listPaperOptionPositions(userId);
+    }
+
+    if (positions.isNotEmpty) {
+      // Collect option instrument IDs to fetch metadata/market data
+      final optionIds = positions
+          .where((p) => p.optionInstrument == null)
+          .map((p) =>
+              p.legs.first.option.split('/').where((s) => s.isNotEmpty).last)
+          .toSet()
+          .toList();
+
+      if (optionIds.isNotEmpty) {
+        final fetched = await getOptionInstrumentByIds(user, optionIds);
+        for (var pos in positions) {
+          pos.optionInstrument ??= fetched
+              .firstWhereOrNull((i) => pos.legs.first.option.contains(i.id));
+        }
+      }
+
+      // Fetch market data for all positions
+      final allOptionIds = positions
+          .map((p) => p.optionInstrument?.id)
+          .whereType<String>()
+          .toList();
+      if (allOptionIds.isNotEmpty) {
+        final marketData = await getOptionMarketDataByIds(user, allOptionIds);
+        for (var pos in positions) {
+          if (pos.optionInstrument != null) {
+            pos.optionInstrument!.optionMarketData =
+                marketData.firstWhereOrNull(
+                    (m) => m.instrumentId == pos.optionInstrument!.id);
+          }
+        }
+      }
+    }
+
+    store.removeAll();
+    for (var pos in positions) {
+      store.add(pos);
+    }
+    return store;
+  }
+
+  @override
+  Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
+      BrokerageUser user,
+      {bool nonzero = true}) async {
+    final userId = auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    return _firestoreService.listPaperOptionPositions(userId);
+  }
+
+  @override
+  Stream<List<OptionInstrument>> streamOptionInstruments(
+      BrokerageUser user,
+      OptionInstrumentStore store,
+      Instrument instrument,
+      String? expirationDates,
+      String? type,
+      {String? state = "active",
+      bool includeMarketData = false}) {
+    return Stream.value([]);
+  }
+
+  @override
+  Future<List<OptionInstrument>> getOptionInstrumentByIds(
+      BrokerageUser user, List<String> ids) async {
+    return _firestoreService.getOptionInstruments(ids);
+  }
+
+  @override
+  Future<OptionMarketData?> getOptionMarketData(
+      BrokerageUser user, OptionInstrument optionInstrument) async {
+    return _firestoreService.getOptionMarketData(optionInstrument.id);
+  }
+
+  @override
+  Future<List<OptionMarketData>> getOptionMarketDataByIds(
+      BrokerageUser user, List<String> ids) async {
+    return _firestoreService.getOptionMarketDataList(ids);
+  }
+
+  @override
+  Future<List<OptionAggregatePosition>> refreshOptionMarketData(
+      BrokerageUser user,
+      OptionPositionStore optionPositionStore,
+      OptionInstrumentStore optionInstrumentStore) async {
+    if (optionPositionStore.items.isEmpty) {
+      return [];
+    }
+
+    var optionIds = optionPositionStore.items.map((e) {
+      var parts = e.legs.first.option.split('/');
+      return parts.last.isEmpty ? parts[parts.length - 2] : parts.last;
+    }).toList();
+
+    var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+
+    for (var optionMarketDatum in optionMarketData) {
+      try {
+        var optionPosition = optionPositionStore.items.singleWhere((element) {
+          return element.legs.first.option
+              .contains(optionMarketDatum.instrumentId);
+        });
+
+        if (optionPosition.optionInstrument != null) {
+          optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+          optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
+          optionPositionStore.update(optionPosition);
+        }
+      } catch (e) {
+        // Not found or multiple matches, skip
+      }
+    }
+    return optionPositionStore.items;
+  }
+
+  @override
+  Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
+      BrokerageUser user, String instrumentUrl) async {
+    return [];
+  }
+
+  @override
+  Stream<List<OptionEvent>> streamOptionEvents(
+      BrokerageUser user, OptionEventStore store,
+      {int pageSize = 20, DocumentReference? userDoc}) {
+    return Stream.value([]);
+  }
+
+  @override
+  Future<List<OptionChain>> getOptionChainsByIds(
+      BrokerageUser user, List<String> ids) async {
+    return [];
+  }
+
+  @override
+  Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
+    // Return empty mock for paper options
+    return OptionChain(id, 'paper_symbol', true, 0.0, [], 100.0,
+        const MinTicks(0.05, 0.01, 3.0));
+  }
+
+  @override
+  Future<Instrument> getInstrument(
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
+    // Try to extract symbol from URL if it's like .../instruments/AAPL/
+    var parts = instrumentUrl.split('/').where((s) => s.isNotEmpty).toList();
+    var symbol = parts.last;
+    final instruments = await yahooService.getInstruments([symbol]);
+    if (instruments.isNotEmpty) {
+      store.add(instruments[0]);
+      return instruments[0];
+    }
+    throw Exception('Failed to load instrument from Yahoo: $symbol');
+  }
+
+  @override
+  Future<Instrument?> getInstrumentBySymbol(
+      BrokerageUser user, InstrumentStore store, String symbol) async {
+    final instruments = await yahooService.getInstruments([symbol]);
+    if (instruments.isNotEmpty) {
+      store.add(instruments[0]);
+      return instruments[0];
+    }
+    return null;
+  }
+
+  @override
+  Future<List<Instrument>> getInstrumentsByIds(
+      BrokerageUser user, InstrumentStore store, List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final instruments = await yahooService.getInstruments(ids);
+    for (var i in instruments) {
+      store.add(i);
+    }
+    return instruments;
+  }
+
+  @override
+  Future<List<Quote>> getQuoteByIds(
+      BrokerageUser user, QuoteStore store, List<String> symbols,
+      {bool fromCache = true}) async {
+    if (symbols.isEmpty) return [];
+    try {
+      // Try Fidelity API first for better real-time quotes
+      try {
+        final quotes = await fidelityService.getQuotesFromFidelity(symbols);
+        for (var q in quotes) {
+          store.add(q);
+        }
+        return quotes;
+      } catch (e) {
+        debugPrint(
+            'Error fetching quotes from Fidelity, falling back to Yahoo: $e');
+        // Fallback to Yahoo Finance
+        final quotes = await yahooService.getQuotesByIds(symbols);
+        for (var q in quotes) {
+          store.add(q);
+        }
+        return quotes;
+      }
+    } catch (e) {
+      debugPrint('Error fetching quotes: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<Quote> getQuote(
+      BrokerageUser user, QuoteStore store, String symbol) async {
+    try {
+      // Try Fidelity API first for better real-time quotes
+      try {
+        final quotes = await fidelityService.getQuotesFromFidelity([symbol]);
+        if (quotes.isNotEmpty) {
+          final quote = quotes.first;
+          store.add(quote);
+          return quote;
+        }
+      } catch (e) {
+        debugPrint(
+            'Error fetching quote from Fidelity, falling back to Yahoo: $e');
+      }
+
+      // Fallback to Yahoo Finance
+      final quote = await yahooService.getQuote(symbol);
+      store.add(quote);
+      return quote;
+    } catch (e) {
+      debugPrint('Error fetching quote: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Quote> refreshQuote(
+      BrokerageUser user, QuoteStore store, String symbol) async {
+    return getQuote(user, store, symbol);
+  }
+
+  @override
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
+    final symbols = store.items
+        .map((e) => e.instrumentObj?.symbol ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (symbols.isNotEmpty) {
+      await getQuoteByIds(user, quoteStore, symbols);
+    }
+    return store.items.toList();
+  }
+
+  @override
+  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
+      List<String> instruments, InstrumentStore store) async {
+    if (instruments.isEmpty) return [];
+    return yahooService.getFundamentals(instruments);
+  }
+
+  @override
+  Future<Fundamentals> getFundamentals(
+      BrokerageUser user, Instrument instrumentObj) async {
+    final results = await yahooService.getFundamentals([instrumentObj.symbol]);
+    if (results.isNotEmpty) {
+      return results[0];
+    }
+    throw Exception('Fundamentals not found for ${instrumentObj.symbol}');
+  }
+
+  /// Values the paper account (cash + positions marked to market, previous
+  /// daily close, saved history) so every surface — account, portfolio,
+  /// historicals — reports the same numbers.
+  Future<PaperEquitySnapshot> _equitySnapshot(
+      BrokerageUser user, String userId) async {
+    if (auth.currentUser == null) {
+      final engine = await _engine();
+      final cashBalance = engine.cashBalance;
+      final initialCapital = engine.initialCapital;
+      double positionsValue = 0.0;
+      for (var pos in engine.positions) {
+        positionsValue += pos.marketValue;
+      }
+      for (var op in engine.optionPositions) {
+        final value = op.marketValue != 0
+            ? op.marketValue
+            : (op.averageOpenPrice ?? 0) * (op.quantity ?? 0) * 100;
+        positionsValue += op.direction == 'credit' ? -value : value;
+      }
+      for (var fp in engine.futuresPositions) {
+        positionsValue += fp.openPnl;
+      }
+      return PaperEquitySnapshot(
+        cashBalance: cashBalance,
+        positionsValue: positionsValue,
+        initialCapital: initialCapital,
+        previousClose: null,
+        equityHistoricals: [],
+      );
+    }
+
+    final paperAccountDoc = await _firestoreService.getPaperAccountDoc(userId);
+    final data = paperAccountDoc.data() ?? {};
+    final cashBalance = (data['cashBalance'] as num?)?.toDouble() ?? 100000.0;
+    final initialCapital =
+        (data['initialCapital'] as num?)?.toDouble() ?? 100000.0;
+
+    double positionsValue = 0.0;
+
+    // Stock positions (shorts carry negative quantities).
+    final positions = await _firestoreService.listPaperPositions(userId);
+    if (positions.isNotEmpty) {
+      var symbols = positions
+          .map((p) => p.instrumentObj?.symbol ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      // Fetch instruments for positions missing instrumentObj
+      final positionsNeedingInstrument = positions
+          .where((p) => p.instrumentObj == null && p.instrument.isNotEmpty)
+          .toList();
+      if (positionsNeedingInstrument.isNotEmpty) {
+        final instrumentIds = positionsNeedingInstrument
+            .map((p) => p.instrumentId)
+            .where((id) => id.isNotEmpty)
+            .toSet()
+            .toList();
+        if (instrumentIds.isNotEmpty) {
+          final instrumentStore = InstrumentStore();
+          final fetchedById =
+              await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+          for (var pos in positionsNeedingInstrument) {
+            final match = fetchedById
+                .firstWhereOrNull((i) => pos.instrument.contains(i.id));
+            if (match != null) {
+              pos.instrumentObj = match;
+              if (!symbols.contains(match.symbol)) {
+                symbols.add(match.symbol);
+              }
+            }
+          }
+        }
+      }
+
+      if (symbols.isNotEmpty) {
+        final quoteStore = QuoteStore();
+        await getQuoteByIds(user, quoteStore, symbols);
+        for (var pos in positions) {
+          if (pos.instrumentObj != null &&
+              pos.instrumentObj!.quoteObj == null &&
+              quoteStore.items.isNotEmpty) {
+            final quote = quoteStore.items
+                .firstWhereOrNull((q) => q.symbol == pos.instrumentObj!.symbol);
+            if (quote != null) {
+              pos.instrumentObj!.quoteObj = quote;
+            }
+          }
+        }
+      }
+
+      for (var pos in positions) {
+        positionsValue += pos.marketValue;
+      }
+    }
+
+    // Option positions: 100x multiplier, written (credit) positions are
+    // liabilities; fall back to the open premium when no mark is available.
+    if (data['optionPositions'] != null) {
+      final optionPositions = (data['optionPositions'] as List)
+          .map((e) => OptionAggregatePosition.fromJson(e))
+          .toList();
+      for (var op in optionPositions) {
+        final value = op.marketValue != 0
+            ? op.marketValue
+            : (op.averageOpenPrice ?? 0) * (op.quantity ?? 0) * 100;
+        positionsValue += op.direction == 'credit' ? -value : value;
+      }
+    }
+
+    // Futures positions: open P&L marked to the last saved price.
+    if (data['futuresPositions'] != null) {
+      final futuresPositions = (data['futuresPositions'] as List)
+          .map((e) =>
+              FuturesPaperPosition.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      for (var fp in futuresPositions) {
+        positionsValue += fp.openPnl;
+      }
+    }
+
+    // Saved daily snapshots (ascending); the last one from a prior day is
+    // the previous close.
+    final historyData = await _firestoreService.getPaperHistory(userId);
+    final equityHistoricals = historyData.map((e) {
+      if (e['begins_at'] is Timestamp) {
+        e['begins_at'] =
+            (e['begins_at'] as Timestamp).toDate().toIso8601String();
+      }
+      return EquityHistorical.fromJson(e);
+    }).toList();
+
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    double? previousClose;
+    for (final point in equityHistoricals) {
+      if (point.beginsAt != null && point.beginsAt!.isBefore(startOfToday)) {
+        previousClose =
+            point.closeEquity ?? point.adjustedCloseEquity ?? previousClose;
+      }
+    }
+
+    return PaperEquitySnapshot(
+      cashBalance: cashBalance,
+      positionsValue: positionsValue,
+      initialCapital: initialCapital,
+      previousClose: previousClose,
+      equityHistoricals: equityHistoricals,
+    );
+  }
+
+  @override
+  Future<PortfolioHistoricals> getPortfolioHistoricals(
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) async {
+    final userId = auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    final snapshot = await _equitySnapshot(user, userId);
+    final balance = snapshot.equity;
+    final previousClose = snapshot.previousClose ?? balance;
+
+    // Append the live valuation as the latest point.
+    final equityHistoricals =
+        List<EquityHistorical>.from(snapshot.equityHistoricals);
+    equityHistoricals.add(EquityHistorical(
+      balance, // adjustedOpenEquity
+      balance, // adjustedCloseEquity
+      previousClose, // openEquity
+      balance, // closeEquity
+      balance,
+      balance,
+      DateTime.now(),
+      balance - previousClose, // netReturn vs previous close
+      'regular',
+    ));
+
+    // The period open is the first point in the series; the change the UI
+    // derives (close - open) is now meaningful instead of always zero.
+    final firstPoint = equityHistoricals.first;
+    final openEquity =
+        firstPoint.adjustedOpenEquity ?? firstPoint.openEquity ?? balance;
+
+    final historicals = PortfolioHistoricals(
+      openEquity, // adjustedOpenEquity
+      previousClose, // adjustedPreviousCloseEquity
+      openEquity, // openEquity
+      previousClose, // previousCloseEquity
+      DateTime.now().toIso8601String(),
+      '1day',
+      convertChartSpanFilter(chartDateSpanFilter),
+      convertChartBoundsFilter(chartBoundsFilter),
+      balance - snapshot.initialCapital,
+      equityHistoricals,
+      false,
+    );
+    store.add(historicals);
+    return historicals;
+  }
+
+  @override
+  Future<PortfolioHistoricals> getPortfolioPerformance(
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return getPortfolioHistoricals(
+        user, store, account, chartBoundsFilter, chartDateSpanFilter);
+  }
+
+  @override
+  Future<OptionHistoricals> getOptionHistoricals(
+      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    // For now, return empty or mock data for paper options
+    final historicals = OptionHistoricals(
+      convertChartBoundsFilter(chartBoundsFilter),
+      '5minute',
+      convertChartSpanFilter(chartDateSpanFilter),
+      [],
+      null,
+      null,
+      null,
+      null,
+      [],
+    );
+    store.add(historicals);
+    return historicals;
+  }
+
+  @override
+  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return await yahooService.getForexHistoricals(id,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
+  }
+
+  @override
+  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
+      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
+      {bool includeInactive = true,
+      Bounds chartBoundsFilter = Bounds.trading,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+      String? chartInterval}) async {
+    final span = convertChartSpanFilter(chartDateSpanFilter);
+    final bounds = convertChartBoundsFilter(chartBoundsFilter);
+    final parameters =
+        chartDataParameters(chartDateSpanFilter, chartInterval: chartInterval);
+
+    try {
+      final data = await yahooService.getHistoricals(
+          symbolOrInstrumentId, parameters.range, parameters.interval);
+      final historicals = InstrumentHistoricals(
+          '',
+          symbolOrInstrumentId,
+          parameters.appInterval,
+          span,
+          bounds,
+          null,
+          null,
+          null,
+          null,
+          'https://api.robinhood.com/instruments/$symbolOrInstrumentId/',
+          symbolOrInstrumentId,
+          data);
+      store.addOrUpdate(historicals);
+      return historicals;
+    } catch (e) {
+      debugPrint('Error fetching historicals from Yahoo: $e');
+      // Fallback to empty historicals if Yahoo fails
+      final historicals = InstrumentHistoricals(
+          '',
+          symbolOrInstrumentId,
+          parameters.appInterval,
+          span,
+          bounds,
+          null,
+          null,
+          null,
+          null,
+          '',
+          null, []);
+      store.addOrUpdate(historicals);
+      return historicals;
+    }
+  }
+
+  @override
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return null;
+  }
+
+  @override
+  Stream<List<dynamic>> streamDividends(
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
+    return Stream.value([]);
+  }
+
+  @override
+  Future<List<dynamic>> getDividends(BrokerageUser user,
+      DividendStore dividendStore, InstrumentStore instrumentStore,
+      {String? instrumentId}) async {
+    // Return empty results for paper trading for now
+    return [];
+  }
+
+  @override
+  Stream<List<dynamic>> streamInterests(
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
+    return Stream.value([]);
+  }
+
+  @override
+  Future<List<dynamic>> getInterests(
+      BrokerageUser user, InterestStore interestStore,
+      {String? instrumentId}) async {
+    // Return empty results for paper trading for now
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getNews(BrokerageUser user, String symbol) async => [];
+  @override
+  Future<dynamic> getRatings(BrokerageUser user, String instrumentId) async =>
+      null;
+  @override
+  Future<dynamic> getRatingsOverview(
+          BrokerageUser user, String instrumentId) async =>
+      null;
+  @override
+  Future<List<dynamic>> getEarnings(
+          BrokerageUser user, String instrumentId) async =>
+      [];
+  @override
+  Future<List<dynamic>> getSimilar(
+          BrokerageUser user, String instrumentId) async =>
+      [];
+  @override
+  Future<List<dynamic>> getSplits(
+          BrokerageUser user, Instrument instrumentObj) async =>
+      [];
+
+  @override
+  Future<dynamic> search(BrokerageUser user, String query) async {
+    return yahooService.search(query);
+  }
+
+  @override
+  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
+      {String direction = "up"}) async {
+    final movers = await yahooService.getMovers(direction: direction);
+    return movers.map((q) {
+      return MidlandMoversItem(
+          'https://api.robinhood.com/instruments/${q['symbol']}/', // dummy
+          q['symbol'] ?? '',
+          DateTime.now(),
+          (q['changePercent'] as num?)?.toDouble(),
+          (q['price'] as num?)?.toDouble(),
+          q['description'] ?? '');
+    }).toList();
+  }
+
+  @override
+  Future<List<Instrument>> getTopMovers(
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    final actives =
+        await yahooService.getStockScreener(scrIds: 'most_actives', count: 10);
+    final results = actives['finance']?['result']?[0]?['records'] ?? [];
+
+    List<String> symbols = [];
+    for (var q in results) {
+      if (q['ticker'] != null) symbols.add(q['ticker']);
+    }
+
+    if (symbols.isEmpty) return [];
+
+    final quotes = await yahooService.getQuotesByIds(symbols);
+    final mapQuotes = {for (var q in quotes) q.symbol.toUpperCase(): q};
+
+    List<Instrument> instruments = [];
+    for (var symbol in symbols) {
+      final instrument =
+          await getInstrumentBySymbol(user, instrumentStore, symbol);
+      if (instrument != null) {
+        instrument.quoteObj = mapQuotes[symbol.toUpperCase()];
+        instruments.add(instrument);
+      }
+    }
+    return instruments;
+  }
+
+  @override
+  Future<List<Instrument>> getListMostPopular(
+      BrokerageUser user, InstrumentStore instrumentStore) async {
+    final popular =
+        await yahooService.getStockScreener(scrIds: 'most_actives', count: 10);
+    final results = popular['finance']?['result']?[0]?['records'] ?? [];
+
+    List<String> symbols = [];
+    for (var q in results) {
+      if (q['ticker'] != null) symbols.add(q['ticker']);
+    }
+
+    if (symbols.isEmpty) return [];
+
+    final quotes = await yahooService.getQuotesByIds(symbols);
+    final mapQuotes = {for (var q in quotes) q.symbol.toUpperCase(): q};
+
+    List<Instrument> instruments = [];
+    for (var symbol in symbols) {
+      final instrument =
+          await getInstrumentBySymbol(user, instrumentStore, symbol);
+      if (instrument != null) {
+        instrument.quoteObj = mapQuotes[symbol.toUpperCase()];
+        instruments.add(instrument);
+      }
+    }
+    return instruments;
+  }
+
+  @override
+  Stream<List<Watchlist>> streamLists(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore) {
+    return Stream.value([]);
+  }
+
+  @override
+  Future<List<dynamic>> getLists(
+          BrokerageUser user, String instrumentId) async =>
+      [];
+  @override
+  Stream<Watchlist> streamList(BrokerageUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
+      {String ownerType = "custom"}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Watchlist> getList(String key, BrokerageUser user,
+      {String ownerType = "custom"}) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async => [];
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {}
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {}
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {}
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {}
+
+  @override
+  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
+    if (auth.currentUser == null) {
+      late StreamController<List<InstrumentOrder>> guestController;
+      void emitGuest() {
+        if (!guestController.isClosed) {
+          guestController.add(paperTradingStore.getStockOrders());
+        }
+      }
+
+      guestController = StreamController<List<InstrumentOrder>>(
+        onListen: () {
+          paperTradingStore.addListener(emitGuest);
+          emitGuest();
+        },
+        onCancel: () {
+          paperTradingStore.removeListener(emitGuest);
+        },
+      );
+      return guestController.stream;
+    }
+
+    final userId = userDoc?.id ??
+        auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+    // History holds all asset classes; only stock entries map to
+    // InstrumentOrder. Legacy PaperService entries used the order type
+    // ('limit'/'market') in 'type', so exclude known non-stock classes.
+    const nonStockTypes = {
+      'option',
+      'futures',
+      'strategy',
+      'expiration',
+      'margin'
+    };
+
+    // Two live sources: working orders from the account document, and the
+    // durable fills from the paper_orders subcollection.
+    late StreamController<List<InstrumentOrder>> controller;
+    StreamSubscription? accountSub;
+    StreamSubscription? fillsSub;
+    List<InstrumentOrder> working = [];
+    List<InstrumentOrder> fills = [];
+
+    void emit() {
+      if (!controller.isClosed) {
+        final inMemory = paperTradingStore.getStockOrders();
+        final all = <String, InstrumentOrder>{};
+        for (final o in inMemory) {
+          all[o.id] = o;
+        }
+        for (final o in working) {
+          all[o.id] = o;
+        }
+        for (final o in fills) {
+          all[o.id] = o;
+        }
+        final list = all.values.toList();
+        list.sort((a, b) => (b.updatedAt ?? b.createdAt ?? DateTime.now())
+            .compareTo(a.updatedAt ?? a.createdAt ?? DateTime.now()));
+        controller.add(list);
+      }
+    }
+
+    controller = StreamController<List<InstrumentOrder>>(
+      onListen: () {
+        paperTradingStore.addListener(emit);
+        accountSub =
+            _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
+          final data = snapshot.data() ?? {};
+          working = (data['pendingOrders'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e))
+              .where((o) => o['assetType']?.toString() == 'stock')
+              .map((o) => InstrumentOrder.fromPaperJson({
+                    'id': o['id'],
+                    'symbol': o['symbol'],
+                    'side': o['side'],
+                    'order_type': o['orderType'],
+                    'state': 'confirmed',
+                    'cancel': o['id'],
+                    'quantity': o['quantity'],
+                    'price': o['limitPrice'] ?? o['stopPrice'],
+                    'instrument': (o['instrumentJson'] as Map?)?['url'],
+                    'created_at': o['createdAt'],
+                    'updated_at': o['createdAt'],
+                    'time_in_force': o['timeInForce'],
+                    'trigger': o['stopPrice'] != null ? 'stop' : 'immediate',
+                  }))
+              .toList();
+          emit();
+        });
+        fillsSub = _firestoreService.streamPaperFills(userId).listen((list) {
+          fills = list
+              .where((d) =>
+                  !nonStockTypes.contains(d['type']?.toString().toLowerCase()))
+              .map((d) => InstrumentOrder.fromPaperJson(d))
+              .toList();
+          emit();
+        });
+        emit();
+      },
+      onCancel: () {
+        paperTradingStore.removeListener(emit);
+        accountSub?.cancel();
+        fillsSub?.cancel();
+      },
+    );
+    return controller.stream;
+  }
+
+  @override
+  Stream<List<OptionOrder>> streamOptionOrders(
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc}) {
+    if (auth.currentUser == null) {
+      late StreamController<List<OptionOrder>> guestController;
+      void emitGuest() {
+        if (!guestController.isClosed) {
+          guestController.add(paperTradingStore.getOptionOrders());
+        }
+      }
+
+      guestController = StreamController<List<OptionOrder>>(
+        onListen: () {
+          paperTradingStore.addListener(emitGuest);
+          emitGuest();
+        },
+        onCancel: () {
+          paperTradingStore.removeListener(emitGuest);
+        },
+      );
+      return guestController.stream;
+    }
+
+    final userId = userDoc?.id ??
+        auth.currentUser?.uid ??
+        user.userInfo?.id ??
+        user.userName ??
+        'default_paper_user';
+
+    late StreamController<List<OptionOrder>> controller;
+    StreamSubscription? accountSub;
+    StreamSubscription? fillsSub;
+    List<OptionOrder> working = [];
+    List<OptionOrder> fills = [];
+
+    void emit() {
+      if (!controller.isClosed) {
+        final inMemory = paperTradingStore.getOptionOrders();
+        final all = <String, OptionOrder>{};
+        for (final o in inMemory) {
+          all[o.id] = o;
+        }
+        for (final o in working) {
+          all[o.id] = o;
+        }
+        for (final o in fills) {
+          all[o.id] = o;
+        }
+        final list = all.values.toList();
+        list.sort((a, b) => (b.createdAt ?? DateTime.now())
+            .compareTo(a.createdAt ?? DateTime.now()));
+        controller.add(list);
+      }
+    }
+
+    controller = StreamController<List<OptionOrder>>(
+      onListen: () {
+        paperTradingStore.addListener(emit);
+        accountSub =
+            _firestoreService.getPaperAccountStream(userId).listen((snapshot) {
+          final data = snapshot.data() ?? {};
+          working = (data['pendingOrders'] as List? ?? [])
+              .map((e) => Map<String, dynamic>.from(e))
+              .where((o) => o['assetType']?.toString() == 'option')
+              .map((o) => OptionOrder.fromPaperJson(o))
+              .toList();
+          emit();
+        });
+        fillsSub = _firestoreService.streamPaperFills(userId).listen((list) {
+          fills = list
+              .where((d) => d['type']?.toString().toLowerCase() == 'option')
+              .map((d) => OptionOrder.fromPaperJson(d))
+              .toList();
+          emit();
+        });
+        emit();
+      },
+      onCancel: () {
+        paperTradingStore.removeListener(emit);
+        accountSub?.cancel();
+        fillsSub?.cancel();
+      },
+    );
+    return controller.stream;
+  }
+
+  @override
+  Future<dynamic> previewOrder(BrokerageUser user, Account account,
+      Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    return null;
+  }
+
+  final List<ComboOrder> _paperComboOrders = [];
+
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return List.from(_paperComboOrders);
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
+    var filtered = _paperComboOrders.where((order) {
+      if (symbol != null &&
+          order.primarySymbol.toUpperCase() != symbol.toUpperCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+    for (var order in filtered) {
+      store.addOrUpdate(order);
+    }
+    yield filtered;
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    final now = DateTime.now();
+    final newId = 'paper-combo-order-${now.millisecondsSinceEpoch}';
+    final parsedLegs = legs.map((l) => ComboLeg.fromJson(l)).toList();
+    final newOrder = ComboOrder(
+      id: newId,
+      account: account.accountNumber,
+      cancelUrl: 'https://api.robinhood.com/combo/orders/$newId/cancel/',
+      direction: creditOrDebit,
+      legs: parsedLegs,
+      quantity: quantity.toDouble(),
+      price: price,
+      pendingQuantity: 0.0,
+      processedQuantity: quantity.toDouble(),
+      premium: price * quantity * 100,
+      processedPremium: price * quantity * 100,
+      refId: 'paper-ref-$newId',
+      state: 'filled',
+      timeInForce: timeInForce,
+      trigger: trigger,
+      type: type,
+      openingStrategy: openingStrategy ?? 'custom',
+      chainSymbol: parsedLegs.firstOrNull?.symbol,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _paperComboOrders.insert(0, newOrder);
+    return http.Response(
+      jsonEncode({'id': newId, 'state': 'filled'}),
+      201,
+    );
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    final order =
+        _paperComboOrders.firstWhereOrNull((o) => o.cancelUrl == cancelUrl);
+    if (order != null) {
+      final updated = ComboOrder(
+        id: order.id,
+        account: order.account,
+        cancelUrl: null,
+        direction: order.direction,
+        legs: order.legs,
+        quantity: order.quantity,
+        price: order.price,
+        stopPrice: order.stopPrice,
+        processedQuantity: order.processedQuantity,
+        pendingQuantity: 0.0,
+        canceledQuantity: order.quantity,
+        premium: order.premium,
+        processedPremium: order.processedPremium,
+        refId: order.refId,
+        state: 'cancelled',
+        timeInForce: order.timeInForce,
+        trigger: order.trigger,
+        type: order.type,
+        responseCategory: order.responseCategory,
+        openingStrategy: order.openingStrategy,
+        closingStrategy: order.closingStrategy,
+        chainSymbol: order.chainSymbol,
+        chainId: order.chainId,
+        createdAt: order.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      final idx = _paperComboOrders.indexWhere((o) => o.id == order.id);
+      if (idx != -1) {
+        _paperComboOrders[idx] = updated;
+      }
+    }
+    return http.Response(jsonEncode({'state': 'cancelled'}), 200);
+  }
+
+  @override
+  Future<List<OptionOrder>> getOptionOrders(
+      BrokerageUser user, OptionOrderStore store, String chainId) async {
+    final engine = await _engine();
+    final orders = engine.getOptionOrders(chainId: chainId);
+    for (final order in orders) {
+      store.addOrUpdate(order);
+    }
+    return orders;
+  }
+
+  @override
+  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
+      InstrumentOrderStore store, List<String> instrumentUrls) async {
+    final engine = await _engine();
+    final orders = engine.getStockOrders();
+    final matching = instrumentUrls.isEmpty
+        ? orders
+        : orders.where((o) =>
+            instrumentUrls.contains(o.instrument) ||
+            instrumentUrls.contains(o.instrumentObj?.symbol)).toList();
+    for (final order in matching) {
+      store.addOrUpdate(order);
+    }
+    return matching;
+  }
+
+  /// Returns the single app-wide paper trading engine. When a Firebase user
+  /// is signed in, it is bound to the user and loaded from Firestore. For
+  /// guest users, it operates from local storage via SharedPreferences.
+  Future<PaperTradingStore> _engine() async {
+    final firebaseUser = auth.currentUser;
+    await paperTradingStore.ensureLoaded(firebaseUser);
+    return paperTradingStore;
+  }
+
+  /// Wraps an order body in an [http.Response] to match the return shape of
+  /// the real brokerage services (e.g. RobinhoodService).
+  http.Response _orderResponse(Map<String, dynamic> order) {
+    return http.Response(jsonEncode(order), 201,
+        headers: {'content-type': 'application/json'});
+  }
+
+  @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    final store = await _engine();
+    final pos = store.positions.firstWhereOrNull((p) =>
+        (p.instrumentObj?.symbol ?? '').toUpperCase() == symbol.toUpperCase());
+    if (pos != null && (pos.quantity ?? 0) > 0) {
+      final curPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+          pos.averageBuyPrice ??
+          100.0;
+      final now = DateTime.now();
+      return [
+        TaxLot(
+          openLotId: 'paper_${symbol.toLowerCase()}_lot_1',
+          symbol: symbol,
+          quantity: pos.quantity!,
+          quantityAvailable: pos.sharesAvailableForExercise ?? pos.quantity!,
+          costPerShare: pos.averageBuyPrice ?? curPrice,
+          taxCostBasis: (pos.averageBuyPrice ?? curPrice) * pos.quantity!,
+          openDate: pos.createdAt ?? now.subtract(const Duration(days: 45)),
+          term: 'st',
+        ),
+      ];
+    }
+    return [];
+  }
+
+  @override
+  Future<dynamic> placeInstrumentOrder(
+      BrokerageUser user,
+      Account account,
+      Instrument instrument,
+      String symbol,
+      String side,
+      double? price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) async {
+    final store = await _engine();
+
+    // Map Robinhood order semantics (type + trigger + trailing peg) to the
+    // engine's types.
+    String engineType = type.toLowerCase();
+    if (trigger.toLowerCase() == 'stop') {
+      engineType = trailingPeg != null
+          ? 'trailing_stop'
+          : engineType == 'limit'
+              ? 'stop_limit'
+              : 'stop';
+    }
+
+    final result = await store.submitStockOrder(
+      instrument: instrument,
+      quantity: quantity.toDouble(),
+      side: side.toLowerCase(),
+      orderType: engineType,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
+      stopPrice: stopPrice,
+      marketPrice: instrument.quoteObj?.lastTradePrice ?? price,
+      timeInForce: timeInForce,
+      trailType: trailingPeg?['type']?.toString(),
+      trailValue: (trailingPeg?['value'] as num?)?.toDouble(),
+    );
+
+    final displayPrice = price ?? instrument.quoteObj?.lastTradePrice;
+    final nowIso = DateTime.now().toIso8601String();
+    return _orderResponse({
+      'id': result.id,
+      'ref_id': result.id,
+      'url': '',
+      'account': account.url,
+      'position': '',
+      'cancel': result.state == 'confirmed' ? result.id : null,
+      'instrument': instrument.url,
+      'instrument_id': instrument.id,
+      'cumulative_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
+      'average_price':
+          result.state == 'filled' ? displayPrice?.toString() : null,
+      'fees': '0.00',
+      'state': result.state,
+      'pending_cancel_open_agent': null,
+      'type': type,
+      'side': side,
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'price': displayPrice?.toString(),
+      'stop_price': stopPrice?.toString(),
+      'quantity': quantity.toString(),
+      'reject_reason': null,
+      'created_at': nowIso,
+      'updated_at': nowIso,
+      'trailing_peg': trailingPeg,
+    });
+  }
+
+  @override
+  Future<dynamic> placeOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      OptionInstrument optionInstrument,
+      String side,
+      String positionEffect,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) async {
+    final store = await _engine();
+
+    String engineType = type.toLowerCase();
+    if (trigger.toLowerCase() == 'stop') {
+      engineType = trailingPeg != null
+          ? 'trailing_stop'
+          : engineType == 'limit'
+              ? 'stop_limit'
+              : 'stop';
+    }
+
+    final result = await store.submitOptionOrder(
+      optionInstrument: optionInstrument,
+      quantity: quantity.toDouble(),
+      side: side.toLowerCase(),
+      orderType: engineType,
+      limitPrice:
+          engineType == 'limit' || engineType == 'stop_limit' ? price : null,
+      stopPrice: stopPrice,
+      marketPrice:
+          optionInstrument.optionMarketData?.adjustedMarkPrice ?? price,
+      timeInForce: timeInForce,
+      positionEffect: positionEffect,
+      trailType: trailingPeg?['type']?.toString(),
+      trailValue: (trailingPeg?['value'] as num?)?.toDouble(),
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = result.id;
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'chain_id': optionInstrument.chainId,
+      'chain_symbol': optionInstrument.chainSymbol,
+      'cancel_url': result.state == 'confirmed' ? result.id : null,
+      'canceled_quantity': '0',
+      'direction': creditOrDebit,
+      'legs': [
+        {
+          'id': orderId,
+          'position_effect': positionEffect,
+          'side': side,
+          'ratio_quantity': 1,
+          'option': optionInstrument.url,
+          'expiration_date': optionInstrument.expirationDate?.toIso8601String(),
+          'strike_price': optionInstrument.strikePrice,
+          'option_type': optionInstrument.type,
+          'executions': [],
+        }
+      ],
+      'pending_quantity': result.state == 'filled' ? '0' : quantity.toString(),
+      'premium': (price * 100).toString(),
+      'processed_premium':
+          result.state == 'filled' ? (price * 100 * quantity).toString() : '0',
+      'price': price.toString(),
+      'processed_quantity':
+          result.state == 'filled' ? quantity.toString() : '0',
+      'quantity': quantity.toString(),
+      'state': result.state,
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'type': type,
+      'response_category': null,
+      'opening_strategy': null,
+      'closing_strategy': null,
+      'stop_price': stopPrice?.toString(),
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
+  }
+
+  @override
+  Future<dynamic> placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) async {
+    final store = await _engine();
+
+    // Resolve OptionInstrument objects from the leg option URLs.
+    final optionIds = legs
+        .map((leg) => (leg['option']?.toString() ?? '')
+            .split('/')
+            .where((s) => s.isNotEmpty)
+            .lastOrNull)
+        .whereType<String>()
+        .toList();
+    final instruments = await getOptionInstrumentByIds(user, optionIds);
+
+    final legsData = <Map<String, dynamic>>[];
+    for (var leg in legs) {
+      final optionUrl = leg['option']?.toString() ?? '';
+      final instrument =
+          instruments.firstWhereOrNull((i) => optionUrl.contains(i.id));
+      if (instrument == null) {
+        throw Exception(
+            'Could not resolve option instrument for leg: $optionUrl');
+      }
+      legsData.add({
+        'instrument': instrument,
+        'side': leg['side']?.toString() ?? 'buy',
+        'ratio': (leg['ratio_quantity'] as num?)?.toInt() ?? 1,
+      });
+    }
+
+    await store.executeComplexOptionStrategy(
+      price: price,
+      quantity: quantity.toDouble(),
+      strategyName: 'Custom Strategy',
+      direction: creditOrDebit,
+      legsData: legsData,
+    );
+
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'direction': creditOrDebit,
+      'legs': legs,
+      'price': price.toString(),
+      'quantity': quantity.toString(),
+      'state': 'filled',
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'type': type,
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
+  }
+
+  @override
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user) async => [];
+
+  @override
+  Future<dynamic> placeForexOrder(BrokerageUser user, String pairId,
+      String side, double? price, double quantity,
+      {String type = 'market',
+      String timeInForce = 'gtc',
+      double? stopPrice}) async {
+    final nowIso = DateTime.now().toIso8601String();
+    final orderId = 'paper_forex_${DateTime.now().millisecondsSinceEpoch}';
+    final execPrice = price ?? 1.0;
+    final totalCost = execPrice * quantity;
+
+    try {
+      final store = await _engine();
+      if (side.toLowerCase() == 'buy') {
+        store.adjustCashBalance(-totalCost);
+      } else {
+        store.adjustCashBalance(totalCost);
+      }
+    } catch (_) {}
+
+    return _orderResponse({
+      'id': orderId,
+      'ref_id': orderId,
+      'currency_pair_id': pairId,
+      'side': side.toLowerCase(),
+      'type': type,
+      'time_in_force': timeInForce,
+      'price': execPrice.toString(),
+      'stop_price': stopPrice?.toString(),
+      'quantity': quantity.toString(),
+      'cumulative_quantity': quantity.toString(),
+      'average_price': execPrice.toString(),
+      'fees': '0.00',
+      'state': 'filled',
+      'created_at': nowIso,
+      'updated_at': nowIso,
+    });
+  }
+
+  @override
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) async {
+    final store = await _engine();
+    // Accept either a bare order id or a cancel URL ending with the id.
+    final id = cancel.split('/').where((s) => s.isNotEmpty).last;
+    final removed = await store.cancelPendingOrder(id);
+    return http.Response(
+        jsonEncode({'status': removed ? 'success' : 'not_found', 'state': 'cancelled'}),
+        removed ? 200 : 404);
+  }
+
+  @override
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return {
+      'collateral': {
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
+      },
+      'collateral_held_for_orders': {
+        'cash': {
+          'amount': '0.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': []
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return {
+      'should_show_options_upgrade': false,
+      'option_level': 'option_level_3',
+      'current_tier': 3,
+      'target_tier': 3,
+      'upgrade_title': 'Paper Trading Level 3 Active',
+      'upgrade_subtitle':
+          'Multi-leg spreads and simulated options strategies are fully enabled.',
+      'upgrade_url': null,
+      'is_eligible': true,
+      'requirements': ['Paper trading mode active'],
+      'features': [
+        'Multi-leg debit & credit spreads',
+        'Iron condors & iron butterflies',
+        'Simulated execution with zero capital risk',
+      ],
+    };
+  }
+
+  @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    return const CorporateActionSplitsSummary();
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) =>
+      Future.error(UnsupportedError('Live futures quotes are not supported.'));
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) {
+    return Future.error(
+      'Futures orders are not supported in PaperService',
+    );
+  }
+
+  @override
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
+  }
+
+  @override
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    return false;
+  }
+
+  @override
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
+
+  @override
+  Future<List<ExternalToken>> getExternalTokensModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
+
+  @override
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
+
+  @override
+  Future<List<NotificationItem>> getNotificationStackModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
+
+  @override
+  Future<List<NotificationItem>> getInboxThreadsModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
+
+  @override
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
+
+  @override
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+          {String? accountNumber}) async =>
+      null;
+
+  @override
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+          {String? accountNumber}) async =>
+      const RetirementHistory();
+}

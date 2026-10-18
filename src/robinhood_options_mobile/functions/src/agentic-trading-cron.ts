@@ -1,10 +1,41 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 import { performTradeProposal } from "./agentic-trading";
 
 const db = getFirestore();
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("agenticTradingCronInvoke authorization check failed", e);
+    return false;
+  }
+}
 
 /**
  * Result summary for a cron run.
@@ -16,17 +47,17 @@ export interface AgenticTradingCronResult {
 }
 
 /**
- * Core logic that scans all agentic_trading chart documents and
+ * Core logic that scans all charts documents and
  * triggers trade proposals. Can be invoked by the scheduled function
  * or ad-hoc via the callable endpoint.
  */
 export async function runAgenticTradingCron() {
   logger.info(
-    "Agentic Trading Cron: Scanning all agentic_trading chart documents"
+    "Agentic Trading Cron: Scanning all chart documents in charts collection"
   );
-  const snapshot = await db.collection("agentic_trading").get();
-  if (snapshot.empty) {
-    logger.warn("⚠️ No agentic_trading documents found in Firestore!");
+  const docRefs = await db.collection("charts").listDocuments();
+  if (docRefs.length === 0) {
+    logger.warn("⚠️ No chart documents found in Firestore charts collection!");
     return {
       processedCount: 0,
       errorCount: 0,
@@ -35,62 +66,82 @@ export async function runAgenticTradingCron() {
   }
 
   logger.info(
-    `📊 Found ${snapshot.docs.length} documents in ` +
-    "agentic_trading collection"
+    `📊 Found ${docRefs.length} documents in ` +
+    "charts collection"
   );
 
   let processedCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
 
-  for (const doc of snapshot.docs) {
-    // Skip intraday charts (only process daily charts)
-    if (!doc.id.startsWith("chart_")) {
-      skippedCount++;
-      continue;
-    }
 
+  // Filter docs first
+  const docsToProcess = docRefs.filter((doc) => {
+    // Skip intraday charts (only process daily charts)
     if (doc.id.endsWith("_15m") ||
       doc.id.endsWith("_1h") ||
       doc.id.endsWith("_30m")) {
-      logger.info(`⏭️ Skipping intraday chart: ${doc.id}`);
-      skippedCount++;
-      continue;
+      // logger.info(`⏭️ Skipping intraday chart: ${doc.id}`);
+      // skippedCount++;
+      return false;
+    }
+    return true;
+  });
+
+  logger.info(`Processing ${docsToProcess.length} documents after filtering.`);
+
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Process in batches
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
+    const batch = docsToProcess.slice(i, i + BATCH_SIZE);
+
+    // Add delay between batches to throttle API requests
+    if (i > 0) {
+      await delay(2000);
     }
 
-    const symbol = doc.id.replace("chart_", "");
-    if (!symbol) {
-      logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
-      skippedCount++;
-      continue;
-    }
-
-    logger.info(
-      `Triggering initiateTradeProposal for symbol: ${symbol}`
-    );
-    try {
-      const configDoc = await db.doc("agentic_trading/config").get();
-      const config = configDoc.exists ? configDoc.data() : {};
-      const data = {
-        symbol,
-        interval: "1d",
-        ...config,
-        portfolioState: {},
-      };
-      interface PerformTradeProposalRequest {
-        data: {
-          symbol: string;
-          interval: string;
-          portfolioState: Record<string, unknown>;
-          [key: string]: unknown;
-        };
+    await Promise.all(batch.map(async (doc) => {
+      const symbol = doc.id.replace("chart_", "");
+      if (!symbol) {
+        logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
+        return;
       }
-      await performTradeProposal({ data } as PerformTradeProposalRequest);
-      processedCount++;
-    } catch (err) {
-      errorCount++;
-      logger.error(`Error triggering trade proposal for ${symbol}:`, err);
-    }
+
+      try {
+        const data = {
+          symbol,
+          interval: "1d",
+          portfolioState: {},
+          skipRiskGuard: true,
+          gexCacheOnly: false,
+          marketDataCacheOnly: true,
+        };
+        interface PerformTradeProposalRequest {
+          data: {
+            symbol: string;
+            interval: string;
+            portfolioState: Record<string, unknown>;
+            [key: string]: unknown;
+          };
+        }
+        const result = await performTradeProposal(
+          { data } as PerformTradeProposalRequest
+        );
+        if (result && result.status === "error") {
+          errorCount++;
+        } else if (result && result.status === "no_action") {
+          skippedCount++;
+        } else {
+          processedCount++;
+        }
+      } catch (err) {
+        errorCount++;
+        logger.error(`Error triggering trade proposal for ${symbol}:`, err);
+      }
+    }));
   }
 
   const summary: AgenticTradingCronResult = {
@@ -113,7 +164,8 @@ export const agenticTradingCron = onSchedule(
   {
     schedule: "0 16 * * 1-5", // Every weekday at 4:00 PM
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
-    memory: "512MiB", // Increase memory for processing multiple symbols
+    secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
+    memory: "1GiB", // Increase memory for processing multiple symbols
     timeoutSeconds: 540, // 9 minutes timeout
   },
   async () => {
@@ -130,18 +182,18 @@ export const agenticTradingCron = onSchedule(
 
 // Callable function to trigger the cron logic ad-hoc
 // (e.g., from dashboard or admin tooling).
-// Optional: add auth/role checks before execution.
 export const agenticTradingCronInvoke = onRequest(
   {
-    memory: "512MiB",
+    memory: "1GiB",
     timeoutSeconds: 540, // 9 minutes
   },
   async (request, response) => {
-  // logger.info(request.query, { structuredData: true });
-  // Example simple auth gating (adjust to project standards):
-  // if (!request.auth || request.auth.token.admin !== true) {
-  //   throw new HttpsError('permission-denied', 'Admin privileges required');
-  // }
+    if (!(await isAuthorizedAdmin(request.headers.authorization))) {
+      response.status(401).json({
+        error: "Unauthorized: Admin privileges required.",
+      });
+      return;
+    }
     try {
       const result = await runAgenticTradingCron();
       // Send JSON response instead of returning the result

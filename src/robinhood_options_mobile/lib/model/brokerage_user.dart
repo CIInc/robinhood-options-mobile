@@ -1,8 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
+import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
+import 'package:uuid/uuid.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
@@ -10,7 +15,6 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/services/robinhood_crypto_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
 //@immutable
@@ -19,8 +23,12 @@ class BrokerageUser {
   final BrokerageSource source;
   late String? userName;
   String? credentials;
+  String secureCredentialsKey;
+  final SecureTokenStorage _secureTokenStorage;
+  Future<void> _pendingCredentialWrite = Future<void>.value();
+  bool _credentialsDeleted = false;
   oauth2.Client? oauth2Client;
-  String? apiKey; // For API key-based authentication (e.g., Robinhood Crypto)
+  String? apiKey;
   // bool defaultUser = true;
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
@@ -29,24 +37,27 @@ class BrokerageUser {
   SortDirection? sortDirection = SortDirection.desc;
   bool showPositionDetails = true;
   UserInfo? userInfo;
+  List<Account> accounts = [];
 
-  BrokerageUser(
-      this.source, this.userName, this.credentials, this.oauth2Client,
-      {this.apiKey});
+  BrokerageUser(this.source, this.userName, this.credentials, this.oauth2Client,
+      {this.accounts = const [],
+      this.apiKey,
+      String? secureCredentialsKey,
+      SecureTokenStorage? secureTokenStorage})
+      : secureCredentialsKey = secureCredentialsKey ?? const Uuid().v4(),
+        _secureTokenStorage =
+            secureTokenStorage ?? PlatformSecureTokenStorage();
 
-  BrokerageUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'] == BrokerageSource.robinhood.toString()
-            ? BrokerageSource.robinhood
-            : json['source'] == BrokerageSource.schwab.toString()
-                ? BrokerageSource.schwab
-                : json['source'] == BrokerageSource.plaid.toString()
-                    ? BrokerageSource.plaid
-                    : json['source'] == BrokerageSource.robinhoodCrypto.toString()
-                        ? BrokerageSource.robinhoodCrypto
-                        : BrokerageSource.demo,
+  BrokerageUser.fromJson(Map<String, dynamic> json,
+      {SecureTokenStorage? secureTokenStorage})
+      : source = _parseSource(json['source']),
         userName = json['userName'],
         credentials = json['credentials'],
         apiKey = json['apiKey'],
+        secureCredentialsKey =
+            json['secureCredentialsKey'] as String? ?? const Uuid().v4(),
+        _secureTokenStorage =
+            secureTokenStorage ?? PlatformSecureTokenStorage(),
         refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
@@ -62,44 +73,159 @@ class BrokerageUser {
         showPositionDetails = json['showPositionDetails'] ?? true,
         userInfo = json['userInfo'] != null
             ? UserInfo.fromJson(json['userInfo'])
-            : null;
+            : null,
+        accounts = json['accounts'] != null
+            ? Account.fromJsonArray(json['accounts'])
+            : [] {
+    ensureOAuth2Client();
+  }
+
+  static BrokerageSource _parseSource(dynamic raw) {
+    if (raw is BrokerageSource) {
+      return raw;
+    }
+    if (raw is String) {
+      var normalized = raw.trim();
+      if (normalized.contains('.')) {
+        normalized = normalized.split('.').last;
+      }
+      normalized = normalized.toLowerCase();
+      switch (normalized) {
+        case 'robinhood':
+          return BrokerageSource.robinhood;
+        case 'schwab':
+          return BrokerageSource.schwab;
+        case 'fidelity':
+          return BrokerageSource.fidelity;
+        case 'plaid':
+          return BrokerageSource.plaid;
+        case 'demo':
+          return BrokerageSource.demo;
+        case 'paper':
+          return BrokerageSource.paper;
+        case 'robinhoodcrypto':
+          return BrokerageSource.robinhoodCrypto;
+      }
+    }
+    if (raw is int) {
+      if (raw >= 0 && raw < BrokerageSource.values.length) {
+        return BrokerageSource.values[raw];
+      }
+    }
+    return BrokerageSource.demo;
+  }
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
         'userName': userName,
-        'credentials': credentials,
         'apiKey': apiKey,
+        if (credentials != null && credentials!.isNotEmpty)
+          'secureCredentialsKey': secureCredentialsKey,
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
         'sortOptions': sortOptions.toString(),
         'sortDirection': sortDirection.toString(),
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
-        'userInfo': userInfo?.toJson()
+        'userInfo': userInfo?.toJson(),
+        'accounts': accounts.map((e) => e.toJson()).toList(),
       };
 
-  static List<BrokerageUser> fromJsonArray(dynamic json) {
+  Map<String, dynamic> toFirestoreJson() {
+    final json = toJson()
+      ..remove('secureCredentialsKey')
+      ..remove('apiKey');
+    return json;
+  }
+
+  Future<void> persistCredentials() {
+    final value = credentials;
+    if (value == null || value.isEmpty || _credentialsDeleted) {
+      return Future<void>.value();
+    }
+    final write =
+        _pendingCredentialWrite.catchError((Object _) {}).then((_) async {
+      if (!_credentialsDeleted) {
+        await _secureTokenStorage.write(
+          key: secureCredentialsKey,
+          value: value,
+        );
+      }
+    });
+    _pendingCredentialWrite = write;
+    return write;
+  }
+
+  Future<void> deleteCredentials() async {
+    _credentialsDeleted = true;
+    try {
+      await _pendingCredentialWrite;
+    } catch (_) {
+      debugPrint(
+          'A pending brokerage credential write failed before deletion.');
+    }
+    await _secureTokenStorage.delete(key: secureCredentialsKey);
+    credentials = null;
+    oauth2Client?.close();
+    oauth2Client = null;
+  }
+
+  void _handleCredentialsRefreshed(oauth2.Credentials refreshedCredentials) {
+    if (_credentialsDeleted) return;
+    credentials = refreshedCredentials.toJson();
+    unawaited(persistCredentials().catchError((Object _) {
+      debugPrint('Failed to persist refreshed brokerage credentials securely.');
+    }));
+  }
+
+  void updateCredentials(oauth2.Credentials refreshedCredentials) =>
+      _handleCredentialsRefreshed(refreshedCredentials);
+
+  void ensureOAuth2Client() {
+    if (oauth2Client != null || credentials == null) {
+      return;
+    }
+    final raw = credentials;
+    if (raw is String && (raw.trim().isEmpty || raw.trim() == 'null')) {
+      return;
+    }
+    try {
+      final jsonString = raw is String ? raw : jsonEncode(raw);
+      var creds = Credentials.fromJson(jsonString);
+      var service = source == BrokerageSource.robinhood
+          ? RobinhoodService()
+          : source == BrokerageSource.schwab
+              ? SchwabService()
+              : source == BrokerageSource.plaid
+                  ? PlaidService()
+                  : DemoService();
+
+      String? secret;
+      if (source == BrokerageSource.schwab) {
+        secret = SchwabService.sc;
+      }
+
+      oauth2Client = Client(creds, identifier: service.clientId, secret: secret,
+          onCredentialsRefreshed: (refreshedCredentials) {
+        _handleCredentialsRefreshed(refreshedCredentials);
+      });
+    } catch (e) {
+      debugPrint('Error creating oauth2 client for $userName: $e');
+    }
+  }
+
+  static List<BrokerageUser> fromJsonArray(dynamic json,
+      {SecureTokenStorage? secureTokenStorage}) {
     List<BrokerageUser> list = [];
     if (json == null) {
       return list;
     }
     for (int i = 0; i < json.length; i++) {
-      var user = BrokerageUser.fromJson(json[i]);
-      if (user.credentials != null) {
-        var credentials = Credentials.fromJson(user.credentials as String);
-        var service = user.source == BrokerageSource.robinhood
-            ? RobinhoodService()
-            : user.source == BrokerageSource.schwab
-                ? SchwabService()
-                : user.source == BrokerageSource.plaid
-                    ? PlaidService()
-                    : user.source == BrokerageSource.robinhoodCrypto
-                        ? RobinhoodCryptoService()
-                        : DemoService();
-
-        var client = Client(credentials, identifier: service.clientId);
-        user.oauth2Client = client;
-      }
+      var user = BrokerageUser.fromJson(
+        json[i],
+        secureTokenStorage: secureTokenStorage,
+      );
+      user.ensureOAuth2Client();
       list.add(user);
     }
     return list;
@@ -123,8 +249,15 @@ class BrokerageUser {
         return 'Total Return %';
       case DisplayValue.expirationDate:
         return 'Expiration Date';
+    }
+  }
+
+  static String shortDisplayValueText(DisplayValue displayValue) {
+    switch (displayValue) {
+      case DisplayValue.totalCost:
+        return 'Cost';
       default:
-        throw Exception('Not a valid display value.');
+        return displayValueText(displayValue);
     }
   }
 
@@ -367,7 +500,7 @@ class BrokerageUser {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.quoteObj!.markPrice!;
+        value = op.quoteObj?.markPrice ?? 0.0;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
@@ -409,20 +542,37 @@ class BrokerageUser {
   String getDisplayText(double value, {DisplayValue? displayValue}) {
     String opTrailingText = '';
     switch (displayValue ?? this.displayValue) {
-      case DisplayValue.lastPrice:
-      case DisplayValue.marketValue:
-      case DisplayValue.totalCost:
       case DisplayValue.todayReturn:
       case DisplayValue.totalReturn:
-        opTrailingText = value.abs() != 0.0 && value.abs() < 0.00005
-            ? formatPrecise8Currency.format(value)
-            : (value.abs() != 0.0 && value.abs() < 0.005
-                ? formatPrecise4Currency.format(value)
-                : formatCurrency.format(value));
+        // Returns are always standard currency (2 decimal places)
+        opTrailingText =
+            formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        break;
+      case DisplayValue.lastPrice:
+        if (value.abs() >= 0.00000001 && value.abs() < 0.00005) {
+          opTrailingText = formatPrecise8Currency.format(value);
+        } else if (value.abs() >= 0.00005 && value.abs() < 0.005) {
+          opTrailingText = formatPrecise4Currency.format(value);
+        } else {
+          opTrailingText =
+              formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        }
+        break;
+      case DisplayValue.marketValue:
+      case DisplayValue.totalCost:
+        if (value.abs() >= 0.00005 && value.abs() < 0.005) {
+          opTrailingText = formatPrecise4Currency.format(value);
+        } else {
+          opTrailingText =
+              formatCurrency.format(value.abs() < 0.005 ? 0.0 : value);
+        }
         break;
       case DisplayValue.todayReturnPercent:
       case DisplayValue.totalReturnPercent:
-        opTrailingText = formatPercentage.format(value);
+        final pct = (value.isNaN || value.isInfinite || value.abs() < 0.00005)
+            ? 0.0
+            : value;
+        opTrailingText = formatPercentage.format(pct);
         break;
       default:
     }

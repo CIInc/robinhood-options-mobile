@@ -17,7 +17,7 @@ Users can customize their notification preferences with the following settings:
 3. **Include HOLD** - Optionally receive notifications for HOLD signals
 4. **Intervals** - Filter notifications by time interval (1d, 1h, 30m, 15m)
 5. **Symbol Filter** - Receive notifications only for specific symbols
-6. **Confidence Threshold** - Only notify if signal confidence exceeds a threshold (0-100%)
+6. **Confidence Threshold** - Only notify if signal confidence exceeds a threshold (stored as 0-1, displayed as 0-100%)
 
 ### Notification Triggers
 
@@ -26,7 +26,15 @@ Notifications are sent when:
 - A new trade signal document is created in the `agentic_trading` collection with a BUY or SELL signal
 - An existing trade signal is updated and the signal changes to BUY or SELL
 
-### Notification Content
+### Notification Content (Rich Notifications)
+
+Notifications are delivered as Rich Push Notifications containing:
+- **Title**: Symbol and Signal Type (e.g., "AAPL - BUY Signal")
+- **Body**: Price, Confidence Score, and key indicators
+- **Rich Media**: Embedded chart image showing trend context
+- **Actions**: "View Details", "Trade Now" buttons for immediate action
+
+This actionable format allows users to assess opportunities without opening the app fully.
 
 Each notification includes:
 
@@ -34,8 +42,36 @@ Each notification includes:
 - Symbol
 - Current price (if available)
 - Interval (Daily, Hourly, 30-min, 15-min)
-- Confidence level (if available)
+- Weighted signal strength (if available; normalized to 0-1 for filtering)
 - Data payload for app navigation
+
+### Rich Notifications
+
+> **New in v0.26.0, Expanded in v0.32.0**
+
+Rich notifications are now supported for:
+- **Trade Signals**: (Buy/Sell alerts with charts)
+- **Chat**: (Group messages with sender context)
+- **Copy Trading**: (Trade alerts and approval requests with action buttons)
+
+**Enhancements in v0.32.0:**
+- Added Firestore storage for notification history and search capabilities
+- Implemented advanced filtering options for notification management
+- Enhanced search functionality to find specific notifications by symbol, date, or signal type
+
+
+Notifications now support rich media content to provide immediate context without opening the app.
+
+*   **Charts**: A mini-chart of the instrument's recent price action is displayed directly in the notification.
+*   **Data Tables**: Key metrics (e.g., Signal Strength, Indicator Summary) are presented in a concise table format.
+*   **Action Buttons**: Quick actions (e.g., "View Chart", "Place Trade") are available directly from the notification.
+
+### App Navigation
+
+When a user taps on a trade signal notification, the app will:
+1. Open the app (if not already open)
+2. Navigate directly to the **Instrument Details** page for the symbol in the signal
+3. Load the relevant instrument data and chart
 
 ## Technical Implementation
 
@@ -61,6 +97,9 @@ Both triggers:
 
 **Widget**:
 - `TradeSignalNotificationSettingsWidget` - UI for configuring notification preferences
+
+**Navigation**:
+- `NavigationStatefulWidget` handles incoming notification payloads and routes the user to the `InstrumentWidget` with the appropriate symbol and signal data. This ensures a seamless transition from notification to analysis.
 
 ### Data Storage
 
@@ -154,7 +193,7 @@ firebase deploy --only firestore:rules
 
 ```javascript
 // In Firebase Console or using admin SDK
-db.collection('agentic_trading').add({
+db.collection('signals').add({
   symbol: 'AAPL',
   signal: 'BUY',
   interval: '1d',

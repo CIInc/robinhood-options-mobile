@@ -1,0 +1,200 @@
+/**
+ * Integration & Unit Tests for Gamma Exposure GEX data validation
+ */
+
+import { initializeApp } from "firebase-admin/app";
+initializeApp({ projectId: "demo-project" });
+
+import { describe, it, expect } from "@jest/globals";
+import {
+  computeGammaExposure,
+  evaluateGammaExposure,
+  GammaExposureData,
+  resolveGammaExposureSymbols,
+  scaleGammaExposure,
+} from "../src/gamma-exposure";
+
+describe("Gamma Exposure (GEX) Data Validation", () => {
+  it("should scale gamma exposure to a 1% underlying move", () => {
+    expect(scaleGammaExposure(0.02, 1000, 200)).toBe(800000);
+  });
+
+  const mockOptionsChain = {
+    options: [
+      {
+        calls: [
+          {
+            strike: 100,
+            impliedVolatility: 0.25,
+            openInterest: 1000,
+          },
+          {
+            strike: 105,
+            impliedVolatility: 0.22,
+            openInterest: 5000, // Call Wall target
+          },
+        ],
+        puts: [
+          {
+            strike: 95,
+            impliedVolatility: 0.28,
+            openInterest: 3000, // Put Wall target
+          },
+          {
+            strike: 100,
+            impliedVolatility: 0.26,
+            openInterest: 800,
+          },
+        ],
+      },
+    ],
+  };
+
+  it("should correctly compute total Net GEX and positioning", () => {
+    const symbol = "AAPL";
+    const spotPrice = 101.5;
+
+    const gexData: GammaExposureData = computeGammaExposure(
+      symbol,
+      spotPrice,
+      mockOptionsChain
+    );
+
+    expect(gexData.symbol).toBe(symbol);
+    expect(gexData.spotPrice).toBe(spotPrice);
+    expect(gexData.gexByStrike.length).toBeGreaterThan(0);
+
+    // Call and Put Walls validation
+    expect(gexData.callWall).toBe(105);
+    expect(gexData.putWall).toBe(95);
+
+    // net GEX and ratio validation
+    expect(gexData.gexRatio).toBeGreaterThanOrEqual(0.0);
+    expect(gexData.gexRatio).toBeLessThanOrEqual(1.0);
+    expect(gexData.totalCallGEX).toBeDefined();
+    expect(gexData.totalPutGEX).toBeDefined();
+    expect(gexData.totalNetGEX).toBe(
+      gexData.totalCallGEX - gexData.totalPutGEX
+    );
+  });
+
+  it("should evaluate Gamma Exposure trading signal context", () => {
+    // A mock of extremely high long gamma (net long gamma)
+    const longGexData: GammaExposureData = {
+      symbol: "TSLA",
+      spotPrice: 205,
+      totalCallGEX: 50000000,
+      totalPutGEX: 20000000,
+      totalNetGEX: 30000000, // > 1e6
+      gammaFlip: 200,
+      maxGammaStrike: 205,
+      gexByStrike: [],
+      dealerPositioning: "long_gamma",
+      signalStrength: 80,
+      updatedAt: Date.now(),
+      callWall: 210,
+      putWall: 190,
+      gexRatio: 0.71,
+      riskFreeRate: 0.05,
+    };
+
+    const result = evaluateGammaExposure(longGexData);
+    expect(result.signal).toBe("BUY");
+    expect(result.reason).toContain("dealers long gamma");
+    expect(result.metadata?.dealerPositioning).toBe("long_gamma");
+  });
+
+  it("should evaluate short gamma and price below flip context", () => {
+    const shortGexData: GammaExposureData = {
+      symbol: "NVDA",
+      spotPrice: 90,
+      totalCallGEX: 10000000,
+      totalPutGEX: 40000000,
+      totalNetGEX: -30000000, // < -1e6
+      gammaFlip: 100,
+      maxGammaStrike: 95,
+      gexByStrike: [],
+      dealerPositioning: "short_gamma",
+      signalStrength: 50,
+      updatedAt: Date.now(),
+      callWall: 110,
+      putWall: 80,
+      gexRatio: 0.2,
+      riskFreeRate: 0.05,
+    };
+
+    const result = evaluateGammaExposure(shortGexData);
+    expect(result.signal).toBe("SELL");
+    expect(result.reason).toContain("dealers short gamma");
+    expect(result.metadata?.dealerPositioning).toBe("short_gamma");
+  });
+
+  it("should return HOLD for neutral positioning below threshold", () => {
+    const neutralGexData: GammaExposureData = {
+      symbol: "SPY",
+      spotPrice: 500,
+      totalCallGEX: 300000,
+      totalPutGEX: 200000,
+      totalNetGEX: 100000, // < 1e6 threshold
+      gammaFlip: 500,
+      maxGammaStrike: 500,
+      gexByStrike: [],
+      dealerPositioning: "neutral",
+      signalStrength: 2,
+      updatedAt: Date.now(),
+      callWall: 505,
+      putWall: 495,
+      gexRatio: 0.6,
+      riskFreeRate: 0.05,
+    };
+
+    const result = evaluateGammaExposure(neutralGexData);
+    expect(result.signal).toBe("HOLD");
+    expect(result.reason).toContain("neutral dealer positioning");
+  });
+
+  it("should provide non-null structural level fallbacks when chain has " +
+    "no zero crossings", () => {
+    // Mock chain with only calls (all strikes positive net GEX)
+    const allCallsChain = {
+      options: [
+        {
+          calls: [
+            { strike: 100, impliedVolatility: 0.25, openInterest: 2000 },
+            { strike: 105, impliedVolatility: 0.22, openInterest: 5000 },
+            { strike: 110, impliedVolatility: 0.20, openInterest: 3000 },
+          ],
+          puts: [],
+        },
+      ],
+    };
+
+    const gexData = computeGammaExposure("AAPL", 102, allCallsChain);
+    expect(gexData.gammaFlip).toBeNull(); // No crossing
+    expect(gexData.pTrans).not.toBeNull();
+    expect(gexData.nTrans).not.toBeNull();
+    expect(gexData.plusGex).not.toBeNull();
+    expect(gexData.cotmp).not.toBeNull();
+    expect(gexData.pTrans!).toBeGreaterThan(gexData.nTrans!);
+  });
+});
+
+describe("Gamma Exposure symbol selection", () => {
+  it("includes market defaults for general dashboard requests", () => {
+    const symbols = resolveGammaExposureSymbols(["hood"]);
+
+    expect(symbols).toEqual(expect.arrayContaining(["SPY", "QQQ", "HOOD"]));
+  });
+
+  it("excludes defaults from portfolio requests", () => {
+    const symbols = resolveGammaExposureSymbols(
+      [" aapl ", "msft", "AAPL"],
+      false
+    );
+
+    expect(symbols).toEqual(["AAPL", "MSFT"]);
+    expect(symbols).not.toEqual(
+      expect.arrayContaining(["SPY", "QQQ", "IWM"])
+    );
+  });
+});

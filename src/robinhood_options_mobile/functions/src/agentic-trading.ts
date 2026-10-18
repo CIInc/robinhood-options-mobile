@@ -1,280 +1,245 @@
-import { onCall } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as alphaagent from "./alpha-agent";
-import { getFirestore } from "firebase-admin/firestore";
-import fetch from "node-fetch";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { POPULAR_SYMBOLS } from "./sentiment-analysis";
+import { ALL_STOCKS } from "./stock-list";
+import { getMarketData } from "./market-data";
 
 const db = getFirestore();
 
+const STALE_DATA_DISCLAIMER =
+  "This signal was calculated using cached market data that may be " +
+  "outdated. Confirm current market conditions before making a trading " +
+  "decision.";
+const CALCULATION_ERROR_DISCLAIMER =
+  "The latest signal calculation could not be completed. The displayed " +
+  "signal may be outdated; confirm current market conditions before making " +
+  "a trading decision.";
+
 /**
- * Fetches market data for a given symbol, utilizing a cache in Firestore.
- * @param {string} symbol The stock symbol to fetch data for.
- * @param {number} smaPeriodFast The fast SMA period.
- * @param {number} smaPeriodSlow The slow SMA period.
- * @param {string} interval The chart interval (1d, 1h, 30m, 15m, etc.)
- * @param {string} range The time range (1y, 5d, 1mo, etc.)
- * @return {Promise<object>} An object containing the symbol, prices,
- * volumes, and current price.
+ * Merges user-facing calculation diagnostics into an existing signal.
+ * Avoids creating an incomplete signal document before the first success.
+ * @param {string} symbol Instrument symbol.
+ * @param {string} interval Signal interval.
+ * @param {Record<string, unknown>} values Diagnostic values to merge.
+ * @return {Promise<void>}
  */
-export async function getMarketData(symbol: string,
-  smaPeriodFast: number, smaPeriodSlow: number,
-  interval = "1d", range?: string) {
-  let opens: any[] = [];
-  let highs: any[] = [];
-  let lows: any[] = [];
-  let closes: any[] = [];
-  let volumes: any[] = [];
-  let currentPrice: number | null = null;
+async function updateExistingSignalDiagnostics(
+  symbol: string,
+  interval: string,
+  values: Record<string, unknown>
+) {
+  const signalDocId = interval === "1d" ? symbol : `${symbol}_${interval}`;
+  const docRef = db.doc(`signals/${signalDocId}`);
 
-  /**
-   * Checks if the cached chart data is stale based on the end of the current
-   * trading period and interval type.
-   * @param {any} chart The chart data object to check.
-   * @param {string} interval The chart interval.
-   * @return {boolean} True if the cache is stale, false otherwise.
-   */
-  function isCacheStale(chart: any, interval: string): boolean {
-    if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
-      return true;
-    }
-
-    // If no updated timestamp, treat as stale (legacy cache)
-    if (!chart.updated) {
-      logger.info("⚠️ Cache missing 'updated' field - treating as stale");
-      return true;
-    }
-
-    const endSec = chart.meta.currentTradingPeriod.regular.end;
-    const endMs = endSec * 1000;
-    const now = new Date();
-
-    // For intraday intervals, cache is stale after a shorter period
-    if (interval !== "1d") {
-      const cacheAge = now.getTime() - chart.updated;
-      const maxCacheAge = interval === "15m" ? 15 * 60 * 1000 : // 15 minutes
-        interval === "30m" ? 30 * 60 * 1000 : // 30 minutes
-          60 * 60 * 1000; // 1 hour for 1h interval
-      return cacheAge > maxCacheAge;
-    }
-
-    // For daily interval, check if it's from a previous trading day
-    // Use America/New_York timezone for consistent market hours
-    const estNow = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
-    const todayStartEST = new Date(
-      estNow.getFullYear(),
-      estNow.getMonth(),
-      estNow.getDate()
-    ).getTime();
-    return endMs < todayStartEST;
-  }
-
-  // Try to load cached prices from Firestore
-  const cacheKey = interval === "1d" ?
-    `agentic_trading/chart_${symbol}` :
-    `agentic_trading/chart_${symbol}_${interval}`;
   try {
-    const doc = await db.doc(cacheKey).get();
-    if (doc.exists) {
-      const chart = doc.data()?.chart;
-      const isCached = chart && !isCacheStale(chart, interval);
-
-      if (isCached && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
-        const opes = chart.indicators.quote[0].open;
-        const higs = chart.indicators.quote[0].high;
-        const los = chart.indicators.quote[0].low;
-        const clos = chart.indicators.quote[0].close;
-        const vols = chart.indicators.quote[0].volume || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        if (chart && typeof chart?.meta?.regularMarketPrice === "number") {
-          currentPrice = chart.meta.regularMarketPrice;
-        } else if (Array.isArray(closes) && closes.length > 0) {
-          currentPrice = closes[closes.length - 1];
-        }
-        const lastFew = closes.slice(-5);
-        logger.info(`✅ CACHE HIT: Loaded cached ${interval} data ` +
-          `for ${symbol}`, {
-          count: closes.length,
-          lastFivePrices: lastFew,
-          currentPrice,
-          cacheAge: Date.now() - (chart.updated || 0),
-        });
-      } else {
-        logger.info(`❌ CACHE MISS: Cached ${interval} data for ${symbol} ` +
-          "is stale, will fetch new data");
-        opens = [];
-        highs = [];
-        lows = [];
-        closes = [];
-        volumes = [];
-      }
-    }
-  } catch (err) {
-    logger.warn(`Failed to load cached ${interval} prices for ${symbol}`, err);
+    const updates = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => [
+        `diagnostics.${key}`,
+        value,
+      ])
+    );
+    await docRef.update(updates);
+  } catch (error) {
+    const errorCode = (error as { code?: string | number })?.code;
+    if (errorCode === 5 || errorCode === "not-found") return;
+    logger.warn(`Failed to update calculation diagnostics for ${symbol}`, {
+      interval,
+      error,
+    });
   }
-
-  // If still no prices, fetch from Yahoo Finance
-  if (!closes.length) {
-    try {
-      const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow);
-
-      // Determine range based on interval and period
-      let dataRange = range;
-      if (!dataRange) {
-        if (interval === "1d") {
-          dataRange = maxPeriod > 30 * 24 ? "5y" :
-            (maxPeriod > 30 * 12 ? "2y" : "1y");
-        } else if (interval === "1h") {
-          // For hourly, we can get up to 730 hours (1mo)
-          dataRange = maxPeriod > 168 ? "1mo" : "5d";
-        } else if (interval === "30m") {
-          // For 30m, we can get up to 60 days
-          dataRange = maxPeriod > 48 ? "5d" : "1d";
-        } else if (interval === "15m") {
-          // For 15m, we can get up to 60 days
-          dataRange = maxPeriod > 96 ? "5d" : "1d";
-        }
-      }
-
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${dataRange}`;
-      const resp = await fetch(url);
-      const data: any = await resp.json();
-      const result = data?.chart?.result?.[0];
-      // Fix for Firebase which does not support arrays inside arrays
-      // INVALID_ARGUMENT: Property chart contains an invalid nested entity
-      delete result.meta?.tradingPeriods;
-      if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
-        Array.isArray(result?.timestamp)) {
-        const opes = result.indicators.quote[0].open;
-        const higs = result.indicators.quote[0].high;
-        const los = result.indicators.quote[0].low;
-        const clos = result.indicators.quote[0].close;
-        const vols = result.indicators.quote[0].volume || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} ${interval} ` +
-          `prices and ${volumes.length} volumes for ${symbol} from ` +
-          `Yahoo Finance ${url}`);
-      }
-      if (result && typeof result?.meta?.regularMarketPrice === "number") {
-        currentPrice = result.meta.regularMarketPrice;
-      } else if (Array.isArray(closes) && closes.length > 0) {
-        currentPrice = closes[closes.length - 1];
-      }
-      // Cache prices and volumes in Firestore
-      try {
-        await db.doc(cacheKey)
-          .set({ chart: result, updated: Date.now() });
-      } catch (err) {
-        logger.warn(`Failed to update cached ${interval} data for ${symbol}`,
-          err);
-      }
-    } catch (err) {
-      logger.error(`Failed to fetch ${interval} data from ` +
-        `Yahoo Finance for ${symbol}`, err);
-    }
-  }
-
-  return {
-    symbol,
-    opens,
-    highs,
-    lows,
-    closes,
-    volumes,
-    currentPrice,
-  };
 }
 
+// getMarketData moved to market-data.ts
+
 /**
- * .
- * @param {string} request
- * @return {Promise<object>} An object containing the symbol, prices,
- * and current price.
+ * Executes a trade proposal based on agentic analysis.
+ * @param {any} request The callable request object.
+ * @return {Promise<object>} The trade proposal result.
  */
 export async function performTradeProposal(request: any) {
-  logger.info("Initiate Trade Proposal called", { structuredData: true });
-
   const config = {
     smaPeriodFast: request.data.smaPeriodFast || 10,
     smaPeriodSlow: request.data.smaPeriodSlow || 30,
     tradeQuantity: request.data.tradeQuantity || 1,
     maxPositionSize: request.data.maxPositionSize || 100,
     maxPortfolioConcentration: request.data.maxPortfolioConcentration || 0.5,
+    enableDynamicPositionSizing:
+      request.data.enableDynamicPositionSizing || false,
+    riskPerTrade: request.data.riskPerTrade || 0.01,
+    atrMultiplier: request.data.atrMultiplier || 2,
+    rsiPeriod: request.data.rsiPeriod || 14,
+    rocPeriod: request.data.rocPeriod || 9,
+    enableSectorLimits: request.data.enableSectorLimits || false,
+    maxSectorExposure: request.data.maxSectorExposure || 0.2,
+    enableCorrelationChecks: request.data.enableCorrelationChecks || false,
+    maxCorrelation: request.data.maxCorrelation || 0.8,
+    enableVolatilityFilters: request.data.enableVolatilityFilters || false,
+    minVolatility: request.data.minVolatility || 0,
+    maxVolatility: request.data.maxVolatility || 100,
+    enableDrawdownProtection: request.data.enableDrawdownProtection || false,
+    maxDrawdown: request.data.maxDrawdown || 0.2,
+    reduceSizeOnRiskOff: request.data.reduceSizeOnRiskOff || false,
+    riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
+    skipSignalUpdate: request.data.skipSignalUpdate || false,
+    skipRiskGuard: request.data.skipRiskGuard || false,
+    tradingMode: request.data.tradingMode || "systematic",
+    marketDataCacheOnly: request.data.marketDataCacheOnly || false,
+    gexCacheOnly: request.data.gexCacheOnly || false,
+    ...(request.data.enabledIndicators !== undefined ? {
+      enabledIndicators: request.data.enabledIndicators,
+    } : {}),
   };
 
-  logger.info("Agentic Trading Configuration:", config);
+  logger.info("Initiated Trade Proposal for symbol " +
+    `${request.data.symbol}`, config, { structuredData: true });
 
   const symbol = request.data.symbol || "SPY";
   const interval = request.data.interval || "1d";
   const range = request.data.range;
-
-  const marketData = await getMarketData(symbol,
-    config.smaPeriodFast, config.smaPeriodSlow, interval, range);
-
   const portfolioState = request.data.portfolioState || {};
+  const lastAttemptAt = Date.now();
+
+  await updateExistingSignalDiagnostics(symbol, interval, {
+    lastAttemptAt,
+    calculationStatus: "running",
+    warning: null,
+  });
 
   // Delegate to Alpha agent implementation which will call RiskGuard internally
   try {
+    const marketData = await getMarketData(symbol,
+      config.smaPeriodFast, config.smaPeriodSlow, interval, range,
+      config.marketDataCacheOnly);
+    if (!Array.isArray(marketData?.closes) || marketData.closes.length === 0) {
+      throw new Error(`No usable ${interval} market data for ${symbol}`);
+    }
     const result = await alphaagent.handleAlphaTask(marketData,
       portfolioState, config, interval);
+
+    const completedAt = Date.now();
+    const metadata = marketData?.metadata || {};
+    const hasUsableMarketData = Array.isArray(marketData?.closes) &&
+      marketData.closes.length > 0;
+    const calculationFailed = result?.status === "error" ||
+      !hasUsableMarketData;
+    const usedStaleCache = metadata.usedStaleCache === true;
+
+    await updateExistingSignalDiagnostics(symbol, interval, {
+      lastAttemptAt,
+      ...(calculationFailed ? {} : {
+        lastSuccessfulCalculationAt: completedAt,
+      }),
+      marketDataAsOf: metadata.marketDataAsOf || null,
+      usedStaleCache,
+      dataSource: metadata.dataSource || "unknown",
+      calculationStatus: calculationFailed ? "failed" :
+        (usedStaleCache ? "stale_data" : "success"),
+      warning: calculationFailed ? CALCULATION_ERROR_DISCLAIMER :
+        (usedStaleCache ? STALE_DATA_DISCLAIMER : null),
+      interval,
+      barCount: marketData?.closes?.length || 0,
+    });
+
     return result;
   } catch (err) {
     logger.error("Error in initiateTradeProposal", err);
+    await updateExistingSignalDiagnostics(symbol, interval, {
+      lastAttemptAt,
+      calculationStatus: "failed",
+      warning: CALCULATION_ERROR_DISCLAIMER,
+      interval,
+    });
     return { status: "error", message: (err as Error).message || String(err) };
   }
 }
 
-export const initiateTradeProposal = onCall(async (request) => {
+export const initiateTradeProposal = onCall({
+  secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to initiate trade proposals."
+    );
+  }
   return performTradeProposal(request);
 });
 
-export const getAgenticTradingConfig = onCall(async () => {
-  logger.info("Get Agentic Trading Config called", { structuredData: true });
-  // Try reading configuration from Firestore first
-  try {
-    const doc = await db.doc("agentic_trading/config").get();
-    if (doc.exists) {
-      const config = doc.data();
-      logger.info("Loaded config from Firestore", config);
-      return { status: "success", config };
-    }
-  } catch (err) {
-    logger.warn("Failed to read agentic trading config from Firestore", err);
-  }
-
-  // Return default configuration as fallback
-  const config = {
-    smaPeriodFast: 10,
-    smaPeriodSlow: 30,
-    tradeQuantity: 1,
-    maxPositionSize: 100,
-    maxPortfolioConcentration: 0.5,
-    rsiPeriod: 14,
-    marketIndexSymbol: "SPY",
-  };
-  return { status: "success", config };
-});
-
 /**
- * Persist agentic trading configuration to Firestore.
+ * Seeds the charts collection with chart documents for popular
+ * symbols. This can be run manually to ensure all popular symbols are
+ * monitored.
  */
-export const setAgenticTradingConfig = onCall(async (request) => {
-  const cfg = request.data || {};
-  try {
-    await db.doc("agentic_trading/config").set(cfg, { merge: true });
-    logger.info("Saved agentic trading config to Firestore", cfg);
-    return { status: "success", config: cfg };
-  } catch (err) {
-    logger.error("Failed to save config to Firestore", err);
-    return { status: "error", message: (err as Error).message || String(err) };
+export const seedAgenticTrading = onCall({
+  secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
+}, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to seed agentic trading."
+    );
   }
+  const inputSymbols = request.data.symbols;
+  const useFullList = request.data.full === true;
+
+  let targetSymbols: string[] = [];
+
+  if (inputSymbols && Array.isArray(inputSymbols)) {
+    targetSymbols = inputSymbols;
+  } else if (useFullList) {
+    targetSymbols = Array.from(new Set([...POPULAR_SYMBOLS, ...ALL_STOCKS]));
+  } else {
+    // Default to strict popular list unless full requested
+    targetSymbols = POPULAR_SYMBOLS;
+  }
+
+  let addedCount = 0;
+  const errors: any[] = [];
+  let processedCount = 0;
+
+  logger.info("Seeding agentic trading for " + targetSymbols.length +
+    " symbols");
+
+  // Process in chunks of 50 to avoid limits
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < targetSymbols.length; i += CHUNK_SIZE) {
+    const chunk = targetSymbols.slice(i, i + CHUNK_SIZE);
+    const promises = chunk.map(async (symbol) => {
+      const docRef = db.doc(`charts/${symbol}`);
+      try {
+        const doc = await docRef.get();
+        if (!doc.exists) {
+          // Create an empty placeholder
+          // the cron job or getMarketData will populate it
+          await docRef.set({
+            symbol,
+            created: FieldValue.serverTimestamp(),
+            seeded: true,
+            chart: null, // Explicitly null to force cache miss
+          });
+          logger.info(`Created chart document for ${symbol}`);
+          return 1;
+        }
+        return 0;
+      } catch (e) {
+        logger.error(`Error checking/creating ${symbol}`, e);
+        errors.push({ symbol, error: String(e) });
+        return 0;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    addedCount += results.reduce<number>((a, b) => a + b, 0);
+    processedCount += chunk.length;
+    logger.info(`Processed ${processedCount}/${targetSymbols.length}`);
+  }
+
+  return {
+    status: "success",
+    addedCount,
+    totalProcessed: targetSymbols.length,
+    errors,
+  };
 });

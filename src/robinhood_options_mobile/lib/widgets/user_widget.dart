@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_functions/cloud_functions.dart';
@@ -14,19 +15,54 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/services/biometric_service.dart';
+import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
+import 'package:robinhood_options_mobile/widgets/margin_health_widget.dart';
+import 'package:robinhood_options_mobile/widgets/stock_loan_widget.dart';
+import 'package:robinhood_options_mobile/widgets/banking_widget.dart';
+import 'package:robinhood_options_mobile/widgets/risk_circuit_breaker_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/automated_drip_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
+import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
+import 'package:robinhood_options_mobile/widgets/retirement_widget.dart';
+import 'package:robinhood_options_mobile/widgets/connected_agents_widget.dart';
+import 'package:robinhood_options_mobile/widgets/notification_center_widget.dart';
+import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/model/user_follow.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio_privacy_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/user_follow_list_dialog.dart';
 
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
+import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class UserWidget extends StatefulWidget {
   final firebase_auth.FirebaseAuth auth;
@@ -35,9 +71,13 @@ class UserWidget extends StatefulWidget {
   final Function()? onSignout;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
+  final BrokerageUser? brokerageUser;
   final UserInfo? userInfo;
   final ScrollController? scrollController;
+  final IBrokerageService? service;
+  final FirestoreService? firestoreService;
+  final BiometricService? biometricService;
+
   const UserWidget(this.auth,
       {super.key,
       required this.userId,
@@ -47,14 +87,18 @@ class UserWidget extends StatefulWidget {
       required this.observer,
       required this.brokerageUser,
       this.userInfo,
-      this.scrollController});
+      this.scrollController,
+      this.firestoreService,
+      this.biometricService,
+      required this.service});
 
   @override
   State<UserWidget> createState() => _UserWidgetState();
 }
 
 class _UserWidgetState extends State<UserWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService;
+  late final BiometricService _biometricService;
   late CollectionReference<User> usersCollection;
   late DocumentReference<User>? userDocumentReference;
   late Stream<DocumentSnapshot<User>>? userStream;
@@ -62,20 +106,47 @@ class _UserWidgetState extends State<UserWidget> {
   late UserRole selectedRole;
   bool _isLoading = false;
   bool isExpanded = false;
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
+  PackageInfo? packageInfo;
+  final GlobalKey _referralShareKey = GlobalKey();
 
   bool get isCurrentUserProfileView =>
       widget.isProfileView &&
-      widget.auth.currentUser != null &&
-      widget.auth.currentUser!.uid == widget.userId;
+      (widget.auth.currentUser == null ||
+          widget.userId == null ||
+          widget.auth.currentUser!.uid == widget.userId);
 
   @override
   void initState() {
     super.initState();
+    _firestoreService = widget.firestoreService ?? FirestoreService();
+    _biometricService = widget.biometricService ?? BiometricService();
+    _checkBiometrics();
+
+    PackageInfo.fromPlatform().then((value) {
+      if (mounted) {
+        setState(() {
+          packageInfo = value;
+        });
+      }
+    });
 
     usersCollection = _firestoreService.userCollection;
     userDocumentReference = usersCollection.doc(widget.userId);
     userStream = userDocumentReference!.snapshots();
     futurePrefs = SharedPreferences.getInstance();
+  }
+
+  Future<void> _checkBiometrics() async {
+    final available = await _biometricService.isBiometricAvailable();
+    final enabled = await _biometricService.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = available;
+        _biometricEnabled = enabled;
+      });
+    }
   }
 
   @override
@@ -132,17 +203,28 @@ class _UserWidgetState extends State<UserWidget> {
                                 title: const Text('User'),
                                 actions: [
                                   IconButton(
-                                      icon: user != null
-                                          ? (user.photoUrl == null
+                                      icon: widget.auth.currentUser != null
+                                          ? ((widget.auth.currentUser!
+                                                          .photoURL ??
+                                                      (widget.auth.currentUser!
+                                                                  .uid ==
+                                                              widget.userId
+                                                          ? user?.photoUrl
+                                                          : null)) ==
+                                                  null
                                               ? const Icon(Icons.account_circle)
                                               : CircleAvatar(
                                                   maxRadius: 12,
                                                   backgroundImage:
                                                       CachedNetworkImageProvider(
-                                                          user.photoUrl!
-                                                          //  ?? Constants .placeholderImage, // No longer used
-                                                          )))
-                                          : const Icon(Icons.login),
+                                                          (widget
+                                                                  .auth
+                                                                  .currentUser!
+                                                                  .photoURL ??
+                                                              user
+                                                                  ?.photoUrl)!)))
+                                          : const Icon(
+                                              Icons.account_circle_outlined),
                                       onPressed: () async {
                                         showProfile(
                                             context,
@@ -150,16 +232,121 @@ class _UserWidgetState extends State<UserWidget> {
                                             _firestoreService,
                                             widget.analytics,
                                             widget.observer,
-                                            widget.brokerageUser);
+                                            widget.brokerageUser,
+                                            widget.service);
                                       })
                                 ]),
                           ],
-                          // const SliverToBoxAdapter(child: SizedBox(height: 10.0)),
                           if (userSnapshot.hasError) ...[
-                            SliverToBoxAdapter(
+                            if (_isPermissionDenied(userSnapshot.error)) ...[
+                              SliverFillRemaining(
+                                hasScrollBody: false,
                                 child: Center(
-                                    child: SelectableText(
-                                        'Something went wrong\n${userSnapshot.error}'))),
+                                  child: SingleChildScrollView(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 32.0, vertical: 24.0),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(24),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest
+                                                .withValues(alpha: 0.6),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.lock_outline_rounded,
+                                            size: 64,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 24),
+                                        Text(
+                                          'This Profile is Private',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'This user has set their profile to private. Their activity, portfolio, and settings are not visible.',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                                height: 1.4,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 28),
+                                        FilledButton.tonalIcon(
+                                          onPressed: () =>
+                                              Navigator.of(context).maybePop(),
+                                          icon: const Icon(Icons.arrow_back,
+                                              size: 18),
+                                          label: const Text('Go Back'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else ...[
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.error_outline,
+                                            size: 48,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .error),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Unable to load profile',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '${userSnapshot.error}',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                           if (userSnapshot.connectionState ==
                               ConnectionState.waiting) ...[
@@ -170,419 +357,1050 @@ class _UserWidgetState extends State<UserWidget> {
                           SliverToBoxAdapter(
                               child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
+                                      horizontal: 12.0, vertical: 8.0),
                                   child: Card(
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
                                       child: Column(
-                                    children: [
-                                      if (user?.photoUrl != null) ...[
-                                        Padding(
-                                            padding: const EdgeInsets.all(10),
-                                            child: Center(
-                                                child: Hero(
-                                                    tag: user != null &&
-                                                            userDocumentReference !=
-                                                                null
-                                                        ? 'user_${userDocumentReference!.id}'
-                                                        : 'new',
-                                                    child: Stack(
-                                                      children: [
-                                                        if (user != null &&
-                                                            userDocumentReference !=
-                                                                null &&
-                                                            user.photoUrl !=
-                                                                null) ...[
-                                                          CircleAvatar(
-                                                            maxRadius: 60,
-                                                            backgroundImage:
-                                                                CachedNetworkImageProvider(
-                                                              user.photoUrl ??
-                                                                  Constants
-                                                                      .placeholderImage,
-                                                            ),
-                                                          ),
+                                        children: [
+                                          if (user?.photoUrl != null) ...[
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                child: Center(
+                                                    child: Hero(
+                                                        tag: user != null &&
+                                                                userDocumentReference !=
+                                                                    null
+                                                            ? 'user_${userDocumentReference!.id}'
+                                                            : 'new',
+                                                        child: Stack(
+                                                          children: [
+                                                            if (user != null &&
+                                                                userDocumentReference !=
+                                                                    null &&
+                                                                user.photoUrl !=
+                                                                    null) ...[
+                                                              CircleAvatar(
+                                                                maxRadius: 60,
+                                                                backgroundImage:
+                                                                    CachedNetworkImageProvider(
+                                                                  user.photoUrl ??
+                                                                      Constants
+                                                                          .placeholderImage,
+                                                                ),
+                                                              ),
 
-                                                          // CachedNetworkImage(imageUrl:
-                                                          //     user.photoUrl!,
-                                                          //     fit: BoxFit.fill),
-                                                        ] else ...[
-                                                          Container()
+                                                              // CachedNetworkImage(imageUrl:
+                                                              //     user.photoUrl!,
+                                                              //     fit: BoxFit.fill),
+                                                            ] else ...[
+                                                              Container()
+                                                            ],
+                                                          ],
+                                                        )))),
+                                          ],
+                                          if (user != null) ...[
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 8.0),
+                                              child: Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  InkWell(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    onTap: () {
+                                                      UserFollowListDialog.show(
+                                                        context,
+                                                        userId:
+                                                            widget.userId ?? '',
+                                                        userName: user?.name ??
+                                                            'Trader',
+                                                        type: FollowListType
+                                                            .followers,
+                                                        firestoreService:
+                                                            _firestoreService,
+                                                        auth: widget.auth,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        brokerageUser: widget
+                                                            .brokerageUser,
+                                                        service: widget.service,
+                                                      );
+                                                    },
+                                                    child: Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 6),
+                                                      child: Column(
+                                                        children: [
+                                                          Text(
+                                                            '${user.followersCount}',
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16),
+                                                          ),
+                                                          const Text(
+                                                              'Followers',
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                      width: 1,
+                                                      height: 24,
+                                                      color: Theme.of(context)
+                                                          .dividerColor),
+                                                  InkWell(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    onTap: () {
+                                                      UserFollowListDialog.show(
+                                                        context,
+                                                        userId:
+                                                            widget.userId ?? '',
+                                                        userName: user?.name ??
+                                                            'Trader',
+                                                        type: FollowListType
+                                                            .following,
+                                                        firestoreService:
+                                                            _firestoreService,
+                                                        auth: widget.auth,
+                                                        analytics:
+                                                            widget.analytics,
+                                                        observer:
+                                                            widget.observer,
+                                                        brokerageUser: widget
+                                                            .brokerageUser,
+                                                        service: widget.service,
+                                                      );
+                                                    },
+                                                    child: Padding(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 6),
+                                                      child: Column(
+                                                        children: [
+                                                          Text(
+                                                            '${user.followingCount}',
+                                                            style: const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16),
+                                                          ),
+                                                          const Text(
+                                                              'Following',
+                                                              style: TextStyle(
+                                                                  fontSize:
+                                                                      12)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            if (!isCurrentUserProfileView &&
+                                                widget.auth.currentUser !=
+                                                    null &&
+                                                widget.userId != null) ...[
+                                              StreamBuilder<bool>(
+                                                stream: _firestoreService
+                                                    .isFollowingStream(
+                                                        widget.auth.currentUser!
+                                                            .uid,
+                                                        widget.userId!),
+                                                builder: (context, followSnap) {
+                                                  final isFollowing =
+                                                      followSnap.data ?? false;
+                                                  return Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            bottom: 12.0),
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        FilledButton.icon(
+                                                          style: isFollowing
+                                                              ? FilledButton
+                                                                  .styleFrom(
+                                                                  backgroundColor: Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .surfaceContainerHighest,
+                                                                  foregroundColor: Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .onSurfaceVariant,
+                                                                )
+                                                              : FilledButton
+                                                                  .styleFrom(),
+                                                          onPressed: () async {
+                                                            final currentUid =
+                                                                widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .uid;
+                                                            final currentName = widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .displayName ??
+                                                                'Trader';
+                                                            final currentPhoto =
+                                                                widget
+                                                                    .auth
+                                                                    .currentUser!
+                                                                    .photoURL;
+                                                            final targetUserName =
+                                                                user?.name ??
+                                                                    'Trader';
+                                                            final targetPhoto =
+                                                                user?.photoUrl;
+                                                            if (isFollowing) {
+                                                              await _firestoreService
+                                                                  .unfollowUser(
+                                                                      currentUid,
+                                                                      widget
+                                                                          .userId!);
+                                                            } else {
+                                                              await _firestoreService
+                                                                  .followUser(
+                                                                currentUserId:
+                                                                    currentUid,
+                                                                currentUserName:
+                                                                    currentName,
+                                                                currentUserPhotoUrl:
+                                                                    currentPhoto,
+                                                                targetUserId:
+                                                                    widget
+                                                                        .userId!,
+                                                                targetUserName:
+                                                                    targetUserName,
+                                                                targetUserPhotoUrl:
+                                                                    targetPhoto,
+                                                              );
+                                                            }
+                                                          },
+                                                          icon: Icon(
+                                                              isFollowing
+                                                                  ? Icons.check
+                                                                  : Icons
+                                                                      .person_add,
+                                                              size: 18),
+                                                          label: Text(isFollowing
+                                                              ? 'Following'
+                                                              : 'Follow Portfolio'),
+                                                        ),
+                                                        if (isFollowing) ...[
+                                                          const SizedBox(
+                                                              width: 8),
+                                                          StreamBuilder<
+                                                              List<UserFollow>>(
+                                                            stream: _firestoreService
+                                                                .getFollowingStream(
+                                                                    widget
+                                                                        .auth
+                                                                        .currentUser!
+                                                                        .uid),
+                                                            builder: (context,
+                                                                followingListSnap) {
+                                                              final myFollow =
+                                                                  (followingListSnap
+                                                                              .data ??
+                                                                          [])
+                                                                      .firstWhere(
+                                                                (f) =>
+                                                                    f.followingId ==
+                                                                    widget
+                                                                        .userId,
+                                                                orElse: () =>
+                                                                    UserFollow(
+                                                                  id: '',
+                                                                  followerId:
+                                                                      '',
+                                                                  followerName:
+                                                                      '',
+                                                                  followingId:
+                                                                      '',
+                                                                  followingName:
+                                                                      '',
+                                                                  createdAt:
+                                                                      DateTime
+                                                                          .now(),
+                                                                  notificationsEnabled:
+                                                                      true,
+                                                                ),
+                                                              );
+                                                              final notifsEnabled =
+                                                                  myFollow
+                                                                      .notificationsEnabled;
+                                                              return IconButton
+                                                                  .filledTonal(
+                                                                tooltip: notifsEnabled
+                                                                    ? 'Trade notifications enabled'
+                                                                    : 'Trade notifications muted',
+                                                                icon: Icon(
+                                                                  notifsEnabled
+                                                                      ? Icons
+                                                                          .notifications_active
+                                                                      : Icons
+                                                                          .notifications_off_outlined,
+                                                                  size: 20,
+                                                                ),
+                                                                onPressed:
+                                                                    () async {
+                                                                  await _firestoreService
+                                                                      .updateFollowNotification(
+                                                                    widget
+                                                                        .auth
+                                                                        .currentUser!
+                                                                        .uid,
+                                                                    widget
+                                                                        .userId!,
+                                                                    !notifsEnabled,
+                                                                  );
+                                                                },
+                                                              );
+                                                            },
+                                                          ),
                                                         ],
                                                       ],
-                                                    )))),
-                                      ],
-                                      if (user != null) ...[
-                                        ListTile(
-                                          leading: user.providerId != null &&
-                                                  user.providerId == "google"
-                                              ? SizedBox(
-                                                  width: 24,
-                                                  child: CachedNetworkImage(
-                                                    imageUrl:
-                                                        'https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png',
-                                                  ),
-                                                )
-                                              : const Icon(
-                                                  Icons.account_circle),
-                                          title: Text(
-                                            user.name ??
-                                                // user.providerId?.capitalize() ??
-                                                'Account',
-                                            style:
-                                                const TextStyle(fontSize: 18),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          subtitle: user.email != null ||
-                                                  user.phoneNumber != null
-                                              ? Text(user.email ??
-                                                  user.phoneNumber ??
-                                                  '')
-                                              : null,
-                                          isThreeLine: false,
-                                        ),
-                                        if (userRole == UserRole.admin) ...[
-                                          ListTile(
-                                            leading: Icon(user.role ==
-                                                    UserRole.user
-                                                ? Icons.support_agent_outlined
-                                                : Icons.verified_user_outlined),
-                                            // .admin_panel_settings_outlined), // const SizedBox(width: 24),
-                                            title: const Text('Role'),
-                                            subtitle:
-                                                Text(user.role.enumValue()),
-                                            trailing: userRole ==
-                                                        UserRole.admin &&
-                                                    !widget.isProfileView
-                                                ? TextButton(
-                                                    onPressed: () async =>
-                                                        showRoleSelection(
-                                                            context, user!),
-                                                    child: const Text('Change'))
-                                                : null,
-                                            // trailing:
-                                            //     userRole == UserRole.admin &&
-                                            //             !widget.isProfileView
-                                            //         ? const Icon(
-                                            //             Icons.chevron_right)
-                                            //         : null,
-                                            // onTap:
-                                            //     userRole == UserRole.admin &&
-                                            //             !widget.isProfileView
-                                            //         ? () {
-                                            //             showRoleSelection(
-                                            //                 context, user!);
-                                            //           }
-                                            //         : null
-                                          ),
-                                        ],
-                                        ListTile(
-                                          leading: const Icon(Icons.login),
-                                          title: const Text('Signed in'),
-                                          // subtitle: Text(user.role.getValue()),
-                                          subtitle: Text(
-                                            user.dateUpdated != null
-                                                ? formatLongDateTime
-                                                    .format(user.dateUpdated!)
-                                                : '',
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                          ),
-                                        ),
-                                        ListTile(
-                                          leading:
-                                              const Icon(Icons.person_outline),
-                                          title: const Text('Registered'),
-                                          // subtitle: Text(user.role.getValue()),
-                                          subtitle: Text(
-                                            formatLongDateTime
-                                                .format(user.dateCreated),
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                          ),
-                                        ),
-                                        ListTile(
-                                            leading: const Icon(
-                                                Icons.devices_other_outlined),
-                                            title: const Text('Devices'),
-                                            subtitle: Text(user.devices
-                                                .where((element) =>
-                                                    element.model != null)
-                                                .map((e) => e.model)
-                                                .toSet()
-                                                .join(', ')),
-                                            trailing: userRole == UserRole.admin
-                                                ? TextButton.icon(
-                                                    onPressed: () => showSmsConfirmationBeforeSend(
-                                                        context,
-                                                        user != null
-                                                            ? user.devices
-                                                                .where((element) =>
-                                                                    element
-                                                                        .fcmToken !=
-                                                                    null)
-                                                                .map((e) => e.fcmToken)
-                                                                .toList()
-                                                            : [''],
-                                                        'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
-                                                    icon: const Icon(Icons.sms_outlined),
-                                                    label: const Text('Compose'))
-                                                : null),
-
-                                        // Text('role: ${user.role.getValue()}'),
-                                        // const SizedBox(height: 10),
-                                      ],
-                                    ],
-                                  )))),
-                          SliverToBoxAdapter(
-                              child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Card(
-                                child: Column(
-                              children: [
-                                ListTile(
-                                    leading: const Icon(Icons.account_balance),
-                                    title: Text('Brokerage Accounts'),
-                                    trailing: TextButton.icon(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          final authUtil = AuthUtil(auth);
-                                          authUtil.openLogin(
-                                              context,
-                                              _firestoreService,
-                                              widget.analytics,
-                                              widget.observer);
-                                        },
-                                        icon: const Icon(
-                                            Icons.person_add_outlined),
-                                        // icon: const Icon(Icons.add),
-                                        label: const Text('Link'))),
-                                if (user != null) ...[
-                                  for (var brokerageUser
-                                      in user.brokerageUsers) ...[
-                                    ExpansionTile(
-                                      shape: const Border(),
-                                      leading: CircleAvatar(
-                                          //backgroundColor: Colors.amber,
-                                          child: Text(
-                                        brokerageUser.source
-                                            .enumValue()
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                      )),
-                                      title: Text(brokerageUser.userName!),
-                                      subtitle: Text(brokerageUser.source
-                                          .enumValue()
-                                          .capitalize()),
-                                      // trailing: const Icon(Icons.chevron_right),
-                                      // onTap: () {
-                                      //   Provider.of<AccountStore>(context, listen: false).removeAll();
-                                      //   Provider.of<PortfolioStore>(context, listen: false).removeAll();
-                                      //   Provider.of<PortfolioHistoricalsStore>(context, listen: false)
-                                      //       .removeAll();
-                                      //   Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
-                                      //   Provider.of<OptionPositionStore>(context, listen: false)
-                                      //       .removeAll();
-                                      //   Provider.of<InstrumentPositionStore>(context, listen: false)
-                                      //       .removeAll();
-
-                                      //   userStore.setCurrentUserIndex(userIndex);
-                                      //   await userStore.save();
-                                      //   if (context.mounted) {
-                                      //     Navigator.pop(context); // close the drawer
-                                      //   }
-                                      // },
-                                      children: [
-                                        if (brokerageUser.userInfo != null) ...[
-                                          Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: SizedBox(
-                                              height: 360,
-                                              child: UserInfoCardWidget(
-                                                user: brokerageUser.userInfo!,
-                                                brokerageUser: brokerageUser,
-                                                firestoreService:
-                                                    _firestoreService,
+                                                    ),
+                                                  );
+                                                },
                                               ),
-                                              // userWidget(brokerageUser, widget.analytics, widget.observer),
-                                              // UserInfoWidget(
-                                              //     widget.brokerageUser,
-                                              //     widget.brokerageUser.userInfo!,
-                                              //     null,
-                                              //     analytics: widget.analytics,
-                                              //     observer: widget.observer),
+                                            ],
+                                            ExpansionTile(
+                                              shape: const Border(),
+                                              leading: user.photoUrl == null
+                                                  ? const Icon(
+                                                      Icons.account_circle,
+                                                      size: 32)
+                                                  : null,
+                                              title: Text(
+                                                user.name ?? 'Profile',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              subtitle:
+                                                  (isCurrentUserProfileView ||
+                                                          userRole ==
+                                                              UserRole.admin)
+                                                      ? (user.email != null ||
+                                                              user.phoneNumber !=
+                                                                  null
+                                                          ? Text(user.email ??
+                                                              user
+                                                                  .phoneNumber ??
+                                                              '')
+                                                          : null)
+                                                      : (user.location != null &&
+                                                              user.location!
+                                                                  .isNotEmpty
+                                                          ? Text(user.location!)
+                                                          : null),
+                                              children: [
+                                                ListTile(
+                                                  leading: const Icon(
+                                                      Icons.badge_outlined),
+                                                  title: const Text(
+                                                      'Display Name'),
+                                                  subtitle: Text(
+                                                      user.name ?? 'Not set'),
+                                                  onTap:
+                                                      isCurrentUserProfileView
+                                                          ? () =>
+                                                              _editDisplayName(
+                                                                  context,
+                                                                  user!)
+                                                          : null,
+                                                  trailing:
+                                                      isCurrentUserProfileView
+                                                          ? const Icon(
+                                                              Icons.edit)
+                                                          : null,
+                                                ),
+                                                if (userRole ==
+                                                    UserRole.admin) ...[
+                                                  ListTile(
+                                                    leading: Icon(user.role ==
+                                                            UserRole.user
+                                                        ? Icons
+                                                            .support_agent_outlined
+                                                        : Icons
+                                                            .verified_user_outlined),
+                                                    title: const Text('Role'),
+                                                    subtitle: Text(
+                                                        user.role.enumValue()),
+                                                    trailing: userRole ==
+                                                            UserRole.admin
+                                                        ? FilledButton.tonal(
+                                                            style: FilledButton
+                                                                .styleFrom(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          12),
+                                                              minimumSize:
+                                                                  const Size(
+                                                                      60, 32),
+                                                            ),
+                                                            onPressed: () async =>
+                                                                showRoleSelection(
+                                                                    context,
+                                                                    user!),
+                                                            child: const Text(
+                                                                'Change'))
+                                                        : null,
+                                                  ),
+                                                ],
+                                                ListTile(
+                                                  leading:
+                                                      const Icon(Icons.login),
+                                                  title:
+                                                      const Text('Signed in'),
+                                                  subtitle: Text(
+                                                    user.dateUpdated != null
+                                                        ? formatLongDateTime
+                                                            .format(user
+                                                                .dateUpdated!)
+                                                        : '',
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ),
+                                                ListTile(
+                                                  leading: const Icon(
+                                                      Icons.person_outline),
+                                                  title:
+                                                      const Text('Registered'),
+                                                  subtitle: Text(
+                                                    formatLongDateTime.format(
+                                                        user.dateCreated),
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ),
+                                                ListTile(
+                                                    leading: const Icon(Icons
+                                                        .devices_other_outlined),
+                                                    title:
+                                                        const Text('Devices'),
+                                                    subtitle: Text(user.devices
+                                                        .where((element) =>
+                                                            element.model !=
+                                                            null)
+                                                        .map((e) => e.model)
+                                                        .toSet()
+                                                        .join(', ')),
+                                                    trailing: userRole ==
+                                                            UserRole.admin
+                                                        ? FilledButton
+                                                            .tonalIcon(
+                                                                style: FilledButton
+                                                                    .styleFrom(
+                                                                  padding: const EdgeInsets
+                                                                      .symmetric(
+                                                                      horizontal:
+                                                                          12),
+                                                                  minimumSize:
+                                                                      const Size(
+                                                                          60,
+                                                                          32),
+                                                                ),
+                                                                onPressed: () => showSmsConfirmationBeforeSend(
+                                                                    context,
+                                                                    user != null
+                                                                        ? user
+                                                                            .devices
+                                                                            .where((element) => element.fcmToken != null)
+                                                                            .map((e) => e.fcmToken)
+                                                                            .toList()
+                                                                        : [''],
+                                                                    'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
+                                                                icon: const Icon(Icons.sms_outlined, size: 18),
+                                                                label: const Text('Compose'))
+                                                        : null),
+                                                if (isCurrentUserProfileView &&
+                                                    widget.auth.currentUser !=
+                                                        null) ...[
+                                                  ListTile(
+                                                    leading: Icon(
+                                                        Icons.logout_outlined,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .error),
+                                                    title:
+                                                        const Text('Sign out'),
+                                                    trailing: _isLoading
+                                                        ? Container(
+                                                            width: 24,
+                                                            height: 24,
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(2.0),
+                                                            child:
+                                                                const CircularProgressIndicator(),
+                                                          )
+                                                        : null,
+                                                    onTap: _isLoading
+                                                        ? null
+                                                        : () {
+                                                            showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (BuildContext
+                                                                      context) {
+                                                                return AlertDialog(
+                                                                  title: const Text(
+                                                                      'Sign out?'),
+                                                                  content:
+                                                                      const Text(
+                                                                          'Are you sure you want to sign out?'),
+                                                                  actions: [
+                                                                    TextButton(
+                                                                      onPressed:
+                                                                          () =>
+                                                                              Navigator.pop(context),
+                                                                      child: const Text(
+                                                                          'Cancel'),
+                                                                    ),
+                                                                    FilledButton(
+                                                                      onPressed:
+                                                                          () {
+                                                                        Navigator.pop(
+                                                                            context);
+                                                                        _signOut();
+                                                                      },
+                                                                      style: FilledButton
+                                                                          .styleFrom(
+                                                                        backgroundColor: Theme.of(context)
+                                                                            .colorScheme
+                                                                            .error,
+                                                                        foregroundColor: Theme.of(context)
+                                                                            .colorScheme
+                                                                            .onError,
+                                                                      ),
+                                                                      child: const Text(
+                                                                          'Sign out'),
+                                                                    ),
+                                                                  ],
+                                                                );
+                                                              },
+                                                            );
+                                                          },
+                                                  ),
+                                                ],
+                                              ],
                                             ),
-                                          )
-                                        ] else if (isCurrentUserProfileView &&
-                                            widget.userInfo != null) ...[
-                                          SizedBox(
-                                            height: 360,
-                                            child: UserInfoCardWidget(
-                                                user: widget.userInfo!,
-                                                brokerageUser: brokerageUser,
-                                                firestoreService:
-                                                    _firestoreService),
-                                          )
-                                        ] else ...[
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child:
-                                                Text('No user info available.'),
-                                          )
-                                        ]
-                                      ],
-                                    )
-                                  ]
-                                ]
-                              ],
-                            )),
-                          )),
-                          // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-
-                          // SliverToBoxAdapter(
-                          //     child: ListTile(
-                          //         leading: const Icon(Icons.devices_other_outlined),
-                          //         title: const Text('Devices'),
-                          //         subtitle: Text(user != null
-                          //             ? user.devices
-                          //                 .where((element) => element.model != null)
-                          //                 .map((e) => e.model)
-                          //                 .toSet()
-                          //                 .join(', ')
-                          //             : ''),
-                          //         trailing: userRole == UserRole.admin
-                          //             ? TextButton.icon(
-                          //                 onPressed: () =>
-                          //                     showSmsConfirmationBeforeSend(
-                          //                         context,
-                          //                         user != null
-                          //                             ? user.devices
-                          //                                 .where((element) =>
-                          //                                     element.fcmToken !=
-                          //                                     null)
-                          //                                 .map((e) => e.fcmToken)
-                          //                                 .toList()
-                          //                             : [''],
-                          //                         'Your personalized SwingSauce video from our PGA teaching professional is now available.'),
-                          //                 icon: const Icon(Icons.sms_outlined),
-                          //                 label: const Text('Compose'))
-                          //             : null)),
+                                          ],
+                                        ],
+                                      )))),
                           if (isCurrentUserProfileView) ...[
                             SliverToBoxAdapter(
                                 child: Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0, vertical: 8.0),
                               child: Card(
-                                child: Column(
-                                  children: [
-                                    if (user != null) ...[
-                                      SwitchListTile(
-//leading: Icon(Icons.functions),
-                                        title:
-                                            const Text("Refresh Market Data"),
-                                        subtitle: const Text(
-                                            "Periodically update latest prices"),
-                                        value: widget.brokerageUser
-                                            .refreshEnabled, // user.refreshQuotes,
-                                        onChanged: (bool value) async {
-                                          setState(() {
-                                            user!.refreshQuotes = value;
-                                          });
-                                          // Also set the brokerageUser for unauthenticated users.
-                                          widget.brokerageUser.refreshEnabled =
-                                              value;
-                                          saveBrokerageUser(context);
-                                          _onSettingsChanged(user: user);
-                                        },
-                                        secondary: const Icon(Icons.refresh),
-                                      ),
-                                    ],
-// ListTile(
-                                    //     leading: const Icon(Icons.tune),
-                                    //     title: Text('Display Settings'),
-                                    //     trailing: const Icon(Icons.chevron_right),
-                                    //     onTap: () {
-                                    //       // Navigator.pop(context);
-                                    //       showModalBottomSheet<String>(
-                                    //           context: context,
-                                    //           // isScrollControlled: true,
-                                    //           useSafeArea: true,
-                                    //           showDragHandle: true,
-                                    //           builder: (context) {
-                                    //             return MoreMenuBottomSheet(
-                                    //                 widget.brokerageUser,
-                                    //                 analytics: widget.analytics,
-                                    //                 observer: widget.observer,
-                                    //                 onSettingsChanged: (settings) =>
-                                    //                     debugPrint(
-                                    //                         jsonEncode(settings)));
-                                    //           });
-                                    //       // Navigator.push(
-                                    //       //     context,
-                                    //       //     MaterialPageRoute(
-                                    //       //         builder: (BuildContext context) =>
-                                    //       //             MoreMenuBottomSheet(
-                                    //       //                 widget.brokerageUser,
-                                    //       //                 analytics: widget.analytics,
-                                    //       //                 observer: widget.observer,
-                                    //       //                 onSettingsChanged: (settings) =>
-                                    //       //                     debugPrint(jsonEncode(
-                                    //       //                         settings)))));
-                                    //     }),
-                                    ExpansionTile(
-                                      shape: const Border(),
-                                      leading: Icon(Icons.tune),
-                                      title: Text('Display Settings'),
-                                      children: [
-                                        SizedBox(
-                                          height: 250,
-                                          child: MoreMenuBottomSheet(
-                                            widget.brokerageUser,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                            onSettingsChanged: (settings) =>
-                                                debugPrint(
-                                                    jsonEncode(settings)),
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            showStockSettings: true,
-                                            showOptionsSettings: true,
-                                            showCryptoSettings: true,
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 20, vertical: 8),
+                                          leading:
+                                              const Icon(Icons.account_balance),
+                                          title: Text(
+                                            'Brokerage Accounts',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                           ),
-                                        )
-                                      ],
-                                    ),
-                                    ListTile(
-                                      leading:
-                                          const Icon(Icons.assessment_outlined),
-                                      title: const Text(
-                                          'Investment Profile Settings'),
-                                      subtitle: const Text(
-                                          'Configure goals and risk tolerance for AI'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  InvestmentProfileSettingsWidget(
-                                                user: user!,
-                                                firestoreService:
-                                                    _firestoreService,
+                                          trailing: FilledButton.tonalIcon(
+                                              style: FilledButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 12),
+                                                minimumSize: const Size(60, 32),
                                               ),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                final authUtil = AuthUtil(auth);
+                                                authUtil.openLogin(
+                                                    context,
+                                                    _firestoreService,
+                                                    widget.analytics,
+                                                    widget.observer);
+                                              },
+                                              icon: const Icon(
+                                                  Icons.person_add_outlined,
+                                                  size: 18),
+                                              label: const Text('Link'))),
+                                      if (user != null) ...[
+                                        for (var brokerageUser
+                                            in user.brokerageUsers) ...[
+                                          ExpansionTile(
+                                            shape: const Border(),
+                                            leading: CircleAvatar(
+                                                //backgroundColor: Colors.amber,
+                                                child: Text(
+                                              brokerageUser.source
+                                                  .enumValue()
+                                                  .substring(0, 1)
+                                                  .toUpperCase(),
+                                            )),
+                                            title: Text(
+                                              brokerageUser.userName!,
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w500),
                                             ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                    // Agentic Trading Settings entry moved here from the app Drawer
-                                    ListTile(
-                                      leading: const Icon(Icons.auto_graph),
-                                      title:
-                                          const Text('Trade Signal Settings'),
-                                      subtitle: const Text(
-                                          'Configure multi-indicator trading parameters'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
+                                            subtitle: Row(
+                                              children: [
+                                                Text(
+                                                  brokerageUser.source
+                                                      .enumValue()
+                                                      .capitalize(),
+                                                ),
+                                                if (widget.brokerageUser !=
+                                                        null &&
+                                                    widget.brokerageUser!
+                                                            .userName ==
+                                                        brokerageUser
+                                                            .userName &&
+                                                    widget.brokerageUser!
+                                                            .source ==
+                                                        brokerageUser
+                                                            .source) ...[
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .primaryContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              4),
+                                                    ),
+                                                    child: Text(
+                                                      'Active',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimaryContainer,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ]
+                                              ],
+                                            ),
+                                            trailing: isCurrentUserProfileView &&
+                                                    (widget.brokerageUser ==
+                                                            null ||
+                                                        widget.brokerageUser!
+                                                                .userName !=
+                                                            brokerageUser
+                                                                .userName ||
+                                                        widget.brokerageUser!
+                                                                .source !=
+                                                            brokerageUser
+                                                                .source)
+                                                ? Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      FilledButton.tonal(
+                                                          style: FilledButton
+                                                              .styleFrom(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        12),
+                                                            minimumSize:
+                                                                const Size(
+                                                                    60, 32),
+                                                          ),
+                                                          onPressed: () async {
+                                                            var userStore = Provider
+                                                                .of<BrokerageUserStore>(
+                                                                    context,
+                                                                    listen:
+                                                                        false);
+                                                            var userIndex = userStore
+                                                                .items
+                                                                .indexWhere((u) =>
+                                                                    u.userName ==
+                                                                        brokerageUser
+                                                                            .userName &&
+                                                                    u.source ==
+                                                                        brokerageUser
+                                                                            .source);
+                                                            if (userIndex !=
+                                                                -1) {
+                                                              Provider.of<AccountStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<PortfolioStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<PortfolioHistoricalsStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<ForexHoldingStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<OptionPositionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+                                                              Provider.of<InstrumentPositionStore>(
+                                                                      context,
+                                                                      listen:
+                                                                          false)
+                                                                  .removeAll();
+
+                                                              userStore
+                                                                  .setAggregateAllAccounts(
+                                                                      false);
+                                                              userStore
+                                                                  .setCurrentUserIndex(
+                                                                      userIndex);
+                                                              await userStore
+                                                                  .save();
+                                                              if (context
+                                                                  .mounted) {
+                                                                Navigator.pop(
+                                                                    context); // close the user widget
+                                                              }
+                                                            }
+                                                          },
+                                                          child: const Text(
+                                                              'Switch')),
+                                                      const SizedBox(width: 8),
+                                                      const Icon(
+                                                          Icons.expand_more)
+                                                    ],
+                                                  )
+                                                : null,
+                                            children: [
+                                              if (brokerageUser.userInfo !=
+                                                  null) ...[
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: UserInfoWidget(
+                                                    user:
+                                                        brokerageUser.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                    service: widget.service,
+                                                    analytics: widget.analytics,
+                                                    observer: widget.observer,
+                                                  ),
+                                                )
+                                              ] else if (isCurrentUserProfileView &&
+                                                  widget.userInfo != null) ...[
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: UserInfoWidget(
+                                                    user: widget.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                    service: widget.service,
+                                                    analytics: widget.analytics,
+                                                    observer: widget.observer,
+                                                  ),
+                                                )
+                                              ] else ...[
+                                                Padding(
+                                                  padding: const EdgeInsets.all(
+                                                      16.0),
+                                                  child: Text(
+                                                      'No user info available.'),
+                                                )
+                                              ]
+                                            ],
+                                          )
+                                        ]
+                                      ]
+                                    ],
+                                  )),
+                            )),
+                            // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
+
+                            // SliverToBoxAdapter(
+                            //     child: ListTile(
+                            //         leading: const Icon(Icons.devices_other_outlined),
+                            //         title: const Text('Devices'),
+                            //         subtitle: Text(user != null
+                            //             ? user.devices
+                            //                 .where((element) => element.model != null)
+                            //                 .map((e) => e.model)
+                            //                 .toSet()
+                            //                 .join(', ')
+                            //             : ''),
+                            //         trailing: userRole == UserRole.admin
+                            //             ? TextButton.icon(
+                            //                 onPressed: () =>
+                            //                     showSmsConfirmationBeforeSend(
+                            //                         context,
+                            //                         user != null
+                            //                             ? user.devices
+                            //                                 .where((element) =>
+                            //                                     element.fcmToken !=
+                            //                                     null)
+                            //                                 .map((e) => e.fcmToken)
+                            //                                 .toList()
+                            //                             : [''],
+                            //                         'Your personalized SwingSauce video from our PGA teaching professional is now available.'),
+                            //                 icon: const Icon(Icons.sms_outlined),
+                            //                 label: const Text('Compose'))
+                            //             : null)),
+                            if (isCurrentUserProfileView) ...[
+                              SliverToBoxAdapter(
+                                  child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0, vertical: 8.0),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ListTile(
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 20, vertical: 8),
+                                          leading: const Icon(Icons.settings),
+                                          title: Text(
+                                            'App Settings',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                          )),
+                                      if (isCurrentUserProfileView &&
+                                          _biometricAvailable) ...[
+                                        SwitchListTile(
+                                          secondary: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child:
+                                                const Icon(Icons.fingerprint),
+                                          ),
+                                          title: const Text(
+                                              'Biometric Authentication'),
+                                          subtitle: const Text(
+                                              'Use FaceID/TouchID to access app'),
+                                          value: _biometricEnabled,
+                                          onChanged: (value) async {
+                                            if (value) {
+                                              final authenticated =
+                                                  await _biometricService
+                                                      .authenticate();
+                                              if (authenticated) {
+                                                await _biometricService
+                                                    .setBiometricEnabled(true);
+                                                setState(() {
+                                                  _biometricEnabled = true;
+                                                });
+                                              }
+                                            } else {
+                                              await _biometricService
+                                                  .setBiometricEnabled(false);
+                                              setState(() {
+                                                _biometricEnabled = false;
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ],
+                                      if (user != null &&
+                                          widget.brokerageUser != null) ...[
+                                        SwitchListTile(
+                                          title: const Text(
+                                            "Refresh Market Data",
+                                          ),
+                                          subtitle: const Text(
+                                              "Periodically update latest prices"),
+                                          value: widget
+                                              .brokerageUser!.refreshEnabled,
+                                          onChanged: (bool value) async {
+                                            setState(() {
+                                              user!.refreshQuotes = value;
+                                            });
+                                            widget.brokerageUser!
+                                                .refreshEnabled = value;
+                                            await saveBrokerageUser(context);
+                                            _onSettingsChanged(user: user);
+                                          },
+                                          secondary: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child: const Icon(Icons.refresh),
+                                          ),
+                                        ),
+                                      ],
+                                      if (widget.brokerageUser != null)
+                                        ExpansionTile(
+                                          shape: const Border(),
+                                          leading: CircleAvatar(
+                                            backgroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                            foregroundColor: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            child: const Icon(Icons.tune),
+                                          ),
+                                          title: const Text('Display Settings'),
+                                          children: [
+                                            SizedBox(
+                                              height: 250,
+                                              child: MoreMenuBottomSheet(
+                                                widget.brokerageUser!,
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                                onSettingsChanged: (settings) =>
+                                                    debugPrint(
+                                                        jsonEncode(settings)),
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                showStockSettings: true,
+                                                showOptionsSettings: true,
+                                                showCryptoSettings: true,
+                                              ),
+                                            )
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              )),
+                              SliverToBoxAdapter(
+                                  child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0, vertical: 8.0),
+                                child: Card(
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 8),
+                                        leading: const Icon(Icons.stars),
+                                        title: Text(
+                                          'Features',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        ),
+                                        subtitle: const Text(
+                                          'Trading tools, account operations & risk safeguards',
+                                        ),
+                                      ),
+                                      const Divider(height: 1),
+
+                                      // -------------------------------------------------------------
+                                      // 1. TRADING & SIMULATION
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Trading & Simulation',
+                                        icon: Icons.psychology_outlined,
+                                      ),
+                                      // Automated Trading
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.auto_graph,
+                                        title: 'Automated Trading',
+                                        subtitle: const Text(
+                                            'Configure automated trading settings'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.schwab,
+                                          BrokerageSource.demo,
+                                          BrokerageSource.paper,
+                                        },
+                                        user: user,
+                                        onTap: () async {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -591,23 +1409,96 @@ class _UserWidgetState extends State<UserWidget> {
                                                 user: user!,
                                                 userDocRef:
                                                     userDocumentReference!,
+                                                service: widget.service,
                                               ),
                                             ),
                                           );
-                                        }
-                                      },
-                                    ),
-                                    // Trade Signal Notification Settings
-                                    ListTile(
-                                      leading: const Icon(
-                                          Icons.notifications_outlined),
-                                      title: const Text(
-                                          'Trade Signal Notifications'),
-                                      subtitle: const Text(
-                                          'Configure push notifications for trade signals'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () async {
-                                        if (user != null) {
+                                        },
+                                      ),
+                                      // Backtesting Interface
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.history_outlined,
+                                        title: 'Backtesting',
+                                        subtitle: const Text(
+                                            'Test strategies on historical data'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BacktestingWidget(
+                                                user: user,
+                                                userDocRef:
+                                                    userDocumentReference,
+                                                brokerageUser:
+                                                    widget.brokerageUser,
+                                                service: widget.service,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // What is the point of Paper Trading Simulator settings view when there is a paper trading brokerage account type?
+                                      // The **paper trading account type** selects the simulated brokerage: trades use virtual cash and paper positions instead of a live broker account. The **Settings** view tunes how those simulated trades fill—currently, slippage per share/contract and a fixed commission per trade. Those values are saved with the paper account and applied when orders execute.
+                                      // Starting capital is handled separately in **Reset Account**, which also clears positions and history. So the settings view isn’t needed to make the account a paper account; it’s there to make its trade-cost assumptions configurable.
+                                      // Paper Trading Simulator
+                                      // _buildFeatureTile(
+                                      //   context,
+                                      //   icon: Icons.school_outlined,
+                                      //   title: 'Paper Trading Simulator',
+                                      //   subtitle: const Text(
+                                      //       'Practice trading with virtual money'),
+                                      //   requiresBrokerage: true,
+                                      //   user: user,
+                                      //   onTap: () async {
+                                      //     Navigator.push(
+                                      //       context,
+                                      //       MaterialPageRoute(
+                                      //         builder: (context) =>
+                                      //             PaperTradingDashboardWidget(
+                                      //           analytics: widget.analytics,
+                                      //           observer: widget.observer,
+                                      //           brokerageUser:
+                                      //               widget.brokerageUser,
+                                      //           service: widget.service ??
+                                      //               PaperService(),
+                                      //           user: user,
+                                      //           userDocRef:
+                                      //               userDocumentReference,
+                                      //         ),
+                                      //       ),
+                                      //     );
+                                      //   },
+                                      // ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 2. SIGNALS & ALERTS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Signals & Alerts',
+                                        icon:
+                                            Icons.notifications_active_outlined,
+                                      ),
+                                      // Trade Signal Notification Settings
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.notifications_outlined,
+                                        title: 'Trade Signal Notifications',
+                                        subtitle: const Text(
+                                            'Configure push notifications for trade signals'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        user: user,
+                                        onTap: () async {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -619,80 +1510,1188 @@ class _UserWidgetState extends State<UserWidget> {
                                               ),
                                             ),
                                           );
+                                        },
+                                      ),
+                                      // Custom Alerts
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.add_alert_outlined,
+                                        title: 'Custom Alerts',
+                                        subtitle: const Text(
+                                            'Manage price, volume, and volatility alerts'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const CustomAlertsWidget(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 3. RISK & MARGIN SAFEGUARDS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Risk & Margin Safeguards',
+                                        icon: Icons.security_outlined,
+                                      ),
+                                      // Margin Health & Collateral
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.speed,
+                                        title: 'Margin Health & Collateral',
+                                        subtitle: const Text(
+                                            'Margin buffer, buying power & collateral holds'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.schwab,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  MarginHealthWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Day Trade & PDT Monitor
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.shield_outlined,
+                                        title: 'Day Trade & PDT Monitor',
+                                        subtitle: const Text(
+                                            'Rolling 5-day counter & FINRA Rule 4210 protection'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.schwab,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DayTradeMonitorWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Risk Circuit Breakers
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.shield_outlined,
+                                        title:
+                                            'Risk Circuit Breakers & Tilt Guardrails',
+                                        subtitle: Text(
+                                          user?.riskCircuitBreakerConfig
+                                                      ?.isExecutionBlocked ==
+                                                  true
+                                              ? 'Active (Trading Suspended)'
+                                              : user?.riskCircuitBreakerConfig
+                                                          ?.enabled ==
+                                                      true
+                                                  ? 'Guarded & Active'
+                                                  : 'Configure account safety thresholds',
+                                        ),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        user: user,
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  RiskCircuitBreakerSettingsWidget(
+                                                user: user,
+                                                firestoreService:
+                                                    _firestoreService,
+                                              ),
+                                            ),
+                                          );
+                                          setState(() {});
+                                        },
+                                      ),
+                                      // Automated DRIP with Threshold
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.autorenew_outlined,
+                                        title: 'Automated DRIP with Threshold',
+                                        subtitle: Text(
+                                          user?.automatedDripConfig?.enabled ==
+                                                  true
+                                              ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
+                                              : 'Disabled • Reinvest dividends on price dips',
+                                        ),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.schwab,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  AutomatedDripSettingsWidget(
+                                                user: user,
+                                                firestoreService:
+                                                    _firestoreService,
+                                                brokerageUser:
+                                                    widget.brokerageUser,
+                                                brokerageService:
+                                                    widget.service,
+                                              ),
+                                            ),
+                                          );
+                                          setState(() {});
+                                        },
+                                      ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 4. BANKING & DOCUMENTS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Banking & Documents',
+                                        icon: Icons.account_balance_outlined,
+                                      ),
+                                      // Banking & Transfers
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.account_balance,
+                                        title: 'Banking & Transfers',
+                                        subtitle: const Text(
+                                            'Manage deposits, withdrawals & linked bank accounts'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BankingWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Tax Documents & Statements
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.receipt_long,
+                                        title: 'Tax Documents & Statements',
+                                        subtitle: const Text(
+                                            'Download Form 1099, monthly statements & ADR fees'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  TaxDocumentsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Corporate Actions & Stock Splits
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.call_split,
+                                        title: 'Corporate Actions & Splits',
+                                        subtitle: const Text(
+                                            'Stock split adjustments, cash-in-lieu & ratios'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  CorporateActionsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Stock Lending & Cash Sweeps
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.currency_exchange,
+                                        title: 'Stock Lending & Cash Sweeps',
+                                        subtitle: const Text(
+                                            'Earn yield on loaned shares & FDIC cash sweeps'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  StockLoanWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Retirement & IRA
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.savings_outlined,
+                                        title: 'Retirement & IRA',
+                                        subtitle: const Text(
+                                            'IRA contributions, Robinhood match & IRS limits'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          final accountStore =
+                                              Provider.of<AccountStore>(context,
+                                                      listen: false);
+                                          var currentAccount =
+                                              accountStore.selectedAccount;
+                                          if (currentAccount == null ||
+                                              !currentAccount.isRetirement) {
+                                            final iraAccount = accountStore.items
+                                                .where((a) => a.isRetirement)
+                                                .firstOrNull;
+                                            if (iraAccount != null) {
+                                              currentAccount = iraAccount;
+                                            }
+                                          }
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  RetirementWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                                account: currentAccount,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Connected Agents & Apps
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.extension_outlined,
+                                        title: 'Connected Agents & Apps',
+                                        subtitle: const Text(
+                                            'Manage OAuth tokens, trading agents & app access'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ConnectedAgentsWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Notification Center
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.notifications_outlined,
+                                        title: 'Notification Center',
+                                        subtitle: const Text(
+                                            'Midlands announcements, market notices & inbox'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  NotificationCenterWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+
+                                      const Divider(
+                                          height: 1, indent: 16, endIndent: 16),
+
+                                      // -------------------------------------------------------------
+                                      // 5. PROFILE & COMMUNITY
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategoryHeader(
+                                        context,
+                                        'Profile & Community',
+                                        icon: Icons.person_outline,
+                                      ),
+                                      // Investment Profile
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.assessment_outlined,
+                                        title: 'Investment Profile',
+                                        subtitle: const Text(
+                                            'Configure goals and risk tolerance for personalized recommendations'),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  InvestmentProfileSettingsWidget(
+                                                user: user!,
+                                                firestoreService:
+                                                    _firestoreService,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Portfolio & Social Privacy
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.privacy_tip_outlined,
+                                        title: 'Portfolio & Social Privacy',
+                                        subtitle: Text(
+                                          user?.portfolioPrivacy?.isPublic ==
+                                                  false
+                                              ? 'Private Portfolio'
+                                              : 'Public Portfolio',
+                                        ),
+                                        requiresLogin: true,
+                                        requiresUserDoc: true,
+                                        user: user,
+                                        onTap: () async {
+                                          final currentPrivacy = user
+                                                  ?.portfolioPrivacy ??
+                                              const PortfolioPrivacySettings();
+                                          final updated =
+                                              await PortfolioPrivacyBottomSheet
+                                                  .show(
+                                            context,
+                                            userId: widget.userId ?? '',
+                                            currentSettings: currentPrivacy,
+                                            firestoreService: _firestoreService,
+                                          );
+                                          if (updated != null && mounted) {
+                                            setState(() {
+                                              user?.portfolioPrivacy = updated;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                      // Shareholder Q&A (Say Technologies)
+                                      _buildFeatureTile(
+                                        context,
+                                        icon: Icons.how_to_vote_outlined,
+                                        title: 'Shareholder Q&A (Say)',
+                                        subtitle: const Text(
+                                            'Participate in verified earnings calls & shareholder questions'),
+                                        requiresBrokerage: true,
+                                        supportedSources: const {
+                                          BrokerageSource.robinhood,
+                                          BrokerageSource.demo,
+                                        },
+                                        user: user,
+                                        onTap: () async {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  ShareholderQaWidget(
+                                                brokerageUser:
+                                                    widget.brokerageUser!,
+                                                service: widget.service!,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      // Share & Referrals
+                                      _buildFeatureTile(
+                                        context,
+                                        key: _referralShareKey,
+                                        icon: Icons.share_outlined,
+                                        title: 'Share & Referrals',
+                                        subtitle: const Text(
+                                            'Invite friends and track your referral code'),
+                                        requiresLogin: true,
+                                        user: user,
+                                        onTap: () async {
+                                          if (widget.auth.currentUser != null) {
+                                            final refCode =
+                                                widget.auth.currentUser!.uid;
+                                            final url =
+                                                'https://realizealpha.web.app/?ref=$refCode';
+                                            final shareText =
+                                                'Join me on RealizeAlpha for advanced trading insights! Use my link: $url';
+
+                                            final RenderBox? renderBox =
+                                                _referralShareKey.currentContext
+                                                        ?.findRenderObject()
+                                                    as RenderBox?;
+                                            Rect? sharePositionOrigin;
+                                            if (renderBox != null &&
+                                                renderBox.size.width > 0 &&
+                                                renderBox.size.height > 0) {
+                                              final size = renderBox.size;
+                                              final offset = renderBox
+                                                  .localToGlobal(Offset.zero);
+                                              sharePositionOrigin =
+                                                  Rect.fromLTWH(
+                                                offset.dx,
+                                                offset.dy,
+                                                size.width,
+                                                size.height,
+                                              );
+                                            }
+
+                                            Share.share(
+                                              shareText,
+                                              sharePositionOrigin:
+                                                  sharePositionOrigin,
+                                            );
+                                          }
+                                        },
+                                      ),
+
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
+                                ),
+                              )),
+                            ],
+                          ],
+                          if (userRole == UserRole.admin &&
+                              isCurrentUserProfileView) ...[
+                            SliverToBoxAdapter(
+                                child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0, vertical: 8.0),
+                              child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 8),
+                                        leading: const Icon(
+                                            Icons.admin_panel_settings),
+                                        title: Text(
+                                          'Admin',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                  fontWeight: FontWeight.bold),
+                                        )),
+                                    ListTile(
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 8),
+                                      leading: CircleAvatar(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .tertiaryContainer,
+                                        foregroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .onTertiaryContainer,
+                                        child: const Icon(Icons.person_search),
+                                      ),
+                                      title: const Text('Users'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () {
+                                        if (widget.brokerageUser != null &&
+                                            widget.service != null) {
+                                          Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder:
+                                                      (BuildContext context) =>
+                                                          UsersWidget(
+                                                            widget.auth,
+                                                            widget.service!,
+                                                            analytics: widget
+                                                                .analytics,
+                                                            observer:
+                                                                widget.observer,
+                                                            brokerageUser: widget
+                                                                .brokerageUser!,
+                                                            user: user,
+                                                            userDocRef:
+                                                                userDocumentReference,
+                                                          )));
                                         }
                                       },
                                     ),
-// ExpansionPanelList(
-                                    //   expansionCallback:
-                                    //       (int index, bool isExpanded1) {
-                                    //     setState(() {
-                                    //       isExpanded = isExpanded1;
-                                    //       // _data[index].isExpanded = !isExpanded;
-                                    //     });
-                                    //   },
-                                    //   children: [
-                                    //     ExpansionPanel(
-                                    //         headerBuilder: (context, isExpanded) {
-                                    //           return ListTile(
-                                    //             leading: Icon(Icons.tune),
-                                    //             title: Text('Display Settings'),
-                                    //           );
-                                    //         },
-                                    //         body: SizedBox(
-                                    //           height: 1000,
-                                    //           child: MoreMenuBottomSheet(
-                                    //               widget.brokerageUser,
-                                    //               analytics: widget.analytics,
-                                    //               observer: widget.observer,
-                                    //               onSettingsChanged: (settings) =>
-                                    //                   debugPrint(
-                                    //                       jsonEncode(settings))),
-                                    //         ),
-                                    //         isExpanded: isExpanded)
-                                    //   ],
-                                    // )
                                   ],
                                 ),
                               ),
                             )),
-                            const SliverToBoxAdapter(
-                                child: SizedBox(height: 20.0)),
+                          ],
+                          if (!isCurrentUserProfileView && user != null) ...[
+                            _buildPublicPortfolioView(context, user),
+                          ],
+                          if (packageInfo != null) ...[
                             SliverToBoxAdapter(
-                                child: Column(
-                              children: [
-                                // const Divider(),
-                                TextButton.icon(
-                                  onPressed: _signOut,
-                                  icon: _isLoading
-                                      ? Container(
-                                          width: 24,
-                                          height: 24,
-                                          padding: const EdgeInsets.all(2.0),
-                                          child:
-                                              const CircularProgressIndicator(
-                                                  // color: Colors.white,
-                                                  // strokeWidth: 3,
-                                                  ),
-                                        )
-                                      : const Icon(Icons.logout_outlined),
-                                  label: const Text('Sign out'),
+                                child: Container(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Center(
+                                child: Text(
+                                  '${packageInfo!.appName} v${packageInfo!.version}',
+                                  style: const TextStyle(fontSize: 12.0),
                                 ),
-                              ],
-                            )),
+                              ),
+                            ))
                           ],
                           const SliverToBoxAdapter(
                               child: SizedBox(height: 40.0)),
-                          // SliverToBoxAdapter(child: MoreMenuBottomSheet(widget.user, analytics: analytics, observer: observer, onSettingsChanged: onSettingsChanged))
                         ]));
               });
         });
     // });
   }
 
-  void saveBrokerageUser(BuildContext context) {
+  Widget _buildPublicPortfolioView(BuildContext context, User targetUser) {
+    final privacy =
+        targetUser.portfolioPrivacy ?? const PortfolioPrivacySettings();
+    final theme = Theme.of(context);
+
+    if (!privacy.isPublic) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                children: [
+                  Icon(Icons.lock_outline,
+                      size: 48, color: theme.disabledColor),
+                  const SizedBox(height: 16),
+                  Text(
+                    'This Portfolio is Private',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${targetUser.name ?? "This trader"} has chosen to keep their holdings and trade history private.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: theme.disabledColor),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildListDelegate([
+        // Verified Track Record
+        StreamBuilder<QuerySnapshot<VerifiedTrackRecord>>(
+          stream: _firestoreService.verifiedTrackRecordCollection
+              .where('userId', isEqualTo: widget.userId)
+              .limit(1)
+              .snapshots(),
+          builder: (context, snap) {
+            if (snap.hasData && snap.data!.docs.isNotEmpty) {
+              final record = snap.data!.docs.first.data();
+              return _buildVerifiedTrackRecordCard(context, record);
+            }
+            return const SizedBox();
+          },
+        ),
+
+        // Holdings section
+        if (privacy.showHoldings && userDocumentReference != null) ...[
+          _buildPublicHoldingsCard(context, targetUser, privacy),
+        ],
+
+        // Recent trade activity
+        if (privacy.showTrades && userDocumentReference != null) ...[
+          _buildPublicRecentTradesCard(context, targetUser, privacy),
+        ],
+      ]),
+    );
+  }
+
+  Widget _buildVerifiedTrackRecordCard(
+      BuildContext context, VerifiedTrackRecord record) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.verified, color: Colors.blue[600], size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Verified Brokerage Track Record',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _statItem(
+                    'Total Return',
+                    '${record.verifiedReturnPercent >= 0 ? "+" : ""}${record.verifiedReturnPercent.toStringAsFixed(1)}%',
+                    isPositive: record.verifiedReturnPercent >= 0,
+                  ),
+                  _statItem(
+                    'Win Rate',
+                    '${record.verifiedWinRate.toStringAsFixed(1)}%',
+                  ),
+                  _statItem(
+                    'Sharpe',
+                    record.sharpeRatio.toStringAsFixed(2),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statItem(String label, String value, {bool? isPositive}) {
+    Color? valueColor;
+    if (isPositive != null) {
+      valueColor = isPositive ? Colors.green : Colors.red;
+    }
+    return Column(
+      children: [
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16, color: valueColor)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildPublicHoldingsCard(
+      BuildContext context, User targetUser, PortfolioPrivacySettings privacy) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.pie_chart_outline),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Portfolio Holdings',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  if (!privacy.showTradeAmounts)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('Values Masked',
+                          style: TextStyle(fontSize: 10)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: userDocumentReference!
+                    .collection(
+                        _firestoreService.instrumentPositionCollectionName)
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                        child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ));
+                  }
+                  final docs = snap.data?.docs ?? [];
+                  if (docs.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text('No open stock positions visible.'),
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: docs.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final data = docs[i].data();
+                      final symbol = data['symbol'] ?? docs[i].id;
+                      final quantity =
+                          (data['quantity'] as num?)?.toDouble() ?? 0.0;
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          child: Text(
+                            symbol.isNotEmpty ? symbol[0] : '?',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        title: Text(symbol,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(privacy.showTradeAmounts
+                            ? '$quantity shares'
+                            : '*** shares'),
+                        trailing: Text(
+                          privacy.showTradeAmounts
+                              ? '\$${((data['average_buy_price'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(2)}'
+                              : '\$***',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPublicRecentTradesCard(
+      BuildContext context, User targetUser, PortfolioPrivacySettings privacy) {
+    final theme = Theme.of(context);
+    final formatCompactDate = DateFormat('MMM d, h:mm a');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.history_outlined),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Recent Trades',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              StreamBuilder<List<InstrumentOrder>>(
+                stream: userDocumentReference!
+                    .collection(_firestoreService.instrumentOrderCollectionName)
+                    .orderBy('created_at', descending: true)
+                    .limit(10)
+                    .snapshots()
+                    .map((snap) => snap.docs
+                        .map((d) => InstrumentOrder.fromJson(d.data()))
+                        .toList()),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                        child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ));
+                  }
+                  final orders = snap.data ?? [];
+                  if (orders.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text('No recent trade transactions visible.'),
+                    );
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: orders.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final order = orders[i];
+                      final isBuy = order.side.toLowerCase() == 'buy';
+                      final symbol = order.instrumentObj?.symbol ?? 'Trade';
+                      final dateStr = order.createdAt != null
+                          ? formatCompactDate.format(order.createdAt!)
+                          : '';
+                      return ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: (isBuy ? Colors.green : Colors.red)
+                              .withValues(alpha: 0.15),
+                          child: Icon(
+                            isBuy ? Icons.arrow_downward : Icons.arrow_upward,
+                            size: 16,
+                            color: isBuy ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        title: Text(
+                          '$symbol ${order.side.toUpperCase()}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(dateStr),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              privacy.showTradeAmounts
+                                  ? (order.cumulativeQuantity != null
+                                      ? '${order.cumulativeQuantity!.toStringAsFixed(0)} shs'
+                                      : '')
+                                  : '*** shs',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (widget.brokerageUser != null &&
+                                widget.service != null) ...[
+                              const SizedBox(width: 8),
+                              FilledButton.tonal(
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  minimumSize: const Size(50, 28),
+                                ),
+                                onPressed: () {
+                                  showCopyTradeDialog(
+                                    context: context,
+                                    brokerageService: widget.service!,
+                                    currentUser: widget.brokerageUser!,
+                                    instrumentOrder: order,
+                                  );
+                                },
+                                child: const Text('Copy',
+                                    style: TextStyle(fontSize: 11)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> saveBrokerageUser(BuildContext context) async {
+    if (widget.brokerageUser == null) return;
     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-    userStore.addOrUpdate(widget.brokerageUser);
-    userStore.save();
+    userStore.addOrUpdate(widget.brokerageUser!);
+    await userStore.save();
+  }
+
+  String _brokerLabel(BrokerageSource source) {
+    switch (source) {
+      case BrokerageSource.robinhood:
+        return 'Robinhood';
+      case BrokerageSource.schwab:
+        return 'Charles Schwab';
+      case BrokerageSource.fidelity:
+        return 'Fidelity';
+      case BrokerageSource.plaid:
+        return 'Plaid';
+      case BrokerageSource.demo:
+        return 'Demo Account';
+      case BrokerageSource.paper:
+        return 'Paper Trading';
+    }
+  }
+
+  Widget _buildFeatureTile(
+    BuildContext context, {
+    Key? key,
+    required IconData icon,
+    required String title,
+    required Widget subtitle,
+    required Future<void> Function() onTap,
+    bool requiresLogin = false,
+    bool requiresUserDoc = false,
+    bool requiresBrokerage = false,
+    Set<BrokerageSource>? supportedSources,
+    User? user,
+  }) {
+    final theme = Theme.of(context);
+    final isLoginSatisfied = requiresUserDoc
+        ? (widget.auth.currentUser != null && user != null)
+        : requiresLogin
+            ? (widget.auth.currentUser != null)
+            : true;
+    final isBrokerageSatisfied = !requiresBrokerage ||
+        (widget.brokerageUser != null && widget.service != null);
+    final isSourceSupported = supportedSources == null ||
+        widget.brokerageUser == null ||
+        supportedSources.contains(widget.brokerageUser!.source);
+
+    final isEnabled =
+        isLoginSatisfied && isBrokerageSatisfied && isSourceSupported;
+
+    String? disabledReason;
+    String? badgeText;
+
+    if (!isLoginSatisfied) {
+      disabledReason = 'Requires account login';
+    } else if (!isBrokerageSatisfied) {
+      disabledReason = 'Requires linked brokerage account';
+      badgeText = 'Brokerage Required';
+    } else if (!isSourceSupported) {
+      final brokerName = _brokerLabel(widget.brokerageUser!.source);
+      disabledReason = 'Not supported by $brokerName';
+    }
+
+    final Widget effectiveSubtitle = (!isEnabled && disabledReason != null)
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              subtitle,
+              const SizedBox(height: 2),
+              Text(
+                disabledReason,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.error.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          )
+        : subtitle;
+
+    return ListTile(
+      key: key,
+      leading: CircleAvatar(
+        backgroundColor: isEnabled
+            ? theme.colorScheme.secondaryContainer
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        foregroundColor: isEnabled
+            ? theme.colorScheme.onSecondaryContainer
+            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        child: Icon(icon),
+      ),
+      title: Text(
+        title,
+        style: isEnabled
+            ? null
+            : TextStyle(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+      ),
+      subtitle: effectiveSubtitle,
+      trailing: isEnabled
+          ? const Icon(Icons.chevron_right)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (badgeText != null) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: theme.colorScheme.outline.withValues(alpha: 0.3),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.outline,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Icon(
+                  Icons.lock_outline,
+                  size: 16,
+                  color: theme.colorScheme.outline,
+                ),
+              ],
+            ),
+      onTap: () async {
+        if (!isEnabled) {
+          String message;
+          if (!isLoginSatisfied) {
+            message = 'Please sign in to your account to use $title.';
+          } else if (!isBrokerageSatisfied) {
+            message = 'Please link a brokerage account to use $title.';
+          } else {
+            final brokerName = _brokerLabel(widget.brokerageUser!.source);
+            message = '$title is not supported by $brokerName.';
+          }
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        await onTap();
+      },
+    );
+  }
+
+  Widget _buildFeatureCategoryHeader(
+    BuildContext context,
+    String title, {
+    IconData? icon,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 15,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            title.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onSettingsChanged({User? user, bool persistUser = true}) async {
@@ -751,7 +2750,7 @@ class _UserWidgetState extends State<UserWidget> {
                     ],
                   ),
                   persistentFooterButtons: [
-                    TextButton.icon(
+                    FilledButton.tonalIcon(
                         icon: _isLoading
                             ? Container(
                                 width: 24,
@@ -854,7 +2853,7 @@ class _UserWidgetState extends State<UserWidget> {
                         const SizedBox(
                           height: 20.0,
                         ),
-                        TextButton.icon(
+                        FilledButton.tonalIcon(
                             icon: _isLoading
                                 ? Container(
                                     width: 24,
@@ -906,17 +2905,106 @@ class _UserWidgetState extends State<UserWidget> {
     );
   }
 
+  Future<void> _editDisplayName(BuildContext context, User user) async {
+    final TextEditingController nameController =
+        TextEditingController(text: user.name);
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Edit Display Name'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Display Name'),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Save'),
+              onPressed: () async {
+                final newName = nameController.text;
+                if (newName.isNotEmpty) {
+                  // Update Firestore
+                  user.name = newName;
+                  user.nameLower = newName.toLowerCase();
+                  await _firestoreService.updateUser(
+                      userDocumentReference!, user);
+
+                  // Update Firebase Auth
+                  await widget.auth.currentUser?.updateDisplayName(newName);
+                }
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _signOut() async {
     setState(() {
       _isLoading = true;
     });
+    try {
+      final brokerageUserStore =
+          Provider.of<BrokerageUserStore>(context, listen: false);
+      await brokerageUserStore.removeAll();
+      await brokerageUserStore.save();
+      await deleteMcpTokens(secureStorage: PlatformSecureTokenStorage());
+    } catch (_) {
+      debugPrint('Could not securely clear brokerage credentials.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not securely clear brokerage credentials.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+      return;
+    }
     await widget.auth.signOut();
-    await GoogleSignIn().signOut();
-    setState(() {
-      _isLoading = false;
-    });
+    try {
+      // await GoogleSignIn().signOut();
+      await GoogleSignIn.instance.signOut();
+    } catch (e) {
+      debugPrint('Google sign-out failed: $e');
+    }
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
     if (widget.onSignout != null) {
       widget.onSignout!();
     }
+  }
+
+  bool _isPermissionDenied(dynamic error) {
+    if (error == null) return false;
+    if (error is FirebaseException && error.code == 'permission-denied') {
+      return true;
+    }
+    final errStr = error.toString().toLowerCase();
+    return errStr.contains('permission-denied') ||
+        errStr.contains('permission_denied');
   }
 }

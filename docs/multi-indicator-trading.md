@@ -2,28 +2,74 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates **9 technical indicators** to generate trade signals. **All 9 indicators must be "green" (BUY signal) to trigger an automatic trade.**
+The multi-indicator automatic trading system correlates **19 technical indicators** to generate trade signals.
 
-This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators.
+This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. It uses a **Weighted Signal Strength system** where indicators are weighted by importance (Price Movement > Momentum/Trend > Others) to calculate a final **Signal Strength score (0-100)**.
 
-## The 9 Technical Indicators
+## Signal Discovery & Filtering
+
+Users can explore trade signals in the **Search** tab using advanced filtering options:
+
+1.  **Signal Strength**: Filter by **Strong** (70-100), **Moderate** (50-69), or **Weak** (0-49) signals.
+2.  **Indicator States**: Filter by specific indicator states using a 4-way toggle (Off/BUY/SELL/HOLD). For example, you can search for "RSI: BUY" and "MACD: BUY" to find specific momentum setups.
+3.  **Sorting**: Sort results by **Signal Strength** (default) or **Timestamp** to find the most relevant or most recent signals.
+
+*Note: Signal Strength and Indicator filters are exclusive. Selecting one type clears the other to ensure clear, non-conflicting results.*
+
+## Signal Strength Calculation
+
+The system uses a weighted scoring model to determine the overall strength of a trade signal. Not all indicators are created equal; some provide earlier or more reliable signals than others.
+
+**Weight Distribution:**
+
+1.  **Critical (Weight 2.0):**
+  *   **Price Movement**: Patterns and candlestick formations are the most direct reflection of market sentiment and often precede other indicators.
+
+2.  **High Impact (Weight 1.5):**
+  *   **Momentum**: RSI and momentum signals.
+  *   **Trend**: MACD and Ichimoku.
+
+3.  **Standard Impact (Weight 1.2):**
+  *   **Trend Confirmation**: ADX, Market Direction.
+  *   **Support/Resistance**: Fibonacci Retracements, Pivot Points, VWAP.
+  *   **Volatility**: Bollinger Bands.
+
+4.  **Supporting (Weight 1.0):**
+  *   **Volume/Volatility**: Volume, ATR, OBV, Chaikin Money Flow.
+  *   **Momentum/Trend**: Stochastic, Williams %R, CCI, Parabolic SAR, ROC.
+
+**Formula:**
+
+$SignalStrength = \frac{WeightedScore + TotalWeight}{2 \times TotalWeight} \times 100$
+
+The final score (0-100) reflects the net positive influence of all indicators. A score $\ge 70$ is considered a **Strong BUY**, while a score $\le 30$ is a **Strong SELL**.
+
+**Sparkline Context:**
+
+The multi-indicator result includes a `sparkline` series (last 80 closes) used to render quick trend previews in signal cards.
+
+## The 19 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 
-**Purpose:** Identifies and scores multiple bullish and bearish chart patterns from recent price action to produce a directional signal with confidence.
+**Purpose:** Identifies and scores multiple bullish and bearish chart patterns (classic and candlestick) from recent price action to produce a directional signal with confidence.
 
 **Implementation:** `detectChartPattern()` in `technical-indicators.ts`
 
 **Supported Patterns:**
-- Bullish: Breakout, Double Bottom, Ascending Triangle, Cup & Handle, Bull Flag
-- Bearish: Breakdown, Double Top, Head & Shoulders, Descending Triangle, Bear Flag
+- **Classic:**
+  - Bullish: Breakout, Double Bottom, Ascending Triangle, Cup & Handle, Bull Flag
+  - Bearish: Breakdown, Double Top, Head & Shoulders, Descending Triangle, Bear Flag
+- **Candlestick (New):**
+  - Bullish: Bullish Engulfing, Hammer
+  - Bearish: Bearish Engulfing, Shooting Star
 
 **Signals:**
 - **BUY**: Highest-confidence bullish pattern reaches action threshold (≥ 0.60)
 - **SELL**: Highest-confidence bearish pattern reaches action threshold (≥ 0.60)
 - **HOLD**: No qualifying pattern or only emerging (confidence < 0.60)
 
-**Confidence Scoring:** Each detected pattern is assigned a `confidence` (0–1) based on structure completeness and volume confirmation (e.g., breakout with volume > 130% avg adds a boost). The system selects the strongest non-neutral pattern to drive the signal.
+**Confidence Scoring:** Each detected pattern is assigned a `confidence` (0–1). Candlestick patterns like Engulfing and Hammer/Shooting Star are assigned high confidence (0.60-0.65) as they often signal immediate reversals.
 
 **Key Heuristics:**
 - Moving averages (5/10/20 SMA) establish trend context
@@ -31,8 +77,9 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Double Top/Bottom similarity tolerance ~1%
 - Head & Shoulders shoulder symmetry tolerance ~2%
 - Triangles require flat highs/lows plus rising/falling opposing side
-- Cup & Handle recovery >5% from handle low with short-term momentum
+- Cup & Handle recovery >5% from handle low with short-term momentum; **edge-case guard** when handle window < 5 bars
 - Flags require prior impulsive move (>6%) followed by tight consolidation (<1.5% range)
+- **Improved (v2)**: Linear regression slope now properly mean-centered on price (uses `yMean`) instead of anchoring to last price for accurate trend calculation
 
 **Metadata Returned:**
 ```json
@@ -62,13 +109,13 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 
 ### 2. Momentum (RSI - Relative Strength Index)
 
-**Purpose:** Measures the momentum and identifies overbought/oversold conditions.
+**Purpose:** Measures the momentum and identifies overbought/oversold conditions, with divergence detection for early reversal signals.
 
 **Implementation:** `evaluateMomentum()` and `computeRSI()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: RSI < 30 (oversold) or 60 < RSI ≤ 70 (strong bullish momentum)
-- **SELL**: RSI > 70 (overbought) or 30 ≤ RSI < 40 (bearish momentum)
+- **BUY**: RSI < 30 (oversold), 60 < RSI ≤ 70 (strong bullish momentum), or **bullish divergence** (RSI rising while price falling)
+- **SELL**: RSI > 70 (overbought), 30 ≤ RSI < 40 (bearish momentum), or **bearish divergence** (RSI falling while price rising)
 - **HOLD**: 40 ≤ RSI ≤ 60 (neutral zone)
 
 **Configuration:**
@@ -80,6 +127,10 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 - Oversold threshold: 30
 - Overbought threshold: 70
 - Neutral range: 40-60
+- **Divergence Detection (v3)**: Compares RSI trend vs price trend over 10 periods
+  - Bullish divergence: Price declining >1% while RSI rising >3 points
+  - Bearish divergence: Price rising >1% while RSI falling >3 points
+- Divergence signals take priority over standard threshold signals
 
 ### 3. Market Direction (Moving Average Crossovers)
 
@@ -88,145 +139,232 @@ This system provides a comprehensive multi-factor analysis approach combining pr
 **Implementation:** `evaluateMarketDirection()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Fast MA crosses above slow MA (bullish crossover) or trend strength > 2%
-- **SELL**: Fast MA crosses below slow MA (bearish crossover) or trend strength < -2%
-- **HOLD**: No crossover and trend strength between -2% and 2%
+- **BUY**: Fast SMA (10) > Slow SMA (30) (Bullish trend)
+- **SELL**: Fast SMA (10) < Slow SMA (30) (Bearish trend)
+- **HOLD**: SMAs are equal or insufficient data
 
 **Configuration:**
-- Default market index: SPY (can be changed to QQQ)
-- Default fast period: 10
-- Default slow period: 30
-- Configurable via `marketIndexSymbol`, `smaPeriodFast`, `smaPeriodSlow`
+- Default Fast SMA: 10
+- Default Slow SMA: 30
+- Default Index: SPY
+- Configurable via `fastSmaPeriod`, `slowSmaPeriod`, and `marketIndex` parameters
 
-**Technical Details:**
-- Fetches market index data from Yahoo Finance
-- Detects crossovers by comparing current and previous MA values
-- Calculates trend strength as percentage spread between fast and slow MA
+### 4. Volume (Volume Oscillator)
 
-### 4. Volume
-
-**Purpose:** Confirms price movements with volume analysis.
+**Purpose:** Confirms price moves with volume analysis.
 
 **Implementation:** `evaluateVolume()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: High volume (>150% of average) with price increase (>0.5%) or normal volume with strong price increase (>1%)
-- **SELL**: High volume (>150% of average) with price decrease (<-0.5%)
-- **HOLD**: Low volume (<70% of average) or neutral volume with small price changes
-
-**Technical Details:**
-- Compares current volume to 20-period average
-- Correlates volume with price change
-- Identifies accumulation (high volume + price up) and distribution (high volume + price down)
+- **BUY**: Volume > 120% of 20-period average (Strong buying pressure)
+- **SELL**: Volume > 150% of 20-period average on down day (Panic selling)
+- **HOLD**: Volume within normal range
 
 ### 5. MACD (Moving Average Convergence Divergence)
 
-**Purpose:** Identifies trend following momentum through the relationship between two exponential moving averages.
+**Purpose:** Trend-following momentum indicator.
 
-**Implementation:** `evaluateMACD()` and `computeMACD()` in `technical-indicators.ts`
+**Implementation:** `evaluateMACD()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: MACD histogram crosses above zero (bullish crossover) or positive histogram (bullish momentum)
-- **SELL**: MACD histogram crosses below zero (bearish crossover) or negative histogram (bearish momentum)
-- **HOLD**: Histogram near zero (neutral)
-
-**Configuration:**
-- Fast EMA period: 12
-- Slow EMA period: 26
-- Signal line period: 9
-
-**Technical Details:**
-- MACD Line = Fast EMA - Slow EMA
-- Signal Line = EMA of MACD Line
-- Histogram = MACD Line - Signal Line
-- Crossovers detected by comparing current and previous histogram values
+- **BUY**: MACD line crosses above Signal line (Bullish crossover)
+- **SELL**: MACD line crosses below Signal line (Bearish crossover)
+- **HOLD**: No crossover
 
 ### 6. Bollinger Bands
 
-**Purpose:** Measures price volatility and identifies overbought/oversold conditions relative to recent price range.
+**Purpose:** Measures volatility and potential overbought/oversold conditions.
 
-**Implementation:** `evaluateBollingerBands()` and `computeBollingerBands()` in `technical-indicators.ts`
+**Implementation:** `evaluateBollingerBands()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Price at or below lower band (oversold), or in lower third of bands
-- **SELL**: Price at or above upper band (overbought), or in upper third of bands
-- **HOLD**: Price in middle region of bands
-
-**Configuration:**
-- Period: 20 (SMA)
-- Standard deviations: 2
-
-**Technical Details:**
-- Middle Band = 20-period SMA
-- Upper Band = Middle + (2 × Standard Deviation)
-- Lower Band = Middle - (2 × Standard Deviation)
-- Position calculated as percentage between lower and upper bands
+- **BUY**: Price touches or crosses below Lower Band (Oversold/Bounce candidate)
+- **SELL**: Price touches or crosses above Upper Band (Overbought/Reversal candidate)
+- **HOLD**: Price within bands
 
 ### 7. Stochastic Oscillator
 
-**Purpose:** Compares closing price to price range over a period to identify momentum and overbought/oversold conditions.
+**Purpose:** Momentum indicator comparing a particular closing price of a security to a range of its prices over a certain period of time.
 
-**Implementation:** `evaluateStochastic()` and `computeStochastic()` in `technical-indicators.ts`
+**Implementation:** `evaluateStochastic()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: %K < 20 (oversold), or bullish crossover (%K crosses above %D) in oversold region
-- **SELL**: %K > 80 (overbought), or bearish crossover (%K crosses below %D) in overbought region
-- **HOLD**: %K between 20-80 (neutral zone)
-
-**Configuration:**
-- %K period: 14
-- %D period: 3 (SMA of %K)
-- Oversold threshold: 20
-- Overbought threshold: 80
-
-**Technical Details:**
-- %K = ((Current Close - Lowest Low) / (Highest High - Lowest Low)) × 100
-- %D = 3-period SMA of %K
-- Uses high, low, and close prices
+- **BUY**: %K crosses above %D and both are < 20 (Oversold crossover)
+- **SELL**: %K crosses below %D and both are > 80 (Overbought crossover)
+- **HOLD**: No crossover or within neutral range
 
 ### 8. ATR (Average True Range)
 
-**Purpose:** Measures market volatility to assess risk and potential breakout conditions.
+**Purpose:** Measures market volatility.
 
-**Implementation:** `evaluateATR()` and `computeATR()` in `technical-indicators.ts`
+**Implementation:** `evaluateATR()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Low volatility (ATR < 60% of average) suggests potential breakout setup
-- **SELL**: Never issues SELL signal (volatility is not directional)
-- **HOLD**: Normal or high volatility
-
-**Configuration:**
-- Period: 14
-
-**Technical Details:**
-- True Range = max(High - Low, |High - Previous Close|, |Low - Previous Close|)
-- ATR = Smoothed average of True Range values
-- Compared to 14-period historical ATR average
-- High volatility (>150% of avg) = caution
-- Low volatility (<60% of avg) = potential breakout
+- **BUY**: ATR is increasing (Volatility expansion, often accompanies trend starts)
+- **SELL**: ATR is extremely high (Potential exhaustion)
+- **HOLD**: ATR is stable or decreasing
 
 ### 9. OBV (On-Balance Volume)
 
-**Purpose:** Tracks volume flow to confirm price trends and detect divergences between price and volume.
+**Purpose:** Uses volume flow to predict changes in stock price.
 
-**Implementation:** `evaluateOBV()` and `computeOBV()` in `technical-indicators.ts`
+**Implementation:** `evaluateOBV()` in `technical-indicators.ts`
 
 **Signals:**
-- **BUY**: Bullish divergence (OBV rising while price falling), or OBV uptrend confirms price rise
-- **SELL**: Bearish divergence (OBV falling while price rising), or OBV downtrend confirms price decline
-- **HOLD**: OBV trend neutral or not significant
+- **BUY**: OBV is rising (Volume confirming price increase)
+- **SELL**: OBV is falling (Volume confirming price decrease)
+- **HOLD**: OBV is flat
 
-**Configuration:**
-- Lookback period: 20 (for trend calculation)
-- Divergence threshold: ±5%
-- Strong trend threshold: ±10%
+### 10. VWAP (Volume Weighted Average Price)
 
-**Technical Details:**
-- OBV increases by volume on up days
-- OBV decreases by volume on down days
-- OBV unchanged when price unchanged
-- Compares recent 10-period OBV average vs previous 10-period average
-- Detects divergences by comparing OBV trend with price change
+**Purpose:** Provides the average price a stock has traded at throughout the day, based on both volume and price.
+
+**Implementation:** `evaluateVWAP()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price crosses above VWAP (Bullish sentiment)
+- **SELL**: Price crosses below VWAP (Bearish sentiment)
+- **HOLD**: Price near VWAP
+
+### 11. ADX (Average Directional Index)
+
+**Purpose:** Measures the strength of a trend.
+
+**Implementation:** `evaluateADX()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: ADX > 25 and +DI > -DI (Strong Bullish Trend)
+- **SELL**: ADX > 25 and -DI > +DI (Strong Bearish Trend)
+- **HOLD**: ADX < 25 (Weak or No Trend)
+
+### 12. Williams %R
+
+**Purpose:** Momentum indicator that measures overbought and oversold levels.
+
+**Implementation:** `evaluateWilliamsR()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: %R < -80 (Oversold)
+- **SELL**: %R > -20 (Overbought)
+- **HOLD**: %R between -20 and -80
+
+### 13. Ichimoku Cloud
+
+**Purpose:** Comprehensive indicator that defines support and resistance, identifies trend direction, gauges momentum, and provides trading signals.
+
+**Implementation:** `evaluateIchimokuCloud()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price > Cloud AND Conversion Line > Base Line (TK Cross Bullish) AND Cloud is Green (Span A > Span B).
+- **SELL**: Price < Cloud AND Conversion Line < Base Line (TK Cross Bearish) AND Cloud is Red (Span A < Span B).
+- **HOLD**: Price inside Cloud or mixed signals.
+
+### 14. CCI (Commodity Channel Index)
+
+**Purpose:** Momentum-based oscillator used to identify cyclical trends and overbought/oversold levels.
+
+**Implementation:** `evaluateCCI()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: CCI < -100 (Oversold rebound) or crosses above 100 (Trend strength).
+- **SELL**: CCI > 100 (Overbought reversal) or crosses below -100 (Trend weakness).
+- **HOLD**: CCI between -100 and 100 (Neutral).
+
+### 15. Parabolic SAR (Stop and Reverse)
+
+**Purpose:** Trend-following indicator that highlights potential reversals and sets trailing stop levels.
+
+**Implementation:** `evaluateParabolicSAR()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price crosses above the SAR dots (Bullish reversal).
+- **SELL**: Price crosses below the SAR dots (Bearish reversal).
+- **HOLD**: Trend continuation (dots remain on same side).
+
+### 16. ROC (Rate of Change)
+
+**Purpose:** Momentum oscillator measuring the percentage change in price over a given period.
+
+**Implementation:** `evaluateROC()` in `technical-indicators.ts`
+
+**Parameters:**
+- Period: `9 bars` (default)
+
+**Signals:**
+- **BUY**: ROC > 5% (Strong Upward Momentum).
+- **SELL**: ROC < -5% (Strong Downward Momentum).
+- **HOLD**: -5% ≤ ROC ≤ 5% (Neutral momentum).
+
+### 17. Chaikin Money Flow (CMF)
+
+**Purpose:** Combines price and volume to measure buying and selling pressure.
+
+**Implementation:** `evaluateChaikinMoneyFlow()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: CMF > 0.05 (Buying Pressure)
+- **SELL**: CMF < -0.05 (Selling Pressure)
+- **HOLD**: Neutral
+
+### 18. Fibonacci Retracements
+
+**Purpose:** Identifies potential support and resistance levels based on recent high/low range.
+
+**Implementation:** `evaluateFibonacciRetracements()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price bounces off support level (e.g., 61.8% or 50% retracement in uptrend)
+- **SELL**: Price rejects resistance level (in downtrend)
+- **HOLD**: No significant interaction
+
+### 19. Pivot Points
+
+**Purpose:** Uses the previous period's high, low, and close to project support and resistance levels.
+
+**Implementation:** `evaluatePivotPoints()` in `technical-indicators.ts`
+
+**Variants Supported:**
+- **Classic:** Standard (High+Low+Close)/3 calculation.
+- **Fibonacci:** Uses Fibonacci ratios for levels.
+- **Woodie:** Weighted towards Close.
+- **Camarilla:** Mean reversion focus.
+
+**Signals:**
+- **BUY**: Price > Pivot Point (Bullish Bias) or bouncing off Support.
+- **SELL**: Price < Pivot Point (Bearish Bias) or rejecting Resistance.
+- **HOLD**: Price consolidating around Pivot.
+
+### 20. TTM Squeeze (Visualization)
+
+**Purpose:** Visualizes volatility compression and momentum.
+
+**Implementation:** Chart overlay/indicator.
+
+**Signals:**
+- **Squeeze On (Red Dots):** Volatility compression (Bollinger Bands inside Keltner Channels). Potential breakout imminent.
+- **Squeeze Off (Green Dots):** Volatility expansion. Breakout occurring.
+- **Momentum Histogram:** Indicates direction of the move.
+
+## Signal Strength Score
+
+**Purpose:** Quantifies overall indicator alignment on a 0-100 scale.
+
+**Calculation:**
+```
+signalStrength = ((buyCount - sellCount + totalIndicators) / (2 × totalIndicators)) × 100
+```
+
+**Interpretation:**
+- **100**: All 19 indicators are BUY (perfect bullish alignment)
+- **75-99**: Strong bullish bias, most indicators aligned
+- **50**: Neutral (equal BUY and SELL signals, or all HOLD)
+- **25-49**: Strong bearish bias
+- **0**: All 19 indicators are SELL (perfect bearish alignment)
+
+**Use Cases:**
+- Filter signals by strength threshold (e.g., only act on strength > 75)
+- Gauge confidence in trade setup
+- Track signal strength trends over time
 
 ## How It Works
 
@@ -238,13 +376,13 @@ This system provides a comprehensive multi-factor analysis approach combining pr
    - Minimum 30-60 periods of data required
 
 2. **Indicator Evaluation**
-   - Each of the 9 indicators is evaluated independently
+   - Each of the 19 indicators is evaluated independently
    - Each returns: `{ signal: "BUY"|"SELL"|"HOLD", reason: string, value: number }`
 
 3. **Multi-Indicator Correlation**
    - Function: `evaluateAllIndicators()` in `technical-indicators.ts`
-   - Checks if ALL 9 indicators signal BUY
-   - Returns `allGreen: true` only when all 9 are BUY
+   - Checks if ALL 19 indicators signal BUY
+   - Returns `allGreen: true` only when all 19 are BUY
 
 4. **Trade Decision**
    - Alpha agent (`alpha-agent.ts`) calls multi-indicator evaluation
@@ -266,23 +404,23 @@ alpha-agent.ts (handleAlphaTask)
          ↓
 technical-indicators.ts (evaluateAllIndicators)
          ↓
-    ┌────┴────┬────────┬───────────┬──────────┬──────┐
-    ↓         ↓        ↓           ↓          ↓      ↓
-  Price   Momentum  Market     Volume     MACD   Bollinger
-Movement    (RSI)  Direction                      Bands
-    ↓         ↓        ↓           ↓          ↓      ↓
-    └────┬────┴────────┴───────────┴──────────┴──────┘
+    ┌────┴────┬────────┬───────────┬──────────┬───────────┐
+    ↓         ↓        ↓           ↓          ↓           ↓
+  Price   Momentum  Market     Volume     MACD      Bollinger
+Movement  (RSI+Div) Direction                        Bands
+    ↓         ↓        ↓           ↓          ↓           ↓
+    └────┬────┴────────┴───────────┴──────────┴───────────┘
          ↓
-    ┌────┴────┬─────────┬────────┐
-    ↓         ↓         ↓        ↓
-Stochastic  ATR       OBV    (9 total)
-    ↓         ↓         ↓        ↓
-    └────┬────┴─────────┴────────┘
+    ┌────┴────┬─────────┬────────┬────────┬────────┐
+    ↓         ↓         ↓        ↓        ↓        ↓
+Stochastic  ATR       OBV      VWAP     ADX   Williams%R
+    ↓         ↓         ↓        ↓        ↓        ↓
+    └────┬────┴─────────┴────────┴────────┴────────┘
          ↓
-   All 9 Green?
+  All 19 Green? + Signal Strength Score
          ↓
     Yes → Trade Proposal → RiskGuard → Execute
-    No  → HOLD
+    No  → HOLD (with strength score for analytics)
 ```
 
 ## Configuration
@@ -529,7 +667,7 @@ Document structure:
   "symbol": "AAPL",
   "interval": "1h",
   "signal": "BUY" | "SELL" | "HOLD",
-  "reason": "All 9 indicators are GREEN - Strong BUY signal",
+  "reason": "All 19 indicators are GREEN - Strong BUY signal",
   "multiIndicatorResult": {
     "allGreen": true,
     "overallSignal": "BUY",
@@ -582,7 +720,7 @@ Required composite indexes for optimized queries (configured in `firebase/firest
 **Signal type + timestamp:**
 ```json
 {
-  "collectionGroup": "agentic_trading",
+  "collectionGroup": "signals",
   "queryScope": "COLLECTION",
   "fields": [
     {"fieldPath": "signal", "order": "ASCENDING"},
@@ -594,7 +732,7 @@ Required composite indexes for optimized queries (configured in `firebase/firest
 **Interval + timestamp:**
 ```json
 {
-  "collectionGroup": "agentic_trading",
+  "collectionGroup": "signals",
   "queryScope": "COLLECTION",
   "fields": [
     {"fieldPath": "interval", "order": "ASCENDING"},
@@ -658,7 +796,7 @@ The Agentic Trading Settings screen displays:
   - ✓ Green arrow up = BUY signal
   - ✓ Red arrow down = SELL signal
   - ✓ Gray horizontal line = HOLD signal
-- Overall signal status with highlighting when all 9 are green
+- Overall signal status with highlighting when all 19 are green
 
 #### Search Tab - Trade Signals Section
 
@@ -753,7 +891,7 @@ firebase deploy --only functions:agenticTradingIntradayCronJob,functions:agentic
 3. Configure parameters (optional)
 4. Tap "Initiate Test Trade Proposal"
 5. Review indicator status display
-6. Check if all 9 indicators are green
+6. Check if all 19 indicators are green
 
 ### Testing Individual Indicators
 
@@ -771,7 +909,7 @@ You can test individual indicators by:
 - RSI < 30 (oversold)
 - SPY 10-day MA crosses above 30-day MA
 - Volume spike with price increase
-- **Expected Result:** All 9 indicators BUY → Trade executed
+- **Expected Result:** All 19 indicators BUY → Trade executed
 
 **Scenario 2: Mixed Signals**
 - Price in consolidation
@@ -785,7 +923,7 @@ You can test individual indicators by:
 - RSI > 70 (overbought)
 - SPY 10-day MA crosses below 30-day MA
 - Volume spike with price decrease
-- **Expected Result:** All 9 indicators SELL → Potential short (if enabled)
+- **Expected Result:** All 19 indicators SELL → Potential short (if enabled)
 
 ## Best Practices
 
@@ -816,7 +954,7 @@ The multi-indicator system works best when combined with:
 ### Monitoring
 
 Regularly review:
-- Signal frequency (how often all 9 align)
+- Signal frequency (how often all 19 align)
 - False positive rate
 - Trade win/loss ratio
 - Indicator individual performance
@@ -827,7 +965,7 @@ Regularly review:
 
 **Check:**
 1. Is agentic trading enabled in settings?
-2. Are all 9 indicators rarely aligning?
+2. Are all 19 indicators rarely aligning?
 3. Review Firestore `signals_{SYMBOL}` for indicator status
 4. Check Firebase Functions logs for errors
 5. Verify market data is being fetched (Yahoo Finance API working)
@@ -868,9 +1006,15 @@ Potential improvements:
    - ✅ Stochastic Oscillator - **IMPLEMENTED**
    - ✅ ATR (Average True Range) - **IMPLEMENTED**
    - ✅ OBV (On-Balance Volume) - **IMPLEMENTED**
-   - ADX (Average Directional Index)
-   - Ichimoku Cloud
-   - Fibonacci Retracements
+   - ✅ VWAP (Volume Weighted Average Price) - **IMPLEMENTED v3**
+   - ✅ ADX (Average Directional Index) - **IMPLEMENTED v3**
+   - ✅ Williams %R - **IMPLEMENTED v3**
+   - ✅ RSI Divergence Detection - **IMPLEMENTED v3**
+   - ✅ Ichimoku Cloud - **IMPLEMENTED**
+   - ✅ Fibonacci Retracements - **IMPLEMENTED**
+   - ✅ Parabolic SAR - **IMPLEMENTED**
+   - ✅ Chaikin Money Flow - **IMPLEMENTED**
+   - ✅ Rate of Change (ROC) - **IMPLEMENTED**
 
 2. **Machine Learning:**
    - Pattern recognition using historical data
@@ -898,6 +1042,140 @@ Potential improvements:
 - **RSI:** Classic Relative Strength Index by J. Welles Wilder
 - **Moving Averages:** Technical analysis fundamentals
 - **Volume Analysis:** Price-volume relationship principles
+
+## Recent Improvements (v2)
+
+The technical indicators module has been improved for accuracy, robustness, and edge-case handling:
+
+### Bollinger Bands Precision
+- **Change**: Now uses sample standard deviation (N−1) instead of population (N)
+- **Benefit**: Produces band widths matching industry-standard implementations (TradingView, etc.)
+- **Impact**: More accurate volatility measurement and overbought/oversold threshold detection
+- **Formula**: `variance = sum(squared_diffs) / (period - 1)` when period > 1
+
+### OBV Robustness
+- **Change 1**: OBV initialization now starts at 0 instead of first volume value
+  - **Benefit**: Eliminates first-bar scale bias that could skew trend calculations
+  - **Impact**: More consistent divergence detection across all symbols regardless of volume scale
+- **Change 2**: Division-by-zero guard added for trend calculation
+  - **Benefit**: Prevents infinite/NaN values when older OBV average ≈ 0
+  - **Guard**: Returns `obvTrend = 0` if denominator < 1e-9
+  - **Impact**: Handles near-zero volume periods gracefully
+
+### Pattern Detection Accuracy
+- **Chart Pattern - Cup & Handle**: Edge-case guard prevents errors with insufficient lookback bars
+  - **Guard**: Validates handle window length > 0 before computing minimum
+  - **Benefit**: Graceful handling of early-bar scenarios or short price histories
+  
+- **Price Movement - Linear Regression**: Slope calculation now properly mean-centered
+  - **Change**: Uses mean-centered Y values (`yMean`) instead of anchoring to last price
+  - **Formula**: `slope = sum((x - xMean) * (y - yMean)) / sum((x - xMean)²)`
+  - **Benefit**: Mathematically correct trend estimation independent of ending price level
+  - **Impact**: More reliable slope for market context in pattern metadata
+
+### Code Quality
+- All changes lint-compliant and pass TypeScript strict mode
+- Builds successfully with no errors
+- Backward-compatible API (no breaking changes)
+
+## Recent Improvements (v3)
+
+### New Indicators Added
+
+#### VWAP (Volume Weighted Average Price)
+- **Purpose**: Identifies fair value based on volume-weighted price distribution
+- **Signals**: Uses ±1σ and ±2σ bands from VWAP
+- **Benefit**: Institutional-grade price level analysis for better entry/exit points
+- **Formula**: VWAP = Σ(Typical Price × Volume) / Σ(Volume)
+
+#### ADX (Average Directional Index)
+- **Purpose**: Measures trend strength regardless of direction
+- **Signals**: ADX > 25 with +DI/-DI crossovers for directional trades
+- **Benefit**: Filters out range-bound markets, focuses on trending opportunities
+- **Implementation**: Full Wilder's smoothing with +DI, -DI, and DX calculation
+
+#### Williams %R
+- **Purpose**: Momentum oscillator with overbought/oversold detection
+- **Signals**: %R ≤ -80 (oversold buy), %R ≥ -20 (overbought sell)
+- **Benefit**: Faster reversal signals with momentum confirmation
+- **Enhancement**: Detects rising/falling momentum from extreme zones
+
+### Enhanced RSI with Divergence Detection
+- **Change**: RSI now detects bullish and bearish divergences
+- **Bullish Divergence**: RSI rising while price falling (early buy signal)
+- **Bearish Divergence**: RSI falling while price rising (early sell signal)
+- **Impact**: Earlier reversal detection before price confirms the move
+- **Threshold**: Price trend >1%, RSI trend >3 points in opposite directions
+
+### Signal Strength Scoring System
+- **New Feature**: 0-100 score quantifying indicator alignment
+- **Formula**: `((buyCount - sellCount + total) / (2 × total)) × 100`
+- **Use Cases**:
+  - Filter trades by minimum strength threshold
+  - Gauge confidence in setups
+  - Track signal quality over time
+- **Output**: Added `signalStrength` field to `MultiIndicatorResult`
+
+### System Expansion
+- **Indicators**: Expanded from 12 to 15 indicators (added Ichimoku Cloud, CCI, Parabolic SAR)
+- **Interface**: Updated `MultiIndicatorResult` with new indicator fields
+- **Logging**: Enhanced logging includes all 15 indicator signals
+- **Backward Compatibility**: API remains compatible, existing integrations work unchanged
+
+### Code Quality
+- All new functions include comprehensive JSDoc documentation
+- Proper null handling and edge-case guards
+- Consistent metadata output format across all indicators
+- TypeScript strict mode compliant
+
+## Custom Indicators
+
+The system now supports **Custom Indicators**, allowing users to extend the analysis capabilities beyond the core 19 indicators.
+
+- **Definition:** Users can define custom logic using available market data (price, volume, etc.).
+- **Integration:** Custom indicators are evaluated alongside standard indicators and contribute to the overall signal generation.
+- **Weighting:** Custom indicators can be assigned weights to influence the Signal Strength score.
+- **Flexibility:** Enables the implementation of proprietary or niche trading strategies.
+
+## Auto-Trade Safeguards (v0.56.0)
+
+- **Signal matching:** Stored signals are scored with the default indicators, so when only some indicators are enabled the provider queries by the enabled indicators and filters by age and symbol on the client. HOLD overall signals are accepted when every enabled indicator is BUY; SELL is rejected. The cycle logs how many signals were fetched and warns when the query reaches its 200-document cap.
+- **Entries:** A BUY is skipped when the symbol is already held or was already proposed in the same cycle. Pending BUYs for held symbols are cleared each cycle and re-checked when you approve.
+- **Exits:** The exit monitor does not run concurrently and never sells more shares than the position holds; tracked lots with no shares left are dropped. Exit notifications are batched per symbol, with one summary push for large batches.
+- **Persistence:** Tracked trades in `automated_buy_trades` are saved in order with stable document ids, so a save is an upsert followed by deletion of untracked documents.
+- **Push limits:** Trade-signal pushes use a 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes per user; throttled signals are still saved in the in-app feed, and a push that reaches no device releases its cooldown.
+- **Paper ledger repair (admin only):** `repairPaperLedger` removes net-short stock positions and reverses their credited cash (refusing negative cash unless `allowNegativeCash` is set), and `voidPaperPhantomFills` archives short-related fills to `paper_orders_voided`. Both require the `admin` claim, default to dry run, need explicit user ids to apply, and write audit records under `paper_repairs`.
+
+## Settings Persistence & Signal Re-Evaluation (v0.57.0)
+
+- **Saved settings stay saved:** Entry and exit toggles, Take Profit, Stop Loss, and the 15 Min / 1 Hour / 1 Day interval are written to the `agenticTradingConfig` field on your Firestore user document and also to the in-memory `User` object. The settings screen keeps the `User` object in sync with every provider config change, and the navigation shell loads the stored config once per user instance, so a rebuild or reopening of the screen no longer reverts your edits.
+- **Rule changes re-evaluate signals:** The auto-trader remembers which signals it has already processed so it does not re-propose them every cycle. That memory is cleared whenever the active indicators, require-all-green, minimum signal strength, interval, symbol filter, custom indicators, or trading mode change, so signals rejected under the old rules are evaluated again.
+- **Activity Log diagnostics:** A cycle that accepts no signals logs its top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is logged instead of failing silently. Pressing **Clear** in the Activity Log also forgets processed signals.
+- **Profile saves don't touch trading configs (v0.57.1):** `FirestoreService.updateUser` omits `agenticTradingConfig` and `futuresTradingConfig`, so a stale in-memory user object saved by another feature (brokerage sync, notification settings, risk circuit breakers) can no longer revert your saved auto-trade settings. The configs are written only by `AgenticTradingProvider.updateConfig` and the futures provider.
+- **Reopening settings keeps your edits (v0.57.3):** Other screens open the settings with a possibly stale `User` object. Once the provider has a loaded config (`AgenticTradingProvider.hasLoadedConfig`), the settings screen builds its fields from the provider instead, and the navigation shell reloads configs only on first load, when the signed-in account changes, or when the user document first appears. Cooldown Period, Daily Trade Limit and every other setting stay saved when you leave and return.
+- **Status card counts (v0.57.3):** The **Today** tile counts trades saved in today's history, including exits, so it survives app restarts; it is separate from the daily-limit counter used by the status badge. The **Performance** tile sums each exit's dollar `profitLoss`, which exits now record and which is backfilled from entry and exit prices for older records.
+- **Validation:** A number field autosaves only while every visible field passes validation (for example, Cooldown Period and Daily Trade Limit must be at least 1); an invalid field blocks saving until corrected.
+- **History and positions refresh (v0.57.5):** Orders the auto-trader places in the background, including market-close exits, now appear in the History tab's **Stocks & ETFs** list without restarting the app: it refetches when an order executes and once more 15 seconds later for late fills. After a cycle that executes real orders, the stock positions list is also reloaded and sold-out positions are removed. Paper trading updates its own positions and is unaffected.
+- **Signals survive closed-market cycles (v0.57.6):** The auto-trader marks a signal as processed only after a cycle actually evaluated it. A cycle blocked by market hours, the daily trade limit or the cooldown leaves its signals eligible for the next cycle, so signals generated overnight are evaluated when the market opens instead of being dropped as duplicates. Turning **Require Approval** off also forgets processed signals so that signals queued for approval are evaluated again.
+- **Approval queue (v0.57.6):** Turning **Require Approval** off discards orders already waiting for approval, in the app and in Firestore (`pending_orders`); orders queued while it was on are not executed retroactively. The next cycle re-proposes qualified signals and executes them directly.
+- **Auto-trading needs the app open:** Cycles run on an in-app timer, and the server never places orders, so nothing trades while the app is closed or suspended in the background. Only one copy of the app should be signed in and running per account, because each copy keeps its own in-memory settings.
+
+## Pro Subscription & Restoring Purchases (v0.57.4)
+
+Trade-signal notifications and strategy settings are Pro features gated by `PaywallWidget`. **Restore Purchases** sends the App Store receipt to the `verifySubscription` callable, which verifies it with Apple or Google and writes `subscriptionStatus: active` to your user document; the paywall listens to that document and closes once it is active.
+
+`SubscriptionService.restorePurchases()` waits for that check (up to 20 seconds) and returns a `RestoreResult`, which the paywall shows:
+
+| Status | Message |
+| --- | --- |
+| `restored` | Subscription restored. |
+| `nothingToRestore` | No purchases found to restore for this Apple ID. |
+| `signedOut` | Sign in to restore your subscription. |
+| `failed` | Why verification failed, for example "This Apple ID has no active subscription to restore." |
+
+Restore only succeeds for an Apple ID that has bought the subscription. A simulator or device without a purchase reports `nothingToRestore`; test a real restore with a sandbox or TestFlight build.
+
+If the server rejects a receipt, `verifySubscription` logs the reason (Apple's status code, the product IDs found in the receipt, or the expiry time; never the receipt or shared secret). Read it with `firebase functions:log --only verifysubscription`.
 
 ## Support
 

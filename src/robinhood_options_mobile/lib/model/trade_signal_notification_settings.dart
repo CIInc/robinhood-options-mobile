@@ -26,6 +26,9 @@ class TradeSignalNotificationSettings {
   /// If null, no filtering by confidence
   double? minConfidence;
 
+  /// Whether to notify for Macro Assessment regime shifts
+  bool macroAlerts;
+
   TradeSignalNotificationSettings({
     this.enabled = true,
     this.signalTypes = const ['BUY', 'SELL'],
@@ -33,6 +36,7 @@ class TradeSignalNotificationSettings {
     this.intervals = const [],
     this.includeHold = false,
     this.minConfidence,
+    this.macroAlerts = true,
   });
 
   TradeSignalNotificationSettings.fromJson(Map<String, dynamic> json)
@@ -52,7 +56,8 @@ class TradeSignalNotificationSettings {
         includeHold = json['includeHold'] as bool? ?? false,
         minConfidence = json['minConfidence'] != null
             ? (json['minConfidence'] as num).toDouble()
-            : null;
+            : null,
+        macroAlerts = json['macroAlerts'] as bool? ?? true;
 
   Map<String, dynamic> toJson() {
     return {
@@ -62,6 +67,7 @@ class TradeSignalNotificationSettings {
       'intervals': intervals,
       'includeHold': includeHold,
       'minConfidence': minConfidence,
+      'macroAlerts': macroAlerts,
     };
   }
 
@@ -73,6 +79,7 @@ class TradeSignalNotificationSettings {
     List<String>? intervals,
     bool? includeHold,
     double? minConfidence,
+    bool? macroAlerts,
   }) {
     return TradeSignalNotificationSettings(
       enabled: enabled ?? this.enabled,
@@ -81,6 +88,7 @@ class TradeSignalNotificationSettings {
       intervals: intervals ?? this.intervals,
       includeHold: includeHold ?? this.includeHold,
       minConfidence: minConfidence ?? this.minConfidence,
+      macroAlerts: macroAlerts ?? this.macroAlerts,
     );
   }
 }

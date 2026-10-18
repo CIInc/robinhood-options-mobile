@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatMonthDayOfWeek = DateFormat.MMMEd();
 final formatCompactDate = DateFormat("MMMd");
 final formatCompactDateYear = DateFormat.yMMM(); // ("MMM d yy");
 final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");
@@ -33,6 +35,12 @@ class Constants {
   // App constants
   static const String appTitle = 'RealizeAlpha';
 
+  // Trade Signal Strength Thresholds
+  static const int signalStrengthStrongMin = 75;
+  static const int signalStrengthModerateMin = 50;
+  static const int signalStrengthModerateMax = 74;
+  static const int signalStrengthWeakMax = 49;
+
   static const String deepLinkScheme = 'realizealpha://';
   static const String initialLinkLoginCallback =
       '${deepLinkScheme}login-callback\\?(\\?)?code=';
@@ -62,7 +70,28 @@ class Constants {
     if (object is DateTime) {
       return object.toIso8601String();
     }
-    return object;
+    if (object is Timestamp) {
+      return object.toDate().toIso8601String();
+    }
+    try {
+      final dynamic dyn = object;
+      if (dyn.toDate is Function) {
+        final dt = dyn.toDate();
+        if (dt is DateTime) {
+          return dt.toIso8601String();
+        }
+      }
+    } catch (_) {}
+    try {
+      final dynamic dyn = object;
+      if (dyn.toJson is Function) {
+        return dyn.toJson();
+      }
+    } catch (_) {}
+    if (object is Iterable) {
+      return object.map((e) => toEncodable(e)).toList();
+    }
+    return object?.toString();
   }
 }
 
@@ -72,12 +101,14 @@ const totalValueFontSize = 24.0;
 const assetValueFontSize = 22.0;
 const positionValueFontSize = 21.0;
 
+const portfolioValueFontSize = 20.0;
+
 const summaryValueFontSize = 18.0;
 const summaryLabelFontSize = 9.0;
 const summaryEgdeInset = 10.0;
 
 const badgeLabelFontSize = 9.0;
-const badgeValueFontSize = 13.0;
+const badgeValueFontSize = 14.0;
 
 // OptionPositionsWidget
 const greekValueFontSize = 16.0;

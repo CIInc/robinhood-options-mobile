@@ -28,7 +28,10 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
       notifyListeners();
     } else {
       var current = _items[index];
-      if (current.historicals.first.beginsAt!
+      if (current.historicals.isEmpty || item.historicals.isEmpty) {
+        _items[index] = item;
+        notifyListeners();
+      } else if (current.historicals.first.beginsAt!
                   .compareTo(item.historicals.first.beginsAt!) !=
               0 ||
           current.historicals.last.beginsAt!
@@ -61,7 +64,9 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
 
   bool update(InstrumentHistoricals item) {
     var index = _items.indexWhere((element) =>
-        element.span == item.span && element.bounds == item.bounds);
+        element.symbol == item.symbol &&
+        element.span == item.span &&
+        element.bounds == item.bounds);
     if (index == -1) {
       return false;
     }

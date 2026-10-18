@@ -1,8 +1,39 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 
 const db = getFirestore();
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("cronDiagnostics authorization check failed", e);
+    return false;
+  }
+}
 
 /**
  * Diagnostic endpoint to check cron job configuration and Firestore data
@@ -11,6 +42,13 @@ const db = getFirestore();
  * Usage: https://us-central1-<project-id>.cloudfunctions.net/cronDiagnostics
  */
 export const cronDiagnostics = onRequest(async (request, response) => {
+  if (!(await isAuthorizedAdmin(request.headers.authorization))) {
+    response.status(401).json({
+      error: "Unauthorized: Admin privileges required.",
+    });
+    return;
+  }
+
   logger.info("Running cron diagnostics...");
 
   try {
@@ -43,45 +81,44 @@ export const cronDiagnostics = onRequest(async (request, response) => {
       recommendations: [],
     };
 
-    // Check Firestore collection
-    const snapshot = await db.collection("agentic_trading").get();
-    diagnostics.firestoreData.totalDocuments = snapshot.docs.length;
+    // Check Firestore collections
+    const chartSnapshot = await db.collection("charts").get();
+    const signalSnapshot = await db.collection("signals").get();
+    diagnostics.firestoreData.chartsCount = chartSnapshot.docs.length;
+    diagnostics.firestoreData.signalsCount = signalSnapshot.docs.length;
 
-    if (snapshot.empty) {
+    if (chartSnapshot.empty) {
       diagnostics.issues.push(
-        "❌ No documents found in agentic_trading collection!"
+        "❌ No documents found in charts collection!"
       );
       diagnostics.recommendations.push(
         "Ensure you have chart documents " +
-        "(e.g., chart_AAPL, chart_SPY) in " +
-        "the agentic_trading collection"
+        "(e.g., AAPL, SPY) in " +
+        "the charts collection"
       );
     } else {
       // Categorize documents
       const dailyCharts = [];
       const hourlyCharts = [];
       const fifteenMinCharts = [];
-      const signalDocs = [];
       const otherDocs = [];
 
-      for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_")) {
+      for (const doc of chartSnapshot.docs) {
+        if (doc.id.includes("_")) {
           if (doc.id.endsWith("_1h")) {
             hourlyCharts.push(doc.id);
           } else if (doc.id.endsWith("_15m")) {
             fifteenMinCharts.push(doc.id);
-          } else if (doc.id.endsWith("_30m")) {
-            otherDocs.push(doc.id);
           } else {
-            // Daily chart (no suffix)
-            dailyCharts.push(doc.id);
+            otherDocs.push(doc.id);
           }
-        } else if (doc.id.startsWith("signals_")) {
-          signalDocs.push(doc.id);
         } else {
-          otherDocs.push(doc.id);
+          // Daily chart (no suffix)
+          dailyCharts.push(doc.id);
         }
       }
+
+      const signalDocs = signalSnapshot.docs.map((doc) => doc.id);
 
       diagnostics.firestoreData.dailyCharts = {
         count: dailyCharts.length,
@@ -147,7 +184,7 @@ export const cronDiagnostics = onRequest(async (request, response) => {
 
       // Check recent signal updates
       const recentSignals = await db
-        .collection("agentic_trading")
+        .collection("signals")
         .where(
           "timestamp",
           ">",
@@ -217,7 +254,6 @@ export const cronDiagnostics = onRequest(async (request, response) => {
     logger.error("Error running diagnostics:", error);
     response.status(500).json({
       error: "Failed to run diagnostics",
-      message: error instanceof Error ? error.message : String(error),
     });
   }
 });

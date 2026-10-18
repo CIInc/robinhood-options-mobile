@@ -7,7 +7,7 @@ const homeDirectory = os.homedir();
 
 //Download Service Account private key from https://console.firebase.google.com/project/swingsauce-de0da/settings/serviceaccounts/adminsdk
 // Construct the path to the downloads folder
-const downloadsFolderPath = path.join(homeDirectory, 'Downloads/realizealpha-firebase-adminsdk-uzw9z-7a694c5249.json');
+const downloadsFolderPath = path.join(homeDirectory, 'Downloads/realizealpha-firebase-adminsdk-uzw9z-8cb065ac38.json');
 
 // Initialize Firebase Admin SDK with service account credentials from google-service.json
 const serviceAccount = require(downloadsFolderPath);

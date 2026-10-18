@@ -1,188 +1,96 @@
 import * as riskguard from "./riskguard-agent";
-import { onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
-import fetch from "node-fetch";
+import { optimizeSignal } from "./signal-optimizer";
+import { getMacroAssessment } from "./macro-agent";
+import { getMarketData } from "./market-data";
+import { fetchGammaExposure, evaluateGammaExposure } from "./gamma-exposure";
+import { handleAgenticDecision } from "./agentic-agent";
 import { getFirestore } from "firebase-admin/firestore";
+import { formatAgenticProposalRejection } from "./agentic-proposal-message";
+import { adjustSignalConfidence, NewsIntelligence } from "./news-intelligence";
 
 const db = getFirestore();
+const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+type MacroAssessment = Awaited<ReturnType<typeof getMacroAssessment>>;
+
+let macroAssessmentCache: {
+  expiresAt: number;
+  promise: Promise<MacroAssessment>;
+} | null = null;
+
+const marketIndexCache = new Map<string, {
+  expiresAt: number;
+  promise: Promise<any>;
+}>();
 
 /**
- * Check if cached market data is stale
- * During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
- * After hours, cache is valid for the rest of the trading day
- * @param {any} chart The chart data object
- * @return {boolean} True if stale
+ * Returns one shared macro assessment for adjacent signal calculations.
+ * @return {Promise<MacroAssessment>} Shared macro assessment promise.
  */
-function isMarketDataCacheStale(chart: any): boolean {
-  if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
-    return true;
-  }
-  const endSec = chart.meta.currentTradingPeriod.regular.end;
-  const endMs = endSec * 1000;
-  const now = new Date();
-
-  // Use America/New_York timezone for consistent market hours
-  const estTimeString = now.toLocaleString("en-US", {
-    timeZone: "America/New_York",
-    hour12: false,
-  });
-
-  // Parse EST time components
-  const estMatch =
-    estTimeString.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
-  if (!estMatch) {
-    logger.warn("Failed to parse EST time", { estTimeString });
-    return true; // Treat as stale if we can't parse
+function getSharedMacroAssessment(): Promise<MacroAssessment> {
+  const now = Date.now();
+  if (macroAssessmentCache && macroAssessmentCache.expiresAt > now) {
+    return macroAssessmentCache.promise;
   }
 
-  const [, month, day, year, hour, minute] = estMatch;
-  const estHour = parseInt(hour, 10);
-  const estMinute = parseInt(minute, 10);
-
-  const todayStartEST = new Date(
-    parseInt(year, 10),
-    parseInt(month, 10) - 1,
-    parseInt(day, 10),
-    0,
-    0,
-    0
-  ).getTime();
-
-  // Check if from previous trading day
-  if (endMs < todayStartEST) {
-    return true;
-  }
-
-  // During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
-  const isMarketHours =
-    (estHour > 9 || (estHour === 9 && estMinute >= 30)) && estHour < 16;
-
-  logger.info("📅 Market hours check", {
-    estTimeString,
-    estHour,
-    estMinute,
-    isMarketHours,
-    cacheUpdated: chart.updated,
-    cacheAge: chart.updated ? now.getTime() - chart.updated : null,
-  });
-
-  // If no updated timestamp, treat as stale (legacy cache)
-  if (!chart.updated) {
-    logger.info("⚠️ Cache missing 'updated' field - treating as stale");
-    return true;
-  }
-
-  if (isMarketHours) {
-    const cacheAge = now.getTime() - chart.updated;
-    const maxCacheAge = 15 * 60 * 1000; // 15 minutes
-    const isStale = cacheAge > maxCacheAge;
-    logger.info(`🕐 Cache age check: ${Math.round(cacheAge / 1000 / 60)} min ` +
-      `(max: 15 min) - ${isStale ? "STALE" : "FRESH"}`);
-    return isStale;
-  }
-
-  logger.info("✅ Cache valid (after market hours)");
-  return false;
+  const promise = db.collection("macro_assessments")
+    .orderBy("timestamp", "desc")
+    .limit(1)
+    .get()
+    .then((snapshot) => {
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        logger.info(`Using persisted macro assessment ${doc.id}`);
+        return doc.data() as MacroAssessment;
+      }
+      return getMacroAssessment();
+    }).catch((error) => {
+      macroAssessmentCache = null;
+      throw error;
+    });
+  macroAssessmentCache = {
+    expiresAt: now + SHARED_CONTEXT_TTL_MS,
+    promise,
+  };
+  return promise;
 }
 
 /**
- * Fetch market index data (SPY or QQQ) for market direction analysis
- * Now includes Firestore caching with timezone-aware staleness check
- * @param {string} symbol The market index symbol (default: SPY)
- * @return {Promise<{prices: number[], volumes: number[]}>} Market data
+ * Returns shared daily index data for concurrent signal calculations.
+ * @param {string} symbol Market index symbol.
+ * @param {number} fastPeriod Fast moving-average period.
+ * @param {number} slowPeriod Slow moving-average period.
+ * @return {Promise<any>} Shared market data promise.
  */
-async function fetchMarketData(symbol = "SPY"): Promise<{
-  closes: number[];
-  volumes: number[];
-}> {
-  let closes: number[] = [];
-  let volumes: number[] = [];
+function getSharedMarketIndexData(
+  symbol: string,
+  fastPeriod: number,
+  slowPeriod: number
+): Promise<any> {
+  const cacheKey = `${symbol}:${fastPeriod}:${slowPeriod}`;
+  const now = Date.now();
+  const cached = marketIndexCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.promise;
 
-  // Try to load cached data from Firestore
-  const cacheKey = `agentic_trading/chart_${symbol}`;
-  logger.info(`🔍 Checking cache for ${symbol}`, { cacheKey });
-  try {
-    const doc = await db.doc(cacheKey).get();
-    if (doc.exists) {
-      const chart = doc.data()?.chart;
-      logger.info(`📦 Cache document exists for ${symbol}`, {
-        hasChart: !!chart,
-        hasUpdated: !!(chart?.updated),
-        updated: chart?.updated,
-      });
-      const isStale = isMarketDataCacheStale(chart);
-      const isCached = chart && !isStale;
-
-      logger.info(`🎯 Cache decision for ${symbol}`, {
-        isStale,
-        isCached,
-        willUseCache: isCached && chart.indicators?.quote?.[0]?.close,
-      });
-
-      if (isCached && chart.indicators?.quote?.[0]?.close) {
-        const closeData = chart.indicators.quote[0].close;
-        const volumeData = chart.indicators.quote[0].volume || [];
-        closes = closeData.filter((p: any) => p !== null);
-        volumes = volumeData.filter((v: any) => v !== null);
-        const lastFew = closes.slice(-5);
-        logger.info(`✅ CACHE HIT: Loaded cached market data for ${symbol}`, {
-          count: closes.length,
-          lastFivePrices: lastFew,
-          cacheAge: Date.now() - (chart.updated || 0),
-        });
-        return { closes, volumes };
-      } else {
-        logger.info(`❌ CACHE MISS: Cached market data for ${symbol} is ` +
-          "stale, fetching fresh data");
-      }
-    }
-  } catch (err) {
-    logger.warn(`Failed to load cached market data for ${symbol}`, err);
-  }
-
-  // Fetch fresh data from Yahoo Finance
-  try {
-    const baseUrl = "https://query1.finance.yahoo.com";
-    const url = `${baseUrl}/v8/finance/chart/${symbol}` +
-      "?interval=1d&range=1y";
-    const resp = await fetch(url);
-    const data: any = await resp.json();
-    const result = data?.chart?.result?.[0];
-
-    if (result &&
-      Array.isArray(result?.indicators?.quote?.[0]?.close) &&
-      Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
-      // Remove nested arrays that cause Firestore errors
-      delete result.meta?.tradingPeriods;
-
-      const closeData = result.indicators.quote[0].close;
-      const volumeData = result.indicators.quote[0].volume;
-      closes = closeData.filter((p: any) => p !== null);
-      volumes = volumeData.filter((v: any) => v !== null);
-
-      const lastFew = closes.slice(-5);
-      logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} prices ` +
-        `for ${symbol} from Yahoo Finance`, {
-        lastFivePrices: lastFew,
-      });
-
-      // Cache the data
-      try {
-        await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
-        logger.info(`💾 Cached market data for ${symbol} in Firestore`);
-      } catch (err) {
-        logger.warn(`Failed to cache market data for ${symbol}`, err);
-      }
-
-      return { closes, volumes };
-    }
-  } catch (err) {
-    logger.warn(`Failed to fetch market data for ${symbol}`, err);
-  }
-
-  return { closes: [], volumes: [] };
+  const promise = getMarketData(
+    symbol,
+    fastPeriod,
+    slowPeriod,
+    "1d"
+  ).catch((error) => {
+    marketIndexCache.delete(cacheKey);
+    throw error;
+  });
+  marketIndexCache.set(cacheKey, {
+    expiresAt: now + SHARED_CONTEXT_TTL_MS,
+    promise,
+  });
+  return promise;
 }
+
 
 /**
  * Handle Alpha agent logic for trade signal and risk assessment.
@@ -210,7 +118,56 @@ export async function handleAlphaTask(marketData: any,
 
   // Fetch market index data (SPY by default, or QQQ if configured)
   const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
-  const marketIndexData = await fetchMarketData(marketIndexSymbol);
+
+  // Determine if GEX is enabled for this run
+  const enabledIndicatorKeys: string[] = config?.enabledIndicators ?
+    Object.entries(config.enabledIndicators)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k) :
+    [];
+  const isReasoningMode = config?.tradingMode === "reasoning";
+  const gexEnabled = isReasoningMode ||
+    enabledIndicatorKeys.includes("gammaExposure") ||
+    enabledIndicatorKeys.length === 0; // also fetch if all indicators active
+
+  const currentSpot = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice;
+
+  const [marketIndexData, macroAssessment, gexData] = await Promise.all([
+    getSharedMarketIndexData(
+      marketIndexSymbol,
+      config?.smaPeriodFast || 10,
+      config?.smaPeriodSlow || 30
+    ),
+    getSharedMacroAssessment(),
+    gexEnabled ? fetchGammaExposure(
+      symbol,
+      currentSpot,
+      undefined,
+      undefined,
+      config?.gexCacheOnly === true
+    ).catch((e) => {
+      logger.warn(`GEX fetch failed for ${symbol}`, e);
+      return null;
+    }) : Promise.resolve(null),
+  ]);
+
+  // News intelligence is optional and deliberately cache-only here so signal
+  // generation remains bounded when the news provider is unavailable.
+  let newsIntelligence: NewsIntelligence | null = null;
+  try {
+    const newsDoc = await db.collection("instrument_news")
+      .doc(symbol.toUpperCase()).get();
+    if (newsDoc.exists) {
+      const candidate = newsDoc.data() as NewsIntelligence;
+      const updatedAtMs = new Date(candidate.updatedAt || 0).getTime();
+      if (Date.now() - updatedAtMs < 15 * 60 * 1000) {
+        newsIntelligence = candidate;
+      }
+    }
+  } catch (error) {
+    logger.warn(`News sentiment unavailable for ${symbol}`, error);
+  }
 
   // Log detailed market data for debugging cache consistency
   const lastFewPrices = marketIndexData.closes.slice(-5);
@@ -222,28 +179,262 @@ export async function handleAlphaTask(marketData: any,
     lastPrice: lastFewPrices[lastFewPrices.length - 1],
   });
 
-  // Evaluate all 9 technical indicators
+  // Evaluate all 20 technical indicators
   const indicatorConfig = {
     rsiPeriod: config?.rsiPeriod || 14,
+    rocPeriod: config?.rocPeriod || 9,
     marketFastPeriod: config?.smaPeriodFast || 10,
     marketSlowPeriod: config?.smaPeriodSlow || 30,
+    customIndicators: config?.customIndicators || [],
+    enabledIndicators: enabledIndicatorKeys.length > 0 ?
+      enabledIndicatorKeys : undefined,
   };
 
-  logger.info("📊 Evaluating indicators with config", {
+  logger.info(`📊 Evaluating indicators for ${symbol} with config`, {
     marketFastPeriod: indicatorConfig.marketFastPeriod,
     marketSlowPeriod: indicatorConfig.marketSlowPeriod,
     configSmaPeriodFast: config?.smaPeriodFast,
     configSmaPeriodSlow: config?.smaPeriodSlow,
+    marketDataClosesLength: marketIndexData.closes.length,
+    symbolDataClosesLength: closes.length,
+    marketIndexDataLastFive: marketIndexData.closes.slice(-5),
+    gexEnabled,
+    gexAvailable: !!gexData,
   });
+
+  // Pre-compute GEX indicator result if data available
+  const gammaExposureResult = gexData ?
+    evaluateGammaExposure(gexData) :
+    undefined;
 
   const multiIndicatorResult = indicators.evaluateAllIndicators(
     { opens, highs, lows, closes, volumes },
     marketIndexData,
-    indicatorConfig
+    indicatorConfig,
+    gammaExposureResult
   );
 
-  const { allGreen, indicators: indicatorResults,
+  const lastPrice = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice || 0;
+
+  // --- AGENTIC REASONING MODE BRANCH ---
+  if (config?.tradingMode === "reasoning") {
+    try {
+      const agenticResult = await handleAgenticDecision(
+        symbol,
+        interval,
+        marketData,
+        multiIndicatorResult,
+        macroAssessment,
+        gexData,
+        portfolioState,
+        config
+      );
+
+      const quantity = agenticResult.quantity || config?.tradeQuantity || 1;
+      const proposal = {
+        symbol,
+        action: agenticResult.signal,
+        reason: agenticResult.reason,
+        confidence: agenticResult.confidence,
+        quantity,
+        price: lastPrice,
+        interval,
+        multiIndicatorResult,
+        gexData,
+        macroAssessment,
+        agenticResult,
+        agentic: true,
+      };
+
+      // Run RiskGuard even for Agentic mode to ensure safety
+      let assessment;
+      if (config?.skipRiskGuard) {
+        assessment = {
+          approved: agenticResult.signal !== "HOLD",
+          skipped: true,
+          reason: "RiskGuard skipped by configuration",
+          metrics: {},
+        };
+      } else {
+        assessment = await riskguard.assessTrade(
+          proposal, portfolioState, config,
+          {
+            ...marketData,
+            marketIndexCloses: marketIndexData.closes,
+          });
+      }
+
+      // If agentic decision is to HOLD, follow standard rejection flow
+      if (agenticResult.signal === "HOLD" || !assessment.approved) {
+        const rejectedByAgent = agenticResult.signal === "HOLD";
+        return {
+          status: "rejected",
+          message: formatAgenticProposalRejection(
+            agenticResult.reason,
+            rejectedByAgent,
+            assessment.reason
+          ),
+          reason: agenticResult.reason,
+          signal: "HOLD",
+          interval,
+          multiIndicatorResult,
+          agentic: true,
+          assessment,
+          analysis: {
+            score: agenticResult.confidence,
+            reason: agenticResult.reason,
+          },
+        };
+      }
+
+      // If approved, proceed with the proposed quantity from agent
+      return {
+        status: "approved",
+        message: `Agentic approved ${agenticResult.signal} for ${symbol}`,
+        proposal,
+        assessment,
+        agentic: true,
+        analysis: {
+          score: agenticResult.confidence,
+          reason: agenticResult.reason,
+        },
+      };
+    } catch (err) {
+      logger.error(`Error in Agentic decision for ${symbol}`, err);
+      throw err;
+    }
+  }
+
+  // --- SYSTEMATIC RULES (ALGO) MODE CONTINUES ---
+
+  // Integrate Macro Assessment
+  if (macroAssessment) {
+    multiIndicatorResult.macroAssessment = {
+      status: macroAssessment.status,
+      score: macroAssessment.score,
+      reason: macroAssessment.reason,
+    };
+
+    // Adjust signal strength based on macro score
+    if (macroAssessment.status === "RISK_OFF" &&
+      multiIndicatorResult.overallSignal === "BUY") {
+      multiIndicatorResult.signalStrength = Math.max(0,
+        multiIndicatorResult.signalStrength - 15);
+      multiIndicatorResult.reason += " (Macro Risk Off: -15 confidence)";
+    } else if (macroAssessment.status === "RISK_ON" &&
+      multiIndicatorResult.overallSignal === "BUY") {
+      multiIndicatorResult.signalStrength = Math.min(100,
+        multiIndicatorResult.signalStrength + 10);
+      multiIndicatorResult.reason += " (Macro Risk On: +10 confidence)";
+    }
+  }
+
+  const sentimentAdjustment = adjustSignalConfidence(
+    newsIntelligence,
+    multiIndicatorResult.overallSignal,
+  );
+  if (sentimentAdjustment.applied) {
+    multiIndicatorResult.signalStrength = Math.max(0, Math.min(
+      100,
+      multiIndicatorResult.signalStrength +
+      sentimentAdjustment.signalStrengthDelta,
+    ));
+    multiIndicatorResult.reason += ` (${sentimentAdjustment.reason})`;
+  }
+
+  // Check if indicators have changed since last run to avoid expensive ML calls
+  const signalDocId = interval === "1d" ?
+    `${symbol}` : `${symbol}_${interval}`;
+  let previousSignalDoc: any = null;
+  try {
+    const doc = await db.doc(`signals/${signalDocId}`).get();
+    if (doc.exists) {
+      previousSignalDoc = doc.data();
+    }
+  } catch (e) {
+    logger.warn(`Error fetching previous signal for ${symbol}`, e);
+  }
+
+  let optimization: any = null;
+  let indicatorsChanged = true;
+
+  if (previousSignalDoc && previousSignalDoc.multiIndicatorResult) {
+    // Simple string comparison of indicators object
+    // This assumes key order stability which is generally true in V8
+    const prevIndicators = JSON.stringify(
+      previousSignalDoc.multiIndicatorResult.indicators
+    );
+    const currIndicators = JSON.stringify(multiIndicatorResult.indicators);
+    if (prevIndicators === currIndicators) {
+      indicatorsChanged = false;
+      logger.info(`Indicators unchanged for ${symbol}, ` +
+        "reusing previous optimization");
+      // Reuse previous optimization if available
+      optimization = previousSignalDoc.optimization;
+    }
+  }
+
+  // Optimize signal with ML
+  // Only run optimization if indicators changed
+  if (indicatorsChanged) {
+    try {
+      optimization = await optimizeSignal(
+        symbol,
+        interval,
+        multiIndicatorResult,
+        { opens, highs, lows, closes, volumes },
+        marketIndexData
+      );
+    } catch (error) {
+      logger.error(`Error running signal optimization for ${symbol}`, error);
+    }
+  }
+
+  let { allGreen, indicators: indicatorResults,
     overallSignal, reason } = multiIndicatorResult;
+
+  // Apply ML Optimization (Smart Filter)
+  if (optimization && optimization.confidenceScore > 75) {
+    // If ML strongly disagrees with a trade signal, downgrade to HOLD
+    if (overallSignal !== "HOLD" &&
+      optimization.refinedSignal === "HOLD") {
+      logger.info(
+        `📉 ML Optimization for ${symbol} downgraded ${overallSignal} ` +
+        "to HOLD",
+        {
+          original: overallSignal,
+          mlSignal: optimization.refinedSignal,
+          confidence: optimization.confidenceScore,
+          reason: optimization.reasoning,
+        }
+      );
+      overallSignal = "HOLD";
+      reason = `ML Optimization: ${optimization.reasoning}. ` +
+        `(Was: ${multiIndicatorResult.overallSignal})`;
+      // Update the result object for storage consistency
+      multiIndicatorResult.overallSignal = "HOLD";
+      multiIndicatorResult.reason = reason;
+    } else if (overallSignal === "HOLD" &&
+      optimization.refinedSignal !== "HOLD") {
+      // If ML strongly disagrees with a HOLD signal, upgrade to BUY/SELL
+      logger.info(
+        `📈 ML Optimization for ${symbol} upgraded HOLD to ` +
+        `${optimization.refinedSignal}`,
+        {
+          original: overallSignal,
+          mlSignal: optimization.refinedSignal,
+          confidence: optimization.confidenceScore,
+          reason: optimization.reasoning,
+        }
+      );
+      overallSignal = optimization.refinedSignal;
+      reason = `ML Optimization: ${optimization.reasoning}. (Was: HOLD)`;
+      // Update the result object for storage consistency
+      multiIndicatorResult.overallSignal = optimization.refinedSignal;
+      multiIndicatorResult.reason = reason;
+    }
+  }
 
   logger.info("Multi-indicator evaluation", {
     allGreen,
@@ -251,64 +442,241 @@ export async function handleAlphaTask(marketData: any,
     interval,
     symbol,
     marketIndexSymbol,
-    indicators: {
-      priceMovement: indicatorResults.priceMovement.signal,
-      momentum: indicatorResults.momentum.signal,
-      marketDirection: {
-        signal: indicatorResults.marketDirection.signal,
-        reason: indicatorResults.marketDirection.reason,
-        fastMA: indicatorResults.marketDirection.metadata?.fastMA,
-        slowMA: indicatorResults.marketDirection.metadata?.slowMA,
-        trendStrength: indicatorResults.marketDirection.metadata?.trendStrength,
-      },
-      volume: indicatorResults.volume.signal,
-      macd: indicatorResults.macd.signal,
-      bollingerBands: indicatorResults.bollingerBands.signal,
-      stochastic: indicatorResults.stochastic.signal,
-      atr: indicatorResults.atr.signal,
-      obv: indicatorResults.obv.signal,
-    },
+    indicators: indicatorResults,
   });
+
+
+  // Calculate indicator statistics for reporting
+  const indicatorValues = [
+    ...Object.values(multiIndicatorResult.indicators),
+    ...(multiIndicatorResult.customIndicators ?
+      Object.values(multiIndicatorResult.customIndicators) : []),
+  ];
+  const totalIndicators = indicatorValues.length;
+  const buyCount = indicatorValues.filter(
+    (i: any) => i.signal === "BUY").length;
+  const sellCount = indicatorValues.filter(
+    (i: any) => i.signal === "SELL").length;
+  const holdCount = indicatorValues.filter(
+    (i: any) => i.signal === "HOLD").length;
+  const alignedCount = overallSignal === "BUY" ? buyCount :
+    (overallSignal === "SELL" ? sellCount : holdCount);
+
+  const analysis = {
+    score: multiIndicatorResult.signalStrength,
+    consensus: {
+      buy: buyCount,
+      sell: sellCount,
+      hold: holdCount,
+      total: totalIndicators,
+      aligned: alignedCount,
+    },
+    supportingIndicators: indicatorValues
+      .filter((i: any) => i.signal === overallSignal)
+      .map((i: any) => i.name),
+    conflictingIndicators: indicatorValues
+      .filter((i: any) => i.signal !== overallSignal && i.signal !== "HOLD")
+      .map((i: any) => i.name),
+    macroImpact: multiIndicatorResult.macroAssessment ? {
+      status: multiIndicatorResult.macroAssessment.status,
+      score: multiIndicatorResult.macroAssessment.score,
+    } : null,
+    sentimentImpact: sentimentAdjustment,
+  };
+
+  const supportingStr = analysis.supportingIndicators.join(", ");
+  const outputMessage = `Alpha agent: ${overallSignal} (${interval}). ` +
+    `Score: ${analysis.score}/100. ` +
+    `Driven by: ${supportingStr || "None"}. ` +
+    `Consensus: ${alignedCount}/${totalIndicators} indicators aligned.`;
 
   // If not all indicators are green, hold
   if (overallSignal === "HOLD") {
-    // Persist signal even when holding
-    try {
-      const { getFirestore } = await import("firebase-admin/firestore");
-      const db = getFirestore();
-      const signalDocId = interval === "1d" ?
-        `signals_${symbol}` : `signals_${symbol}_${interval}`;
-      const signalDoc = {
-        timestamp: Date.now(),
-        symbol: symbol,
-        interval: interval,
-        signal: overallSignal,
-        reason,
-        multiIndicatorResult,
-        currentPrice: marketData.currentPrice,
-        config,
-        portfolioState,
-      };
-      await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-      logger.info(`Alpha agent stored HOLD signal for ${interval}`, signalDoc);
-    } catch (err) {
-      logger.warn("Failed to persist trade signal", err);
+    // Persist signal only if it changed from the previous signal
+    if (!config?.skipSignalUpdate) {
+      const prevResult = previousSignalDoc?.multiIndicatorResult;
+      const currResult = multiIndicatorResult;
+
+      const signalChanged = !previousSignalDoc ||
+        previousSignalDoc.signal !== overallSignal ||
+        previousSignalDoc.reason !== reason ||
+        JSON.stringify(prevResult) !== JSON.stringify(currResult);
+
+      if (signalChanged) {
+        try {
+          const { getFirestore } = await import("firebase-admin/firestore");
+          const db = getFirestore();
+          const signalDocId = interval === "1d" ?
+            symbol : `${symbol}_${interval}`;
+          const now = new Date();
+          const signalDoc = {
+            timestamp: now.getTime(),
+            date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+            symbol: symbol,
+            interval: interval,
+            signal: overallSignal,
+            reason,
+            multiIndicatorResult,
+            optimization,
+            currentPrice: marketData.currentPrice,
+            config,
+            portfolioState,
+            diagnostics: {
+              signalChangedAt: now.getTime(),
+            },
+          };
+          await db.doc(`signals/${signalDocId}`).set(signalDoc);
+          logger.info(
+            `Alpha agent stored HOLD signal for ${interval} (${symbol})`,
+            signalDoc
+          );
+        } catch (err) {
+          logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+        }
+      } else {
+        const now = new Date();
+        await db.doc(`signals/${signalDocId}`).set({
+          timestamp: now.getTime(),
+          date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+          currentPrice: marketData.currentPrice,
+          diagnostics: {
+            lastSuccessfulCalculationAt: now.getTime(),
+          },
+        }, { merge: true });
+        logger.info(
+          `Signal unchanged for ${symbol} - refreshed calculation timestamp`
+        );
+      }
+    } else {
+      logger.info(`Skipping signal update for ${symbol} (HOLD)`);
     }
 
     return {
-      status: "no_action",
-      message: "Alpha agent: Multi-indicator analysis shows " +
-        `HOLD (${interval}).`,
+      status: "rejected",
+      message: outputMessage,
       reason,
       signal: overallSignal,
       interval,
       multiIndicatorResult,
+      optimization,
+      analysis,
     };
   }
 
-  const lastPrice = closes.length > 0 ?
-    closes[closes.length - 1] : marketData?.currentPrice || 0;
-  const quantity = config?.tradeQuantity || 1;
+  let quantity = config?.tradeQuantity || 1;
+  let dynamicSizingDetails: any = null;
+
+  // Dynamic Position Sizing (RiskGuard Expansion)
+  // Only apply for BUY signals as this is an entry sizing model
+  if (config?.enableDynamicPositionSizing && overallSignal === "BUY") {
+    const atrValue = multiIndicatorResult.indicators.atr.value;
+    if (atrValue && atrValue > 0) {
+      const accountValue = riskguard.calculatePortfolioValue(portfolioState);
+      // Default risk per trade 1% (0.01), ATR multiplier 2
+      const riskPerTrade = config.riskPerTrade || 0.01;
+      const atrMultiplier = config.atrMultiplier || 2;
+
+      let dynamicQty = riskguard.calculateDynamicPositionSize(
+        accountValue,
+        riskPerTrade,
+        atrValue,
+        atrMultiplier
+      );
+
+      const rawCalculatedQty = dynamicQty;
+      let cappedBy = null;
+
+      if (dynamicQty > 0) {
+        // --- Apply Risk Limits to Dynamic Quantity ---
+        const currentPosition = riskguard.getCurrentPosition(portfolioState,
+          symbol);
+
+        // 1. Max Position Size Cap
+        const maxPositionSize = config.maxPositionSize || 100;
+        const availableSpace = Math.max(0, maxPositionSize - currentPosition);
+
+        if (dynamicQty > availableSpace) {
+          logger.info("Dynamic Position Sizing: Capping quantity " +
+            `${dynamicQty} to available space ${availableSpace} ` +
+            `(Max ${maxPositionSize}, Current ${currentPosition})`);
+          dynamicQty = availableSpace;
+          cappedBy = "maxPositionSize";
+        }
+
+        // 2. Max Portfolio Concentration Cap
+        const maxPortfolioConcentration =
+          config.maxPortfolioConcentration || 0.5;
+        if (lastPrice > 0) {
+          const maxValue = accountValue * maxPortfolioConcentration;
+          const maxTotalQty = Math.floor(maxValue / lastPrice);
+          const availableQtyByConc = Math.max(0, maxTotalQty - currentPosition);
+
+          if (dynamicQty > availableQtyByConc) {
+            logger.info("Dynamic Position Sizing: Capping quantity " +
+              `${dynamicQty} to concentration limit ${availableQtyByConc} ` +
+              `(MaxConc ${maxPortfolioConcentration}, Price ${lastPrice})`);
+            dynamicQty = availableQtyByConc;
+            cappedBy = "maxPortfolioConcentration";
+          }
+        }
+
+        if (dynamicQty > 0) {
+          quantity = dynamicQty;
+          logger.info(
+            `Dynamic Position Sizing: Final quantity ${quantity} ` +
+            `based on Account Value $${accountValue.toFixed(2)}, ` +
+            `Risk ${riskPerTrade * 100}%, ATR ${atrValue.toFixed(2)}, ` +
+            `Multiplier ${atrMultiplier}`);
+        } else {
+          logger.warn("Dynamic Position Sizing: Calculated 0 quantity after " +
+            "risk caps, falling back to fixed quantity");
+        }
+      } else {
+        logger.warn("Dynamic Position Sizing: Calculated 0 quantity, " +
+          "falling back to fixed quantity");
+      }
+
+      dynamicSizingDetails = {
+        rawCalculatedQty,
+        finalQty: quantity,
+        cappedBy,
+        atr: atrValue,
+        riskPerTrade,
+        atrMultiplier,
+        accountValue,
+      };
+    } else {
+      logger.warn("Dynamic Position Sizing: ATR not available, " +
+        "falling back to fixed quantity");
+    }
+  }
+
+  // --- Macro Risk Adjustment ---
+  // If enabled, reduce position size by user-configured
+  // % (default 50%) during RISK_OFF conditions
+  if (config?.reduceSizeOnRiskOff &&
+    overallSignal === "BUY" &&
+    multiIndicatorResult.macroAssessment?.status === "RISK_OFF") {
+    const originalQty = quantity;
+    const reductionPercent = config.riskOffSizeReduction || 0.5;
+    const keepPercent = 1.0 - reductionPercent;
+    // Reduce by %, floor to integer
+    quantity = Math.floor(quantity * keepPercent);
+
+    logger.info(`⚠️ Macro Risk Off: Reduced quantity from ${originalQty} ` +
+      `to ${quantity} (${reductionPercent * 100}% reduction)`);
+
+    reason += ` (Size reduced ${reductionPercent * 100}% due to RISK_OFF)`;
+
+    if (dynamicSizingDetails) {
+      dynamicSizingDetails.macroRiskData = {
+        status: "RISK_OFF",
+        action: `reduce_${reductionPercent * 100}_percent`,
+        originalQty,
+        finalQty: quantity,
+      };
+    }
+  }
 
   const proposal = {
     symbol,
@@ -318,60 +686,109 @@ export async function handleAlphaTask(marketData: any,
     price: lastPrice,
     interval,
     multiIndicatorResult,
+    dynamicSizingDetails,
   };
 
   // Call riskguard to assess
-  const assessment = await riskguard.assessTrade(proposal,
-    portfolioState, config);
-
-  // Persist trade signal to Firestore
-  try {
-    const { getFirestore } = await import("firebase-admin/firestore");
-    const db = getFirestore();
-    const signalDocId = interval === "1d" ?
-      `signals_${symbol}` : `signals_${symbol}_${interval}`;
-    const signalDoc = {
-      timestamp: Date.now(),
-      symbol: symbol,
-      interval: interval,
-      signal: overallSignal,
-      reason,
-      multiIndicatorResult,
-      currentPrice: marketData.currentPrice,
-      pricesLength: Array.isArray(marketData.prices) ?
-        marketData.prices.length : 0,
-      volumesLength: Array.isArray(marketData.volumes) ?
-        marketData.volumes.length : 0,
-      config,
-      portfolioState,
-      proposal,
-      assessment,
+  let assessment;
+  if (config?.skipRiskGuard) {
+    logger.info("Skipping RiskGuard assessment due to skipRiskGuard config");
+    assessment = {
+      approved: true,
+      skipped: true,
+      reason: "RiskGuard skipped by configuration",
+      metrics: {},
     };
-    await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
-    logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
-  } catch (err) {
-    logger.warn("Failed to persist trade signal", err);
+  } else {
+    assessment = await riskguard.assessTrade(
+      proposal, portfolioState, config,
+      {
+        ...marketData,
+        marketIndexCloses: marketIndexData.closes,
+      });
+  }
+
+  // Persist trade signal to Firestore only if it changed
+  if (!config?.skipSignalUpdate) {
+    const prevResult = previousSignalDoc?.multiIndicatorResult;
+    const currResult = multiIndicatorResult;
+
+    const signalChanged = !previousSignalDoc ||
+      previousSignalDoc.signal !== overallSignal ||
+      previousSignalDoc.reason !== reason ||
+      JSON.stringify(prevResult) !== JSON.stringify(currResult);
+
+    if (signalChanged) {
+      try {
+        const { getFirestore } = await import("firebase-admin/firestore");
+        const db = getFirestore();
+        const signalDocId = interval === "1d" ?
+          symbol : `${symbol}_${interval}`;
+        const now = new Date();
+        const signalDoc = {
+          timestamp: now.getTime(),
+          date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+          symbol: symbol,
+          interval: interval,
+          signal: overallSignal,
+          reason,
+          multiIndicatorResult,
+          optimization,
+          currentPrice: marketData.currentPrice,
+          config,
+          portfolioState,
+          proposal,
+          assessment,
+          diagnostics: {
+            signalChangedAt: now.getTime(),
+          },
+        };
+        await db.doc(`signals/${signalDocId}`).set(signalDoc);
+        logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
+      } catch (err) {
+        logger.warn(`Failed to persist trade signal for ${symbol}`, err);
+      }
+    } else {
+      const now = new Date();
+      await db.doc(`signals/${signalDocId}`).set({
+        timestamp: now.getTime(),
+        date: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+        currentPrice: marketData.currentPrice,
+        diagnostics: {
+          lastSuccessfulCalculationAt: now.getTime(),
+        },
+      }, { merge: true });
+      logger.info(
+        `Signal unchanged for ${symbol} - refreshed calculation timestamp`
+      );
+    }
+  } else {
+    logger.info(`Skipping signal update for ${symbol} (${overallSignal})`);
   }
 
   if (!assessment.approved) {
     return {
       status: "rejected",
-      message: "RiskGuard agent rejected the proposal",
+      message: `RiskGuard agent rejected the proposal: ${assessment.reason}`,
+      reason: assessment.reason,
       proposal: proposal,
       assessment: assessment,
       interval,
       multiIndicatorResult,
+      optimization,
+      analysis,
     };
   }
 
   return {
     status: "approved",
-    message: `Alpha agent approved ${overallSignal} proposal (${interval}): ` +
-      "All 9 indicators aligned",
+    message: outputMessage,
     proposal: proposal,
     assessment: assessment,
     interval,
     multiIndicatorResult,
+    optimization,
+    analysis,
   };
 }
 
@@ -382,6 +799,13 @@ export async function handleAlphaTask(marketData: any,
  * @returns {Promise<object>} The Alpha agent task result.
  */
 export const alphabotTask = onCall(async (request) => {
+  // SECURITY: Require authentication to prevent unauthorized execution
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to run Alpha agent task."
+    );
+  }
   logger.info("Alpha agent task called via onCall", { data: request.data });
   const marketData = request.data.marketData || {};
   const portfolioState = request.data.portfolioState || {};

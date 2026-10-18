@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'package:robinhood_options_mobile/utils/json.dart';
+
 class EquityHistorical {
   final double? adjustedOpenEquity;
   final double? adjustedCloseEquity;
@@ -23,14 +25,14 @@ class EquityHistorical {
       this.session);
 
   EquityHistorical.fromJson(dynamic json)
-      : adjustedOpenEquity = double.tryParse(json['adjusted_open_equity']),
-        adjustedCloseEquity = double.tryParse(json['adjusted_close_equity']),
-        openEquity = double.tryParse(json['open_equity']),
-        closeEquity = double.tryParse(json['close_equity']),
-        openMarketValue = double.tryParse(json['open_market_value']),
-        closeMarketValue = double.tryParse(json['close_market_value']),
-        beginsAt = DateTime.tryParse(json['begins_at']),
-        netReturn = double.tryParse(json['net_return']),
+      : adjustedOpenEquity = parseDouble(json['adjusted_open_equity']),
+        adjustedCloseEquity = parseDouble(json['adjusted_close_equity']),
+        openEquity = parseDouble(json['open_equity']),
+        closeEquity = parseDouble(json['close_equity']),
+        openMarketValue = parseDouble(json['open_market_value']),
+        closeMarketValue = parseDouble(json['close_market_value']),
+        beginsAt = DateTime.tryParse(json['begins_at'] ?? ''),
+        netReturn = parseDouble(json['net_return']),
         session = json['session'];
 
   /*
@@ -96,31 +98,24 @@ class EquityHistorical {
 }
   */
   EquityHistorical.fromPerformanceJson(dynamic json)
-      : adjustedOpenEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        adjustedCloseEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        openEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        closeEquity = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        openMarketValue = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        closeMarketValue = double.tryParse(json['primary_value']['value']
-            .replaceAll('\$', '')
-            .replaceAll(',', '')),
-        beginsAt = null, // DateTime.tryParse(json['label']['value']),
-        netReturn = double.tryParse(json['secondary_value']['main']['value']),
+      : adjustedOpenEquity = parseDouble(json['primary_value']['value']
+            ?.replaceAll('\$', '')
+            ?.replaceAll(',', '')),
+        adjustedCloseEquity = parseDouble(json['primary_value']['value']
+            ?.replaceAll('\$', '')
+            ?.replaceAll(',', '')),
+        openEquity = 0,
+        closeEquity = 0,
+        openMarketValue = 0,
+        closeMarketValue = 0,
+        beginsAt = null,
+        netReturn = parseDouble(json['secondary_value']['main']['value']),
         session = json['label']['value'] {
     // For chart span: ytd
     // beginsAt ??= DateFormat('HH:mm MMM d, yyyy').tryParseLoose(json['label']['value']);
     // For chart span: ytd, 3m
     // jan 2, 2025
+
     beginsAt = DateFormat('MMM d, yyyy').tryParse(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
@@ -130,26 +125,47 @@ class EquityHistorical {
       );
       return;
     }
+
+    final now = DateTime.now();
+
     // For chart span: week
-    beginsAt = DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
+    beginsAt =
+        DateFormat('h:mm a, MMM d').tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
-        DateTime.now().year,
+        now.year,
         beginsAt!.month,
         beginsAt!.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
       );
+
+      // If beginsAt is in the future, subtract one year
+      // e.g. on Jan 9 2026, received "value" -> "11:00 PM, Dec 9" for Dec 9 2025
+      if (beginsAt!.isAfter(now
+          .toUtc()
+          .add(Duration(hours: _getEasternOffset(now.month, now.day)))
+          .add(const Duration(days: 1)))) {
+        // .add(const Duration(days: 1))
+        beginsAt = DateTime(
+          beginsAt!.year - 1,
+          beginsAt!.month,
+          beginsAt!.day,
+          beginsAt!.hour,
+          beginsAt!.minute,
+          beginsAt!.second,
+        );
+      }
       return;
     }
     // For chart span: hour
     beginsAt = DateFormat('h:mm:ss a').tryParse(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
+        now.year,
+        now.month,
+        now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
@@ -161,9 +177,9 @@ class EquityHistorical {
     // beginsAt = DateFormat.jm().tryParseLoose(json['label']['value']);
     if (beginsAt != null) {
       beginsAt = DateTime(
-        DateTime.now().year,
-        DateTime.now().month,
-        DateTime.now().day,
+        now.year,
+        now.month,
+        now.day,
         beginsAt!.hour,
         beginsAt!.minute,
         beginsAt!.second,
@@ -173,6 +189,22 @@ class EquityHistorical {
     if (beginsAt == null) {
       throw Exception('beginsAt is null ${json['label']['value']}');
     }
+  }
+
+  /// Get the UTC offset for Eastern Time on a given date accounting for DST.
+  /// Returns 4 during DST (EDT), 5 during standard time (EST).
+  static int _getEasternOffset(int month, int day) {
+    // DST in Eastern Time: second Sunday in March through first Sunday in November
+    // Simplified: March 8-31 through November 1-7
+    // More accurate would require calculating the actual Sunday, but this is close enough
+    if (month > 3 && month < 11) {
+      return -4; // EDT (UTC-4)
+    } else if (month == 3 && day >= 8) {
+      return -4; // EDT starts second week of March
+    } else if (month == 11 && day <= 7) {
+      return -4; // EDT ends first week of November
+    }
+    return -5; // EST (UTC-5)
   }
 
   static List<EquityHistorical> fromJsonArray(dynamic json) {

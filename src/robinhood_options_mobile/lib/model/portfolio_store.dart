@@ -2,19 +2,32 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
+import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 
 class PortfolioStore extends ChangeNotifier {
   /// Internal, private state of the store.
   final List<Portfolio> _items = [];
+  bool _isLoading = false;
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<Portfolio> get items => UnmodifiableListView(_items);
+
+  bool get isLoading => _isLoading;
+
+  void setLoading(bool loading) {
+    if (_isLoading != loading) {
+      _isLoading = loading;
+      // Defer notification to avoid errors during build phase
+      Future.microtask(() => notifyListeners());
+    }
+  }
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
   void add(Portfolio item) {
     _items.add(item);
+    HomeWidgetService.updatePortfolio(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
   }
@@ -26,11 +39,14 @@ class PortfolioStore extends ChangeNotifier {
   }
 
   bool update(Portfolio item) {
-    var index = _items.indexWhere((element) => element.url == item.url);
+    var index = _items.indexWhere((element) =>
+        (item.url.isNotEmpty && element.url == item.url) ||
+        (item.account.isNotEmpty && element.account == item.account));
     if (index == -1) {
       return false;
     }
     _items[index] = item;
+    HomeWidgetService.updatePortfolio(item);
     notifyListeners();
     return true;
   }
@@ -42,7 +58,9 @@ class PortfolioStore extends ChangeNotifier {
   }
 
   void remove(Portfolio item) {
-    var index = _items.indexWhere((element) => element.url == item.url);
+    var index = _items.indexWhere((element) =>
+        (item.url.isNotEmpty && element.url == item.url) ||
+        (item.account.isNotEmpty && element.account == item.account));
     if (index != -1) {
       _items.removeAt(index);
       notifyListeners();

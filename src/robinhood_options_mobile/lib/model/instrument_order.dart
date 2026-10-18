@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/utils/json.dart';
 
 //@immutable
 class InstrumentOrder {
@@ -30,6 +32,7 @@ class InstrumentOrder {
   final String? rejectReason;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final Map<String, dynamic>? trailingPeg;
 
   Instrument? instrumentObj;
 
@@ -56,61 +59,141 @@ class InstrumentOrder {
       this.quantity,
       this.rejectReason,
       this.createdAt,
-      this.updatedAt);
+      this.updatedAt,
+      this.trailingPeg);
 
   InstrumentOrder.fromJson(dynamic json)
-      : id = json['id'],
+      : id = json['id']?.toString() ?? '',
         refId = json['ref_id'],
-        url = json['url'],
-        account = json['account'],
-        position = json['position'],
+        url = json['url']?.toString() ?? '',
+        account = json['account']?.toString() ?? '',
+        position = json['position']?.toString() ?? '',
         cancel = json['cancel'],
-        instrument = json['instrument'],
-        instrumentId = json['instrument_id'],
-        cumulativeQuantity = json['cumulative_quantity'] is double
-            ? json['cumulative_quantity']
-            : double.tryParse(json['cumulative_quantity']),
-        averagePrice = json['average_price'] != null
-            ? (json['average_price'] is double
-                ? json['average_price']
-                : double.tryParse(json['average_price']))
-            : null,
-        fees = json['fees'] != null
-            ? (json['fees'] is double
-                ? json['fees']
-                : double.tryParse(json['fees']))
-            : null,
-        state = json['state'],
+        instrument = json['instrument']?.toString() ?? '',
+        instrumentId = json['instrument_id']?.toString() ?? '',
+        cumulativeQuantity = parseDouble(json['cumulative_quantity']),
+        averagePrice = parseDouble(json['average_price']),
+        fees = parseDouble(json['fees']),
+        state = json['state']?.toString() ?? '',
         pendingCancelOpenAgent = json['pending_cancel_open_agent'],
-        type = json['type'],
-        side = json['side'],
-        timeInForce = json['time_in_force'],
-        trigger = json['trigger'],
-        price = json['price'] != null
-            ? (json['price'] is double
-                ? json['price']
-                : double.tryParse(json['price']))
-            : null,
-        stopPrice = json['stop_price'] != null
-            ? (json['stop_price'] is double
-                ? json['stop_price']
-                : double.tryParse(json['stop_price']))
-            : null,
-        quantity = json['quantity'] is double
-            ? json['quantity']
-            : double.tryParse(json['quantity']),
+        type = json['type']?.toString() ?? '',
+        side = json['side']?.toString() ?? '',
+        timeInForce = json['time_in_force']?.toString() ?? '',
+        trigger = json['trigger']?.toString() ?? '',
+        price = parseDouble(json['price']),
+        stopPrice = parseDouble(json['stop_price']),
+        quantity = parseDouble(json['quantity']),
         rejectReason = json['reject_reason'],
+        trailingPeg = json['trailing_peg'],
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String
+                ? DateTime.tryParse(json['created_at'])
+                : null),
+        instrumentObj = json['instrument_obj'] != null
+            ? Instrument.fromJson(json['instrument_obj'])
+            : (json['instrumentObj'] != null
+                ? Instrument.fromJson(json['instrumentObj'])
+                : (json['symbol'] != null &&
+                        json['symbol'].toString().isNotEmpty
+                    ? Instrument.forSymbol(json['symbol'].toString(),
+                        instrumentUrl: json['instrument']?.toString())
+                    : null));
+
+  /// Parses paper trading order format from Firestore.
+  factory InstrumentOrder.fromPaperJson(dynamic json) {
+    final symbol = json['symbol']?.toString() ?? '';
+    final instrumentUrl = json['instrument']?.toString() ?? '';
+    final parts = instrumentUrl.split('/').where((s) => s.isNotEmpty).toList();
+    final instrumentId = parts.isNotEmpty ? parts.last : symbol;
+    // Unified entries carry the order type in 'order_type' and the asset
+    // class in 'type'; legacy PaperService entries used 'type' for the order
+    // type. 'side' may be missing on older store entries that only had
+    // 'action'.
+    final rawType = json['type']?.toString().toLowerCase();
+    final orderType = json['order_type']?.toString() ??
+        (rawType == 'stock' ? 'market' : rawType ?? 'limit');
+    final side =
+        (json['side'] ?? json['action'])?.toString().toLowerCase() ?? '';
+    DateTime parseDate(String key) {
+      final value = json[key] ?? json['timestamp'];
+      return value is Timestamp
+          ? value.toDate()
+          : DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+    }
+
+    final order = InstrumentOrder(
+      json['id']?.toString() ?? '',
+      json['id']?.toString(),
+      instrumentUrl,
+      json['account']?.toString() ?? '',
+      '',
+      json['cancel']?.toString(),
+      instrumentUrl,
+      instrumentId,
+      parseDouble(json['quantity']),
+      parseDouble(json['price']),
+      null,
+      json['state']?.toString() ?? 'filled',
+      null,
+      orderType,
+      side,
+      json['time_in_force']?.toString() ?? 'gtc',
+      json['trigger']?.toString() ?? 'immediate',
+      parseDouble(json['price']),
+      null,
+      parseDouble(json['quantity']),
+      null,
+      parseDate('created_at'),
+      parseDate('updated_at'),
+      null,
+    );
+    order.instrumentObj =
+        Instrument.forSymbol(symbol, instrumentUrl: instrumentUrl);
+    return order;
+  }
+
+  InstrumentOrder.fromSchwabJson(dynamic json)
+      : id = json['orderId'].toString(),
+        refId = json['orderId'].toString(),
+        url = "",
+        account = json['accountNumber'].toString(),
+        position = "",
+        cancel = json['cancelable'] == true && json['accountNumber'] != null
+            ? 'accounts/${json['accountNumber']}/orders/${json['orderId']}'
+            : null,
+        instrument =
+            json['orderLegCollection'][0]['instrument']['symbol'].toString(),
+        instrumentId = json['orderLegCollection'][0]['instrument']
+                ['instrumentId']
+            .toString(),
+        cumulativeQuantity =
+            (json['filledQuantity'] as num?)?.toDouble() ?? 0.0,
+        averagePrice = (json['price'] as num?)?.toDouble() ?? 0.0,
+        fees = null,
+        state = json['status'].toString().toLowerCase(),
+        pendingCancelOpenAgent = null,
+        type = json['orderType'].toString().toLowerCase(),
+        side = json['orderLegCollection'][0]['instruction']
+            .toString()
+            .toLowerCase(),
+        timeInForce = json['duration'].toString().toLowerCase(),
+        trigger = json['orderType'].toString().toLowerCase(),
+        price = (json['price'] as num?)?.toDouble() ?? 0.0,
+        stopPrice = (json['stopPrice'] as num?)?.toDouble(),
+        quantity = (json['quantity'] as num?)?.toDouble() ?? 0.0,
+        rejectReason = null,
+        trailingPeg = null,
+        createdAt = json['enteredTime'] != null
+            ? DateTime.tryParse(json['enteredTime'])
+            : null,
         updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            json['updated_at'] is Timestamp
-                ? (json['updated_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['updated_at']),
-        // 2021-02-09T18:01:28.135813Z
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            json['created_at'] is Timestamp
-                ? (json['created_at'] as Timestamp).toDate()
-                : DateTime.tryParse(json['created_at']);
+            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -134,8 +217,10 @@ class InstrumentOrder {
         'stop_price': stopPrice,
         'quantity': quantity,
         'reject_reason': rejectReason,
+        'trailing_peg': trailingPeg,
         'created_at': createdAt,
-        'updated_at': updatedAt
+        'updated_at': updatedAt,
+        'instrument_obj': instrumentObj?.toJson(),
       };
 
   /* CSV Generation */
@@ -163,6 +248,7 @@ class InstrumentOrder {
     row.add(stopPrice);
     row.add(quantity);
     row.add(rejectReason);
+    row.add(trailingPeg != null ? jsonEncode(trailingPeg) : null);
     row.add(createdAt);
     row.add(updatedAt);
     //row.add(jsonEncode(this));
@@ -193,6 +279,7 @@ class InstrumentOrder {
     row.add("stopPrice");
     row.add("quantity");
     row.add("rejectReason");
+    row.add("trailingPeg");
     row.add("createdAt");
     row.add("updatedAt");
 
@@ -202,7 +289,7 @@ class InstrumentOrder {
       rows.add(optionOrders[i].convertToDynamic());
     }
 
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = Csv().encode(rows);
 
     // storage permission ask
     var status = await Permission.storage.status;

@@ -22,3 +22,25 @@ bool jsonMapEquals(dynamic a, dynamic b) {
   assert(b is num || b is String || b is bool || b == null);
   return a == b;
 }
+
+double? parseDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  if (value is Map) {
+    if (value.containsKey('amount')) {
+      return parseDouble(value['amount']);
+    }
+    if (value.containsKey('value')) {
+      return parseDouble(value['value']);
+    }
+  }
+  return null;
+}
+
+int? parseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}

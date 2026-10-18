@@ -2,7 +2,2454 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.57.6] - 2026-10-15
+**Auto-Trade Signals No Longer Lost While the Market Is Closed ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Signals Are Evaluated Before They Are Marked Processed (`AgenticTradingProvider.runAutoTradeCycle`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Every fetched signal was marked processed before `autoTrade` checked its conditions. A cycle blocked by market hours, the daily limit or the cooldown therefore consumed the signals without evaluating them. Signals generated outside market hours were then filtered as duplicates when the market opened, so no automatic trades were placed.
+  - **Fix**: `autoTrade` flags such a cycle with `blocked: true` and `rememberProcessedSignals` marks signals only for cycles that evaluated them. Blocked cycles leave their signals eligible for the next cycle.
+  - **Require Approval Re-Evaluates Signals**: Require Approval is now part of the rules signature that clears the processed-signal memory, so signals queued for approval are evaluated again when it is turned off.
+- **Turning Require Approval Off Clears Queued Approvals (`AgenticTradingProvider.updateConfig`, [docs](docs/multi-indicator-trading.md)):** Orders already waiting in `pending_orders` are discarded, in memory and in Firestore, when the setting changes from on to off. Previously they stayed on the approval screen. Leaving the setting on, or off, clears nothing.
+- **Known Limitation**: Auto-trading runs on a client timer, so cycles only run while the app is open in the foreground. A second running copy of the app on the same account keeps its own in-memory settings and can queue approvals from the old setting.
+- **Automated Test Coverage**: Added tests in `test/agentic_trading_provider_test.dart` for blocked cycles keeping their signals, `autoTrade` flagging a market-closed cycle, Require Approval re-evaluating signals, and clearing queued approvals only on the on-to-off change.
+
+## [0.57.5] - 2026-10-14
+**Auto-Trade Orders & Positions Refresh Without Restarting ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **History Orders Refresh After Auto-Trades (`AgenticTradingProvider`, `HistoryPage`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: The History tab builds its order streams once and keeps them alive, resetting only on pull-to-refresh or an account change, so orders the auto-trader placed in the background (for example market-close exits) did not appear until the app was force-killed.
+  - **Fix**: `AgenticTradingProvider.executedOrderCount` increments for every executed entry, approved order, and exit. The History tab listens to it and resets its order streams, then refetches once more 15 seconds later to catch late fills. Unrelated provider notifications do not refetch.
+- **Stock Positions Refresh After Auto-Trade Exits (`AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md)):** After a cycle that executes real (non-paper) orders, the shared `InstrumentPositionStore` is reloaded through a scratch store and sold-out positions are pruned (`syncPositions`), limited to the current brokerage user's accounts. `getStockPositionStore` only adds or updates, so sold positions previously stayed listed until a full reload.
+- **Receipt Rejection Logging (`verifySubscription`, [docs](docs/multi-indicator-trading.md)):** `verifyAppleReceipt` now logs why it rejects a receipt (Apple status code, the product IDs in the receipt, or the expiry time), without logging the receipt or shared secret, so a rejected Restore Purchases can be diagnosed. Takes effect when Functions are deployed.
+- **Automated Test Coverage**: Added History refetch tests in `test/history_past_positions_test.dart` and `syncPositions` tests in `test/agentic_trading_provider_test.dart`.
+
+## [0.57.4] - 2026-10-14
+**Restore Purchases Reports What Happened ([docs](docs/multi-indicator-trading.md))**
+
+- **Restore Purchases Gives Clear Feedback (`SubscriptionService.restorePurchases`, `PaywallWidget`, [docs](docs/multi-indicator-trading.md)):**
+  - **Root Cause**: Restore only asked the App Store to restore and then showed "Checking restored subscription...". When the Apple ID had nothing to restore, or the server rejected the receipt, the outcome went only to the debug log, so the paywall just stayed on screen.
+  - **Fix**: `restorePurchases()` now waits for the store and the server receipt check and returns a `RestoreResult` (`restored`, `nothingToRestore`, `signedOut`, `failed`). The paywall shows that message, for example "This Apple ID has no active subscription to restore." A verified restore still dismisses the paywall through the user document listener. The wait times out after 20 seconds.
+  - **Automated Test Coverage**: Added `test/subscription_restore_result_test.dart` for the three restore outcomes.
+- **Known Limitation**: Restore cannot succeed on a device or simulator whose Apple ID has no purchase; verifying a real restore needs a sandbox or TestFlight build.
+
+## [0.57.3] - 2026-10-14
+**Auto-Trade Card Stats & Settings Persistence Fixes ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Status Card Shows Real Trade Counts and P&L (`AgenticTradingProvider`, `AgenticTradingSettingsWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of "0 trades"**: The Today tile read an in-memory counter that reset on every app launch and ignored exits, while Last Run read the saved history.
+  - **Fix**: Today now counts the trades saved in today's history (buys and exits) via `AgenticTradingProvider.countTradesOn`. The daily trade limit counter and the status badge are unchanged.
+  - **Root Cause of "+$0.00" Performance**: Exit records saved only prices and a percent, but the card and the performance screen sum a dollar `profitLoss`, so every P&L figure was zero.
+  - **Fix**: Exits now record `profitLoss`, and older saved exits are backfilled from their entry and exit prices when history loads (`withDerivedProfitLoss`).
+- **Auto-Trade Settings No Longer Revert When Reopened (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Entry points pass different, sometimes stale `User` objects. Opening settings from one built the fields from it and overwrote the provider's newer config, so values such as Cooldown Period and Daily Trade Limit snapped back. The navigation shell also reloaded the config on every Firestore user snapshot.
+  - **Fix**: Once the provider has a loaded config (`hasLoadedConfig`), the settings screen uses it instead of the `User` object. The shell reloads only on first load, when the signed-in account changes, or when the user document first appears.
+  - **Automated Test Coverage**: Added `test/agentic_trading_settings_persistence_test.dart` (edit, save, reopen with a stale user) and helper tests in `test/agentic_trading_provider_test.dart`.
+- **Known Limitation**: A number field saves only when every visible field is valid; an invalid field blocks autosave silently.
+
+## [0.57.2] - 2026-10-13
+**Subscription Restore Reliability & Signals-First MVP Planning**
+
+- **Paywall Dismissal After Subscription Restore:** The paywall now listens for the server-verified active entitlement on the user's Firestore document and dismisses once it arrives, instead of relying on a fixed delay. Added a regression test for the entitlement update (`test/paywall_widget_test.dart`).
+- **Signals-First MVP Scope:** Added the high-priority admin-only beta and release-readiness plan to the roadmap ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- **iOS Build Stability:** Disabled Flutter's Swift Package Manager auto-migration in `pubspec.yaml` (`enable-swift-package-manager: false`) so iOS builds keep the project's CocoaPods setup instead of rewriting `Podfile.lock` and `project.pbxproj`; refreshed the plugin checksums in `Podfile.lock`.
+
+## [0.57.1] - 2026-10-13
+**User Profile Saves No Longer Overwrite Trading Settings ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **User Profile Saves No Longer Overwrite Trading Settings (`FirestoreService.updateUser`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of Reverting Settings**: `updateUser` wrote the entire `User` object, including `agenticTradingConfig` and `futuresTradingConfig`, to the user document. Any code path holding an older `User` instance (brokerage sync, risk circuit breakers, notification settings, investment profile, DRIP, sign-in) silently replaced the saved auto-trade config, reverting toggles, Take Profit, and the signal interval.
+  - **Fix**: `updateUser` no longer writes the two trading configs; they are saved only by their own settings paths (`AgenticTradingProvider.updateConfig` and the futures equivalent).
+  - **Automated Test Coverage**: Added `test/firestore_service_update_user_test.dart`, which saves a config directly, then calls `updateUser` with a stale user and verifies the saved Take Profit and interval survive.
+
+## [0.57.0] - 2026-10-13
+**Auto-Trade Settings Persistence & Signal Re-Evaluation ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Settings Persistence & Signal Re-Evaluation (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, `AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Settings No Longer Revert**: Entry and exit toggles, Take Profit, Stop Loss, and other auto-trade settings were saved to Firestore but not to the in-memory `User` object, so the next rebuild or reopening of the settings screen reloaded the old values. The settings screen now keeps the `User` object in sync with every config change, and the navigation shell loads the stored config once per user instead of on every rebuild.
+  - **Interval Selector Saves**: The 15 Min / 1 Hour / 1 Day selector now writes its choice to the auto-trade config; previously the shared save rebuilt the config from the old interval.
+  - **Rejected Signals Are Re-Evaluated**: Signals that were rejected under old entry rules are no longer skipped as duplicates after you change the active indicators, require-all-green, minimum strength, interval, symbol filter, custom indicators, or trading mode.
+  - **Clearer Activity Log**: When a cycle accepts no signals it logs the top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is reported instead of being silent.
+  - **Startup Warnings Removed**: The first build pass no longer logs false `userDocRef is null` warnings for pending orders, trade history, and tracked trades; those load once the user document exists.
+
+## [0.56.0] - 2026-10-12
+**Retirement Planning & Gold Match Maximizer, Auto-Trade Reliability & Paper Ledger Repair ([docs](docs/multi-account-and-retirement.md), [docs](docs/multi-indicator-trading.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139), [#234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [#235](https://github.com/CIInc/robinhood-options-mobile/pull/235))**
+
+- **Auto-Trade Reliability, Notification Throttling & Paper Ledger Repair (`AgenticTradingProvider`, `trade-signal-notifications.ts`, `paper-ledger-repair.ts`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Signal Matching Fix**: Auto-trading now matches stored signals by the user's enabled indicators (stored signals are scored with default indicators), accepts HOLD overall signals when every enabled indicator is BUY, and logs the number of signals fetched plus a warning when the query hits its 200-document cap.
+  - **Exit Oversell Protection**: The exit monitor is re-entrancy guarded and caps sells to the shares actually held, preventing duplicate tracked lots from selling one position repeatedly and opening phantom paper shorts.
+  - **No Stacked Entries**: BUY proposals are skipped for symbols already held or already proposed in the same cycle; stale pending BUYs for held symbols are cleared each cycle and re-checked on approve.
+  - **Ordered, Upsert-Based Trade Saves**: Tracked automated buy trades are written in order using stable document ids (sets before deletes), removing the delete-then-add duplication; pending orders are resolved by Firestore id.
+  - **Approve Flow**: Approve and Reject show progress, results and a plain-language description of the order, and no longer hang on slow Firestore acknowledgements.
+  - **Notification Throttling**: Exit notifications are batched per symbol with a single summary push for large batches ("Auto-Trade Summary" counts exits); trade-signal pushes have a per-user 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes (extra signals are still saved in-app); a push that reaches no device releases its cooldown; iOS no longer shows a duplicate in-app toast for foreground pushes.
+  - **Paper Ledger Repair (Admin)**: Added admin-only callables `repairPaperLedger` (removes net-short stock positions and reverses their credited cash, with a negative-cash guard) and `voidPaperPhantomFills` (archives short-related fills to `paper_orders_voided`). Both default to dry run, require explicit user ids to apply, and write audit records.
+  - **UI & Platform Fixes**: Position bar charts now show negative values; action SnackBars auto-dismiss (`persist: false`); macOS builds start without AdMob/HomeWidget or notification-permission failures and include the network entitlement.
+  - **Automated Test Coverage**: Added provider tests for HOLD acceptance, re-buy guard, pending-order cleanup, id resolution and upsert saves, plus functions tests for the repair and void planners.
+
+- **Retirement Planning & Gold Match Maximizer (`RetirementProjectionCalculator`, `RetirementProjectionCard`, `retirement_projection.dart`, `retirement_widget.dart`, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)):**
+  - **Interactive IRA Compounding Engine**: Year-by-year compounding simulation engine (`RetirementProjectionCalculator`) modeling customizable annual contributions ($1,000–$8,000), retirement horizons (5–40 years), expected annual returns (4%–12%), and starting balances.
+  - **Robinhood Gold 3% Match Optimizer**: Dedicated ROI calculator demonstrating instant Year 1 net cash bonus (after subtracting the $50 annual Gold fee), annual contribution threshold required to break even ($1,666.67/yr), lifetime compounded wealth generated strictly by the 3% match bonus, and the 5-year match retention rule.
+  - **Tax-Advantaged Growth vs. Taxable Drag**: Quantitative comparison analyzing tax-sheltered compounding (Roth tax-free growth and Traditional tax deferral) against taxable brokerage accounts subject to annual dividend/turnover tax drag (~1.5%/yr), providing estimated lifetime tax savings.
+  - **Interactive Mobile UI & Milestone Forecast**: Stacked 3-segment progress bar (Principal, Compounded Growth, Match Wealth), quick-choice preset chips for contributions, horizons, returns, and match tiers, expandable tax comparison card, and 5-year milestone forecast table embedded directly within `RetirementWidget`.
+  - **Traditional IRA Contribution Tracking & Rollover Transparency**:
+    - Resolved `$0.00` contribution display on Traditional IRAs by integrating modern Robinhood PaymentHub endpoints (`/paymenthub/unified_transfers/` and `/paymenthub/unified_transfers/{id}/contribution/`) alongside ACATS rollover endpoints (`/acats/`) and match incentives (`/retirement/match/`).
+    - Synthesized individual IRA transfer records (`RetirementTransaction`) from PaymentHub SDUI stacked data rows, extracting contribution type ("New IRA Contribution"), tax year (2026), match percentage (3%), and match amounts ($30.00 and $60.00), populating the full $3,000.00 contribution and $90.00 Gold match.
+    - Added "Transfers & Contributions" transaction breakdown list in `RetirementWidget` displaying individual contribution transfer dates, amounts, and match percentages.
+    - Fixed endpoint query string issue in `RobinhoodService.getRetirementHistory`: removed erroneous `?account_number=` query parameter which caused misrouting on the user-scoped Bonfire endpoint.
+    - Updated navigation and account context routing in `UserWidget` and `RetirementWidget`: automatically selects the user's retirement/IRA account (`741902639`) rather than defaulting to taxable individual accounts (`5QR24141`), with an IRA account switcher dropdown when multiple retirement accounts exist.
+    - Distinctly separated annual IRS contribution room ($3,000 contributed, $4,000 limit remaining for current tax year) from settled rollover assets ($25,334.93 rolled over from Merrill Lynch in 2025).
+    - Fixed "Total Account Value" displaying cash buying power instead of total account value (TAV): resolved total account balance using portfolio equity, account total value, or settled rollover transfers, while adding a distinct "Cash / Buying Power" secondary row when cash differs from total portfolio equity.
+    - Fixed squished header card title by placing status badges in a responsive `Wrap` layout underneath the title and account number.
+    - Added interactive tax year selector chips allowing users to seamlessly review prior years (2025, 2024) and current tax year progress, with direct tap-to-switch interactions on history list tiles.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/retirement_projection_test.dart` and `test/retirement_test.dart` validating multi-year compounding formulas, match calculations, Gold fee break-even analysis, Traditional IRA direct and rollover contribution parsing, PaymentHub SDUI contribution parsing, ACATS rollover handling, multi-account history filtering, and widget rendering.
+
+## [0.55.1] - 2026-10-06
+**Autonomous Risk Copilot, Multi-Leg Spread Builder, AI Trade Post-Mortem & Behavioral Tilt Safeguards ([docs](docs/agentic-risk-copilot.md), [docs](docs/multi-leg-spread-builder.md), [docs](docs/trade-post-mortem.md), [docs](docs/risk-circuit-breakers.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#198](https://github.com/CIInc/robinhood-options-mobile/pull/198), [#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202))**
+
+- **Autonomous Agentic Risk Copilot (`RiskCopilotService`, `RiskCopilotWidget`, `AgenticRiskCopilotCard`, `risk_copilot_model.dart`, [docs](docs/agentic-risk-copilot.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Continuous Background Portfolio Monitoring**: Autonomous risk engine evaluating overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges in real time.
+  - **Interactive Copilot Dashboard & Cards**: Embedded `AgenticRiskCopilotCard` in Portfolio Risk section and dedicated full-screen `RiskCopilotWidget` with factor sensitivities, stress scenarios, and automated hedge recommendations.
+  - **Portfolio Navigation Integration**: Seamless deep linking from Action Center alerts and `PortfolioNavigator.openSection` into the Copilot dashboard.
+  - **Automated Test Coverage**: Comprehensive test suite in `test/risk_copilot_service_test.dart` validating calculations, hazard detection, and hedge suggestions.
+
+- **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger (`TradePostMortemAnalysis`, `TradePostMortemSheet`, `analyzeTradePostMortem`, [docs](docs/trade-post-mortem.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Automated Diagnostic Evaluation**: Objective post-trade evaluation of closed stock and option positions, computing execution score (0–100), letter grade (A–F), and outcome verdict (`goodWin`, `badWin`, `goodLoss`, `badLoss`, `breakEven`, `scratch`) to eliminate outcome bias.
+  - **Behavioral Bias Taxonomy & Cognitive Antidotes**: Detects cognitive biases including Disposition Effect, FOMO, Revenge Trading, Loss Aversion, Sunk Cost, Anchoring, and Overconfidence, paired with concrete actionable psychological counter-measures.
+  - **Execution Flaws & Tactical Lessons**: Pinpoints execution mistakes (premature exit, late exit, excessive slippage, position sizing violations) with severity classifications and corrective guidelines.
+  - **Firestore Emotion Journal Auto-Tagger**: 1-tap automated tagging into the trader's Firestore `users/{uid}/emotion_logs` collection with standardized categorization hashtags (`#PostMortem`, `#LossAversion`, ticker tags, etc.).
+  - **Cross-Screen Launch Points**: Integrated launch actions from `PositionOrderWidget` (stock order review), `OptionOrderWidget` (option order review), and `PersonalizedCoachingWidget` (AI trading coach activity stream).
+  - **Backend Gemini 3.1 Flash-Lite Function**: Added `analyzeTradePostMortem` Firebase callable function with mandatory `request.auth` verification and fallback to `gemini-2.5-flash-lite`.
+  - **Automated Test Coverage**: Added comprehensive test suites in `test/trade_post_mortem_model_test.dart` (models, score/grade colors, JSON round-trip), `test/trade_post_mortem_sheet_test.dart` (UI rendering and fake Firestore journal saving), and `functions/tests/gemini.test.ts` (unauthenticated and validation rejections).
+
+- **Multi-Leg Order Templates & Spread Builder (`MultiLegSpreadBuilderSheet`, `MultiLegMatrixOrderEntryWidget`, `MultiLegOrderEntry`, [docs](docs/multi-leg-spread-builder.md)):**
+  - **Structural Strategy Templates**: 1-tap pre-configured order pads for Vertical Spreads (Bull Call, Bear Put, Bull Put, Bear Call), Straddles (Long & Short), Strangles (Long & Short), Iron Condors, and Calendar Spreads (Call & Put), alongside free-form Custom Multi-Leg construction.
+  - **Real-Time Net Debit/Credit Calculation**: Dynamic summation of signed premiums across up to 4 legs, displaying direction (`NET CREDIT` or `NET DEBIT`) and total estimated cash requirements.
+  - **Max Risk/Reward & Breakeven Analytics**: Built-in pricing and payoff models computing exact maximum potential profit, defined maximum risk, and single or dual breakeven price points.
+  - **Interactive Leg Configuration**: Long/Short and Call/Put segmented toggles, smart strike steppers adapted to spot price step increments, per-leg expiration date picker, mark premiums, and position multipliers.
+  - **Brokerage Submission & Confirmation Pad**: Native multi-leg order execution supporting Schwab (`BUY_TO_OPEN`/`SELL_TO_OPEN`) and Robinhood legs via `IBrokerageService.placeMultiLegOptionsOrder`, complete with pre-submission confirmation dialog and error handling.
+  - **Option Chain Quick Launch**: Integrated Spread Builder launcher action (`spread-builder-appbar-btn`) directly within `OptionChainWidget`.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/multi_leg_spread_builder_test.dart` covering model calculations, JSON serialization, brokerage leg formatting, widget rendering, template transitions, and order submission.
+
+- **In-App Behavioral Tilt & Overtrading Safeguards (`RiskCircuitBreakerService`, `RiskCircuitBreakerSettingsWidget`, `RiskCircuitBreakerConfig`, [docs](docs/risk-circuit-breakers.md), [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - **Software-Based Behavioral Tilt Detection**: Pure software heuristics analyzing rapid cancel/replace loops, revenge-trading sizing spikes, and consecutive losses to prompt mandatory cooling-off pauses without intrusive platform health permissions.
+  - **Order Entry Gating**: Actively gates order submission in `TradeOptionWidget` and `PositionOrderWidget` when circuit breakers trip.
+  - **Action Center Alert Integration**: Alerts for impending threshold breaches and tripped circuit breaker statuses in `PortfolioAlertService`.
+  - **Automated Test Coverage**: Dedicated unit and widget tests in `test/risk_circuit_breaker_test.dart` and `test/risk_circuit_breaker_widget_test.dart`.
+
+- **Action Center Enhancements & Context-First Deep-Linking (`ActionCenterWidget`, `PortfolioAlertService`, `PortfolioNavigator`, [docs](docs/portfolio-redesign.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - **Advanced Filtering & UX**: Horizontal category chips, contextual ticker pills, inline action buttons, swipe and quick dismissal with undo support, and all-clear states.
+  - **Deepened Analytical Routing**: Direct routing across 0DTE squeeze radar, earnings IV crush, volatility cone, 3D IV surface, delta hedging, unusual activity, and congressional trading to exact analytical screens.
+  - **Day P&L Alert Integration**: Account-aware day P&L alerts integrated into `PortfolioAlertService`.
+  - **Automated Test Coverage**: Dedicated tests in `test/action_center_test.dart`, `test/brokerage_user_display_text_test.dart`, and `test/deploy_cash_navigation_test.dart`.
+
+- **Paper Trading Store Streams & Order Enhancements (`PaperTradingStore`, `PaperService`, `InstrumentWidget`):**
+  - Added live stream subscriptions for pending and executed stock and option orders (`streamStockOrders`, `streamOptionOrders`).
+  - Contextual suppression and clean handling of tax sections and strategies in simulated paper mode.
+  - Added test coverage in `test/paper_trading_pending_orders_test.dart` and `test/full_paper_trading_test.dart`.
+
+- **Algorithmic Indicator Performance ($O(1)$ Space & Scalar Calculations, [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)):**
+  - Optimized `evaluateBollingerBands` to call scalar computations instead of full-series array generators, reducing execution time from 65.2 µs/op to 7.6 µs/op (~8.6x speedup) and eliminating heap allocations per bar ([#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)).
+  - Optimized `evaluateATR` and `computeCCI` in `functions/src/technical-indicators.ts` to execute in single-pass $O(1)$ space without intermediate typical price or range array allocations ([#197](https://github.com/CIInc/robinhood-options-mobile/pull/197)).
+
+- **Assistive Accessibility & Screen Reader Semantics ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)):**
+  - Wrapped `UserListTile` in consolidated accessible `Semantics` providing natural spoken screen reader summaries of user metadata ([#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)).
+  - Added `semanticsLabel` to `AnimatedPriceText` for unambiguous currency readout ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199)).
+
+- **Backend Security & Callable Authentication Hardening ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)):**
+  - Enforced mandatory `request.auth` verification on news intelligence and market data quotes callable endpoints (`market-data.ts`, `news-intelligence.ts`).
+
+- **Market Data Provider Research & Strategy Documentation:**
+  - Added comprehensive market data provider evaluations and Intrinio recommendation research in `docs/market-data-research/`.
+
+
+## [0.55.0] - 2026-09-30
+**Guest Paper Account Migration, Streamlined Auth, Profile Feature Availability & Systematic Performance ([Tracking: #124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195), [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196))**
+
+- **Guest Paper Trading Account Migration (`AuthWidget`, `PaperTradingStore`, `migrateGuestPaperAccount`, [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)):**
+  - **Seamless Onboarding to Registered Account Flow**: When anonymous or guest users register or log in (via Google, Apple, Phone, or Email), their guest paper portfolio—including cash balances, stock & option positions, pending orders, and execution history—is automatically transferred to their authenticated account.
+  - **Backend Cloud Function (`migrateGuestPaperAccount`)**: Added secure callable Cloud Function that verifies the guest session token, copies subcollections (`paper_equity_history`, `paper_orders`) with unique prefixed document IDs, updates or creates the primary paper account, and cleans up the source anonymous documents.
+  - **Conflict Resolution Dialog**: If the user already has an active paper trading account on their signed-in profile, an interactive conflict dialog (`_choosePaperMigrationPolicy`) lets them choose between keeping their existing signed-in portfolio or replacing it with their guest portfolio, with order and equity history merged either way.
+  - **Local State Synchronization**: Synchronized `PaperTradingStore` guest migration with `SharedPreferences` to ensure instantaneous UI updates without desync.
+  - **Automated Test Coverage**: Added dedicated test suite in `test/paper_trading_guest_migration_test.dart` and updated `test/full_paper_trading_test.dart`.
+
+- **Streamlined Authentication & Collapsible Sign-In Form (`AuthWidget`):**
+  - Re-architected initial login layout with prominent primary OAuth providers (Apple, Google) and an expandable "Or sign in with" section for Phone and Email/Password credentials, reducing visual clutter and friction on mobile devices.
+  - Hardened phone SMS verification flow with direct credential generation and automated guest migration handoff.
+
+- **Profile Feature Availability & Inline Prerequisites (`UserWidget`, `_buildFeatureTile`):**
+  - Replaced repetitive disabled badges with clear, contextual inline notes explaining access prerequisites (e.g. "Requires account login", "Requires linked brokerage account", "Not supported by Charles Schwab").
+  - Tapping a disabled feature triggers an informative floating SnackBar detailing what is needed to unlock that feature.
+  - Removed deprecated Following Activity Feed tile and updated feature matrix requirements.
+  - Updated test expectations in `test/user_widget_features_availability_test.dart`.
+
+- **Paper Trading Portfolio Browse & Strategies Adaptations (`home_widget.dart`, `PortfolioSectionGridWidget`, `StrategiesSectionPage`, `PortfolioNavigator`, `PortfolioAlertService`, `AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`):**
+  - Contextually disabled features that do not apply to simulated trading accounts:
+    - **Taxes (`PortfolioSection.taxes`)**: In paper mode, the Browse grid tile is visually dimmed with an `Icons.block` badge and subtitle `"Not applicable to paper trading"`; taps display an informative SnackBar; `PortfolioNavigator.openSection` blocks routing; `PortfolioAlertService` omits tax-loss alerts; and tax optimization calculations are bypassed.
+    - **Strategies Paper Trading Simulator**: Disabled redundant "Paper Trading Simulator" tile in `StrategiesSectionPage` when already active in paper trading mode with subtitle `"Already active (currently in paper trading mode)"` and SnackBar feedback.
+    - **Strategies Auto-Trading Cards**: In `StrategiesSectionPage`, Stocks Auto-Trading (`AgenticTradingCardWidget`) and Futures Auto-Trading (`FuturesAutoTradingCardWidget`) cards are visually dimmed with `Icons.block` badges, `'Not applicable to paper trading'` subtitles, and tap feedback SnackBars preventing navigation to settings or backtesting.
+  - Added test coverage in `test/portfolio_browse_paper_trading_test.dart` and updated `test/portfolio_overview_widget_test.dart`.
+
+- **Trading Psychology & Coaching UI Polish (`PersonalizedCoachingWidget`):**
+  - Removed redundant "Emotion Check-In" (`Icons.add_reaction_outlined`) icon button from the AppBar actions in AI Trading Coach, eliminating clutter as emotion check-ins are accessible directly from the dedicated "Emotion Journal" tab (`EmotionJournalView`).
+  - Added widget test coverage in `test/trading_psychology_test.dart`.
+
+- **Backend Security & Macro Agent Callable Authentication ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#195](https://github.com/CIInc/robinhood-options-mobile/pull/195)):**
+  - Enforced mandatory `request.auth` authentication verification on `macroAssessmentTask` and macro agent callable endpoints, ensuring institutional macro metrics cannot be accessed anonymously.
+  - Added unit test coverage in `functions/tests/macro-agent.test.ts`.
+
+- **Algorithmic Technical Indicator Performance ($O(1)$ Space) ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#194](https://github.com/CIInc/robinhood-options-mobile/pull/194)):**
+  - Optimized `computeStochastic` to evaluate trailing %K and %D indicators directly in $O(1)$ space without creating intermediate array slices.
+  - Optimized `computeKeltnerChannels` to calculate scalar EMA and ATR directly with optional `endIndex` support, eliminating heap allocations during real-time indicator evaluation loops.
+  - Added unit tests in `functions/tests/technical-indicators.test.ts`.
+
+- **Assistive Accessibility for Options Flow (`OptionFlowListItem`, [#196](https://github.com/CIInc/robinhood-options-mobile/pull/196)):**
+  - Wrapped `OptionFlowListItem` in accessible `Semantics`, consolidating ticker, strike price, contract type, expiration, premium, trade size, and volume/OI ratios into a single natural spoken screen reader sentence.
+
+- **Deployment Infrastructure & Service Account Documentation (`.github/workflows/cd.yml`, `docs/mobile-ci-setup.md`):**
+  - Granted and documented `Secret Manager Admin` (`roles/secretmanager.admin`) and `Cloud Scheduler Admin` (`roles/cloudscheduler.admin`) IAM roles for `github-action-deploy@realizealpha.iam.gserviceaccount.com`, enabling fully automated, zero-error CI/CD deployments of Cloud Functions, parameterized secrets, and scheduled cron jobs.
+
+## [0.54.1] - 2026-09-28
+**AI Devil's Advocate, Screen Access Matrix & Backend Security Hardening ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#187](https://github.com/CIInc/robinhood-options-mobile/pull/187), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192), [#193](https://github.com/CIInc/robinhood-options-mobile/pull/193))**
+
+- **AI Devil's Advocate & Trade Thesis Stress Tester (`DevilsAdvocateWidget`, `DevilsAdvocateAnalysis`, `stressTestTradeThesis`, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Adversarial Critique Engine**: Embedded AI Devil's Advocate designed to counter confirmation bias by performing rigorous, quantitative adversarial stress testing on trading theses before capital is committed.
+  - **Categorical Resilience Scoring**: Evaluates trade ideas with a 0–100 Resilience Score and categorical verdict (`Fragile`, `Moderate`, `Resilient`) indicating trade thesis durability against shocks.
+  - **The Killer Question**: Highlights a single, sharp stress point that pinpoints the trade's greatest single vulnerability (e.g. margin cliff, capex normalization, regulatory exposure).
+  - **Derivatives Skew Traps & Options Hazards**: Analyzes options volatility skew, high-percentile IV crush hazards, and negative gamma amplifier traps.
+  - **Event Hazard Detection**: Flags imminent calendar risks including earnings surprises, central bank rate decisions (FOMC), ex-dividend assignment risk, and insider sales with timing and severity indicators.
+  - **Stress Scenario Matrix**: Models projected price impacts under standardized market shock scenarios (-5% market selloff, +30% VIX volatility shock).
+  - **Pre-Trade Integration**:
+    - Embedded in the primary Research slivers on `InstrumentWidget` alongside AI Price Targets.
+    - Added 1-tap "Devil's Advocate (Stress Test Thesis)" modal sheets to `TradeInstrumentWidget` (Equities) and `TradeOptionWidget` (Options).
+  - **Cloud Function & Caching**: Added `stressTestTradeThesis` callable Cloud Function with Google GenAI (Gemini 3.1 Flash-Lite, fallback to 2.5 Flash-Lite) and 24-hour Firestore caching (`ai_thesis_stress/{symbol}_{direction}`).
+  - **Unit & Widget Tests**: Added unit tests in `test/devils_advocate_model_test.dart`, widget tests in `test/devils_advocate_widget_test.dart`, and Cloud Function authentication/validation tests in `functions/tests/gemini.test.ts`.
+  - **Documentation**: Comprehensive architecture, methodology, and integration guide in [docs/devils-advocate.md](docs/devils-advocate.md).
+
+- **Screen Access Controls, Guest Mode & Freemium Pro Value Protection (`TradeSignalsPage`, `TradeSignalsWidget`, `PaywallWidget`, `WelcomeWidget`, `BrokerageUserStore`, `PaperTradingStore`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)):**
+  - **Screen Access Matrix**: Enforced tiered authentication and subscription access controls across all 5 navigation tabs. Unauthenticated guests can preview markets, browse leaderboards, and practice simulated paper trading without forced login walls.
+  - **Guest Paper Trading Mode**: Added interactive "Explore Demo / Paper Mode" directly from `WelcomeWidget`, provisioning local demo user state in `BrokerageUserStore` and enabling local simulation persistence via `SharedPreferences`.
+  - **Freemium Trade Signals Gating & Pro Value Protection**:
+    - Gated non-subscriber/guest signal feeds to 3 sample signals (`maxFreemiumSignals = 3`) tagged with a `SAMPLE` badge.
+    - Appended a high-conversion Pro Locked Teaser Card (`Key('PRO_LOCKED_CARD')`) displaying hidden signal counts and core Pro feature value props (20+ indicators, push alerts, auto-trading, zero delay).
+    - Gated deep quantitative indicators on sample cards, capping visible tags to 4 and collapsing remaining indicators into a `+N Pro Indicators 🔒` lock chip triggering the upgrade paywall.
+    - Gated AppBar Notifications and Strategy Settings actions behind subscriber paywall and sign-in prompts.
+    - Refined modal bottom sheet paywall presentation, eliminating duplicate close buttons and ensuring clean dismissal.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/screen_access_guest_and_preview_test.dart`, `test/user_widget_features_availability_test.dart`, and `test/auth_button_test.dart`.
+
+- **Backend Security & Callable Authentication Hardening ([#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#186](https://github.com/CIInc/robinhood-options-mobile/pull/186), [#188](https://github.com/CIInc/robinhood-options-mobile/pull/188), [#192](https://github.com/CIInc/robinhood-options-mobile/pull/192)):**
+  - Enforced mandatory `request.auth` authentication verification on all public callable Cloud Functions:
+    - `runBacktest` callable simulation function ([#188](https://github.com/CIInc/robinhood-options-mobile/pull/188)).
+    - `getSentimentAnalysis` news & social sentiment function ([#192](https://github.com/CIInc/robinhood-options-mobile/pull/192)).
+    - Gemini callable services and AI prompt functions ([#186](https://github.com/CIInc/robinhood-options-mobile/pull/186)).
+    - `stressTestTradeThesis` AI thesis stress tester.
+
+- **Algorithmic Indicator & Query Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#183](https://github.com/CIInc/robinhood-options-mobile/pull/183), [#184](https://github.com/CIInc/robinhood-options-mobile/pull/184), [#185](https://github.com/CIInc/robinhood-options-mobile/pull/185), [#189](https://github.com/CIInc/robinhood-options-mobile/pull/189), [#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)):**
+  - **Zero-Allocation Scalar Calculations**: Refactored scalar indicator calculations (`calculateSMA`, `calculateEMA`, `calculateRSI`, etc.) in `functions/src/technical-indicators.ts` to compute using sliding index pointers, eliminating intermediate slice array allocations ([#191](https://github.com/CIInc/robinhood-options-mobile/pull/191)).
+  - **Local CCI & MFI Computations**: Optimized Commodity Channel Index and Money Flow Index evaluation routines in Dart and TypeScript to reduce CPU cycles and garbage collection pressure ([#189](https://github.com/CIInc/robinhood-options-mobile/pull/189)).
+  - **Batching & Snapshot Reuse**: Batched Firestore document reads and reused signal snapshots during sentiment analysis aggregation ([#184](https://github.com/CIInc/robinhood-options-mobile/pull/184)).
+  - **Lookup & Query Reductions**: Optimized `evaluateAllIndicators` symbol lookups ([#185](https://github.com/CIInc/robinhood-options-mobile/pull/185)) and reduced symbol alert queries when deleting group watchlists ([#183](https://github.com/CIInc/robinhood-options-mobile/pull/183)).
+
+- **Accessibility Semantics & Screen Reader Enhancements ([#187](https://github.com/CIInc/robinhood-options-mobile/pull/187), [#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)):**
+  - Enhanced Schwab order preview card with accessible labels, contrast adjustments, and assistive layout hierarchy ([#193](https://github.com/CIInc/robinhood-options-mobile/pull/193)).
+  - Added semantic labels and accessibility hints to community discussion comment upvote controls (`SocialCommentItemWidget`, [#187](https://github.com/CIInc/robinhood-options-mobile/pull/187)).
+
+- **Firebase CI/CD Deployment Diagnostics (`.github/workflows/cd.yml`, `docs/mobile-ci-setup.md`):**
+  - Added `--debug` diagnostic flag to `firebase-tools deploy` in `.github/workflows/cd.yml` to provide detailed HTTP API error payloads on failure.
+  - Documented complete list of required Google Cloud IAM roles (`roles/firebase.admin`, `roles/firebasehosting.admin`, `roles/cloudfunctions.admin`, `roles/iam.serviceAccountUser`, `roles/cloudbuild.builds.editor`, `roles/artifactregistry.admin`) in `docs/mobile-ci-setup.md` to prevent project permission failures.
+
+## [0.54.0] - 2026-09-26
+**Futures Order Entry, Secure Token Storage & Systematic Trading Readiness ([#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126), [#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181), [#182](https://github.com/CIInc/robinhood-options-mobile/pull/182))**
+
+- **Futures Order Entry & Service Integration (`FuturesOrderEntrySheet`, `IBrokerageService`, `RobinhoodService`, [#72](https://github.com/CIInc/robinhood-options-mobile/issues/72), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - **Modal Order Entry Sheet (`FuturesOrderEntrySheet`)**:
+    - Full-featured order entry modal for futures contracts supporting Market and Limit order types.
+    - Buy and Sell actions with contract quantity selection and custom limit price input.
+    - Time-in-Force (TIF) selection supporting `Day` and `Good 'Til Canceled (GTC)`.
+    - Real-time quote integration displaying live mark price, bid/ask spread, and calculated estimated notional order value ($P \times Q \times \text{Multiplier}$).
+    - Two-step safety flow with an explicit modal review dialog confirming contract details, estimated total notional value, and order specifications prior to routing.
+  - **Brokerage Service Pipeline (`IBrokerageService`, `RobinhoodService`)**:
+    - Added `placeFuturesOrder` to `IBrokerageService` and implemented active order placement in `RobinhoodService` calling `/marketdata/futures/orders/`.
+    - Added stubbed implementations for `PaperService`, `DemoService`, `FidelityService`, `PlaidService`, and `SchwabService`.
+    - Added direct "Trade Futures" action button on `FutureInstrumentWidget` opening the order sheet.
+    - Test coverage in `test/futures_order_entry_sheet_test.dart` and `test/robinhood_futures_quote_test.dart`.
+
+- **Platform-Secure OAuth Storage (`SecureTokenStorage`, `BrokerageUserStore`, `flutter_secure_storage`, [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88), [#135](https://github.com/CIInc/robinhood-options-mobile/issues/135)):**
+  - Replaced plaintext credential storage in `SharedPreferences` and Firestore with `flutter_secure_storage` utilizing platform-native hardware keystores (Apple Keychain on iOS/macOS, Android Keystore on Android).
+  - Implemented startup migration pipeline automatically reading legacy plaintext tokens from local preferences and Firestore user documents, writing them to secure storage with random per-account opaque keys, and rewriting documents and caches stripped of credentials.
+  - Ensured token refresh callbacks persist renewed credentials directly into secure storage.
+  - Hardened lifecycle cleanup: account unlinking, sign-out, or MCP disconnection safely deletes stored tokens from keychain/keystore before local or cloud records are pruned.
+  - Detailed architecture and migration guide documented in [docs/secure-token-storage.md](docs/secure-token-storage.md).
+  - Comprehensive unit test suite in `test/secure_token_storage_test.dart` and expanded `test/brokerage_user_store_test.dart`.
+
+- **Systematic Auto-Trading Readiness & Signal Optimization (`AgenticTradingSettingsWidget`, `AgenticTradingProvider`, [#126](https://github.com/CIInc/robinhood-options-mobile/issues/126)):**
+  - **Entry Readiness Setup UI**: Added contextual alert banner in `AgenticTradingSettingsWidget` when systematic trading mode is active without any enabled indicators, warning that signals will not pass entry evaluation.
+  - **Starter Preset Action ("Apply balanced setup")**: 1-tap setup applying a curated trio of starter indicators (`priceMovement`, `marketDirection`, `macd`) and a 50% minimum signal strength while keeping auto-trading disabled until the user is ready.
+  - **Threshold Calibration**: Updated default systematic mode minimum signal strength from 75% to 50% to prevent over-filtering during conservative market regimes.
+  - **Systematic Entry Validation**: Enforced BUY signal validation in systematic mode for symbol-filtered scans, rejecting non-BUY signals with clear rejection logging (`rejectionReason: 'Signal is <type>, not BUY'`).
+  - **Custom Indicator Enforcement**: Validates that all custom indicator conditions are met when `requireAllIndicatorsGreen` is specified.
+  - Unit and widget tests in `test/agentic_trading_provider_test.dart` and `test/agentic_trading_settings_widget_test.dart`.
+
+- **Portfolio Event Alerts & Option Positions Navigation (`PortfolioAlertTarget`, `PortfolioNavigator`, [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - Added `PortfolioAlertTarget.optionPositions` target enum to `PortfolioAlert` and `CustomAlert`.
+  - Added dedicated navigation handler in `PortfolioNavigator` to route users directly to the Option Positions tab/ledger when tapping option position alerts in the Action Center.
+
+- **Instrument Overview & Information Architecture (`InstrumentWidget`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)):**
+  - Moved equity position and option position cards from the secondary Trading Activity section directly into the primary Overview section for immediate visibility upon opening an instrument.
+  - Renamed the "Signals & Tech" tab to "Signals" across navigation chips, tabs, and test assertions.
+  - Updated Trading Activity section to focus strictly on executions, fills, and historical order records with streamlined empty state copy.
+
+- **Positions Widget & Rendering Optimizations (`FuturesPositionsWidget`, `ForexPositionsWidget`, [#116](https://github.com/CIInc/robinhood-options-mobile/issues/116), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - Refactored `FuturesPositionsWidget` to use `SliverMainAxisGroup` and `SliverList.builder` for lazy, bounded viewport rendering while scrolling, eliminating unnecessary widget builds.
+  - Added dynamic asset type labels and units in `ForexPositionsWidget` supporting crypto, forex, and mixed holdings.
+  - Added comprehensive widget test suites in `test/futures_positions_widget_test.dart` and `test/forex_positions_widget_test.dart`.
+
+- **Cloud Functions, Options Flow & Backend Security ([#134](https://github.com/CIInc/robinhood-options-mobile/issues/134), [#180](https://github.com/CIInc/robinhood-options-mobile/pull/180), [#181](https://github.com/CIInc/robinhood-options-mobile/pull/181)):**
+  - **Options Flow Cache Bypass (`refreshOptionsCache`)**: Added optional `refreshOptionsCache` parameter to callable Cloud Functions in `gamma-exposure.ts` and `options-flow-utils.ts` to bypass stale flow caches and retrieve fresh options chains.
+  - **Callable Function Auth Enforcement (Sentinel #181)**: Added strict authentication checks (`request.auth` and `request.auth.uid`) to `alphabotTask`, `riskguardTask`, and `calculatePositionSize` callable Cloud Functions to prevent unauthorized execution.
+  - **Zero-Allocation Crossover Evaluation (Bolt #180)**: Refactored `evaluateCustomIndicator` and technical indicators in `technical-indicators.ts` to support an optional `endIndex` parameter, eliminating memory allocations from array slicing during backtesting and indicator crossover computations.
+
+- **Accessibility & CI/CD Deployment ([#182](https://github.com/CIInc/robinhood-options-mobile/pull/182)):**
+  - **Sentiment Poll Accessibility (Palette #182)**: Added semantic breakdown summary labels and button/selected/enabled traits to `SocialSentimentPollWidget`.
+  - **Firebase CI/CD Deployment Workflow**: Added automated deployment workflow in `.github/workflows/cd.yml` deploying Hosting, Functions, and Firestore security rules/indexes to the `realizealpha` project on merges to `main`.
+
+## [0.53.0] - 2026-09-25
+**Institutional Research, Portfolio Alerts & Congress Trading Tracker ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#143](https://github.com/CIInc/robinhood-options-mobile/issues/143))**
+
+- **Congress & Political Trading Tracker (`CongressTrade`, `CongressTradingSnapshot`, `CongressTradingService`, `CongressTradingWidget`, `CongressTradingDashboardWidget`):**
+  - **STOCK Act Compliance & Monitoring Engine**:
+    - Automatic monitoring of Periodic Transaction Reports (PTR) filed by Members of the Senate and House of Representatives.
+    - Calculates filing lag ($\Delta t = t_{\text{disclosure}} - t_{\text{transaction}}$) in calendar days.
+    - Flags overdue disclosures violating the 45-day statutory limit of the Stop Trading on Congressional Knowledge (STOCK) Act of 2012.
+    - Captures trade amount brackets, party affiliation (Democrat, Republican, Independent), chamber, and direct links to public PTR filings.
+  - **Portfolio Overlap Matching & Smart Alerts (`PortfolioAlertService`, `CustomAlert`)**:
+    - Automatically matches recent political disclosures against the user's active equity holdings (`InstrumentPosition`) and option positions (`OptionAggregatePosition`).
+    - Smart alert rule evaluation supporting purchases, sales, and dollar value thresholds.
+    - Severity-graded notifications: positive severity for significant purchases ($\ge \$250,000$), warning for significant sales ($\ge \$250,000$), and informational for standard trades.
+    - Action Center alerts deep-link directly to the Insights view (`PortfolioAlertTarget.congressionalTrading`).
+  - **Interactive Research & Dashboard UI (`CongressTradingWidget`, `CongressTradingDashboardWidget`)**:
+    - Instrument-level research card embedded in stock and option detail slivers displaying recent political trades, party badges, filing lag, overdue warnings, and "Held in Portfolio" tags.
+    - Dedicated Congress Trading Dashboard accessible from the Search/Discovery screen with member/symbol search, metrics overview, and filter chips for Portfolio Overlap, Chamber, Party, and Transaction Type.
+  - **Backend Cloud Functions (`getCongressTrades`, `refreshCongressTrades`)**:
+    - Callable endpoint returning curated and cached PTR disclosures with server-side portfolio overlap detection.
+    - Scheduled sync job refreshing disclosure snapshots every 6 hours.
+  - **Comprehensive Test Suite**:
+    - Cloud Functions Jest tests in `functions/tests/congress-trading.test.ts`.
+    - Unit tests in `test/congress_trading_model_test.dart` and `test/congress_trading_alert_test.dart`.
+    - Widget tests in `test/congress_trading_widget_test.dart`.
+
+- **SEC EDGAR Disclosures ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)):** Added 13F institutional holdings, Form 4 insider transaction clusters, 8-K material events, and portfolio-overlap notices. Recently researched symbols refresh hourly. Configured a monitored `SEC_EDGAR_USER_AGENT` and shared Firestore request pacing; the integration requires no SEC API key. The remaining 10-K/10-Q parsing and broader ingestion work stays tracked in #143.
+- **Schwab Account Activity & Historical Cash Transactions ([#91](https://github.com/CIInc/robinhood-options-mobile/issues/91)):** Historical cash transactions sync, dividend and interest tracking, and user preference profile sync.
+- **Portfolio Event Alerts ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):** Added Action Center coverage for approaching option expirations, earnings dates, ex-dividend dates and dividend payments, high-impact news and catalysts, unusual volume and price moves, and congressional trades. Alerts include portfolio context and navigation to the relevant research or position view.
+- **Charts, Export & Discovery:** Income charts now select a useful viewport automatically; chart selection and position views gained targeted regression coverage. Copy-trading history exports include execution-quality fields, and web promotion banners were added across supported list views ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
+- **Accessibility, Reliability & Performance:** Added screen-reader semantics to watchlist and auto-trade status widgets; reduced temporary-array allocations in technical-indicator calculations; and required authentication for futures-signal access and admin authorization for messaging operations. Expanded widget and service tests for positions, alerts, disclosures, and related flows ([#90](https://github.com/CIInc/robinhood-options-mobile/issues/90)).
+
+## [0.52.0] - 2026-09-24
+**Copy-Trading Safeguards, Social Tools & Schwab Execution ([Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [#113](https://github.com/CIInc/robinhood-options-mobile/issues/113), [#122](https://github.com/CIInc/robinhood-options-mobile/issues/122))**
+
+- **Copy-Trading Slippage & Divergence Analytics (`CopyTradeRecord`, `CopyTradeSlippageAnalytics`, `CopyTradeSlippageCard`, `CopyTradingDashboardWidget`, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)):**
+  - **Follower Fill Latency Tracking (`CopyTradeRecord`, `CopyTradingProvider`)**:
+    - Captures high-precision execution timestamps and millisecond elapsed latency ($\Delta t_{\text{fill}} = t_{\text{exec}} - t_{\text{signal}}$) between leader order submission and follower execution.
+    - Persists `fillLatencyMs` and `executionTime` in Firestore copy trade audit records upon order placement.
+    - Categorizes execution speed into latency tiers: `<100ms`, `100-250ms`, `250-500ms`, `500ms-1s`, and `>1s`.
+  - **Price Slippage & Basis Points Engine (`CopyTradeRecord`, `CopyTradeSlippageAnalytics`)**:
+    - Calculates side-aware price slippage per share/contract:
+      - Buy orders: $P_{\text{executed}} - P_{\text{leader}}$ (positive = unfavorable premium paid, negative = favorable discount).
+      - Sell orders: $P_{\text{leader}} - P_{\text{executed}}$ (positive = unfavorable discount, negative = favorable price improvement).
+    - Expresses price deviation in basis points (bps): $\text{Slippage (bps)} = \frac{\Delta P}{P_{\text{leader}}} \times 10,000$.
+    - Classifies fills into Favorable, Exact (Zero Slippage), and Unfavorable categories.
+    - Computes cumulative dollar slippage cost/drag across equities ($1\times$) and options ($100\times$).
+    - Derives comprehensive **Execution Quality Score** ($0.0\% - 100.0\%$) reflecting on-target and price-improved fills.
+  - **Net Return Tracking & Leader Divergence**:
+    - Analyzes paired completed trades to compare leader return % against follower return %.
+    - Computes net return divergence ($\Delta R = R_{\text{follower}} - R_{\text{leader}}$) to isolate latency/slippage drag from underlying strategy performance.
+    - Surfaces per-leader breakdowns comparing average fill latency, slippage bps, and cost drag across followed traders.
+  - **Dashboard Audit UI & CSV Export (`CopyTradeSlippageCard`, `CopyTradingDashboardWidget`)**:
+    - Embedded `CopyTradeSlippageCard` displaying hero metric tiles (Avg Latency, Avg Slippage, Slippage Drag, Fill Quality Score), visual quality distribution bar, and latency breakdown chips.
+    - Interactive trade items with colored latency badges (`<200ms` green, `200-600ms` amber, `>600ms` red) and fill slippage indicators.
+    - Detailed bottom-sheet audit dialog inspecting order ID, leader signal timestamp, follower execution timestamp, latency, leader price vs fill price, and net slippage.
+    - Enhanced CSV export with dedicated audit columns: `Leader Price`, `Executed Fill Price`, `Fill Latency (ms)`, `Dollar Slippage`, `Slippage (bps)`, and `Return Divergence %`.
+  - **Comprehensive Test Coverage**:
+    - Unit tests in `test/copy_trade_record_slippage_test.dart` verifying data model serialization, JSON deserialization, side-dependent slippage formulas, basis points calculations, and backward compatibility for legacy records.
+    - Unit tests in `test/copy_trade_slippage_analytics_test.dart` validating statistical aggregation, median latency, asset class multipliers, quality scores, and leader divergence metrics.
+    - Widget tests in `test/copy_trading_dashboard_slippage_test.dart` verifying empty state fallback, metric tile rendering, quality bar, latency breakdown, and leader comparison rows.
+
+- **Copy-Trading Risk Guardian and Trader Comparison ([#141](https://github.com/CIInc/robinhood-options-mobile/issues/141), [#113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):** Added per-trade and portfolio-equity allocation caps, pre-execution slippage limits, and circuit breakers for leader drawdown and return divergence. The dashboard now surfaces protected/aborted trades and guardian reset controls. Added privacy-aware comparison of two to four traders across normalized timeframes, risk-adjusted metrics, and relative-strength scoring, plus portfolio publishing and deletion controls.
+- **Social Discussion & Comment Threads ([#113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):** Added discussions on shared analyses and public trader portfolios, including sentiment polls, author-pinned comments, upvotes, reporting, and moderation states. See [social discussion documentation](docs/social-discussion-threads.md).
+- **Schwab Execution and Strategy Chains ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122)):** Added equity, single-leg, and multi-leg order previews with fee, margin, buying-power, and validation details; hard preview rejections block order confirmation. Working orders can be replaced, cancellable orders expose cancellation links, and strategy option chains support verticals, calendars, straddles, strangles, collars, butterflies, condors, and custom strategies. Also fixed nullable buying-power handling and added order-template sorting fallback with a composite Firestore index.
+- **Verification:** Added model, service, Firestore, and widget tests for the new copy-trading, trader-comparison, social-discussion, and Schwab flows.
+
+## [0.51.6] - 2026-09-22
+**Delta-Neutral Strategy Builder ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108))**
+
+- **Delta-Neutral Strategy Builder (`DeltaPositionLeg`, `DeltaNeutralModel`, `DeltaNeutralService`, `DeltaNeutralBuilderWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137), [Tracking: #108](https://github.com/CIInc/robinhood-options-mobile/issues/108)):**
+  - **Quantitative Greeks & Delta Engine (`DeltaNeutralService`)**:
+    - Aggregates multi-leg portfolio Greek sensitivities: Net Delta ($\Delta_{\text{net}}$), Net Gamma ($\Gamma_{\text{net}}$), Net Theta ($\Theta_{\text{net}}$), and Net Vega ($\mathcal{V}_{\text{net}}$) across stock shares and option contracts.
+    - Full mathematical Black-Scholes Greeks fallback engine with standard normal cumulative distribution approximations for pricing, delta, gamma, theta, and vega.
+    - Dollar-delta risk calculation quantifying dollar portfolio gain or loss per 1% move in the underlying spot price.
+  - **Dynamic Delta Offsets & Automated Rebalancing Suggestions**:
+    - **Linear Equity Share Offsets**: Calculates exact underlying shares ($N = - \Delta_{\text{drift}}$) to eliminate directional risk without adding unwanted gamma or altering theta decay.
+    - **Option Contract Offsets**: Identifies optimal option strike and expiration candidates (~35 DTE, near-the-money or 30-50 delta) to re-neutralize delta while adjusting gamma curvature or collecting theta credit.
+    - **Customizable Neutrality Tolerance Band**: Real-time slider adjusting tolerance band from $\pm 2$ to $\pm 50 \Delta$ with instant severity updates (`neutral`, `mildDrift`, `severeDrift`).
+  - **Spot-Shift Scenario Simulation & Interactive Delta Drift Curve**:
+    - Custom-painted interactive canvas (`_DeltaScenarioChartPainter`) modeling non-linear delta drift across underlying spot price shifts ($-20\%$ to $+20\%$) using second-order Taylor expansion $\Delta(S) \approx \Delta_0 + \Gamma_0 \cdot \Delta S$.
+    - Shaded delta-neutral tolerance band visualization with zero-baseline reference and current spot vertical marker.
+    - Segmented toggle to switch between Delta Curve ($\Delta$) and simulated position P&L Curve (\$).
+    - Scenario breakdown matrix detailing projected underlying price, net delta, estimated P&L, and tolerance status across 13 discrete spot shifts.
+  - **Pre-Configured Delta-Neutral Strategy Templates**:
+    - 1-tap template loaders for **ATM Long Straddle** (high-gamma volatility expansion), **Delta-Neutral Covered Collar** (100 shares + collar with delta-neutral strikes), and **Call Ratio Backspread** (1 short ATM call + 2 long OTM calls).
+    - "Load My Positions" button to dynamically import open stock shares and option aggregate positions for the active symbol from user brokerage/paper accounts.
+  - **Portfolio Action Center & Smart Alert Integration**:
+    - Added `PortfolioAlertTarget.deltaNeutral` in Action Center navigation and Section mapping.
+    - Added `AlertType.delta_neutral` with trigger conditions: `delta_drift_exceeded` and `delta_rebalance_required`.
+    - Integrated automatic portfolio-wide delta drift monitoring in `PortfolioAlertService` generating warning alerts for severe delta imbalances and informational alerts for mild drift.
+  - **Instrument Integration**:
+    - Embedded "Delta-Neutral Builder" quick intelligence card in `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/delta_neutral_test.dart` verifying leg math, Black-Scholes derivations, net Greek aggregation, share/option offset calculations, scenario point curves, JSON serialization, and alert evaluations.
+    - Widget tests in `test/delta_neutral_widget_test.dart` verifying multi-tab layout, tolerance band slider, scenario chart and matrix rendering, and strategy template switching.
+
+## [0.51.5] - 2026-09-22
+**Implied Volatility Surface 3D Visualizer ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Implied Volatility Surface 3D Visualizer (`IvSurfaceModel`, `IvSurfaceService`, `IvSurface3dWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **3D Implied Volatility Surface Engine (`IvSurfaceService`)**:
+    - Generates regularized 2D mesh grids across strike dimensions ($K / S_0$ moneyness from 70% to 130%) and tenor dimensions (DTE from 7 to 365+ days).
+    - Employs bilinear spline smoothing to regularize sparse and illiquid option strikes, building continuous implied volatility surfaces $\sigma_{\text{impl}}(K, T)$.
+    - Highlights At-The-Money (ATM) ridge lines across tenors to immediately expose term structure curvature.
+  - **Dupire Local Volatility Model ($\sigma_{\text{loc}}(K, T)$)**:
+    - Derives instantaneous local volatility using Dupire's continuous equation with discrete finite-difference approximations:
+      $$\sigma_{\text{loc}}^2(K, T) = \frac{\frac{\partial C}{\partial T}}{K^2 \frac{\partial^2 C}{\partial K^2}}$$
+    - Discloses strike-dependent diffusion levels and detects implied forward volatility dynamics across tenors.
+  - **Arbitrage Violation Detection Engine**:
+    - **Calendar Arbitrage**: Checks total implied variance monotonicity over time ($\partial(T\sigma^2) / \partial T \ge 0$).
+    - **Butterfly Arbitrage**: Checks risk-neutral probability density positivity ($\partial^2 C / \partial K^2 \ge 0$ via convex strike smile curvature).
+    - Quantifies total arbitrage penalty scores and violation coordinates across the surface grid.
+  - **2D Cross-Sectional Slice Analysis**:
+    - **Volatility Smile / Skew Slice**: Cross-section at fixed tenor (e.g. front-month 30 DTE, 60 DTE) plotting IV vs. strike moneyness.
+    - **Term Structure Slice**: Cross-section at fixed moneyness (ATM, 90% Put, 110% Call) plotting IV vs. Days to Expiration (DTE).
+  - **Interactive 3D Visualizer Widget (`IvSurface3dWidget`)**:
+    - Custom-painted depth-sorted 3D wireframe mesh (`_IvSurface3dPainter`) utilizing painter's algorithm with elevation z-shading.
+    - Interactive touch-drag yaw and pitch camera rotation, pinch-to-zoom scaling, and quick camera reset.
+    - Heatmap color gradient representing volatility intensity from cold low IV (cyan/blue) to median (green/yellow) to hot elevated IV (magenta/red).
+    - Multi-tab navigation switching seamlessly between 3D Surface View, 2D Cross-Section Slices, and Local Volatility / Arbitrage Diagnostics.
+    - Comprehensive Educational Guide modal explaining surface skew, Dupire diffusion, and arbitrage conditions.
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.ivSurface` in Action Center navigation.
+    - Added `AlertType.iv_surface` with trigger conditions: `surface_inversion` (front-month backwardation inversion > 8%), `above_surface_skew` (25-delta put skew > 12%), and `arbitrage_detected` (presence of calendar or butterfly arbitrage).
+  - **Instrument Analytics Integration**:
+    - Embedded "3D Volatility Surface" action card with live ATM IV, 25-Delta Put Skew, and Term Structure Slope indicators into `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/iv_surface_test.dart` verifying mesh grid construction, bilinear interpolation, Dupire local volatility calculations, calendar/butterfly arbitrage detection, and alert evaluations.
+    - Component widget tests in `test/iv_surface_widget_test.dart` verifying 3D painter canvas rendering, slice tab switches, diagnostic table generation, educational dialog, and zero-overflow layout on narrow 360px viewports.
+
+## [0.51.4] - 2026-09-21
+**Realized vs. Implied Volatility (IV) Cone & Rank/Percentile ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Realized vs. Implied Volatility (IV) Cone & Rank/Percentile (`VolatilityConeModel`, `VolatilityConeService`, `VolatilityConeWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Rolling Realized Volatility Cone Engine (`VolatilityConeService`)**:
+    - Calculates annualized Realized Volatility across multi-horizon lookback windows (10d, 20d, 30d, 60d, 90d, 180d, 252d / 1Y) using log return standard deviations scaled by $\sqrt{252}$.
+    - Constructs historical rolling percentile bands (Min, 25th percentile, Median 50th, 75th percentile, and Max) across each tenor window to identify statistical dispersion.
+    - Compares current rolling realized movement against current market implied volatility (IV) to reveal statistically underpriced or overpriced options.
+  - **Multi-Timeframe IV Rank & Percentile Engine (`IvRankPercentileMetrics`)**:
+    - Derives 30-day, 60-day, and 90-day IV Rank relative to trailing 52-week volatility extremes ($IVR = \frac{IV - IV_{low}}{IV_{high} - IV_{low}} \times 100\%$).
+    - Computes IV Percentile representing the empirical frequency of trading days where implied volatility traded below current levels.
+  - **Strike Skew Surface & 25-Delta Risk Reversal (`VolatilitySkewAnalysis`)**:
+    - Strike-by-strike moneyness curve mapping OTM Puts, ATM, and OTM Calls.
+    - Quantifies Put Skew ($IV_{25\Delta Put} - IV_{ATM}$), Call Skew ($IV_{25\Delta Call} - IV_{ATM}$), and 25-Delta Risk Reversal ($IV_{25\Delta Put} - IV_{25\Delta Call}$).
+    - Automatic skew regime classification (`Steep Put Skew`, `Balanced Smile`, `Call Skew / Squeeze`, `Flat`).
+  - **Volatility Term Structure & Variance Risk Premium (VRP) (`VolatilityTermStructure`, `VolatilityRiskPremium`)**:
+    - Maps ATM IV across expiration dates (DTE) and classifies curvature into Contango (normal upward slope) vs. Backwardation (inverted / event risk).
+    - Computes Volatility Risk Premium ($VRP = IV_{30d} - RV_{30d}$) and $IV / RV$ ratio, highlighting positive variance collection edges for options sellers.
+  - **Tactical Strategy Playbook & Valuation Regimes (`VolatilityTacticalRecommendation`, `VolatilityRegime`)**:
+    - Categorizes overall market volatility into 4 regimes: `Cheap`, `Fair`, `Expensive`, and `Extreme`.
+    - Generates actionable defined-risk playbook structures matched to current regime and skew (Iron Condors, Bull Put Spreads, Long Straddles/Strangles, Calendar/Diagonal Spreads).
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.volatilityCone` in Action Center navigation.
+    - Alerts for holdings entering extreme volatility surges (IV Rank > 80%) or underpriced volatility dips (IV Rank < 25%).
+    - Added `AlertType.volatility_cone` with conditions `above_iv_rank`, `below_iv_rank`, and `above_vrp`.
+  - **Interactive Dashboard & Education Widget (`VolatilityConeWidget` & `InstrumentWidget`)**:
+    - Custom-painted visual Volatility Cone chart with shaded IQR band, Min-Max bounds, and interactive tenor inspection chips.
+    - Multi-timeframe IV Rank and Percentile cards with linear meters and 52-week boundaries.
+    - Strike Skew & Smile interactive chart with moneyness inspection table and term structure slope plot.
+    - Tactical Strategy Playbook with recommended badges, quantitative rationales, and Educational Guide modal dialog.
+    - Dedicated entry card in `InstrumentWidget` options analytics section.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/volatility_cone_test.dart` verifying rolling RV mathematics, cone percentile sorting, multi-timeframe IV rank/percentile calculations, skew regimes, VRP, and alert triggers.
+    - Component widget tests in `test/volatility_cone_widget_test.dart` verifying multi-tab rendering, educational dialog, tab switching, and zero-overflow layout on narrow viewports (360px).
+
+## [0.51.3] - 2026-09-21
+**Earnings IV Crush Probability & Straddle Pricing Estimator ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Earnings IV Crush Probability & Straddle Pricing Estimator (`EarningsIvCrushModel`, `EarningsIvCrushService`, `EarningsIvCrushWidget`, [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **12-Quarter Empirical Earnings Move & IV Crush Engine (`EarningsIvCrushService`)**:
+    - Evaluates up to 12 historical reported quarters comparing pre-earnings implied moves against actual post-earnings 1-day moves.
+    - Computes historical pre-earnings IV vs. post-earnings IV drop percentage (`ivCrushPct = (IV_pre - IV_post) / IV_pre * 100`).
+    - Calculates options overpricing win rate (% of quarters where implied move exceeded actual move, favoring premium sellers).
+    - Derives a calibrated IV Crush Probability score (0–100%) and 4-tier risk classification: `Low` (<35%), `Moderate` (35–54%), `High` (55–74%), and `Extreme IV Crush Imminent` (75–100%).
+  - **Front-Month ATM Straddle Pricing & Expected Value (EV) Estimator (`StraddlePricingEstimate`)**:
+    - Automatic detection of nearest At-The-Money (ATM) strike from front-month options chains.
+    - Computes total straddle cost ($C_{\text{ATM}} + P_{\text{ATM}}$) in dollars and percentage of spot, along with upper and lower breakeven thresholds.
+    - Empirical Expected Value (EV) distribution for straddle sellers vs. straddle buyers based on historical quarterly move distributions:
+      $$\mathbb{E}[\text{Long EV}] = \frac{1}{N}\sum_{i=1}^N \max(0, S \cdot |\text{actualMove}_i| - \text{StraddleCost}) - \text{StraddleCost}$$
+      $$\mathbb{E}[\text{Short EV}] = -\mathbb{E}[\text{Long EV}]$$
+    - Generates actionable tactical recommendations (`Sell Premium / Iron Condor`, `Buy Straddle / Long Volatility`, or `Neutral / Directional Play`).
+  - **Portfolio Action Center & Custom Alert Integration (`PortfolioAlertService`, `CustomAlert`, `PortfolioAlertTarget`)**:
+    - Added `PortfolioAlertTarget.earningsIvCrush` in Action Center navigation.
+    - Proactive alerts for portfolio holdings with imminent earnings (<= 7 days) and high or extreme IV crush potential to prevent unhedged long option decay.
+    - Added `AlertType.earnings_iv_crush` with conditions `above_crush_probability` and `above_implied_move`.
+  - **Interactive Dashboard & Education Widget (`EarningsIvCrushWidget` & `InstrumentWidget`)**:
+    - Circular radial probability gauge with risk tier styling and countdown badge.
+    - ATM Straddle Pricing & EV cards detailing seller vs buyer win probability and dollar expectations.
+    - 12-quarter historical move matrix featuring toggleable comparison bars and detailed EPS beat/miss tables.
+    - Educational expandable section breaking down IV crush mechanics, vega decay, and defined-risk tactics.
+    - Dedicated navigation entry in `InstrumentWidget` under "Quantitative & Research Tools".
+  - **Comprehensive Test Suite**:
+    - Complete unit test suite in `test/earnings_iv_crush_test.dart` verifying mathematical factor derivation, 12-quarter empirical processing, JSON round-trip cycles, and alert triggers.
+    - Component widget test suite in `test/earnings_iv_crush_widget_test.dart` verifying gauge rendering, straddle EV cards, history list view toggles, education expansion, and callbacks.
+
+## [0.51.2] - 2026-09-21
+**0DTE Flow & Intraday Gamma Squeeze Radar ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))**
+
+- **0DTE Flow & Intraday Gamma Squeeze Radar (`ZeroDteSqueezeRadarModel`, `ZeroDteSqueezeRadarService`, `ZeroDteSqueezeRadarWidget`, [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)):**
+  - **Real-Time 0DTE Flow Velocity Engine (`ZeroDteSqueezeRadarService`)**:
+    - Same-day expiration (0DTE) options contract filter and aggregation across calls and puts.
+    - Tracks aggregate contract volume ($V_C, V_P$), total dollar premium ($\$P_C, \$P_P$), and call-put flow volume & premium ratios.
+    - Computes real-time flow velocity (contracts/min) and net call flow momentum ($\Delta V_C - \Delta V_P$).
+    - Identifies institutional sweeps, aggressive ask-side trades, and abnormal volume exceeding open interest ($V/OI > 1.0$).
+  - **Dealer Gamma Flip & Approach Velocity Tracking (`DealerGammaFlipMetrics`)**:
+    - Calculates spot price proximity to the dealer gamma flip strike ($K_{\text{flip}}$) in dollar terms and percentage ($|\Delta_{\text{flip}}|/S$).
+    - Quantifies approach velocity towards the gamma flip line and identifies transitions into dealer short gamma regimes ($\Gamma_{\text{dealer}} < 0$) where hedging reflexively fuels rallies.
+    - Monitors key resistance (Call Wall) and support (Put Wall) levels.
+  - **Calibrated Gamma Squeeze Probability Gauge (`ZeroDteSqueezeRadarResult`)**:
+    - Multi-factor probability scoring engine (0–100%) incorporating:
+      - 0DTE Call Flow Dominance & Velocity (up to 30 pts)
+      - Dealer Short Gamma Regime & Flip Proximity (up to 30 pts)
+      - OTM Volume vs. Open Interest Surge (up to 25 pts)
+      - Call Wall Penetration & Breakout Pressure (up to 15 pts)
+    - 4-tier risk classification: `Low` (<35%), `Elevated` (35–64%), `High` (65–84%), and `Critical Squeeze Imminent` (85–100%).
+  - **Custom Alert & Action Center Integration (`CustomAlert`, `PortfolioAlertService`)**:
+    - Added `AlertType.gamma_squeeze` to custom alert rules supporting conditions for probability threshold (`above`), velocity surge (`spike`), and flip breaches (`above_gamma_flip`, `below_gamma_flip`).
+    - Added `PortfolioAlertTarget.zeroDteRadar` in `PortfolioAlertService` to surface proactive alerts for high and extreme squeeze conditions directly in the Action Center feed.
+  - **Interactive Radar Dashboard Widget (`ZeroDteSqueezeRadarWidget` & `GammaExposureDashboardWidget`)**:
+    - Circular radial probability gauge with dynamic risk color styling and diagnostic thesis summary.
+    - Horizontal call vs. put volume bar, velocity breakdown tiles, and unusual Vol/OI fire badges.
+    - Dealer gamma flip panel displaying spot price, flip distance, and regime indicators.
+    - Contributing factor progress rows detailing point attribution and quantitative drivers.
+    - Quick actions bar with 1-tap "Set Squeeze Alert" modal and "GEX Profile" navigation.
+    - Integrated directly into `GammaExposureDashboardWidget` with a `SegmentedButton` view switcher (`[GEX Profile | 0DTE Squeeze Radar]`).
+  - **Comprehensive Test Suite**:
+    - Full quantitative unit test suite in `test/zero_dte_squeeze_radar_test.dart` verifying mathematical factor calculation, 0DTE filtering, JSON serialization, and alert triggers.
+    - Component widget test suite in `test/zero_dte_squeeze_radar_widget_test.dart` verifying gauge rendering, flow velocity cards, flip levels, and user callbacks.
+
+## [0.51.1] - 2026-09-21
+**Automated DRIP with Price Threshold ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23))**
+
+- **Automated Dividend Reinvestment with Price Thresholds (`AutomatedDripConfig`, `AutomatedDripService`, `AutomatedDripSettingsWidget`, [#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)):**
+  - **Dynamic Threshold Evaluation Engine (`AutomatedDripService.evaluateDividend`)**:
+    - Reinvests dividend payouts only when current instrument market price meets user-defined criteria rather than blindly buying at any market peak.
+    - Supports multiple threshold modes:
+      - `belowCostBasis`: Reinvest only when current market price is at or below the user's average purchase price.
+      - `belowFixedPrice`: Reinvest only when market price is at or below a user-specified dollar target price ($).
+      - `discountFromCostBasis`: Reinvest only when market price satisfies a required percentage discount (e.g. 5% or 10%) below cost basis.
+    - Holds dividend payout as uninvested cash when market price exceeds threshold criteria, preserving liquidity until market dips.
+  - **Automated Execution & Order Routing (`AutomatedDripService.executeReinvestment`)**:
+    - Evaluates incoming dividend payouts against global or symbol-specific rules.
+    - Routes automated buy orders (`market` or `limit` order type) via brokerage service (`placeInstrumentOrder`).
+    - Handles fractional and whole share calculation based on total dividend payout and execution price.
+  - **Notification & Action Center Integration (`PortfolioAlertService._dripAlerts`, `NotificationItem`)**:
+    - Dispatches positive in-app notification upon executed DRIP reinvestments detailing shares acquired and dollar amount.
+    - Dispatches informative alerts when dividends are held in cash because price exceeded the configured threshold.
+  - **Audit Log & Transaction History (`DripTransaction` in `AutomatedDripConfig`)**:
+    - Persistent audit trail tracking timestamp, symbol, dividend amount, share quantity, execution price vs. threshold price, status (`executed`, `threshold_unmet`, `skipped`), and order ID.
+    - In-app history viewer with clear and filter capabilities.
+  - **Dedicated Settings Screen & User Navigation (`AutomatedDripSettingsWidget` in `lib/widgets/automated_drip_settings_widget.dart`)**:
+    - Material 3 settings interface accessible directly from User Settings -> Trading & Automation.
+    - Interactive summary cards for total reinvested funds, execution counts, and active rules count.
+    - Custom per-symbol rule manager with dialog for adding, modifying, or pausing individual ticker rules.
+    - Built-in evaluation test simulation tool.
+  - **Comprehensive Test Suite**:
+    - Unit tests in `test/automated_drip_test.dart` and widget tests in `test/automated_drip_widget_test.dart`.
+
+## [0.51.0] - 2026-09-19
+**Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137))**
+
+- **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine (`AnalyticsUtils`, `PortfolioGreeksCard`, `RiskSectionPage`, [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Quantitative Cross-Asset Sensitivity Engine (`AnalyticsUtils.calculateBetaWeightedGreeks`)**:
+    - Normalizes multi-asset positions (equities, options, futures, crypto, forex) against standard liquid benchmark indices (SPY, QQQ, DIA, IWM) to compute equivalent benchmark shares ($\Delta_\beta$) and true market dollar risk per 1% move ($\$ \Delta_{1\%} = \Delta_\beta \times S_{\text{benchmark}} \times 0.01$).
+    - Supports underlying spot-price and contract-multiplier weighting for stock options ($100 \times \Delta \times S/S_B \times \beta$), futures contracts (/ES, /NQ, /YM, /RTY, /CL, /GC with explicit multipliers), and forex/crypto assets.
+    - Aggregates portfolio-wide Gamma ($\Gamma$), Vega ($\nu$), and daily Theta decay ($\Theta$).
+    - Implements robust beta resolution with asset-class fallbacks for leveraged ETFs, inverse ETFs, crypto pairs, and fiat currencies.
+  - **Interactive Greeks Dashboard Widget (`PortfolioGreeksCard` in `lib/widgets/portfolio/portfolio_greeks_card.dart`)**:
+    - Dual-view toggle (`SegmentedButton`): Seamless switching between normalized **Beta-Weighted Exposure** and classic **Raw Option Greeks**.
+    - Benchmark selector chips: Instant 1-tap switching between **SPY**, **QQQ**, **DIA**, and **IWM** with real-time recalculation of all equivalent shares and risk stance.
+    - Hero Net Market Exposure banner with equivalent share count, dollar risk per 1% move, and directional stance badge (Bullish, Neutral, Bearish).
+    - 4-Greek sensitivity tiles: Delta (1% Move), daily Theta decay, Vega (1% IV change), and aggregate Gamma.
+    - Asset class breakdown chips showing delta contribution across Stocks, Options, Futures, and Crypto.
+    - Ranked Top Delta Drivers list showing the top individual assets contributing to portfolio directional exposure.
+    - Educational modal bottom sheet with comprehensive mathematical formulas, interpretations, and hedging guidelines.
+  - **Portfolio Integration (`RiskSectionPage` in `lib/widgets/portfolio/risk_section_page.dart`)**:
+    - Connected `PortfolioGreeksCard` directly to `PortfolioAnalyticsController.selectedBenchmark`, benchmark quotes, equity positions, `FuturesPositionStore`, and `ForexHoldingStore`.
+  - **Comprehensive Test Suite & Documentation**:
+    - Complete unit test suite in `test/beta_weighted_greeks_test.dart` and widget test suite in `test/portfolio_greeks_card_test.dart`.
+    - Detailed architectural guide and math formulation in [`docs/beta-weighted-portfolio-greeks.md`](docs/beta-weighted-portfolio-greeks.md).
+
+## [0.50.0] - 2026-09-19
+**iOS Live Activities & Dynamic Island, Landscape Multi-Leg Order Matrix, Offline Mode & Options Defense Playbook ([#160](https://github.com/CIInc/robinhood-options-mobile/issues/160), [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117), [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87), [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158))**
+
+- **iOS Live Activities & Dynamic Island Widget (`OptionLiveActivitySession`, `LiveActivityService`, `OptionLiveActivitySheet`, [#160](https://github.com/CIInc/robinhood-options-mobile/issues/160)):**
+  - Built real-time Lock Screen, StandBy mode, and Dynamic Island widget views for active options positions:
+    - **Native ActivityKit Integration (`PortfolioWidgetLiveActivity.swift`, `LiveActivityManager.swift`)**:
+      - Lock Screen / StandBy banner displaying symbol, strike, contract type, 0DTE flame badge, real-time mark price, market value, P&L ($ and %), and trailing stop buffer status.
+      - Dynamic Island layouts: compact leading/trailing, minimal symbol/alert, and expanded 3-region metrics with interactive trailing stop buffer bar.
+      - Enabled `NSSupportsLiveActivities` and `NSSupportsLiveActivitiesFrequentUpdates` in `ios/Runner/Info.plist`.
+      - Flutter-to-iOS bridge via `com.realizealpha.live_activity` MethodChannel.
+    - **Intraday 0DTE Trailing Stop Loss Engine (`OptionLiveActivitySession` in `lib/model/live_activity_models.dart`)**:
+      - On-device high-water mark tracking (`peakPrice = max(peakPrice, markPrice)`) with dynamic ratchet stop pricing: $\text{Stop Price} = \text{Peak Price} \times (1 - \text{Trailing Stop \%} / 100)$.
+      - Automatic 0DTE contract detection (`DTE == 0`) with urgent red `STOP` / `⚠️` breach alert states.
+    - **Lifecycle Service & Configuration UI (`LiveActivityService` & `OptionLiveActivitySheet`)**:
+      - Application singleton managing session state, high-water mark caching, and background status broadcasts.
+      - Sheet with Dynamic Island visual preview, trailing stop presets (5%, 10%, 15%, 20%, 25%), trigger price projections, and 1-tap start/update/stop controls.
+    - **Navigation & Deep Linking**:
+      - Integrated tracking triggers and `sensors` status icons across `OptionPositionsWidget` and `OptionInstrumentWidget`.
+      - Deep linking via `realizealpha://position/{symbol}` custom URL scheme.
+    - **Test Coverage & Documentation**:
+      - Unit and widget tests across `test/live_activity_models_test.dart` and `test/option_live_activity_sheet_test.dart`.
+      - Dedicated documentation guide in [`docs/ios-live-activities-and-dynamic-island.md`](docs/ios-live-activities-and-dynamic-island.md).
+
+- **Landscape Charting & Multi-Column Matrix View (`MultiLegMatrixOrderEntryWidget`, `MultiLegOrderEntry`, [#117](https://github.com/CIInc/robinhood-options-mobile/issues/117)):**
+  - Built widescreen charting and multi-leg execution environment for tablet, desktop, and mobile landscape orientations:
+    - **Multi-Leg Pricing & Risk Engine (`MultiLegOrderEntry` & `MultiLegOrderLeg` in `lib/model/multi_leg_order_entry.dart`)**:
+      - Computes signed premiums, aggregate net credit/debit, closed-form max profit / max loss calculations, dynamic breakeven points, and risk/reward ratios.
+      - Strategy templates: Vertical Spreads (Bull Call, Bear Put, Bull Put, Bear Call), Straddles, Strangles, and Iron Condors.
+    - **Interactive Matrix Order Entry (`MultiLegMatrixOrderEntryWidget` in `lib/widgets/multi_leg_matrix_order_entry_widget.dart`)**:
+      - Collapsible split-panel view embedded alongside full-screen candlestick and area charts.
+      - Interactive strike steppers, expiration selectors, leg action toggles (Buy/Sell, Call/Put), limit/market order type toggles, Time-in-Force (`gtc`/`day`), and quantity steppers.
+    - **Responsive Layout & Chart Integration**:
+      - Updated `FullScreenInstrumentChartWidget`, `InstrumentChartWidget`, and `ChartTimeSeriesWidget` to support wide split-panel chart scrubbing without interrupting order configuration.
+    - **Data Serialization & Error Resilience**:
+      - Hardened `OptionChain.expirationDates` serialization to concrete ISO 8601 string lists, eliminating lazy `MappedListIterable` exceptions.
+      - Enhanced `Constants.toEncodable` to defensively convert arbitrary Iterables and format DateTime instances.
+      - Added null-safe numeric and date parsing in `ForexHolding.fromJson` and `InstrumentPosition.fromJson` to ensure reliable offline snapshot restoration.
+      - Resolved `RenderFlex` overflow in `OfflineStatusBanner` using responsive `Wrap` layout.
+    - **Test Coverage & Documentation**:
+      - Unit and widget tests in `test/landscape_chart_matrix_test.dart` and cache snapshot round-trip validation in `test/offline_cache_service_test.dart`.
+      - Architectural documentation in [`docs/landscape-chart-matrix.md`](docs/landscape-chart-matrix.md).
+
+- **Offline Mode & Resilient Caching (`OfflineCacheService`, `OfflineSyncService`, `OfflineStatusBanner`, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)):**
+  - Built persistent local caching architecture for offline viewing and resilient network degradation handling:
+    - **Portfolio Snapshot Persistence (`OfflineCacheService` & `PortfolioSnapshot`)**:
+      - Saves point-in-time snapshots of accounts, portfolios, equity values, buying power, stock positions (`InstrumentPosition`), and option aggregate positions (`OptionAggregatePosition`) in local storage.
+      - Serializes and deserializes AI trade signals, real-time quotes, and custom watchlist symbols.
+      - Tracks sync timestamps and evaluates freshness thresholds (15-minute staleness boundary) with relative time formatting ("Just now", "5m ago", "2h ago").
+    - **Reactive Sync & Connectivity Lifecycle (`OfflineSyncService`)**:
+      - Listens for connectivity state transitions (`isOffline`, `isSyncing`, `isShowingCachedData`) with simulated offline testing capabilities.
+      - Automatic background reconnect handler: registers screen-level callbacks (`registerReconnectCallback`) that intelligently refresh data as soon as internet connectivity is restored.
+      - Provides programmatic and user-initiated manual synchronization via `triggerSync()` with loading states and error tracking.
+    - **Contextual Status Banner Widget (`OfflineStatusBanner`)**:
+      - Sliver banner positioned dynamically atop Home, Trade Signals, and Search views.
+      - Renders color-coded status badges for "Offline Mode" and "Viewing Cached Data" with last-synced timestamps and "Stale Data" / "Cached Snapshot" chips.
+      - Interactive "Retry" action button with inline circular progress indicator during active synchronizations.
+    - **Screen-Level Fallback Integrations**:
+      - `HomeWidget`: Persists fresh portfolio snapshots on successful data fetch; gracefully falls back to local snapshot on network failure or offline startup.
+      - `TradeSignalsProvider`: Caches streaming signals; loads cached signals upon stream or network error to avoid empty states.
+      - `SearchWidget`: Added network error fallbacks to keep cached watchlists and discovery items responsive offline.
+    - **Test Coverage & Documentation**:
+      - Added 18 unit and widget tests across `test/offline_cache_service_test.dart`, `test/offline_sync_service_test.dart`, and `test/offline_status_banner_widget_test.dart`.
+      - Comprehensive architectural documentation in [`docs/offline-mode-and-resilient-caching.md`](docs/offline-mode-and-resilient-caching.md).
+
+- **Multi-Leg Options Defense & Roll Playbook (`OptionDefensePlaybookWidget`, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)):**
+  - Built automated threat detection and tactical playbook engine for short options and credit spreads:
+    - **Threat Level Engine (`OptionDefenseThreatLevel` & `OptionDefenseThreat` in `lib/model/option_defense_models.dart`)**:
+      - `SAFE`: Unthreatened, far OTM with low delta and comfortable DTE (> 14 DTE).
+      - `CAUTION`: Spot approaching short strike (within 2.5%), delta escalating ($\ge 0.35$), or high gamma risk inside 14 DTE.
+      - `BREACHED`: Spot crosses short strike (ITM), or delta $\ge 0.50$.
+      - `CRITICAL`: Spot breached by > 3% or short DTE ($\le 3$ DTE) with strike breached.
+    - **Tactical Defense Playbook Actions (`DefensePlaybookAction` in `lib/model/option_defense_models.dart`)**:
+      - `Roll Out in Time (Same Strike)`: Duration defense rolling 30-45 DTE out at the identical strike to harvest extrinsic credit.
+      - `Roll Strike Away & Out`: Strike defense (Roll Up & Out for Calls, Roll Down & Out for Puts) to lower directional delta and widen safety margin.
+      - `Convert to Iron Condor`: Opposing spread defense for tested credit spreads, collecting instant net credit with zero additional margin requirements.
+      - `Close Position (Risk Control)`: Prescriptive exit guidance to halt capital destruction when net-credit rolling is unviable.
+      - `Hold / 50% Profit Target`: Disciplined management when the position is functioning according to plan.
+  - **Full-Screen Interactive Playbook UI (`OptionDefensePlaybookWidget`)**:
+    - Visual threat status banner with color-coded alerts (Red, Orange, Amber, Green), strike distance %, delta meter, DTE countdown, and spot vs. strike comparison.
+    - Diagnostic findings card detailing specific triggers (moneyness breach %, delta risk, gamma acceleration).
+    - Ranked tactical playbook cards with "⭐ RECOMMENDED DEFENSE", "ZERO MARGIN CREDIT", and "STRIKE DEFENSE" badges.
+    - 1-tap "Execute with Roll Assistant" button transferring directly into `OptionRollAssistantWidget` with the target `RollPreset` pre-selected.
+    - Embedded institutional defense rules accordion explaining professional principles (always rolling for credit, 21 DTE benchmark, zero-margin opposing spreads, loss-cutting thresholds).
+  - **Seamless Navigation Integration**:
+    - Added prominent "Defense" button to `OptionInstrumentWidget` alongside "Trade Option" and "Roll".
+    - Added "Defense Playbook" action to `OptionPositionsWidget` long-press bottom sheet.
+    - Added "Defense Playbook" action button to `OptionRollAssistantWidget` AppBar.
+    - Updated `OptionRollAssistantWidget` to accept optional `initialPreset` constructor parameter.
+  - **Comprehensive Test Suite & Documentation**:
+    - Unit test suite (`test/option_defense_models_test.dart`) covering threat levels, Greeks heuristics, Covered Calls, Cash-Secured Puts, and Vertical Credit Spreads.
+    - Widget test suite (`test/option_defense_playbook_widget_test.dart`) validating UI layout, diagnostics, playbook recommendations, and action flows.
+    - Dedicated documentation guide in [`docs/options-defense-and-roll-playbook.md`](docs/options-defense-and-roll-playbook.md).
+
+## [0.49.0] - 2026-09-19
+**Options Strategy Roll Assistant & Dual-Value Bar Charts ([#157](https://github.com/CIInc/robinhood-options-mobile/issues/157), [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19))**
+
+- **Options Strategy Roll Assistant (`OptionRollAssistantWidget`, [#157](https://github.com/CIInc/robinhood-options-mobile/issues/157)):**
+  - Built full-screen interactive strategy rolling wizard for single-leg and multi-leg option positions (Covered Calls, Cash-Secured Puts, Long Calls, Long Puts, Credit Spreads).
+  - Implemented domain calculation engine `OptionRollCalculation` and `RollPreset` in `lib/model/option_roll_models.dart`:
+    - Computes net debit / credit, total cash impact, updated breakeven points taking into account cost basis and cumulative net credits.
+    - Calculates Greeks shifts (Delta, Gamma, Theta, Vega, IV) and DTE extension between expiring and replacement contracts.
+    - Generates 2-leg atomic order structure (`position_effect: 'close'`, `position_effect: 'open'`) compatible with Robinhood and Schwab multi-leg endpoints.
+  - One-tap rolling presets:
+    - `Roll Out (Same Strike)`: Extends duration keeping the same strike price.
+    - `Roll Up & Out (+Strike)`: Rolls to a higher strike on a later expiration date (ideal for tested covered calls).
+    - `Roll Down & Out (-Strike)`: Rolls to a lower strike on a later expiration date (ideal for tested cash-secured puts).
+    - `Custom Roll`: Dynamic strike selector with mark, bid/ask, and delta tags across any future expiration date.
+  - Order execution integration:
+    - Paper trading integration in `PaperTradingStore.executeRollOptionStrategy()` with cash adjustment, closing position removal, and new position creation.
+    - Live multi-leg order execution via `IBrokerageService.placeMultiLegOptionsOrder()` with `SlideToConfirm` guardrail.
+  - Intuitive navigation entry points:
+    - "Roll" action button on `OptionInstrumentWidget` when an open position exists.
+    - Long-press shortcut directly from the option positions list in `OptionPositionsWidget`.
+  - Comprehensive unit test suite in `test/option_roll_models_test.dart` and widget test in `test/option_roll_assistant_widget_test.dart`.
+
+- **Dual-Axis & Combined Metric Bar Charts (`InstrumentPositionsWidget` & `OptionPositionsWidget`, [#19](https://github.com/CIInc/robinhood-options-mobile/issues/19)):**
+  - Added dual-measure rendering overlaying primary bars with a secondary measure target line (`BarTargetLineRendererConfig`):
+    - `totalReturn` (\$) paired with `totalReturnPercent` (%) using independent dual axes (`secondaryMeasureAxisId`) for disparate units.
+    - `todayReturn` (\$) paired with `todayReturnPercent` (%) using independent dual axes (`secondaryMeasureAxisId`).
+    - `marketValue` paired with `totalCost` on a single unified currency axis since both share identical dollar units.
+  - **Zero Tick Alignment (`AlignedAxisExtents`):**
+    - Dynamically synchronized primary and secondary axis viewports so the `$0` tick and `0%` tick align at the exact same horizontal position.
+    - Configured `StaticNumericTickProviderSpec` with `0.0` tick on the secondary axis, aligning precisely with the primary `$0` gridline.
+  - Enforced 0-baseline for the Market Value bar chart horizontal axis viewport.
+  - Streamlined bar labels: percentage metrics display combined labels (e.g. `+$120.00 (+15.20%)`), renamed "Total Cost" to "Cost", while Market Value displays clean values with secondary cost basis inspected via the interactive detail pane.
+  - Removed redundant export action from position bar chart toolbars.
+  - Implemented responsive chart height calculations dynamic to data length (`math.max(140.0, length * 28.0 + 80.0)`).
+- **Interactive Bar Tooltips:**
+  - Added interactive tooltip cards displayed upon tapping any equity or option bar in the chart.
+- **Android Adaptive Splash Screen Alignment:**
+  - Aligned Android launch screen and Android 12+ splash screens to match iOS design.
+  - Implemented dark theme background (`#1C1B1F`) with centered branding logo and stylized title ("Robinhood Options") and subtitle ("Institutional Analytics & Agentic Trading") typography.
+- **Paper Trading Safeguards & Test Hardening:**
+  - Bypassed account-level risk circuit breaker checks for simulated paper trades (`PaperTradingStore.executeTrade`) so users can test strategies freely.
+  - Added mock `SharedPreferences` in unit test environments.
+- **Backend & Cloud Functions Hardening:**
+  - **Backtest Aggregation Performance ([#155](https://github.com/CIInc/robinhood-options-mobile/pull/155)):** Optimized multi-symbol equity curve aggregation algorithms in historical backtests.
+  - **Security & Authorization ([#156](https://github.com/CIInc/robinhood-options-mobile/pull/156)):** Strengthened `changeUserRole` callable function with strict group admin verification and input validation.
+
+## [0.48.5] - 2026-09-18
+**Autonomous Risk Circuit Breakers, Schwab WebSocket Streamer & Synchronized Position Scrolling ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145), [#7](https://github.com/CIInc/robinhood-options-mobile/issues/7))**
+
+### Added
+- **Schwab Real-Time WebSocket Streamer (`SchwabStreamerService`, [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):**
+  - Implemented high-throughput real-time streaming for Schwab via official WebSocket protocol (`wss://streamer-api.schwab.com/ws`) in `lib/services/schwab_streamer_service.dart`.
+  - Added session handshake and authentication handling via `GET /trader/v1/userPreference` with `SchwabStreamerInfo` domain model.
+  - Added real-time Level 1 equity quote streaming (`LEVELONE_EQUITIES`) with mapping to `Quote` model.
+  - Added real-time Level 1 options streaming (`LEVELONE_OPTIONS`) including Greeks (Delta, Gamma, Theta, Vega, Rho) and Implied Volatility (IV) with mapping to `OptionMarketData`.
+  - Added push notifications for account and order activity (`ACCT_ACTIVITY`) covering order executions, fills, cancellations, and margin calls.
+  - Added live 1-minute OHLCV candlestick bar streaming (`CHART_EQUITY`) for active chart widgets.
+  - Added real-time feeds for Futures (`LEVELONE_FUTURES`) and Forex currency pairs (`LEVELONE_FOREX`).
+  - Integrated connection heartbeat watchdog with ping/pong frames, request queue throttling, and automatic reconnect with exponential backoff and jitter.
+  - Added comprehensive unit test suite `test/schwab_streamer_test.dart` (14 unit tests) and documentation in `docs/schwab-integration.md`.
+- **Synchronized Horizontal Scroll Across Position Rows ([#7](https://github.com/CIInc/robinhood-options-mobile/issues/7)):**
+  - Added `SynchronizedScrollControllerGroup` and `SynchronizedDetailScrollRow` (`lib/widgets/synchronized_scroll_controller.dart`) to coordinate horizontal scrolling across all detail rows and header metrics without recursive layout loops.
+  - Synchronized position detail columns across `InstrumentPositionsWidget` (Equities), `OptionPositionsWidget` (Options), `ForexPositionsWidget` (Forex), and `FuturesPositionsWidget` (Futures).
+  - Implemented automatic scroll offset alignment for late-mounted and recycled `SliverList` items.
+  - Added unit and widget tests in `test/synchronized_scroll_controller_test.dart` (10 tests).
+- **Autonomous Risk Circuit Breakers & Tilt Guardrail Engine (`RiskCircuitBreakerService`, [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)):**
+  - Added domain model `RiskCircuitBreakerConfig` and `RiskEvaluationResult` (`lib/model/risk_circuit_breaker_config.dart`) providing user-customizable risk controls:
+    - Daily max dollar loss (\$250, \$500, \$1,000, \$2,500) and percentage loss limit (1%–20%).
+    - Peak-to-trough portfolio drawdown tracking against dynamic high-water mark equity.
+    - Consecutive losing trade counter and anti-revenge-trading lockout.
+    - Minimum margin cushion buffer protection (10%–50%).
+    - Mandatory cooling-off duration (15m, 30m, 1h, 2h, 4h, 24h) with active countdown timers.
+  - Implemented `RiskCircuitBreakerService` (`lib/services/risk_circuit_breaker_service.dart`) with local cache syncing via `SharedPreferences`, automated portfolio risk checks, manual trip simulation, and emergency reset.
+  - Integrated into `User` model (`lib/model/user.dart`) with Firestore serialization and deserialization.
+- **Circuit Breaker Settings & Management Interface (`RiskCircuitBreakerSettingsWidget`):**
+  - Built dedicated management view (`lib/widgets/risk_circuit_breaker_settings_widget.dart`) with live status cards, toggle controls, loss preset chips, continuous sliders, test trip simulator, and reset confirmation dialog.
+- **Execution Guardrails in Order Entry (`TradeOptionWidget`):**
+  - Added pre-execution circuit breaker gate in `_placeOrder()` (`lib/widgets/trade_option_widget.dart`) blocking new order placement when a circuit breaker is active or cooling off.
+- **Action Center Proactive Risk Alerts (`PortfolioAlertService`):**
+  - Added `circuit-breaker-tripped` critical alert and `circuit-breaker-near-limit` warning alert in `PortfolioAlertService` (`lib/services/portfolio_alert_service.dart`).
+- **User Settings Organization & Feature Hub Harmonization (`UserWidget`):**
+  - Reorganized user settings from the top user profile card into designated sections:
+    - Relocated `Biometric Authentication` into the **App Settings** card alongside `Refresh Market Data` and `Display Settings`.
+    - Relocated `Risk Circuit Breakers` into the **Features** card under `3. Risk & Margin Safeguards` (adjacent to `Day Trade & PDT Monitor`).
+    - Relocated `Portfolio & Social Privacy` and `Following Activity Feed` into the **Features** card under `5. Profile & Community` (adjacent to `Investment Profile`).
+  - Standardized leading icon styling with `CircleAvatar` container badges across all settings entries.
+
+### Security
+- **Trade Notification Authorization Guard (`sendAgenticTradeNotification`, [#152](https://github.com/CIInc/robinhood-options-mobile/pull/152)):**
+  - Enforced caller authentication and cross-user authorization checks in `sendAgenticTradeNotification` Cloud Function to prevent unauthorized push notification triggers and cross-user notification injection.
+  - Added unit test coverage in `functions/tests/agentic-trading-notifications.test.ts`.
+
+### Performance & Optimization
+- **Technical Indicators Computational Efficiency ([#153](https://github.com/CIInc/robinhood-options-mobile/pull/153)):**
+  - Optimized `evaluateMACD`, `evaluateADX`, and `evaluateWilliamsR` in `functions/src/technical-indicators.ts` by eliminating redundant passes and array slicing when calculating previous bar values.
+
+### Accessibility
+- **Search Clear Action Tooltip ([#154](https://github.com/CIInc/robinhood-options-mobile/pull/154)):**
+  - Added accessibility tooltip to the search clear `IconButton` in `SearchWidget` for screen reader navigation and visual tooltip feedback.
+
+### Fixed
+- **Holding Period UTC Normalization:**
+  - Normalized date calculations to UTC in holding period computations (`lib/model/form_8949_model.dart`) to prevent daylight saving time shifts from distorting short-term vs. long-term holding period classifications.
+
+### Documentation & Tests
+- Added `docs/risk-circuit-breakers.md` and updated `docs/schwab-integration.md`.
+- Added test suites: `test/risk_circuit_breaker_test.dart` (16 unit tests), `test/risk_circuit_breaker_widget_test.dart` (6 widget tests), `test/user_widget_settings_move_test.dart`, `test/synchronized_scroll_controller_test.dart` (10 tests), and `test/schwab_streamer_test.dart` (14 tests).
+
+## [0.48.0] - 2026-09-18
+**Tax Optimization, Wash Sale Detection & Capital Gains Suite ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))**
+
+### Added
+- **Tax Optimization Suite (`TaxOptimizationWidget`):**
+  - Unified multi-tab Tax Optimization dashboard (`lib/widgets/tax_optimization_widget.dart`) providing comprehensive tax planning tools across 4 specialized tabs:
+    - **Loss Harvesting**: Automated loss opportunity detection with IRS Schedule D rules and correlated replacement suggestions.
+    - **Wash Sales**: Real-time 61-day window tracking and loss disallowance monitoring under IRS Section 1091.
+    - **Capital Gains**: Holding period duration timers, short-term vs. long-term categorization, and tax liability projections.
+    - **Form 8949**: IRS Form 8949 and Schedule D reconciliation with adjustment code (`W`) tracking and RFC 4180 CSV export.
+- **Specific Tax Lot Matching & Accounting Method Selection ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `TaxLot` and enum `TaxLotStrategy` (`lib/model/tax_lot.dart`) supporting `fifo`, `lifo`, `hifo`, `lofo`, `taxMinimizer`, and `specified` methods.
+  - Built `TaxLotSelectionSheet` (`lib/widgets/tax_lot_selection_sheet.dart`) allowing granular, per-lot share allocation with real-time feedback on proceeds, blended cost basis, and estimated capital gains/losses.
+  - Implemented `TaxOptimizationService.matchTaxLots()` providing 4-tier tax minimization matching (short-term losses first, then long-term losses, then long-term gains, and short-term gains last).
+  - Integrated tax lot selection into equity order execution (`TradeInstrumentWidget`) across supported brokerages (`RobinhoodService`, `SchwabService`, `FidelityService`, `PaperService`, and `DemoService`).
+- **IRS Form 8949 Reconciliation & Schedule D CSV Export ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain models `Form8949Entry`, `Form8949Totals`, and `Form8949Reconciliation` (`lib/model/form_8949_model.dart`).
+  - Implemented `TaxOptimizationService.reconcileForm8949()` to reconcile realized dispositions into Part I (Short-Term, Box A) and Part II (Long-Term, Box D), attaching wash sale adjustment codes (`W`) and calculating net gain/loss per IRS instructions (`(d) - (e) + (g)`).
+  - Added RFC 4180 CSV export functionality with subtotals and grand totals compatible with major tax preparation software.
+- **Short-Term vs. Long-Term Capital Gains Breakdown ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain models `HoldingPeriodCategory`, `CapitalGainsPosition`, and `CapitalGainsSummary` (`lib/model/capital_gains_model.dart`).
+  - Implemented holding duration tracking, countdown timers (`daysUntilLongTerm`), and tax liability projections with configurable tax brackets (10%–37% short-term, 0%/15%/20% long-term).
+  - Integrated proactive Action Center alert (`capital-gains-approaching`) in `PortfolioAlertService` for positions within 30 days of qualifying for lower long-term capital gains tax rates.
+- **Tax-Loss Harvesting Opportunity Scanner & Correlated Replacements ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `TaxHarvestingScanResult` and suggestion models (`lib/model/tax_harvesting_suggestion.dart`).
+  - Implemented opportunity scanner supporting multi-asset filtering (Stocks, Options), loss thresholds (\$0, \$100, \$500, \$1,000), and multi-factor sorting (by dollar loss, percentage loss, tax savings).
+  - Added wash-sale-safe correlated replacement suggestions for major market index ETFs (`SPY` ↔ `VOO`/`IVV`/`SPLG`, `QQQ` ↔ `QQQM`/`VGT`, `IWM` ↔ `VB`/`SCHA`) and leading sector equities (`NVDA` ↔ `AMD`/`SMH`/`AVGO`, `AAPL` ↔ `MSFT`/`XLK`, `TSLA` ↔ `RIVN`/`IDRV`) with correlation metrics and 1-tap trade navigation.
+- **Rolling 30-Day Wash Sale Window Detector ([#114](https://github.com/CIInc/robinhood-options-mobile/issues/114)):**
+  - Added domain model `WashSaleRecord` and enum `WashSaleStatus` (`lib/model/wash_sale_record.dart`).
+  - Implemented `TaxOptimizationService.detectWashSales()` to track 61-day wash sale windows across closed loss positions and subsequent acquisitions, calculate disallowed losses, and compute adjusted replacement cost bases.
+
+### Changed & Improved
+- **Accessibility & Responsive Polish:**
+  - Improved `SlideToConfirm` accessibility by wrapping the control in `Semantics` with action labels and hints for screen readers (VoiceOver/TalkBack) while updating slider icons to checkmarks upon completion ([#149](https://github.com/CIInc/robinhood-options-mobile/issues/149)).
+  - Added accessibility tooltips to clear search buttons in `SearchWidget` ([#150](https://github.com/CIInc/robinhood-options-mobile/issues/150)) and `CorporateActionsWidget` ([#151](https://github.com/CIInc/robinhood-options-mobile/issues/151)).
+  - Fixed responsive layout overflows across narrow viewports (320px–360px) in reconciliation summaries, tax year dropdowns, and Code W disposition rows using `Wrap` and `FittedBox`.
+- **Backend & Cloud Functions Performance:**
+  - Optimized FCM token retrieval in `watchlist-alerts-cron.ts` by replacing sequential queries with batch `getAll()` queries to eliminate N+1 latency ([#147](https://github.com/CIInc/robinhood-options-mobile/issues/147)).
+  - Optimized user profile queries in `copy-trading.ts` by caching source user lookups across member order triggers ([#148](https://github.com/CIInc/robinhood-options-mobile/issues/148)).
+  - Sanitized Cloud Function parameter payloads and added error fallbacks for order synchronization (`fe0c7ef`).
+
+### Documentation & Tests
+- Added `docs/tax-lot-matching.md`, `docs/form-8949-export.md`, `docs/capital-gains-breakdown.md`, and updated `docs/tax-loss-harvesting.md`.
+- Added test suites: `test/tax_lot_matching_test.dart`, `test/trade_instrument_tax_lot_test.dart`, `test/form_8949_reconciliation_test.dart`, `test/form_8949_widget_test.dart`, `test/capital_gains_breakdown_test.dart`, `test/capital_gains_widget_test.dart`, `test/tax_loss_harvesting_scanner_test.dart`, `test/wash_sale_detector_test.dart`, `test/wash_sale_widget_test.dart`, `test/slide_to_confirm_widget_test.dart`.
+
+## [0.47.0] - 2026-09-16
+**Social Platform & Performance Following: Follow Portfolios, Privacy Controls, Masked Public Views & Activity Feed**
+
+### Added
+- **Social Feed for Shared Trade Ideas & Strategy Cloning ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)):**
+  - Upgraded `FollowingActivityFeedWidget` (`lib/widgets/following_activity_feed_widget.dart`) to a unified multi-stream social hub with 4 dedicated tabs:
+    - `All`: Interleaved real-time feed combining executed trades and investment theses sorted by activity timestamp.
+    - `Trade Ideas`: Curated feed of investment theses from followed traders with sentiment filtering (`Bullish`, `Bearish`, `Neutral`).
+    - `Trades`: Direct trade activity feed from followed traders with quick `Copy` actions.
+    - `Community`: Global public trade ideas and strategies from top-ranked traders across the platform.
+  - Implemented rich trade idea cards featuring author reputation tier, verified trust badge, symbol highlight, sentiment indicators, price targets (entry, target, stop loss), dynamic risk/reward ratio, and potential return % calculations.
+  - Added 1-tap **"Clone Strategy"** action button on shared trade ideas that automatically prepares an `InstrumentOrder` and opens `showCopyTradeDialog` for instant trade mirroring.
+  - Created `ShareTradeIdeaSheet` (`lib/widgets/share_trade_idea_sheet.dart`): Interactive modal sheet allowing users to compose and publish investment theses with live potential return and risk/reward preview.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getSocialTradeIdeasStream`: Real-time query for trade ideas supporting author filtering, symbol lookup, and sentiment categorization.
+    - `createSocialTradeIdea`: Cloud persistence of investment theses with structured metadata.
+    - `toggleLikeSocialTradeIdea`: Atomic like counters on trade ideas.
+    - `deleteSocialTradeIdea`: Deletion handler for author idea management.
+  - Added test suites:
+    - `test/social_trade_ideas_service_test.dart`: 4 unit & integration tests covering trade idea creation, multi-attribute querying, atomic likes, and deletion against `FakeFirebaseFirestore`.
+    - `test/following_activity_feed_widget_test.dart`: 6 widget tests verifying multi-tab rendering, interleaved streams, sentiment filters, community feed, and the idea composition sheet.
+- **Top Portfolios Leaderboard & User Reputation System ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)):**
+  - Created domain models `TopPortfolioEntry`, `UserReputation`, `ReputationTier`, `LeaderboardTimePeriod`, and `LeaderboardSortOption` (`lib/model/top_portfolio_entry.dart`).
+  - Built objective 0–100 reputation scoring algorithm (`UserReputation.calculate`) with multi-pillar evaluation:
+    - Brokerage verification status & tier (up to 35 pts)
+    - Win rate consistency (up to 25 pts)
+    - Cumulative return & P&L (up to 20 pts)
+    - Trade volume & execution longevity (up to 10 pts)
+    - Follower community trust (up to 10 pts)
+  - Created 5 reputation tiers (`novice`, `activeTrader`, `trustedTrader`, `eliteTrader`, `masterTrader`) with visual badges, icons, and theme-adaptive colors.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getTopPortfoliosStream`: Real-time leaderboard stream supporting time horizon filtering (`1W`, `1M`, `3M`, `1Y`, `ALL`), sorting (`totalReturn`, `sharpeRatio`, `winRate`, `reputationScore`, `followersCount`), `verifiedOnly` filtering, and `onlyPublic` privacy safeguards.
+    - `setTopPortfolioEntry` & `getTopPortfolioEntry`: CRUD operations for top portfolio snapshots.
+  - Implemented `TopPortfoliosLeaderboardWidget` (`lib/widgets/top_portfolios_leaderboard_widget.dart`):
+    - Olympic-style Top 3 Podium featuring elevated pedestals, gold/silver/bronze medals, and trader return badges.
+    - Time-period selector chips (`1W`, `1M`, `3M`, `1Y`, `ALL`) and sort chips.
+    - Real-time Cupertino search filter by trader name and location.
+    - Ranked leaderboard cards with rank badges (#1 to #N), trader avatars, reputation tier chips, return % highlight, and mini performance metric chips (Win Rate, Sharpe ratio, Max Drawdown, Total Trades, Followers).
+    - Direct 1-tap Follow/Unfollow action button updating Firestore in real-time.
+    - Modal bottom sheet detailing the User Reputation scoring breakdown and tier definitions.
+    - Filter dialog for toggling "Verified Only" and "Public Portfolios Only".
+  - Enhanced `InvestorGroupsWidget` with a direct AppBar action button for Top Portfolios Leaderboard.
+  - Enhanced `UsersWidget` with an AppBar action button and interactive leaderboard promo banner.
+  - Enhanced `UserListTile` to display the trader's reputation tier badge alongside follower metrics.
+  - Added test suites:
+    - `test/top_portfolios_model_test.dart`: 7 unit tests covering reputation score calculations, tier classifications, period return fallbacks, and model serialization.
+    - `test/top_portfolios_service_test.dart`: 6 integration tests verifying stream filtering (public/private, verified-only), period returns, and sorting against `FakeFirebaseFirestore`.
+    - `test/top_portfolios_leaderboard_widget_test.dart`: 5 widget tests verifying leaderboard rendering, podium display, period switching, search filtering, and the reputation system modal sheet.
+- **Follow Portfolios ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)):**
+  - Created domain models `UserFollow` (`lib/model/user_follow.dart`) and `PortfolioPrivacySettings` (`lib/model/portfolio_privacy_settings.dart`) with serialization, deserialization, and `copyWith` support.
+  - Added user model enhancements (`lib/model/user.dart`): added `portfolioPrivacy`, `followersCount`, and `followingCount` fields with resilient date/timestamp handling.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `followUser`: Persists follow relationships in `user_follows` and updates follower/following subcollections and atomic user counters.
+    - `unfollowUser`: Removes follow relationship and atomically decrements counters.
+    - `isFollowingStream` & `isFollowing`: Real-time and one-shot checks for follow status.
+    - `getFollowingStream` & `getFollowersStream`: Stream lists of users following or followed by a user.
+    - `updateFollowNotification`: Mute/unmute trade notifications on a per-followed-user basis.
+    - `getUserPortfolioPrivacy` & `updateUserPortfolioPrivacy`: Manage user portfolio privacy preferences.
+    - `getFollowedUsersActivitiesStream`: Stream real-time trade activities from all followed users.
+    - `recordUserTradeActivity`: Record trade and order events into `social_activities` collection for followed feeds.
+  - Built Privacy & Social UI:
+    - `PortfolioPrivacySheet` (`lib/widgets/portfolio_privacy_sheet.dart`): Modal bottom sheet with switch tiles for public profile, trade amounts masking, holdings visibility, trades visibility, and follower permissions.
+    - `UserFollowListDialog` (`lib/widgets/user_follow_list_dialog.dart`): Tabbed modal displaying Followers and Following lists with real-time search, follow/unfollow toggle, and user navigation.
+    - `FollowingActivityFeedWidget` (`lib/widgets/following_activity_feed_widget.dart`): Streaming feed of followed traders' activities with filter chips (All, Stocks, Options, Buys, Sells) and 1-tap copy-trading dialog.
+    - Enhanced `UserWidget` (`lib/widgets/user_widget.dart`):
+      - Social profile header with follower and following counters, follow/unfollow action button, and notification bell toggle.
+      - Privacy-first public portfolio view (`_buildPublicPortfolioView`) with `$***` amount masking, verified track record badge, holdings list, and recent trade activity with copy trading.
+      - "Portfolio & Social Privacy" and "Following Activity Feed" options on personal profile.
+    - Enhanced `UserListTileWidget` (`lib/widgets/user_listtile_widget.dart`): Added follower count chip when user has active followers.
+    - Enhanced `InvestorGroupsWidget` (`lib/widgets/investor_groups_widget.dart`): Added direct app bar action for Following Activity Feed.
+  - Added test suites:
+    - `test/user_follow_test.dart`: 5 unit tests for `UserFollow` and `PortfolioPrivacySettings` model serialization, deserialization, and `copyWith`.
+    - `test/follow_portfolio_service_test.dart`: 4 comprehensive integration tests verifying follow/unfollow flows, counter increments/decrements, privacy updates, notification toggles, and trade activity feeds against `FakeFirebaseFirestore`.
+
+## [0.46.0] - 2026-09-16
+**Investor Groups 2.0: Group Activity Feed, Group Chat, Shared Analysis Boards, Performance Leaderboards, Verified Track Records, Schwab API Market Data Parsing & Copy-Trading Performance Optimization**
+
+### Added
+- **Group Activity Feed ([#78](https://github.com/CIInc/robinhood-options-mobile/issues/78), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain models `GroupActivity` and `GroupActivityPrivacySettings` (`lib/model/group_activity.dart`) supporting multiple event types (`trade`, `order`, `memberJoined`, `memberLeft`, `watchlistUpdated`, `milestone`), trade metrics (side, symbol, quantity, price, orderType, assetType), option contract details (strike, expiration, option type), and privacy flags (`hideAmounts`, `isAnonymous`).
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getGroupActivitiesStream`: Real-time Firestore stream with member and type filtering.
+    - `recordGroupActivity`: Persist activity events to `investor_groups/{groupId}/activities`.
+    - `getUserGroupPrivacySettings` & `updateUserGroupPrivacySettings`: Manage per-group member privacy preferences in `investor_groups/{groupId}/member_privacy/{userId}`.
+    - `broadcastTradeActivity`: Automatically broadcast member trade events respecting `shareTrades`, `showTradeAmounts`, and `anonymous` settings.
+  - Built `InvestorGroupActivityFeedWidget` (`lib/widgets/investor_group_activity_feed_widget.dart`):
+    - Real-time streaming timeline with relative timestamps and color-coded action badges (Buy/Sell, Stock, Option, Crypto).
+    - Filter bar with activity type chips (`All`, `Trades`, `Watchlists`, `Members`) and member dropdown.
+    - Interactive trade details modal bottom sheet (`_showActivityDetailSheet`) with full breakdown, option contract metadata, and direct "Copy Trade" / "View Instrument" actions.
+    - Member Privacy Controls dialog (`_showPrivacySettingsDialog`) enabling users to toggle trade sharing, amount visibility, and anonymity per group.
+  - Integrated `_buildActivityFeedCard` into `InvestorGroupDetailWidget` (`lib/widgets/investor_group_detail_widget.dart`) card hub with real-time activity count badges and recent trade preview.
+  - Added comprehensive test suites:
+    - `test/investor_group_activity_test.dart`: 11 unit tests verifying serialization, option calculations, privacy masking, and FakeFirebaseFirestore integration.
+    - `test/investor_group_activity_widget_test.dart`: 4 widget tests verifying feed rendering, empty states, detail sheet interactions, and privacy controls modal.
+- **Group Chat & Real-Time Messaging ([#76](https://github.com/CIInc/robinhood-options-mobile/issues/76), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Verified real-time messaging pipeline (`GroupMessage`, `InvestorGroupChatWidget`) with Firestore streaming, message history, unread counters, and message deletion capabilities.
+  - Added unit and Firestore integration test suite in `test/investor_group_chat_test.dart` verifying model JSON serialization, message delivery, read status marking, and message cleanup.
+- **Shared Analysis Boards & Collaborative Theses ([#77](https://github.com/CIInc/robinhood-options-mobile/issues/77), [Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain models `GroupAnalysisPost` and `GroupAnalysisComment` (`lib/model/group_analysis.dart`) with `GroupAnalysisSentiment` (bullish, bearish, neutral) and `GroupAnalysisTimeHorizon` (dayTrade, swingTrade, shortTerm, mediumTerm, longTerm), target price and stop loss metrics, computed risk/reward ratio and potential return percentages, like toggles, and pinned post flags.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getGroupAnalysesStream`: Real-time streaming of shared theses ordered by pinned status and creation timestamp.
+    - `createGroupAnalysis`, `updateGroupAnalysis`, `deleteGroupAnalysis`: Post creation and author/admin deletion.
+    - `toggleGroupAnalysisLike`: Atomic like toggle tracking member user IDs.
+    - `setGroupAnalysisPinned`: Admin ability to pin featured analyses to top of board.
+    - `getGroupAnalysisCommentsStream` & `addGroupAnalysisComment`: Nested collaborative comment discussions for each analysis thesis.
+  - Built `InvestorGroupAnalysisBoardWidget` (`lib/widgets/investor_group_analysis_board_widget.dart`):
+    - Interactive board with sentiment filter chips (All, Bullish, Bearish, Neutral) and symbol search field.
+    - Rich analysis cards with sentiment badges, price targets, calculated risk/reward, like button with live counter, and comments button.
+    - Bottom sheet for creating new investment theses with automated risk/reward computation and input validation.
+    - Bottom sheet for threaded discussion comments with real-time streaming and quick input.
+  - Integrated `_buildAnalysisBoardCard` into `InvestorGroupDetailWidget` hub showing active analysis counts.
+  - Added test suite `test/investor_group_analysis_board_test.dart` with 3 comprehensive unit and integration tests.
+- **Verified Track Records for Public Group Leaders ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113)):**
+  - Created domain model `VerifiedTrackRecord` (`lib/model/verified_track_record.dart`) with `VerifiedLeaderTier` (`verifiedTrader`, `verifiedLeader`, `topPerformer`, `masterTrader`) based on audited win rate, Sharpe ratio, total trades, profitable trades, and total return.
+  - Added Firestore service methods (`lib/services/firestore_service.dart`):
+    - `getVerifiedTrackRecord` and `streamVerifiedTrackRecord` on `verified_track_records/{userId}`.
+    - `setVerifiedTrackRecord`: Save or update cryptographic/brokerage verification records.
+    - `calculateAndVerifyLeaderTrackRecord`: Dynamic audit engine evaluating group member trade activities, calculating realized returns, win rate, and assigning verified tier badges.
+  - Built Verified Leader Badges and Audit Sheet UI:
+    - Added verified badges with tier-specific colors and check icons in `InvestorGroupDetailWidget` header.
+    - Added `_showLeaderTrackRecordSheet` presenting verified metrics (Total Return %, Win Rate %, Total Trades, Sharpe Ratio, Profit Factor, and Audited Date) with cryptographic verification disclosure.
+    - Added verified leader chip badges on public group cards in `InvestorGroupsWidget`.
+  - Added test suite `test/verified_track_record_test.dart` with 4 unit and integration tests covering model serialization, tier calculation, Firestore persistence, and activity-driven track record generation.
+- **Schwab API Market Data & Order History Response Parsing ([#122](https://github.com/CIInc/robinhood-options-mobile/issues/122), [#145](https://github.com/CIInc/robinhood-options-mobile/issues/145)):**
+  - Enhanced `SchwabService` (`lib/services/schwab_service.dart`) with robust response parsing for single-leg and multi-leg option chains, real-time quotes, historical price bars, and order execution history.
+  - Updated models `Fundamentals`, `InstrumentOrder`, `InstrumentPosition`, `OptionLeg`, `OptionOrder`, and `Quote` to handle Schwab-specific field mappings and JSON normalization.
+  - Added unit test suites:
+    - `test/schwab_market_data_test.dart`: 665 lines of comprehensive tests for quotes, option chains, and price history parsing.
+    - `test/schwab_history_test.dart`: 272 lines of tests for order history and status handling.
+
+### Fixed & Performance Improvements
+- **Copy-Trading Firestore Query Optimization ([#146](https://github.com/CIInc/robinhood-options-mobile/pull/146)):**
+  - Cached source user document lookup (`sourceUserName`) across both `onInstrumentOrderCreated` and `onOptionOrderCreated` trigger handlers in `functions/src/copy-trading.ts`.
+  - Eliminated $O(N)$ redundant Firestore document reads per order event across copying group members, reducing lookup overhead to $O(1)$ (e.g., 75% reduction for $N=4$).
+  - Added unit test coverage in `functions/tests/copy-trading.test.ts`.
+- **Agentic Trading Gamma Exposure (GEX) Fallback:**
+  - Enhanced fallback handling in `functions/src/agentic-agent.ts` and `functions/src/gamma-exposure.ts` to gracefully fallback to deterministic technical and macro indicators when dealer gamma levels or zero-crossing strikes are unavailable.
+- **Gemini 2.5 Retirement & Migration to Gemini 3.1 Flash-Lite with Token & Cost Optimizations:**
+  - Reviewed the retirement schedule of Google Gemini 2.5 (Pro, Flash, Flash-Lite slated for discontinuation no earlier than October 16, 2026) and migrated all AI models to **Gemini 3.1 Flash-Lite** (`gemini-3.1-flash-lite`) for low latency, sub-second response, and high-throughput execution.
+  - **Token & Cost Optimizations:** Implemented systematic output token bounds, input prompt compression, and server-side caching to offset the pricing difference between 2.5 Flash-Lite and 3.1 Flash-Lite:
+    - Added strict output limits (`maxOutputTokens: 120` on `signal-optimizer.ts`, `250` on `agentic-agent.ts`, `400` on `analyzePriceTargets`, `450` on `macro-agent.ts`, and `800` on `generateContent31`/`generateContent25`), curbing billable generation and reasoning tokens by 50%–70%.
+    - Enforced tight sampling temperatures (`0.1 - 0.4`) for deterministic, compact responses without rambling.
+    - Compressed input vectors in `signal-optimizer.ts` (pruning historical price/volume series from 10 points to 5 points) and trimmed verbose prompt definitions in `generative_service.dart`.
+    - Implemented shared Firestore caching with a 2-hour TTL for macroeconomic AI narratives in `macro-agent.ts`, preventing duplicate LLM calls across concurrent users.
+  - **Cloud Functions:** Upgraded `generateContent25` and `analyzePriceTargets` in `gemini.ts`, `macro-agent.ts`, `agentic-agent.ts`, and `signal-optimizer.ts` to `gemini-3.1-flash-lite`.
+  - **New Primary Callables:** Exported `generateContent31` (along with `generateContent35`, `generateContent38`, and `generateContent3` compatibility aliases) in `index.ts` with Google Search grounding tool support while maintaining backward compatibility on `generateContent25` for existing app versions.
+  - **Flutter Client:** Updated default `ai_model_name` in `RemoteConfigService` and model initialization in `GenerativeService` to `gemini-3.1-flash-lite` with `GenerationConfig(maxOutputTokens: 1024, temperature: 0.5)`. Added cascading fallback invocation (`generateContent31` -> `generateContent35` -> `generateContent38` -> `generateContent25`) and robust candidate response parsing in `generateContentFromServer` and `generateContent`.
+  - **Test & Docs:** Updated mock AI models in `test/firebase_mocks.dart` and refreshed all references across documentation (`README.md`, `price-targets.md`, `ai-asset-allocation.md`, `mcp-integration.md`, `agentic-trading.md`).
+
+## [0.45.0] - 2026-09-14
+**Multi-Account & Retirement Expansion, Corporate Action Split Adjustments, Cash-in-Lieu Tracking, Securities Lending (SLIP), High-Yield Cash Sweeps, Banking/ACH Transfers, Tax Documents & Shareholder Say Q&A Engagement**
+
+### Added
+- **Multi-Account & Retirement Expansion (Traditional/Roth IRAs, Connected Agents, and Midlands Notification Center):**
+  - Expanded `Account`, `UnifiedAccount`, and `AccountStore` models to support Robinhood Traditional and Roth IRAs (`ira_traditional`, `ira_roth`), automatic margin restriction enforcement (IRAs cannot use margin/options borrow), and distinct multi-account filtering (`brokerageAccounts` vs. `retirementAccounts`).
+  - Created `RetirementContribution` and `RetirementHistory` models (`lib/model/retirement.dart`) with annual IRS contribution limits for 2023–2026 (\$7,000 baseline, \$8,000 age 50+ catch-up), Robinhood Gold 3% retirement match tracking, and JSON serialization.
+  - Created `SpendingAccount` model (`lib/model/spending_account.dart`) for Robinhood Spending/Cash Management (`/rhy/accounts/`) with debit card status, APY, and balance metrics.
+  - Created `ExternalToken` model (`lib/model/external_token.dart`) for connected third-party applications, OAuth2 integrations, and AI trading agents (`/oauth2/list_external_tokens/`) with scopes, expiration tracking, and revocation support (`/oauth2/revoke_token/`).
+  - Created `NotificationItem` model (`lib/model/notification_item.dart`) for first-party in-app announcements, market closure cards, and system notices (`/midlands/notifications/stack/`, `/inbox/threads/`).
+  - Extended `IBrokerageService` with `getExternalTokens`, `revokeExternalToken`, `getNotificationStack`, `getInboxThreads`, `getSpendingAccount`, and `getRetirementHistory` across `RobinhoodService`, `DemoService`, `SchwabService`, `PaperService`, `FidelityService`, and `PlaidService`.
+  - Built `RetirementWidget` (`lib/widgets/retirement_widget.dart`):
+    - Annual contribution progress dashboard with IRS limit progress bar and completion percentage.
+    - Age 50+ catch-up limit toggle switch.
+    - Robinhood retirement match tracker highlighting bonus earnings.
+    - Multi-year contribution ledger with tax year badges and account breakdown.
+    - Educational notice detailing IRS filing deadlines and contribution rules.
+  - Built `ConnectedAgentsWidget` (`lib/widgets/connected_agents_widget.dart`):
+    - Connected applications and AI trading agents management viewer.
+    - Scope chips, creation/expiration dates, and active/expired status indicators.
+    - Interactive "Revoke Access" confirmation dialog with live token revocation.
+  - Built `NotificationCenterWidget` (`lib/widgets/notification_center_widget.dart`):
+    - Unified notifications dashboard aggregating Midlands announcement stack cards and inbox threads.
+    - Filter chips by category (`All`, `Market`, `Feature`, `Account`, `Security`).
+    - Pinned priority notices and external link launching.
+  - Integrated retirement badges and savings icons into `SliverAppBarWidget` multi-account selector dropdown.
+  - Added navigation list tiles in `UserWidget` under Banking & Documents for "Retirement & IRA", "Connected Agents & Apps", and "Notification Center".
+  - Added 32 unit tests across `test/retirement_test.dart`, `test/spending_account_test.dart`, `test/external_token_test.dart`, `test/notification_item_test.dart`, and `test/account_type_test.dart`.
+- **Shareholder Say Q&A Engagement:**
+  - Integrated Robinhood and Say Technologies verified shareholder Q&A endpoints (`/instruments/{id}/qa/events-section/`, `/qa/events/{id}/questions/{id}/upvote/`, and `/qa/events/{id}/questions/`).
+  - Created domain models in `lib/model/shareholder_qa_event.dart`: `ShareholderAnswer`, `ShareholderQuestion`, `ShareholderQaEvent`, and `ShareholderQaSection` with JSON serialization, verified shareholder indicators, compact vote/share formatting, event status getters, and video timestamp conversion.
+  - Extended `IBrokerageService` with `getShareholderQaEvents`, `getShareholderQaSectionModel`, `upvoteQuestion`, and `submitQuestion`. Implemented live Bonfire network fetching in `RobinhoodService`, rich interactive simulation for AAPL, TSLA, NVDA (with executive answers from Tim Cook, Elon Musk, Jensen Huang) and dynamic procedural fallback in `DemoService`, plus concrete stubs across `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `ShareholderQaWidget` (`lib/widgets/shareholder_qa_widget.dart`):
+    - Full-featured dashboard featuring verified shareholder ownership badges and voting weight calculation.
+    - Status indicators (`Open for Voting`, `Upcoming`, `Concluded`).
+    - Filter chips (`Top (Shares)`, `Most Votes`, `Answered`, `My Votes`) and instant question/answer keyword search.
+    - Ranked question cards with interactive share-weighted upvote toggling and optimistic UI updates.
+    - Executive answer quote callouts with speaker name, executive title, and timestamp links.
+    - Modal bottom sheet with character-validated input for submitting verified shareholder questions.
+  - Built embeddable `ShareholderQaCard` widget inside `InstrumentWidget` under the stock's Financials section, providing a preview of the active event and top question with one-tap drilldown.
+  - Integrated navigation entry points in `UserWidget` under "Profile & Community" and feature badge in `UserInfoWidget`.
+  - Added unit tests in `test/shareholder_qa_test.dart` and widget tests in `test/shareholder_qa_widget_test.dart`.
+  - Added comprehensive feature documentation in `docs/shareholder-say-qa.md` and indexed in `docs/index.md`.
+- **Corporate Action Split Adjustments & Cash-in-Lieu Tracking:**
+  - Integrated Robinhood's corporate action stock split payment endpoint (`/corp_actions/v2/split_payments/`) and instrument split history (`/instruments/{id}/splits/`).
+  - Created `Split`, `SplitPayment`, and `CorporateActionSplitsSummary` domain models in `lib/model/split.dart` with forward/reverse split ratio formatting (e.g., `10:1 Forward Split`, `1:25 Reverse Split`), cost basis adjustment factors, fractional share cash-in-lieu calculation, and JSON serialization.
+  - Extended `IBrokerageService` with `getSplitPayments`, `getSplitPaymentsModel`, and `getCorporateActionSplitsSummary`. Added live network fetching in `RobinhoodService`, realistic multi-stock forward/reverse split fixtures (`NVDA 10:1`, `TSLA 3:1`, `AAPL 4:1`, `BIOR 1:25` reverse split with cash-in-lieu) in `DemoService`, and concrete stubs across `FidelityService`, `SchwabService`, `PlaidService`, and `PaperService`.
+  - Built `CorporateActionsWidget` (`lib/widgets/corporate_actions_widget.dart`) offering a comprehensive dashboard:
+    - Hero metrics card displaying cumulative cash-in-lieu received and completed split count.
+    - Interactive filter chips (`All`, `Forward Splits`, `Reverse Splits`, `Cash-in-Lieu`).
+    - Keyword search by symbol, company name, or ratio.
+    - Interactive split payment detail bottom sheet with original/adjusted cost basis formulas, tax treatment (Form 1099-B Box 1d) breakdown, and corporate action reference numbers.
+    - Educational Stock Splits & Cash-in-Lieu FAQ dialog.
+  - Integrated Corporate Actions entry point in `UserWidget` under Banking & Documents, "Corporate Actions" actionable badge chip in `UserInfoWidget`, and "Adjustments" text button in `InstrumentWidget`'s Stock Splits section header linking directly with pre-filtered symbol context.
+  - Added 12 unit tests in `test/split_test.dart` and 5 widget tests in `test/corporate_actions_widget_test.dart`.
+  - Added comprehensive feature documentation in `docs/corporate-actions-and-stock-splits.md` and updated `docs/index.md`.
+- **Tax Documents & Account Statements:**
+  - Integrated Robinhood's tax document and monthly statement endpoints (`/documents/?type=1099`, `/documents/?type=account_statement`), ADR pass-through fee endpoint (`/corp_actions/adr_fees/`), and foreign tax withholding status endpoint (`/tax_info/instrument/{id}/withholding_status/`).
+  - Created `AccountDocument`, `AdrFee`, `TaxWithholdingStatus`, and `TaxDocumentsSummary` domain models in `lib/model/tax_document.dart` with JSON serialization, tax year parsing, file size formatting, treaty rate comparisons, and cumulative summary calculations.
+  - Extended `IBrokerageService` with `getDocuments`, `getAdrFees`, and `getTaxWithholdingStatus`, alongside typed model helpers (`getAccountDocumentsModel`, `getAdrFeesModel`, `getTaxWithholdingStatusModel`). Implemented concrete overrides in `RobinhoodService`, realistic multi-year 1099, monthly statements, ADR fees, and foreign tax treaty fixtures in `DemoService`, and concrete stubs in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `TaxDocumentsWidget` (`lib/widgets/tax_documents_widget.dart`) offering a 3-tab dashboard:
+    - **Tax Forms (1099):** Hero summary card, tax year filter chips (`All Years`, `2025`, `2024`, `2023`), keyword search, document download actions, and detail bottom sheet.
+    - **Statements & Trade Confirms:** Segmented filter (`All`, `Statements`, `Trade Confirms`), search bar, and chronological list of monthly statements and order execution confirmations.
+    - **ADR Fees & Withholding:** Hero metric of cumulative ADR pass-through fees paid, ADR fee ledger with per-share rates and share quantities, and foreign tax withholding rates table with statutory vs. treaty rates and exemption badges (e.g. UK 0% treaty exempt, Netherlands 15% reduced, Cayman Islands tax-exempt).
+  - Integrated "Tax Documents" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and "Tax Documents & Statements" navigation tile in `UserWidget` (`user_widget.dart`).
+  - Added 15 unit tests in `test/tax_document_test.dart` and widget tests in `test/tax_documents_widget_test.dart`.
+  - Added feature documentation in `docs/tax-documents-and-statements.md` and updated `docs/index.md`.
+- **Stock Lending Program (SLIP) Dashboard:**
+  - Integrated Robinhood's Fully Paid Securities Lending Program endpoints (`/accounts/stock_loan_payments/`, `/stock_loan/payments/`, and `/slip/eligibility/`).
+  - Created `StockLoanPosition`, `StockLoanPayment`, and `SlipEligibility` domain models in `lib/model/stock_loan.dart` with JSON serialization, 102% cash collateral backing tracking, borrow rate formatting, and enrollment status management (`enrolled`, `eligible`, `ineligible`, `pending`, `paused`).
+  - Extended `IBrokerageService` with `getStockLoanPayments`, `getSlipEligibility`, and `getSweepsInterest`, with typed model helpers in `RobinhoodService`, realistic multi-month simulation fixtures in `DemoService`, and concrete overrides in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `StockLoanWidget` (`lib/widgets/stock_loan_widget.dart`) offering a 2-tab interface featuring an enrollment hero card, active securities on loan cards with 102% cash collateral verification, an expandable payment ledger with ticker filtering, and an investor protections guide (SIPC vs. FDIC cash collateral, full freedom to sell, and manufactured dividend payments).
+  - Integrated "Stock Lending & Sweeps" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and added "Stock Lending & Cash Sweeps" navigation tile in `UserWidget` (`user_widget.dart`).
+- **High-Yield Cash Sweeps & APY Rate Monitor:**
+  - Integrated Robinhood's Cash Sweeps interest rate endpoint (`/accounts/sweeps/interest/`).
+  - Created `SweepsInterest` domain model in `lib/model/stock_loan.dart` with multi-tier rate parsing (Gold APY 5.00% vs. Standard APY 1.50%), promotional boost detection, up to \$2,250,000 FDIC aggregate insurance tracking, and dynamic monthly/annual interest projections on uninvested cash.
+  - Added dedicated "Cash Sweeps & APY" tab in `StockLoanWidget` with effective APY hero metrics, side-by-side tier comparison cards, an interactive cash yield calculator slider (\$500–\$100,000), and a directory of FDIC program partner banks (Citibank, Goldman Sachs Bank USA, Wells Fargo, JPMorgan Chase, etc.).
+- **Banking, ACH Transfers & Linked Accounts:**
+  - Integrated Robinhood's deposit and withdrawal transfer history endpoints (`/ach/transfers/`) and linked bank account relationship endpoints (`/ach/relationships/`).
+  - Created `AchTransfer`, `AchRelationship`, and `AchSummary` domain models in `lib/model/banking.dart` with JSON serialization, direction handling (deposit vs. withdrawal), landing/clearing timeline estimation, masked account numbers (`****1234`), and net cash flow aggregations.
+  - Extended `IBrokerageService` with `getAchTransfers`, `getAchRelationships`, `getAchTransfersModel`, `getAchRelationshipsModel`, and `cancelAchTransfer`, implemented live API calls and cancellation support in `RobinhoodService`, multi-institution mock fixtures in `DemoService`, and concrete stubs in `PaperService`, `FidelityService`, `SchwabService`, and `PlaidService`.
+  - Built `BankingWidget` (`lib/widgets/banking_widget.dart`) offering a 2-tab interface featuring a net cash movement hero card, pending transfers banner with estimated clearing dates, transfer search and filter chips (`All`, `Deposits`, `Withdrawals`, `Pending`, `Completed`), transfer detail bottom sheet with audit trail and cancel action, linked bank cards with verification chips and `PRIMARY` indicators, and ACH guidelines.
+  - Integrated "Banking & Transfers" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`) and navigation tile in `UserWidget` (`user_widget.dart`).
+  - Added 11 unit tests in `test/banking_test.dart` and widget tests in `test/banking_widget_test.dart`.
+  - Added full feature documentation in `docs/banking-and-transfers.md` and indexed in `docs/index.md`.
+- **Testing & Documentation:**
+  - Added 14 unit tests in `test/stock_loan_test.dart` validating JSON parsing, rate calculations, error fallbacks, and `DemoService` integration.
+  - Added widget tests in `test/stock_loan_widget_test.dart` validating SLIP metrics, position rendering, search filter interaction, tab switching, and cash sweeps calculator.
+  - Added comprehensive feature and architectural documentation in `docs/stock-lending-and-cash-sweeps.md` and indexed in `docs/index.md`.
+
+### Fixed
+- **Agentic Reasoning Mode & GEX Structural Level Fallbacks:**
+  - Resolved issue where alpha-agent in `reasoning` mode failed to pass spot prices to `fetchGammaExposure`, causing missing price warnings.
+  - Added robust structural level fallbacks for `pTrans`, `nTrans`, `plusGex`, and `cotmp` in `computeGammaExposure` when option chains lack zero-crossing gamma flips.
+  - Enforced Rule 4 compatibility (`pTrans > nTrans`) across all dealer gamma regimes.
+  - Enriched agentic reasoning prompt with Total Call/Put GEX and Total Open Interest while correcting `$N/A` formatting.
+  - Enabled graceful fallback to deterministic technical indicators and macro assessment in agentic decision engine when options chain or GEX data is unavailable.
+  - Added unit test coverage in `functions/tests/gamma-exposure.test.ts` for GEX structural fallbacks without zero-crossings.
+
+## [0.44.0] - 2026-09-13
+**Unified Risk & Margin Health, Collateral Tracking, Margin Calls & Financing Costs, Instrument-Specific Buying Power & Trade Warnings, Options Collateral & Tier Upgrades, Combo Orders (Stock + Option Packages), and Historical Cost Basis Lookback**
+
+### Added
+- **Combo Orders (Stock + Option Packages):**
+  - Integrated Robinhood's multi-leg combo order execution and history endpoints (`/combo/orders/`, `/combo/orders/{id}/`, `/combo/orders/{id}/cancel/`).
+  - Created `ComboOrder`, `ComboLeg`, `ComboLegExecution`, and `ComboLegType` (`equity`, `option`) domain models in `lib/model/combo_order.dart` with package strategy identification (Covered Call, Buy-Write, Collar, Married Put, Vertical Spread, Straddle, Iron Condor, Custom), direction/pricing calculations, leg execution matching, and CSV reporting (`toCsvRow()`).
+  - Built `ComboOrderStore` (`lib/model/combo_order_store.dart`) and registered it in top-level state management in `main.dart` with live reactive filters (`bySymbol()`, `openOrders`, `completedOrders`).
+  - Extended `IBrokerageService` with `getComboOrders`, `streamComboOrders`, `placeComboOrder`, and `cancelComboOrder`. Implemented live network calls in `RobinhoodService`, multi-leg package simulation in `DemoService` and `PaperService`, and Firestore caching in `FirestoreService` (`combo_orders`).
+  - Implemented `ComboOrdersWidget` (`lib/widgets/combo_orders_widget.dart`) with sticky header, interactive status filter chips (`All`, `Filled`, `Queued / Open`, `Cancelled`), net premium balance calculations, and expandable package order cards.
+  - Implemented `ComboOrderWidget` (`lib/widgets/combo_order_widget.dart`) providing detailed package order breakdown, state badges, underlying quote integration, individual equity & option leg cards (side, position effect, ratio quantity, strike, expiration), execution settlement details, cancellation dialog, and share sheet export.
+  - Integrated Combo Orders into `HistoryWidget` (`lib/widgets/history_widget.dart`) with a dedicated "Combos" tab and into `InstrumentWidget` (`lib/widgets/instrument_widget.dart`) via `_buildComboOrdersSliver` for underlying-specific package tracking.
+  - Added full test coverage in `test/combo_order_test.dart`, `test/combo_order_store_test.dart`, and `test/combo_order_widget_test.dart` (14 unit & widget tests).
+  - Added comprehensive architecture and reference documentation in `docs/combo-orders.md` and indexed in `docs/index.md`.
+
+- **Instrument Historical Positions & Cost Basis Lookback:**
+  - Implemented automated trading cycle (round trip) reconstruction directly from chronological filled equity orders (`/orders/`, `/positions/?nonzero=false`, and Paper Trading stores) applying First-In, First-Out (FIFO) tax lot matching.
+  - Created `InstrumentHistoricalPosition`, `InstrumentHistoricalOrder`, and `InstrumentHistoricalPositionsSummary` in `lib/model/instrument_historical_position.dart` with holding period duration calculations, volume-weighted average buy/sell prices, realized P&L, return percentage, and win rate metrics.
+  - Built `InstrumentHistoricalPositionsWidget` (`lib/widgets/instrument_historical_positions_widget.dart`) featuring summary metrics grid (Win Rate, Average Hold, Buy vs. Sell execution spread bar), chronologically sorted historical cycle cards, and interactive round-trip detail modal bottom sheet with itemized ledger of constituent orders.
+  - Integrated `InstrumentHistoricalPositionsWidget` into `InstrumentWidget` (`instrument_widget.dart`) across Overview, Activity, and All tabs.
+  - Added comprehensive test suite in `test/instrument_historical_position_test.dart` and `test/instrument_historical_positions_widget_test.dart` (20 unit & widget tests).
+  - Added full documentation in `docs/instrument-cost-basis-lookback.md` and indexed in `docs/index.md`.
+
+- **Options Collateral & Tier Upgrades:**
+  - Integrated Robinhood's chain-level options collateral endpoint (`/options/chains/{chainId}/collateral/?account_number={account}`) and upgrade eligibility endpoint (`/options/should_show_options_upgrade_on_sdp/?account_number={account}`).
+  - Created `OptionChainCollateral`, `OptionCollateralCash`, `OptionCollateralEquity`, `OptionCollateralBreakdown`, and `OptionUpgradeStatus` domain models in `lib/model/option_collateral.dart` with cash/equity collateral segregation, infinite liability support, and tier-based capability mapping (Level 1, Level 2, Level 3).
+  - Extended `IBrokerageService` with `getOptionChainCollateral` and `getOptionsUpgradeStatus`, with full implementations across `RobinhoodService`, `DemoService`, `PaperService`, `SchwabService`, `FidelityService`, and `PlaidService`.
+  - Built `OptionCollateralWidget` (`lib/widgets/option_collateral_widget.dart`) offering a 2-tab dashboard with Total Locked Collateral hero card, active positions vs pending orders breakdown, strategy collateral rules guide (Cash-Secured Puts, Covered Calls, Credit Spreads), capability matrix, and direct Level 3 upgrade application flow.
+  - Integrated quick options collateral & tier navigation in `InstrumentOptionChainWidget` (`option_chain_widget.dart`) via SliverAppBar action button (`Icons.shield_outlined`).
+  - Added "Options Tiers & Collateral" / "Options L3 Active" actionable badge chip in `UserInfoWidget` (`user_info_widget.dart`).
+  - Added comprehensive test suite in `test/option_collateral_test.dart` and `test/option_collateral_widget_test.dart` (16 unit & widget tests).
+  - Added complete documentation in `docs/options-collateral-and-tier-upgrades.md` and indexed in `docs/index.md`.
+
+- **Instrument-Specific Buying Power & Trade Warnings:**
+  - Integrated Robinhood's instrument buying power endpoint (`/accounts/{account}/instrument_buying_power/{instrument_id}/`) and trade risk warnings endpoint (`/instruments/{instrument_id}/v2/warnings/`).
+  - Created `InstrumentBuyingPower`, `InstrumentTradeWarning`, and `InstrumentTradeWarnings` domain models in `lib/model/instrument_buying_power.dart` with JSON serialization, margin requirement formatting (e.g. `50% Initial Margin`, `100% Cash Required`), shorting capacity tracking, and severity categorization (critical, warning, notice).
+  - Extended `IBrokerageService` with `getInstrumentBuyingPower` and `getInstrumentWarnings`, with live authenticated implementations in `RobinhoodService`, realistic mock data in `DemoService` (differentiating standard marginable equities like AAPL from 100% cash-only volatile/meme stocks like GME/TSLA), and fallbacks in `SchwabService`, `FidelityService`, `PaperService`, and `PlaidService`.
+  - Built `InstrumentTradeWarningsBanner`, `InstrumentBuyingPowerSummaryTile`, and `InstrumentBuyingPowerSheet` in `lib/widgets/instrument_buying_power_widget.dart`.
+  - Integrated real-time instrument buying power and trade warnings banner into `TradeInstrumentWidget` (order entry and preview screens) and `InstrumentWidget` (instrument details and market quote slivers).
+  - Added comprehensive test suite in `test/instrument_buying_power_test.dart` and `test/instrument_buying_power_widget_test.dart` (18 unit & widget tests).
+  - Added documentation in `docs/instrument-buying-power-and-warnings.md` and indexed in `docs/index.md`.
+
+- **Margin Calls & Financing Costs:**
+  - Integrated real-time margin call demands endpoint (`/margin/calls/`) and monthly margin interest debits (`/cash_journal/margin_interest_charges/`).
+  - Created `MarginCall`, `MarginCallType` (maintenance, federal/Reg T, day trade, house, exchange), `MarginCallState` (open, satisfied, closed, waived, canceled), `MarginInterestCharge`, and `MarginFinancingSummary` domain models in `lib/model/margin_call.dart` with JSON serialization, deadline tracking, and resolution guidance.
+  - Added `getMarginCalls` and `getMarginInterestCharges` to `IBrokerageService` with robust endpoint calls in `RobinhoodService`, realistic multi-month mock data in `DemoService`, and stub implementations in `SchwabService`, `FidelityService`, `PaperService`, and `PlaidService`.
+  - Added dedicated Action Center critical alerts in `PortfolioAlertService` for active margin call deficits, indicating exact dollar demands and deadlines.
+  - Built `MarginFinancingWidget` (`lib/widgets/margin_financing_widget.dart`) featuring account status hero card, metric tiles, filterable margin call cards with resolution options (cash deposit vs. marginable stock liquidation), and monthly financing debit ledger with borrowing APR and FINRA interest formula explainer.
+  - Linked `MarginFinancingWidget` via direct navigation chips in `UserInfoWidget` and action cards in `MarginHealthWidget`.
+  - Added comprehensive test suite across `test/margin_call_test.dart` and `test/margin_financing_widget_test.dart`.
+  - Added documentation in `docs/margin-calls-and-financing.md` and indexed in `docs/index.md`.
+
+- **Modernized Splash & Welcome Page Experience:**
+  - Redesigned `WelcomeWidget` (`lib/widgets/welcome_widget.dart`) with smooth entrance animations (`FadeTransition` & `SlideTransition`), glowing hero logo card, and tagline pill.
+  - Added rich interactive feature showcase cards highlighting Quantitative Auto-Trading, Real-Time Options Flow, Gamma Exposure (GEX) & Walls, Collaborative Investor Groups, and Paper Trading & Backtesting.
+  - Added Multi-Brokerage Ecosystem compatibility badges (Robinhood, Schwab, Fidelity, Paper Trading, Demo Mode).
+  - Enhanced contextual banner alerts for expired sessions or connection notices, non-custodial security badge, and configurable callbacks (`onLogin`, `onExploreDemo`).
+  - Added dark mode support and smooth theme transition in web splash screen (`web/index.html`).
+  - Added comprehensive widget test suite `test/welcome_widget_test.dart` covering animations, responsive scrolling, callbacks, and custom header configurations.
+- **Unified Accounts Endpoint Integration:** Integrated Robinhood unified accounts endpoint (`/phoenix/accounts/unified` with fallback to `/accounts/unified/`) into the core service layer.
+- **Unified Account & Margin Health Data Models:** Created `UnifiedAccount`, `MarginHealth`, `MarginHealthStatus` (`healthy`, `warning`, `critical`, `marginCall`, `unleveraged`), and `CollateralAllocations` in `lib/model/unified_account.dart` with comprehensive JSON serialization, buffer ratio normalization, and graceful fallback constructor `fromAccountAndPortfolio(Account, Portfolio)`.
+- **Brokerage Service Unified Account Support:** Added `getUnifiedAccount(BrokerageUser user)` to `IBrokerageService` with live authenticated endpoint handling in `RobinhoodService`, realistic multi-asset mock payloads in `DemoService`, and safe stub implementations across `PaperService`, `PlaidService`, `SchwabService`, and `FidelityService`.
+- **Automated Margin Risk Alerts in Action Center:** Extended `PortfolioAlertService` to evaluate margin health states and generate high-priority notifications for critical margin call deficits, low maintenance buffer cushions (<10%), and advisory warning cushions (<25%), with clean suppression for cash and unleveraged accounts.
+- **Dedicated Margin Health Dashboard:** Built `MarginHealthWidget` (`lib/widgets/margin_health_widget.dart`) offering:
+  - Hero maintenance buffer status card with color-coded gauge and liquidation distance meter.
+  - Segmented True Buying Power grid breaking down standard, options, crypto, day trading, and withdrawable cash capacities.
+  - Collateral & Holds breakdown detailing locked options and crypto collateral.
+  - Margin leverage and requirements inspector showing total equity, maintenance requirement, initial requirement, and outstanding margin loan.
+  - Educational FINRA Rule 4210 guidance accordion explaining margin mechanics, buffer formulas, and broker liquidation policy.
+- **Account & Navigation Entry Points:**
+  - Embedded an interactive "Margin Health" badge on account cards in `UserInfoWidget` displaying real-time buffer percentages and routing directly to `MarginHealthWidget`.
+  - Added "Margin Health & Collateral" item under the *Features* list in `UserWidget`.
+- **Test Suite & Verification:** Added 30+ tests across `test/unified_account_test.dart`, `test/margin_health_widget_test.dart`, and `test/margin_health_overflow_test.dart` verifying data modeling, buffer normalization, alert thresholds, widget rendering, and responsive zero-overflow stability across compact and standard mobile form factors.
+- **Documentation:** Added `docs/margin-health-and-collateral.md` and updated `docs/index.md`.
+
+### Fixed
+- **Trade Instrument Buying Power Overflow:**
+  - Resolved `RenderFlex` horizontal overflow on compact mobile displays (width < 380px) in `InstrumentBuyingPowerSummaryTile` (`lib/widgets/instrument_buying_power_widget.dart`) by adapting to a responsive two-tier layout using `LayoutBuilder`, placing the margin status chip beneath the label while preserving inline presentation on wider viewports.
+
+## [0.43.0] - 2026-09-12
+**Robinhood Market Data & Institutional Intelligence: Retail Order Flow, Robinhood Sentiment, Short Float & Curated Presets**
+
+### Added
+- **Robinhood Curated Screener Presets & Legend Workspaces:** Integrated first-party Robinhood market data and trading workspace endpoints (`/screeners/presets/`, `/screeners`, `/hippo/bw/layouts`) into the mobile trading experience.
+- **Screener Presets & Workspaces Data Models:** Added `RobinhoodScreenerPreset`, `ScreenerPresetCriterion`, and `RobinhoodScreener` in `lib/model/screener_preset.dart`, and `LegendLayout` and `LegendWidgetConfig` in `lib/model/legend_layout.dart` with JSON serialization, scale normalization, criterion label generation, and conversion to native `ScreenerCriterion` rules.
+- **Brokerage Service Presets & Legend Support:** Added `getScreenerPresets`, `getScreeners`, `getLegendLayouts`, and `getLegendLayout` to `IBrokerageService` with live overrides in `RobinhoodService` and realistic mock implementations in `DemoService` (featuring Top Dividend Stocks, Mega-Cap Tech Leaders, Undervalued Growth, 52-Week High Breakouts, High Short Squeeze Candidates, and multi-panel Legend workspaces like Options Pro Desk, Multi-Chart Grid, and Day Trader Command Center), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Presets & Workspaces UI Widget:** Modernized `PresetsWidget` (`lib/widgets/presets_widget.dart`) into a 3-tab hub:
+  - Curated Presets Tab: Theme category filtering (`All`, `Dividends`, `Growth`, `Value`, `Momentum`, `Short Squeeze`, `Active`), featured preset badges, rule criteria chips, direct-navigation sample equity chips, and one-tap "Open in Stock Screener".
+  - Legend Layouts Tab: Multi-window desktop workspace inspector previewing panel components (`Candlestick Chart`, `Options Chain (Greeks)`, `Order Book (Level 2)`, `Options Flow Feed`, `Time & Sales Tape`, `Trade Ticket`) and responsive grid coordinates.
+  - Yahoo Presets Tab: Streamlined access to Yahoo Finance predefined screeners.
+- **Stock Screener Integration & Performance Polish:** Enhanced `ScreenerWidget` with an automated `Curated Presets` modal sheet, `initialPreset` routing, prominent **Active Curated Screener Hero Banner** (displaying preset title, CDN illustration, emoji, category badge, criteria tags, switch button, and collapsible filter options), sticky results header with active preset chips, view mode toggle (Grid / List view), and key fundamental metric pills. Optimized 200+ results rendering by replacing non-virtualized nested grid views with high-performance `SliverGrid` and `SliverList` slivers, eliminating repeated $O(N^2 \log N)$ sorting inside `itemBuilder`, introducing lazy viewport instantiation and auto-pagination, and smoothing scroll positioning to prevent jumping to the bottom of the list.
+- **Search & Discovery Integration:** Embedded "Curated Presets & Legend Workspaces" browse card and app bar action in `SearchWidget`.
+- **Documentation:** Added comprehensive technical and user guide in `docs/screener-presets-and-legend-layouts.md` and updated `docs/index.md`.
+- **Retail Order Flow & Robinhood Sentiment:** Integrated first-party Robinhood market data endpoint (`/marketdata/equities/summary/robinhood/{instrument_id}/`) to surface retail customer buy and sell ratios, net accumulation/distribution bias, trading volume percentage changes, and historical sentiment shifts.
+- **Retail Order Flow Data Models:** Added `RetailOrderFlow` and `RetailOrderFlowPoint` in `lib/model/retail_order_flow.dart` with robust JSON parsing, automatic scale normalization (supporting both decimal and percentage ratios), net flow calculation, and 5-tier sentiment classification (`Strong Bullish`, `Bullish`, `Neutral`, `Bearish`, `Strong Bearish`).
+- **Brokerage Service Retail Sentiment Support:** Added `getRetailSentiment` to `IBrokerageService` and implemented realistic mock retail order flow in `DemoService` (featuring retail squeeze fervor for GME, strong accumulation for TSLA, moderate bullish flows for AAPL, and net distribution for inverse/bearish equities), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Retail Order Flow UI Widget:** Created `RetailOrderFlowWidget` (`lib/widgets/retail_order_flow_widget.dart`) featuring:
+  - Header with color-coded sentiment regime badge and net order flow chip.
+  - Visual two-tone split bar contrasting retail buyers % and sellers %.
+  - Primary metric cards: Net Retail Bias (Accumulation / Distribution), Buy Orders count, and Volume Shift trend.
+  - Contextual summary banner interpreting retail momentum and trader conviction.
+  - Expandable historical table displaying daily retail flow snapshots (Date, Buy %, Sell %, Net Flow, and Volume Shift).
+  - Educational guidance card explaining Robinhood retail order flow dynamics and sentiment divergence.
+- **Instrument Detail Integration:** Embedded `RetailOrderFlowWidget` directly in `InstrumentWidget` slivers alongside short interest data for equity instruments.
+- **Short Float & Live Borrow Availability:** Integrated first-party Robinhood market data endpoints (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`) into the mobile trading experience to provide real-time short float percentage, days to cover, borrow inventory tiers, borrow fee rates, and short squeeze risk modeling.
+- **Short Interest & Shorting Models:** Added `ShortInterest`, `ShortingAvailability`, and `ShortInterestSummary` in `lib/model/short_interest.dart` with robust JSON parsing, automatic scale normalization (`freeFloatPercentage`, `borrowFeeRatePercentage`), settlement date parsing, change calculations, and `ShortSqueezeRisk` (`low`, `moderate`, `elevated`, `high`, `extreme`) and `BorrowCostLevel` (`easyToBorrow`, `moderate`, `elevated`, `high`) categorizations.
+- **Brokerage Service Short Data Support:** Added `getShortInterest` and `getShortingAvailability` to `IBrokerageService` and implemented realistic mock short fundamentals and borrow availability in `DemoService` (including high-congestion short squeeze scenarios for GME and easy-to-borrow profiles for AAPL/TSLA), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Short Float & Borrow Rates UI Widget:** Created `ShortInterestWidget` (`lib/widgets/short_interest_widget.dart`) featuring:
+  - Header with dynamic squeeze risk status badge and borrow cost / inventory chip.
+  - Primary metric cards: Short % of Free Float (with progress indicator), Days to Cover (Short Ratio), Borrow Fee Rate (Annual Cost), and Borrow Inventory (`HIGH`, `MEDIUM`, `LOW`, `NONE`).
+  - Squeeze description banner explaining market dynamics for the current risk tier.
+  - Expandable detailed table with current vs. prior shares short (+/- change & % change), total free float, average daily volume, FINRA settlement date, margin requirements, locate requirements, and borrow warning callouts.
+  - Educational guidance card detailing short interest, days to cover, and borrow fee mechanics.
+- **Instrument Detail Page Integration:** Integrated `ShortInterestWidget` directly into `InstrumentWidget` slivers for equity instruments.
+- **First-Party Insider Sentiment & Activity:** Integrated first-party Robinhood market data endpoints (`/marketdata/insiders/summary/{instrument_id}/`, `/marketdata/insiders/transactions/{instrument_id}/`) to surface monthly aggregate insider transactions, net sentiment scoring, executive purchase/sale ratios, and SEC Form 4 filings.
+- **Insider Sentiment Data Models:** Added `InsiderSentimentSummary`, `MonthlyInsiderActivity`, and `InsiderTransactionRecord` in `lib/model/insider_sentiment.dart` with robust JSON parsing, automatic scale normalization, net flow derivation, 3-tier sentiment classification (`Net Buying`, `Net Selling`, `Neutral`), and transaction code mappings (`P` Purchase, `S` Sale, `M` Option Exercise, `A` Grant/Award).
+- **Brokerage Service Insider Data Support:** Added `getInsiderSummary` and `getInsiderTransactions` to `IBrokerageService` with overrides in `RobinhoodService` and realistic mock implementations in `DemoService` (AAPL positive net sentiment with Tim Cook transactions, GME executive purchases by Ryan Cohen, and TSLA executive sales), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Modernized Insider Activity UI Widget:** Upgraded `InsiderActivityWidget` (`lib/widgets/insider_activity_widget.dart`) featuring:
+  - Header with dynamic color-coded sentiment regime badge (`Net Buying`, `Net Selling`, `Neutral`) and badge icon.
+  - Visual two-tone split bar contrasting insider purchases value vs sales value with percentages.
+  - Primary metric cards: Net Bias (+/- value and net shares), Purchases (total value, count, shares), and Sales (total value, count, shares).
+  - Monthly Aggregate Trend chips visualizing month-by-month capital flow deltas.
+  - Itemized recent Form 4 transactions list showing filer name, executive role/relationship, transaction type chip with icon, transacted shares, execution price, total transaction value, and date.
+  - Full history modal bottom sheet with category filter chips (`All`, `Purchases`, `Sales`, `Options`, `Grants`), direct/indirect ownership notes, and post-trade share balance.
+  - Educational guidance card clarifying SEC Form 4 disclosure timelines and Rule 10b5-1 pre-scheduled sales vs open-market purchases.
+- **Instrument Detail Page Integration:** Activated `InsiderActivityWidget` in `InstrumentWidget` slivers alongside Short Interest and Retail Order Flow for equity instruments.
+- **First-Party Institutional & Hedge Fund Tracking:** Integrated first-party Robinhood market data endpoints (`/marketdata/hedgefunds/summary/{instrument_id}/`, `/marketdata/hedgefunds/transactions/{instrument_id}/`) to surface quarterly hedge fund sentiment, overall shares held, institutional ownership percentage, manager accumulation/distribution breakdown, and detailed institutional positions.
+- **Hedge Fund Sentiment Data Models:** Added `HedgeFundSummary`, `QuarterlyHedgeFundActivity`, and `HedgeFundTransactionRecord` in `lib/model/hedge_fund_sentiment.dart` with support for both endpoint formats (`detailed_transactions`, `quarterly_aggregate_transactions`, `summary`), automatic accumulation/distribution classification (`Accumulation`, `Distribution`, `Neutral`), and trade actions (`Added`, `Reduced`, `Opened Position`, `Closed Position`, `No Change`).
+- **Brokerage Service Hedge Fund Support:** Added `getHedgeFundSummary` and `getHedgeFundTransactions` to `IBrokerageService` with overrides in `RobinhoodService` and realistic mock implementations in `DemoService` (AAPL accumulation with Warren Buffett and top funds, GME accumulation by RC Ventures, and TSLA distribution by ARK and Tiger Global), with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Hedge Fund Activity UI Widget:** Created `HedgeFundActivityWidget` (`lib/widgets/hedge_fund_activity_widget.dart`) featuring:
+  - Header with dynamic sentiment badge (`Accumulation`, `Distribution`, `Neutral`), badge icon, and refresh control.
+  - Buyers vs. Sellers split bar contrasting buying funds count/percentage vs. selling funds count/percentage.
+  - Primary metric tiles: Net Flow (+/- dollar value), Total Held Value, Total Funds count, and Institutional Ownership %.
+  - Quarterly Manager Trends horizontal chips displaying multi-quarter capital flow and manager ratio deltas.
+  - Itemized top institutional filings showing fund manager name, institution name, quarter/date, shares held, position action badge with icon, and market value.
+  - Full history modal bottom sheet to view all tracked institutional hedge fund positions.
+- **Instrument Detail Page Integration:** Integrated `HedgeFundActivityWidget` in `InstrumentWidget` slivers under the stock Market Intelligence section.
+- **Documentation:** Added comprehensive technical and user guide in `docs/hedge-fund-tracking.md`, `docs/short-interest.md`, `docs/retail-order-flow.md`, updated `docs/insider-activity.md`, and linked in `docs/index.md`.
+
+### Testing
+- Added `hedge_fund_sentiment_test.dart` (6 tests) covering `HedgeFundSummary`, `QuarterlyHedgeFundActivity`, and `HedgeFundTransactionRecord` JSON deserialization, sentiment classification, trade action categorization, and `DemoService` response contracts for AAPL, GME, and TSLA.
+- Added `hedge_fund_activity_widget_test.dart` (3 tests) covering UI rendering of hedge fund sentiment badges, buyers/sellers split bar, key metrics grid, quarterly manager trend chips, top institutional filings, "View All" modal bottom sheet, distribution sentiment styling, and responsive layout across standard and compact (320px) screens.
+- Added `insider_sentiment_test.dart` (7 tests) covering `InsiderSentimentSummary`, `MonthlyInsiderActivity`, and `InsiderTransactionRecord` JSON deserialization, summary computation from raw transactions, sentiment classification, legacy bridge conversion, and `DemoService` response contracts for AAPL, GME, and TSLA.
+- Added `insider_activity_widget_test.dart` (3 tests) covering UI rendering of insider sentiment badges, split bar, primary metric tiles, recent Form 4 transaction rows, "View All" modal bottom sheet with category filters, bearish sentiment styling, and responsive layout across standard and compact (320px) screens.
+- Added `retail_order_flow_test.dart` (10 tests) covering `RetailOrderFlow` and `RetailOrderFlowPoint` JSON deserialization, decimal and percentage normalization, net flow derivation, 5-tier sentiment regime classification, and `DemoService` retail flow response contracts for GME, TSLA, BEAR, and AAPL.
+- Added `retail_order_flow_widget_test.dart` (2 tests) covering UI rendering of retail flow title, sentiment badges, split bar, primary metric tiles, summary callouts, expand/collapse daily history table, and bearish sentiment styling.
+- Added `short_interest_test.dart` (13 tests) covering `ShortInterest` JSON deserialization, free float scaling, share change computation, `ShortingAvailability` borrow fee rates, hard-to-borrow inference, `ShortSqueezeRisk` multi-factor scoring, `BorrowCostLevel` categorization, and `DemoService` response contracts.
+- Added `short_interest_widget_test.dart` (3 tests) covering UI rendering of short metrics, header badges, primary metric cards, expand/collapse interaction, borrow restriction callouts, and responsive layout across standard and compact (320px) mobile screens.
+
+## [0.42.0] - 2026-09-08
+**Pattern Day Trader (PDT) Protection & Counter, Margin Health & Risk Monitoring**
+
+### Added
+- **Pattern Day Trader (PDT) Protection & Counter:** Implemented real-time rolling 5-business-day counter for equity and option day trades to safeguard margin accounts from regulatory restrictions under FINRA Rule 4210.
+- **Day Trade & Day Trade Summary Models:** Introduced `DayTrade` and `DayTradeSummary` models in `lib/model/day_trade.dart` with automatic 5-business-day roll-off calculation (`computeDropOffDate`, `remainingTradingDays`, `isExpired`), dynamic risk level categorization (`safe`, `warning`, `danger`, `flagged`, `exempt`), $25,000 equity exemption evaluation, and compact badge labels (`statusBadge`).
+- **Account Margin & PDT Fields:** Enhanced `Account` model to parse and serialize `dayTradesProtection`, `dayTradeBuyingPower`, `dayTradeRatio`, `markedPatternDayTraderDate`, `patternDayTraderExpiryDate`, and `isPdtForever` from `margin_balances`.
+- **Brokerage Service Day Trade Support:** Added `getRecentDayTrades(BrokerageUser user, String accountNumber)` to `IBrokerageService` and implemented realistic dynamic mock day trades relative to calendar business days in `DemoService` for offline and demo environments, with graceful fallbacks across Paper, Plaid, Fidelity, and Schwab services.
+- **Action Center PDT Risk Alerts:** Integrated `_pdtAlerts` in `PortfolioAlertService` to surface critical alerts when 0 day trades remain (`pdt-limit-reached`) or when an account is flagged with equity under $25,000 (`pdt-flagged`), and warning alerts when 1 day trade remains (`pdt-warning`), with automatic suppression for accounts with $\ge \$25,000$ equity or cash accounts.
+- **Day Trade & PDT Monitor Dashboard:** Created `DayTradeMonitorWidget` (`lib/widgets/day_trade_monitor_widget.dart`) featuring:
+  - Responsive 4-segment visual progress meter tracking used vs allowable day trades.
+  - FINRA $25,000 equity threshold progress bar with live deficit calculation.
+  - Protection & Day Trade Buying Power card with Robinhood Day Trade Protection status chips and PDT restriction expiry dates.
+  - Filterable day trade history (`All`, `Stocks`, `Options`) with per-trade roll-off countdown chips.
+  - Interactive FINRA Rule 4210 FAQ accordion and guidance dialog.
+- **User Settings & Account Integration:** Added direct entry to "Day Trade & PDT Monitor" under Features in `UserWidget`, and integrated interactive "PDT Protected", "PDT Flagged", or "Day Trades" action chips on account cards in `UserInfoWidget`.
+
+### Changed
+- **Responsive Layout Hardening:** Hardened `DayTradeMonitorWidget` with `Wrap`, flex constraints, and text truncation to prevent `RenderFlex` overflows across all mobile viewport widths (including 320px–360px small screens).
+
+### Testing
+- Added `day_trade_test.dart` (15 unit tests) covering `DayTrade` JSON parsing, 5-business-day drop-off calculations across calendar boundaries, risk level transitions, $25,000 equity exemption rules, `Account` margin balance extraction, `DemoService` day trades fetching, and `PortfolioAlertService` PDT alert generation.
+- Added `day_trade_widget_test.dart` testing UI rendering of the counter, threshold progress, protection status, and trade filters.
+- Added `day_trade_overflow_test.dart` validating zero layout overflows across multiple device sizes (`320x600`, `360x640`, `390x844`) for both margin and exempt accounts.
+
+## [0.41.0] - 2026-09-07
+**AI Trading Coach & Behavioral Finance**
+
+### Added
+- **Trading Psychology Score:** Introduced dedicated `TradingPsychologyScore` (0-100) and `TradingPsychologyScoreCard` evaluating trader emotional resilience, discipline, and risk temperament across a 4-pillar breakdown: Emotional Stability, Discipline & Patience, Bias Resistance, and Risk Temperament, with psychological health verdict tiers (*Zen Master Trader*, *Disciplined Operator*, *Developing Mindset*, *Emotionally Vulnerable*).
+- **Behavioral Bias Detection & Antidotes:** Added structured detection of cognitive biases (`DetectedBias`, `DetectedBiasesCardView`) including FOMO, Revenge Trading, Disposition Effect (Loss Aversion), Overconfidence & Sizing Creep, Gambler's Fallacy, Anchoring, and Action Bias, complete with severity badges (Critical, High, Moderate, Low), trade evidence citations, and actionable behavioral antidote frameworks.
+- **Emotion Tracking & Mindset Journal:** Created `EmotionLog` model, Firestore persistence (`trading_journal` collection in `FirestoreService`), `EmotionJournalView`, and `EmotionCheckInSheet` modal bottom sheet allowing traders to record 8 distinct emotional states (Calm 🧘, Confident 🎯, Disciplined 🛡️, Anxious 😰, FOMO 🤑, Euphoric 🚀, Frustrated 🤬, Fearful 😨), energy/alertness levels (1-5), confidence ratings (1-5), market sentiment bias, and session reflection notes. Included emotional composure metrics tracking constructive vs reactive states over time.
+- **AI Coach Emotion Context Ingestion:** Integrated recent emotional check-in history directly into the Gemini Flash coaching prompt (`generateContent25`), allowing the AI to cross-reference real-time emotional logs with trade timing, tilt, and execution mistakes.
+- **Personalized Trading Pattern Analysis:** Added `TradingPatternMetrics` and `TradingPatternCardView` analyzing win vs loss holding duration asymmetry (detecting disposition effect when hold time ratio > 1.5x), rapid-fire trade clustering (<10 minutes between trades indicating revenge trading), limit order patience rates, and stop-loss capital protection percentages.
+- **Tabbed Coaching Interface:** Upgraded `PersonalizedCoachingWidget` with a 4-tab layout: **Coach** (Coaching result view, score deltas, challenges, and detailed diagnosis), **Biases & Antidotes** (bias detection cards and behavioral finance taxonomy guide), **Emotion Journal** (mindset check-ins, composure analytics, and reflection history), and **Patterns** (pattern metrics, execution statistics, and trade activity list).
+
+### Testing
+- Added `trading_psychology_test.dart` covering `EmotionLog` serialization, `DetectedBias` severity mappings and icons, `TradingPsychologyScore` calculation and verdict derivation, `TradingPatternMetrics` calculation from mock trade logs, and Firestore `FakeFirebaseFirestore` persistence.
+
+## [0.40.0] - 2026-09-07
+**Forex Trading, Carry Trade Optimizer, and Multi-Asset Portfolio Allocation**
+
+### Added
+- **Carry Trade Optimizer:** Introduced `CarryTradeOptimizerWidget` and `CarryTradeModel` evaluating global interest rate differentials, 10 central bank benchmark policy rates, real rates, daily rollover swap income, Carry-to-Risk ratio scoring, and carry trade unwind risk indicators. Integrated directly into the Forex Instrument view, Home Allocation, Rebalancing, Search, and Trading Strategies pages.
+- **Currency Basket Optimization:** Added automated currency basket optimization with three distinct risk profiles: Risk-Adjusted (Sharpe Maximizer), Maximum Yield, and Diversified Multi-Funding (inverse-volatility weighting across JPY, CHF, EUR funding currencies).
+- **Forex Order Routing & Stop Orders:** Enhanced `TradeForexWidget` with support for Stop orders alongside Market and Limit orders, standardized lot sizing presets (Micro 1,000, Mini 10,000, Standard 100,000), dynamic dollar pip value calculation, and simulated Paper/Demo trading execution.
+- **Multi-Asset Portfolio Allocation:** Unified portfolio allocation calculations across `AllocationWidget` and `RebalancingWidget` to span all 7 asset classes: Stocks, Options, Crypto, Forex, Futures, Fixed Income, and Cash. Added an "All-Weather" allocation preset.
+- **Robinhood Native API Expansion:** Extended `RobinhoodService` with endpoints for first-party institutional hedge fund sentiment & transactions (`/marketdata/hedgefunds/`), insider sentiment & transactions (`/marketdata/insiders/`), retail net order flow (`/marketdata/equities/summary/robinhood/`), short interest & borrow fees (`/marketdata/fundamentals/short/v1/`, `/instruments/{id}/shorting/`), unified account margin health & buffer (`/phoenix/accounts/unified`), stock loan payments (SLIP), cash sweep rates, combo orders, market hours, PDT counter, ADR fees, and Say Technologies shareholder Q&A.
+
+### Changed
+- **Forex Instrument View Integration:** Added direct currency exchange action bar shortcut from `ForexInstrumentWidget` into the Carry Trade Optimizer.
+- **Rebalancing Presets:** Updated asset class presets in `RebalancingWidget` to incorporate multi-asset allocation targets including Futures and Forex holdings.
+
+### Testing
+- Added `carry_trade_test.dart` covering central bank rates, daily rollover swap calculations, carry-to-risk ratios, basket optimization, and model serialization.
+- Added `forex_trading_multi_asset_test.dart` testing lot sizing, pip calculations, multi-asset allocation distribution, and stop order routing.
+
+## [0.39.0] - 2026-09-05
+**Custom Benchmarks, Portfolio Stress Testing, Aggregate Option Greeks, News Signal Multipliers, and Forex View Modernization**
+
+### Added
+- **Custom Benchmark Support:** Performance charts now support comparing portfolio performance against any custom ticker or asset (e.g., SPY, QQQ, DIA, IWM, TSLA, AAPL, BTC-USD) with enhanced data alignment, caching, and full-screen visualization.
+- **Portfolio Stress Testing:** Added `PortfolioStressTestCard` under Risk Analytics to simulate portfolio performance under severe macro market scenarios (Market Crash -20%, Rate Spike +150bps, Tech Selloff -15%, Inflation Shock +200bps, Recession, Volatility Spike +50%).
+- **Aggregate Option Greeks:** Added `PortfolioGreeksCard` displaying total portfolio Delta, Gamma, Theta, Vega, and Rho across all option positions with risk sensitivity metrics.
+- **Tail Risk & Liquidity Scoring:** Added `TailRiskCard` incorporating Value at Risk (VaR 95% & 99%), Expected Shortfall (Conditional VaR), Cornish-Fisher VaR, skewness, kurtosis, weighted liquidity scoring, and time-to-liquidate calculations.
+- **News Sentiment Signal Adjustment:** Integrated real-time news sentiment multipliers into trade signal scoring (`alpha-agent.ts`), automatically scaling confidence based on news sentiment and catalyst confidence.
+- **Event Impact Prediction:** Added event impact prediction functionality (`news-intelligence.ts`) with interactive UI components (`NewsIntelligenceWidget`) predicting market price impacts and confidence for upcoming catalysts.
+- **Consolidated Group Analytics & Order Sync:** Consolidated group performance and member metrics into single server-side executions (`group-performance-analytics.ts`, `instrument-order-sync.ts`) with user-triggered portfolio synchronization.
+- **Forex & Crypto Instrument View Parity:** Modernized `ForexInstrumentWidget` with a technical analysis summary card (consensus verdict, TTM squeeze, period count, voting progress bar, quick metrics), an interactive modal bottom sheet displaying full indicator breakdowns across momentum, trend strength, moving averages, and volatility/volume with documentation dialogs, candlestick mode, chart controls popup menu with indicator presets (trend, mean reversion, reset) and indicator help, refined date filters with haptic feedback, adaptive volume series/metrics handling when OTC volume is unavailable, and full user context / `SharePlus` integration.
+
+### Changed
+- **Schwab Account Integration:** Enhanced Schwab account position mapping, position store syncing, account selection, and error handling in home view navigation.
+- **GitHub Actions Workflows:** Updated CD, release, and integration test CI/CD workflows to latest GitHub action versions.
+
+### Testing
+- Added unit and integration tests for custom benchmark controller state, tail risk calculations, portfolio stress testing, aggregate option Greeks, Schwab account mapping, group performance analytics, and news intelligence models.
+
+## [0.38.0] - 2026-08-27
+**News Intelligence & Smart Alerts**
+
+### Added
+- **AI News Intelligence:** Real-time sentiment scoring (0-100), automated catalyst extraction (Bullish Drivers vs Bearish Risks), impact categorization (High/Medium/Low), and breaking news summaries for instruments and watchlists.
+- **Smart Multi-Condition Alerts:** Correlate price targets with technical indicators (SMA, RSI), Gamma Exposure (GEX Net GEX, Call Wall, Put Wall, Gamma Flip), and Volume.
+- **Dynamic Alert Thresholds:** Added ATR- and historical volatility-calculated dynamic price bands and expansion alert triggers.
+- **News Intelligence Widget:** Added interactive news analysis dashboard with sentiment gauges, catalyst breakdowns, and external article deep linking.
+
+### Changed
+- **Alert Rule Engine:** Evaluator now combines multi-condition rule results with logic conjunctions (`ALL` / `ANY`) and generates consolidated trigger notifications.
+- **Instrument Detail Navigation:** Added direct AI News Intelligence shortcut from the news section.
+
+### Testing
+- Added backend tests for news sentiment scoring, multi-article intelligence extraction, GEX smart alerts, and ATR dynamic threshold alerts.
+- Added Flutter tests for `NewsIntelligence` and enhanced `CustomAlert` model serialization.
+
+## [0.37.5] - 2026-08-15
+**Quantitative Research, Stock Screening, and Portfolio Risk Analytics**
+
+### Added
+- **Event Study Analyzer:** Compare an instrument with a benchmark around earnings, FDA decisions, product launches, guidance changes, and other dated events using configurable trading-day windows.
+- **Rolling Statistics:** Added rolling annualized volatility, beta, and correlation views to event studies and portfolio risk analytics.
+- **Custom Stock Screener:** Added sector, market-cap, P/E, dividend-yield, price, and volume filters with presets, sorting, custom criteria, and a seeded Firestore instrument universe.
+- **QQQ Macro Indicator:** Added technology-leadership context to macro assessment scoring and dashboard presentation.
+- **Futures Margin Analytics:** Added margin requirement calculations and expanded futures position charting.
+
+### Changed
+- **Risk Heatmap:** Refined the layout for more readable and responsive portfolio risk visualization.
+- **Android Build Tooling:** Updated the Android Gradle Plugin and Gradle distribution used by the project.
+- **Schwab Options Documentation:** Updated integration status to reflect available option-order placement methods and multi-leg order support.
+
+### Testing
+- Added backend event-study coverage, screener normalization and criterion coverage, and rolling-statistics portfolio analytics coverage.
+
+## [0.37.4] - 2026-08-13
+**Interpretable Options Flow, Private Portfolio Charts, and Trading Reliability**
+
+### Added
+- **Options Flow Guidance:** Every supported smart flag now includes a recommendation, and flag sheets separate the definition, trade-specific detection reason, and verification guidance.
+- **Interpretation Checklist:** Options Flow details promote the three highest-priority checks for a trade with access to the complete recommendation list.
+- **Portfolio Chart Labels:** Portfolio charts display the active date span in change metrics and selected-point annotations.
+- **Android Google Sign-In:** Added the Android Firebase configuration and initialization required for Google authentication.
+
+### Changed
+- **Portfolio Chart Privacy:** The global balance-visibility setting now masks chart values, axes, range annotations, tooltips, and summary metrics while preserving the privacy toggle.
+- **Auto-Trading Activity:** Stock auto-trading surfaces backend decision messages in the activity log and suppresses duplicate entries during repeated provider updates.
+- **Google Play Delivery:** Android CD now completes the Play Console release instead of leaving uploaded bundles in draft status.
+
+### Fixed
+- **Options Chain Quality:** Server-side options-flow retrieval rejects chains unless both call and put sides contain usable open interest, allowing fallback providers to supply complete data.
+- **Agentic Rejection Messages:** Standardized proposal rejection text so HOLD and RiskGuard outcomes no longer produce contradictory status messages.
+- **Macro Persistence:** Non-finite numeric values are recursively converted to Firestore-safe `null` values before macro assessments are persisted or returned.
+- **Authentication Errors:** Google sign-in failures now distinguish user cancellation, missing Android configuration, and other Firebase or platform failures.
+
+### Testing
+- **Options Flow:** Added coverage for recommendation completeness and options-chain open-interest validation.
+- **Portfolio Privacy:** Added chart masking, date-span label, and portfolio overview coverage.
+- **Trading Reliability:** Added tests for rejection-message formatting, recursive numeric sanitization, and activity-log message handling.
+
+## [0.37.3] - 2026-08-10
+**Whale Watch Accuracy, Signal Reliability, and Responsive Research**
+
+### Added
+- **Institutional Holdings Snapshots:** Whale Watch now persists aggregate institutional holdings and compares each run with the previous snapshot to rank positive accumulation accurately.
+- **Ranking Provenance:** Whale Watch payloads and cards identify whether a ranking represents measured accumulation or a first-run/current-holdings fallback.
+- **Signal Scheduler Cache Controls:** Added cache-only market-data and GEX execution modes for bulk daily, hourly, and 15-minute signal jobs.
+
+### Changed
+- **Bounded Signal Generation:** Scheduled jobs reuse persisted macro assessments, shared market-index context, cached GEX, and cached OHLCV bars instead of issuing a provider request for every symbol.
+- **Signal Freshness Semantics:** Successful unchanged calculations refresh `timestamp`, `date`, `currentPrice`, and `lastSuccessfulCalculationAt` while preserving `diagnostics.signalChangedAt` as the recommendation-change time.
+- **Market-State Navigation:** Macro Assessment remains the single aggregate market score; the overlapping Sentiment card is hidden pending a distinct news/social/community Alpha Feed.
+- **Research Discovery:** Search presents Options Flow, GEX, and Whale Watch in a clearer order with stable card heights, denser quote rows, and improved text wrapping.
+
+### Fixed
+- **Signal Persistence:** Omitted undefined optional indicator configuration from Firestore payloads, preventing scheduled signal writes from being rejected.
+- **Scheduler Deadlines:** Removed live provider fan-out from bulk signal generation; a production 15-minute run processed the 540-symbol universe in approximately 23 seconds instead of exceeding the nine-minute deadline.
+- **Cron Accounting:** Failed calculations are now counted as errors rather than successful processing, and symbols without usable cached bars preserve their previous signal.
+- **Yahoo Reliability:** Whale Watch now uses the authenticated Yahoo proxy and retries authorization failures once.
+- **Responsive Layouts:** Stabilized research grids, history/account selection, portfolio section scaffolds, chart dates, GEX labels, and Trade Signals scroll-to-top behavior on compact screens.
+
+### Testing
+- **Whale Watch Ranking:** Added unit coverage for positive snapshot deltas, first-snapshot holdings fallback, and no-positive-change fallback behavior.
+- **Production Signal Verification:** Confirmed cache-only GEX execution, persisted macro reuse, accurate partial-failure counts, and independent calculation/change timestamps.
+
+## [0.37.2] - 2026-08-09
+**Portfolio Gamma Intelligence & GEX Precision**
+
+### Added
+- **Portfolio GEX Dashboard:** Added a holdings-only gamma dashboard under Portfolio Strategies with aggregate net and gross exposure, dampening/amplifying breadth, concentration, top gamma drivers, and drill-down navigation for each symbol.
+- **Actionable GEX Levels:** Added volatility-regime context, nearest-level distance, Gamma Flip, Call/Put Walls, positive and negative transitions, Put Mass, and +GEX targets with chart/table selection support.
+- **Portfolio Risk Controls:** Added magnitude and key-level-proximity sorting, a short-gamma amplifying-risk filter, data-freshness labels, pull-to-refresh, retry handling, and dedicated empty states.
+
+### Changed
+- **Standardized GEX Units:** Updated backend and on-device calculations to report dollar gamma exposure for a 1% underlying move using `Gamma × OI × 100 × Spot² × 0.01`.
+- **Holdings-Only Symbol Resolution:** Extended the top-GEX callable so portfolio requests can exclude default market symbols while preserving normalized, deduplicated, 100-symbol-bounded requests for general dashboards.
+- **Portfolio Strategies Layout:** Integrated GEX analysis into the Strategies section, removed nested card padding, and stabilized the portfolio browse grid with fixed-height responsive tiles.
+
+### Fixed
+- **GEX Data Interpretation:** Preserved transition and target fields through client serialization, included them in visible strike selection, and added four-hour cache-aligned stale-data detection.
+- **GEX Detail Layout:** Improved selected-strike overlay placement and responsive transition-level presentation for dense mobile charts.
+
+### Testing
+- **Gamma Validation:** Added backend coverage for 1%-move scaling and portfolio symbol selection plus Dart coverage for transitions, freshness, nearest levels, mixed portfolio breadth, and zero-exposure summaries.
+- **Portfolio Navigation:** Expanded overview widget coverage for the Strategies route and Portfolio GEX entry point.
+
+## [0.37.1] - 2026-08-09
+**Progressive Portfolio, Signal Diagnostics, and Trading Reliability**
+
+### Added
+- **AI Portfolio Architect:** Added natural-language portfolio construction with risk-profile-aware allocation guidance.
+- **Progressive Portfolio Experience:** Reorganized Portfolio into a decision-focused overview with hero statistics, movers, risk summaries, an Action Center, and dedicated Performance, Positions, Risk, Insights, Strategies, and Taxes sections.
+- **Focused Analytics Workflows:** Added shared portfolio analytics state, benchmark services, CSV export, AI insights, daily and monthly performance views, ESG analysis, health scoring, and contextual metric explanations.
+- **Trade Signal Diagnostics:** Added instrument-level calculation details covering attempt and success times, data freshness, source, cache fallback, calculation status, interval, and evaluated bar count.
+- **Portfolio Alert Coverage:** Added account-aware portfolio alerts with service and controller test coverage.
+
+### Changed
+- **Overview Holdings:** Restored capped stock and option position summaries to the Portfolio overview while keeping full position management in its dedicated section.
+- **Macro Assessment Experience:** Expanded regime history and indicator detail presentation, and aligned the score gauge with the Risk-Off, Neutral, and Risk-On thresholds.
+- **Portfolio Navigation:** Replaced the monolithic analytics screen with progressive disclosure and reusable section scaffolds optimized for faster scanning.
+
+### Fixed
+- **Macro Regime Consistency:** Derive the macro regime, allocation guidance, and displayed score from the same weighted score, preventing values such as 55 from appearing as `RISK_ON`.
+- **Paper Portfolio Data:** Corrected paper-account aggregation, option position data, and historical chart intervals.
+- **TestFlight Deployment:** Improved deployment script validation, archive handling, and upload reliability.
+- **Signals App Bar:** Removed the duplicate profile action from the Trade Signals page.
+
+## [0.37.0] - 2026-07-29
+**Agentic Reasoning Mode, Balance Privacy, and Advanced Account Orchestration**
+
+### Added
+- **Agentic Reasoning Mode:** Introduced a new "Reasoning Mode" for the AI Alpha Agent that enables deep, multi-step analysis before generating trade signals. This mode uses enhanced prompts and a GEX-aware orchestrator to evaluate market regime, sentiment, and technicals in a coherent sequence.
+- **Balance Visibility Toggle:** Added a global "Show Balances" toggle in the Home and Portfolio views. Users can now mask sensitive financial data (total equity, P&L, account balances) with a single tap for improved privacy in public settings.
+- **Scroll-to-Top Navigation:** Implemented "Scroll to Top" functionality across all major list views (Search, History, Instrument Details, Trade Signals). Tapping the active tab or a dedicated button quickly returns the user to the start of long lists.
+- **Advanced GEX Orchestrator:** Integrated institutional-grade Gamma Exposure (GEX) data into the Agentic Trading lifecycle, allowing the AI to adjust signal confidence based on Call/Put walls and Gamma Flips.
+
+### Changed
+- **Enhanced Account Management:** Refactored the account selection logic to support more seamless transitions between multiple brokerage accounts. The primary navigation bar now reflects the active account's state more accurately.
+- **Improved SliverAppBar Architecture:** Redesigned the main app bar and search headers to provide a smoother, more responsive experience when scrolling through instrument data and watchlists.
+- **Agentic Trading Config:** Updated the configuration model to include per-account reasoning mode toggles and advanced GEX sensitivity settings.
+
+### Fixed
+- **iOS Build Modernization:** Fully migrated the iOS build process to use CocoaPods standard integration, resolving issues with dynamic linking and improving CI/CD reliability.
+- **Generative Service Resilience:** Added dynamic casting and safer JSON parsing to the MCP client to handle unexpected model responses without crashing the trading interface.
+
+## [0.36.1] - 2026-07-24
+**GEX Strategy Suite, Technical Exits, and Backtesting Simulation Upgrades**
+
+### Added
+- **GEX Trading Strategy Templates:** Introduced three new professional-grade strategies leveraging options dealer positioning:
+  - **GEX Mean Reversion:** Exploits "Pinning" regimes when GEX is strongly positive.
+  - **GEX Trend Accelerator:** Capitalizes on "gamma-short" acceleration regimes.
+  - **GEX Intraday Scalp:** Fast-paced 15-minute scalping using GEX magnitude and VWAP.
+- **Automated GEX Technical Exits:** Implemented real-time monitoring of dealer gamma levels during the auto-trading cycle. Users can now set a custom GEX threshold (e.g., \$0M) to automatically exit positions when the market regime shifts.
+- **Enhanced Backtesting Simulation:** Upgraded the historical simulation engine to support technical exits for RSI, Signal Strength, and GEX. Users can now validate the effectiveness of their exit thresholds on historical data.
+- **Indicator Documentation Integration:** Added "Gamma Exposure (GEX)" to the technical documentation suite. Interactive help buttons in the Dashboard and Instrument views now provide detailed theory on pinning, walls, and gamma flips.
+- **Login Carousel Indicators:** Added animated page indicators to the brokerage selection screen in the Login view for improved discoverability of connection options.
+
+### Changed
+- **Branding Update:** Renamed "Stocks Agentic Trading" to **"Stocks Auto-Trading"** to align with "Futures Auto-Trading" terminology across the platform.
+- **Signal Discovery Enhancements:** Updated the `TradingStrategiesPage` search mapping to support "GEX" keywords for rapid strategy filtering.
+
+### Fixed
+- **Firestore GEX Indexing:** Resolved a "query requires index" error by adding a composite index for GEX-based signal filtering in `firestore.indexes.json`.
+- **Backtesting Type Safety:** Fixed TypeScript property access errors and added null-safety guards for technical indicators in the `runBacktest` cloud function.
+- **UI Consistency:** Removed unused private methods and variables in the `AgenticTradingSettingsWidget` to clean up compile warnings.
+
+## [0.36.0] - 2026-07-07
+**Robinhood Model Context Protocol (MCP) Client, Interactive Conversational Trade Boards, and Selected Account Sync**
+
+### Added
+- **Native Robinhood Model Context Protocol (MCP) Client:** Integrated a high-performance local MCP Dart client utilizing `package:mcp_dart` in [src/robinhood_options_mobile/lib/services/generative_service.dart](src/robinhood_options_mobile/lib/services/generative_service.dart). This provides the conversational Gemini assistant with real-time, sandbox-authenticated local tools execution.
+- **MCP OAuth Secure Authentication Flow:** Designed a fully integrated OAuth flow using a custom web view in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the live agent trading server endpoints. This enables secure generation, persistence, and verification of access tokens across client devices.
+- **Interactive Tool Execution Visualboards:** Built a detailed [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](src/robinhood_options_mobile/lib/widgets/chat_widget.dart) component displaying inline `ToolExecutionCard` widgets. Users can easily view underlying tool schemas, toggle raw or pretty formatted JSON payloads, examine response structures, and verify direct assistant interactions.
+- **Conversational Trading Proposal Parsing & Native Checkout:** Added support for intercepted `TradeProposal` data streams that transform plain chatbot text into responsive trade cards (`AgenticTradeCard`). Tapping "Review Order" computes estimated cash impacts, verifies margin thresholds, and enables direct execution on Robinhood native APIs.
+- **Persistent Account Selection Store:** Implemented a persistent `AccountStore` choice in [src/robinhood_options_mobile/lib/model/account_store.dart](src/robinhood_options_mobile/lib/model/account_store.dart) that saves selected account configurations to SharedPreferences.
+- **Multi-Account User Dashboard Controls:** Enhanced [src/robinhood_options_mobile/lib/widgets/user_info_widget.dart](src/robinhood_options_mobile/lib/widgets/user_info_widget.dart) with interactive selection lists, "Agentic" status indicators, active markers, and tight layout styling. Swapping profiles instantly synchronizes cash values, rebalancing algorithms, and chatbot context across the app.
+
+### Changed
+- **Plaid Integration Deprecation:** Cleaned up legacy Plaid Link packages, event listeners, and dependencies in [src/robinhood_options_mobile/lib/widgets/login_widget.dart](src/robinhood_options_mobile/lib/widgets/login_widget.dart) to streamline the codebase and prioritize the secure native MCP broker pathways.
+- **Integration Test Durability:** Refactored unit and widget mock environments in [src/robinhood_options_mobile/test/agentic_trading_provider_test.dart](src/robinhood_options_mobile/test/agentic_trading_provider_test.dart) and [src/robinhood_options_mobile/test/strategy_builder_paper_trade_test.dart](src/robinhood_options_mobile/test/strategy_builder_paper_trade_test.dart) to guarantee mock data compatibility and lower execution fragility.
+- **App Store Requirements & Compatibility:** Added camera and location descriptions to iOS PLIST manifests for compliance. Upgraded platform package locks to ensure smooth Android Gradle compilations.
+
+## [0.35.3] - 2026-06-10
+**GEX Sensitivity Dashboard, Login Polling, and Compatibility Updates**
+
+
+- **Institutional Holdings Snapshots:** Whale Watch now persists aggregate institutional holdings and compares each run with the previous snapshot to rank positive accumulation accurately.
+- **Ranking Provenance:** Whale Watch payloads and cards identify whether a ranking represents measured accumulation or a first-run/current-holdings fallback.
+- **Signal Scheduler Cache Controls:** Added cache-only market-data and GEX execution modes for bulk daily, hourly, and 15-minute signal jobs.
+
+### Added
+- **Bounded Signal Generation:** Scheduled jobs reuse persisted macro assessments, shared market-index context, cached GEX, and cached OHLCV bars instead of issuing a provider request for every symbol.
+- **Signal Freshness Semantics:** Successful unchanged calculations refresh `timestamp`, `date`, `currentPrice`, and `lastSuccessfulCalculationAt` while preserving `diagnostics.signalChangedAt` as the recommendation-change time.
+- **Market-State Navigation:** Macro Assessment remains the single aggregate market score; the overlapping Sentiment card is hidden pending a distinct news/social/community Alpha Feed.
+- **Research Discovery:** Search presents Options Flow, GEX, and Whale Watch in a clearer order with stable card heights, denser quote rows, and improved text wrapping.
+
+- **Spot-Shift GEX Sensitivity Dashboard:** Added multi-point spot sensitivity calculations, a visual sensitivity curve, and a stress-test summary for rapid dealer-regime inspection.
+- **Signal Persistence:** Omitted undefined optional indicator configuration from Firestore payloads, preventing scheduled signal writes from being rejected.
+- **Scheduler Deadlines:** Removed live provider fan-out from bulk signal generation; a production 15-minute run processed the 540-symbol universe in approximately 23 seconds instead of exceeding the nine-minute deadline.
+- **Cron Accounting:** Failed calculations are now counted as errors rather than successful processing, and symbols without usable cached bars preserve their previous signal.
+- **Yahoo Reliability:** Whale Watch now uses the authenticated Yahoo proxy and retries authorization failures once.
+- **Responsive Layouts:** Stabilized research grids, history/account selection, portfolio section scaffolds, chart dates, GEX labels, and Trade Signals scroll-to-top behavior on compact screens.
+
+- **Market Maker Pinning Gauge:** Added a dedicated pinning gauge that visualizes current spot relative to the Put Wall, Call Wall, and Gamma Flip threshold.
+- **Whale Watch Ranking:** Added unit coverage for positive snapshot deltas, first-snapshot holdings fallback, and no-positive-change fallback behavior.
+- **Production Signal Verification:** Confirmed cache-only GEX execution, persisted macro reuse, accurate partial-failure counts, and independent calculation/change timestamps.
+- **Expanded GEX Dashboard Workflow:** Added instrument preview cards, direct navigation into instrument detail, expandable Top GEX Leaders, and better row-level exploration controls.
+- **Prompt Challenge Polling:** Added login polling support so prompt-based brokerage challenges can resolve inside the app without forcing a restart or manual retry loop.
+- **Gamma Exposure Validation Coverage:** Added Dart serialization coverage and backend test updates for GEX model and function validation.
+
+### Changed
+- **GEX Chart Interactions:** Upgraded strike inspection from tap-only behavior to smoother drag-and-scrub interactions with improved spacing and selection feedback.
+- **Integration Test Stability:** Refactored integration and paper-trading tests to reduce brittle widget interactions and improve maintainability.
+- **Android Compatibility Defaults:** Updated Android Gradle properties and app versioning metadata for improved build compatibility.
+
+### Fixed
+- **Portfolio Empty-State Handling:** Updated portfolio chart rendering to handle missing historical data more gracefully.
+- **GEX Leaders Layout:** Fixed overflow and density issues in the GEX leaders list, including top-N default display with controlled expansion.
+
+## [0.35.0] - 2026-06-07
+**Advanced Gamma Exposure (GEX) Calculations & Pro Analytics Integration**
+
+### Added
+- **On-Device Black-Scholes Mathematical Engine:** Implemented high-performance, real-time local mathematical evaluations in Dart using the Standard Normal PDF ($N'(x) = \frac{e^{-\frac{1}{2}x^2}}{\sqrt{2\pi}}$) and dynamic $d_1$ parameters ($\Gamma = \frac{N'(d_1)}{S \sigma \sqrt{T}}$) for ultimate GEX client-side calculation fallback.
+- **Client-Side Options Ingestion Failover:** Integrated parallel multi-expiration scraping pathways via `YahooService` to directly parse and build GEX profiles automatically when Cloud Functions encounter rate limits or external database gaps.
+- **Visual GEX Indicators & Controls:** Created a visual "Local Calc" status chip to proactively notify the user when the local mathematical failover engine is running in real time.
+- **Interactive Strike Detail Panels:** Created coordinate-tapped graphic bars translating tap boundaries into a specific strike row highlighting overlay with deep percent-spot, OI volume, and Call vs Put GEX breakdown cards.
+- **Top GEX Leaders Ranking Board:** Developed an institutional-grade Top GEX Leaders widget ranking high-liquidity stocks to track underlying dealer gravity and macro pinning biases.
+- **GEX Search History Tracker:** Embedded localized persistent caching to store and render a history row of previously analyzed tickers for rapid accessibility.
+- **Detailed GEX Documentation Guide:** Authored [docs/gamma-exposure-analysis.md](docs/gamma-exposure-analysis.md) outlining options theory, Black-Scholes gamma formulations, failover pathways, and UI controls.
+
+### Changed
+- **Dynamic Visible Strike Boundaries:** Expanded visual layout defaults inside `gamma_exposure_model.dart` via `getVisibleStrikes({int count = 20})` to guarantee critical out-of-the-money (OTM) Wall and Flip levels are always fully displayed rather than cropped.
+- **Markdown Documentation Hub:** Linked GEX Pro to the main markdown registry in [docs/index.md](docs/index.md).
+- **AI Agent Contextual Guidance:** Registered GEX files, services, and calculations inside [.github/copilot-instructions.md](.github/copilot-instructions.md) to keep AI models instantly aligned.
+
+### Fixed
+- **TypeScript Linter Conformity:** Rewrote backend cloud function endpoints in `functions/src/gamma-exposure.ts` to strictly adhere to formatting and length guidelines, correcting `max-len` warnings safely.
+- **Horizontal Strike Row Overflow:** Corrected horizontal layout constraints on the tapped strike detail head widgets, replacing packed columns with responsive `Wrap` and `Expanded` alignments.
+
+## [0.34.3] - 2026-03-27
+**Advanced Macro Analysis & Strategy Precision**
+
+### Added
+- **Expanded Macro Coverage:** Added 7 new institutional-grade indicators to the Macro Assessment engine: LQD (Credit Spreads), EEM (Global Risk), Copper (Industrial Growth), MOVE (Interest Rate Vol), KRE (Banking Health), RSP/SPY (Breadth Quality), and FXI (Global Leadership).
+- **Weighted Scoring System:** Implemented a new `MACRO_WEIGHTS` model that assigns specific importance to each indicator (e.g., VIX and SPY at 15% each) for a more robust composite Macro Score.
+- **Dynamic Macro Cache:** Added server-side caching to `getMacroAssessmentCall` with a `forceRefresh` option, reducing API costs and improving client performance.
+- **Market Hours Logic:** Added weekend skipping to the daily Macro Assessment cron to avoid stale data generation during market closures.
+
+### Changed
+- **Macro Dashboard UI:** Redesigned the "Indicators Pulse" with a 19-pillar heatmap, enhanced tooltips, and a new bottom-sheet detail view for each indicator including momentum tracking and weighted impact.
+- **Regime Visuals:** Updated the Macro Score gauge with a multi-color progress gradient and added an "About" guide with detailed regime definitions and strategy mappings.
+- **Indicator Reliability:** Improved Twelve Data symbol mapping and added fallback logic for indices like DXY and Put/Call Ratios.
+
+### Fixed
+- **Search Widget Stability:** Added null safety checks to Whale Watch and Alpha Discovery navigation in `search_widget.dart` to prevent potential crashes on uninitialized accounts.
+
+## [0.34.2] - 2026-03-23
+**Trade Signal Metadata & Position Stability Fixes**
+
+### Added
+- **Signal Date Metadata:** Added `date` field to trade signals in `performFuturesSignal` and `handleAlphaTask` functions for improved historical tracking and sorting.
+- **Signal Migration:** Implemented a migration function in `migrations.ts` to backfill the `date` field for existing signals in Firestore.
+- **Enhanced Signal Sorting:** Firestore queries for signals are now optimized to order by both date and signal strength.
+
+### Fixed
+- **Position Update Crash:** Resolved a `StateError` crash in `robinhood_service.dart` and `main.dart` where `firstWhere` failed on unmatched quotes; replaced with `firstWhereOrNull` and added protective null guards.
+
+### Changed
+- **Backend Dependencies:** Upgraded `firebase-functions` to v7.2.2.
+- **Podfile Updates:** Updated `Podfile.lock` with latest dependency checksums for iOS stability.
+
+## [0.34.1] - 2026-03-19
+**Twelve Data Integration & Whale Watch Features**
+
+### Added
+- **Whale Watch Tracker:** New feature in Search widget to track institutional accumulation and large transactions (Whales) with data aggregation and dashboard visualization.
+- **Twelve Data Integration:** Integrated Twelve Data API for real-time options and market data fetching, including support for `TWELVE_DATA_API_KEY` secret management.
+- **Market Sentiment Enrichment:** Enhanced sentiment analysis with a dedicated dashboard and card widgets for market-wide and trending sentiment.
+- **Macro Assessment Enhancements:** Updated `MacroAssessmentDashboardWidget` with signal breadth distribution, divergence detection, and summary statistics.
+
+### Changed
+- **Market Data Backend:** Updated `getQuotes` to prioritize Twelve Data with Fidelity fallback; enhanced error handling and caching logic.
+- **Backend Dependencies:** Upgraded `firebase-functions` to v7.1.1.
+- **Agentic Trading Config:** Added server-side support for `skipSignalUpdate` and `skipRiskGuard` in trade proposals.
+
+## [0.34.0] - 2026-03-06
+**Futures Auto-Trading & Signal Visualization**
+
+### Added
+- **Futures Auto-Trading:** New provider, settings UI, performance dashboard, activity log, and home cards for futures auto-trading status and results.
+- **Agentic Futures Trading Backend:** New functions and cron pipeline for futures signal generation and automated execution.
+- **Signal Sparklines:** Trade Signals and Instrument views now include sparkline trend previews on signal cards.
+- **Weighted Signal Strength:** UI now surfaces weighted signal strength aligned with backend indicator weights and macro adjustments.
+- **Research Docs:** Added market data provider research, options/futures API endpoints, Twelve Data migration plan, and Databento vs Twelve Data analysis.
+
+### Changed
+- **Signal Strength Thresholds:** Strong/weak thresholds adjusted to 70/30 to align UI filters with backend scoring.
+- **Subscriptions:** Subscription service initializes at app startup; paywall flow now reports load, restore, and purchase errors with clearer status feedback.
+
+## [0.33.1] - 2026-02-22
+
+### Added
+- **Option Flow Alerts & Notifications:** New option flow notification models, store, and UI with alert integration for real-time flow criteria.
+- **Rebalancing Scheduler:** Scheduled drift checks with configurable frequency, notifications, and optional auto-execute controls.
+- **Macro Assessment Dashboard:** Expanded macro assessment experience with a dedicated dashboard view and navigation support.
+- **History Widget:** Loading skeleton and shimmer effect for smoother history loading states.
+
+### Changed
+- **Rebalancing UX:** Added macro guidance and initial allocation defaults; presets now include fixed income categories.
+- **Navigation:** Improved deep link routing for rebalancing and safer push notification token handling.
+
+### Fixed
+- **Fidelity Quotes:** Improved quote fetching resilience and error handling for Fidelity imports.
+
+## [0.33.0] - 2026-02-18
+
+### Added
+- **Macro Assessment:** Enhanced with tracking for previous assessments and new indicators including Put/Call Ratio, Advance/Decline, and Risk Appetite.
+- **Paper Trading:** Complete implementation of `PaperService` for offline portfolio management, risk-free order execution, and integrated AI portfolio analysis.
+- **Deep Linking:** Added support for sharing instruments and referral codes with deep link handling.
+- **Home Widgets:** Added iOS widgets for quick access to portfolio, watchlists, and trade signals (v0.32.0 parity).
+- **Custom Alerts:** New feature for user-defined price and event-based alerts (v0.32.0 parity).
+- **Multi-Account Aggregation:** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
+- **Fidelity Integration:** Added support for importing Fidelity account data via CSV.
+- **Alpha Factor Discovery:** New research feature for identifying predictive market indicators using Firebase Functions.
+- **Backtesting:** Added advanced filtering options for historical simulation results.
+- **CI/CD:** Detailed documentation and workflow enhancements for Mobile CI/CD (iOS/Android) and automated release note extraction.
+
+### Changed
+- **UI/UX:** Refactored widget constructors to use `super.key`, improved layout for portfolio metrics, and enhanced macro assessment visualizations.
+- **Architecture:** Introduced `PaperService` and refactored mocks to use `fake_cloud_firestore` for improved testing reliability.
+- **Refactoring:** Simplified code structure for better readability and maintainability.
+
+### Fixed
+- **iOS Build:** Resolved issues with provisioning profiles and manual code signing in CI/CD workflows.
+- **Notifications:** Enhanced reliability of rich push notifications with Firestore storage.
+
+## [0.32.0] - 2026-02-11
+
+### Added
+- **Home Widgets:** Integrated Home Widget functionality for portfolio, watchlist, and trade signals updates with deep link navigation support.
+- **Notifications:** Enhanced trading notifications with Firestore storage and added search/filter functionality.
+- **Alerts:** Implemented custom alerts feature for personalized notifications.
+- **Options Flow:** Added minimum premium filter to options flow store and improved loading mechanism.
+- **CI/CD:** Added Xcode setup step to CI workflows for improved iOS build support.
+
+### Changed
+- **Dependencies:** Updated pubspec.yaml to include home_widget dependency and incremented version to 0.32.0.
+
+## [0.31.7] - 2026-02-06
+
+### Added
+- **Notifications:** Added Rich Push Notifications for Agentic Trading, Trade Signals, Chat, and Copy Trading with actionable data and deep links.
+- **Investor Groups:** Added Group Watchlists feature allowing groups to curate and share lists of instruments.
+- **Investor Groups:** Added Group Performance Analytics with leaderboards and aggregated group metrics.
+- **Docs:** Added documentation for Group Watchlists.
+
+### Changed
+- **CI/CD:** Updated macOS runner to latest version and optimized workflow dependencies.
+
+## [0.31.6] - 2026-02-06
+
+### Added
+- **Portfolio Management:** Added multi-account aggregation with ability to view aggregate trading positions and history across multiple accounts.
+- **Integrations:** Added Fidelity account CSV import integration to import positions and history.
+- **Analytics:** Added CSV export functionality for portfolio analytics.
+
+### Changed
+- **UI:** Enhanced asset color mapping and added Cash ETFs to allocation chart.
+- **Navigation:** Added navigation controls for aggregate trading views with informative messaging when trading actions are restricted.
+
+## [0.31.5] - 2026-02-01
+
+### Added
+- **Backtesting:** Added advanced filtering options for backtest results and improved UI layout.
+
+### Changed
+- **Charts:** Improved layout and styling of portfolio metrics in chart widget.
+- **CI/CD:** Enhanced iOS upload process with API Key authentication support.
+- **CI/CD:** Enhanced workflow to extract release notes from ROADMAP.md.
+
+### Fixed
+- **ITMS-90725:** Updated iOS deployment target to 17.0 and ensured build uses iOS 26 SDK for App Store Connect compliance (required April 2026).
+
+## [0.31.4] - 2026-02-01
+
+### Added
+- **Paper Trading:** Enhanced dashboard with AI-powered Portfolio Analysis and Asset Allocation charts (Stocks/Options/Cash).
+- **Alpha Factor Discovery:** Added Alpha Factor Discovery engine to identify predictive signals by analyzing correlations with future returns.
+- **Technical Indicators:** Added Pivot Points indicator with support for Classic, Fibonacci, Woodie, and Camarilla calculation methods.
+- **Chart Analysis:** Added TTM Squeeze indicator visualization.
+
+### Changed
+- **iOS Build:** Enhanced build process with manual signing and provisioning profile extraction.
+- **Macro Assessment:** Enhanced Macro Assessment with yield curve evaluation, sector rotation, and asset allocation details.
+- **Technical Indicators:** Enhanced functionality for Chaikin Money Flow and Fibonacci Retracements.
+- **Risk Guard:** Improved RiskGuard handling in automated trading.
+
+## [0.31.3] - 2026-01-31
+
+### Added
+- **Technical Indicators:** Added 3 new indicators: Rate of Change (ROC), Chaikin Money Flow (CMF), and Fibonacci Retracements.
+- **Strategies:** Added "MACD Zero Line Cross" and "Bollinger Band Squeeze Breakout" strategies.
+- **Risk Guard:** Added `skipRiskGuard` configuration option for automated trading.
+- **Macro Risk Control:** Implemented position size reduction based on `RISK_OFF` macro conditions.
+- **Market Data:** Enhanced caching logic and added Open, High, Low price fetching.
+- **Trade History:** Now displays specific rejection reasons for updated orders.
+- **Custom Indicators:** Added `signalType` configuration and component selection UI.
+
+### Changed
+- **Technical Indicators:** Enhanced Bollinger Bands with array computation and divergence detection.
+- **Technical Indicators:** Added VWAP crossover signals.
+
+
+## [0.31.2] - 2026-01-29
+
+### Added
+- **Options Flow:** Added expiration date filtering (0DTE, 1DTE, etc.) and enhanced the filter bar.
+- **Agentic Trading:** Added paper mode filtering to the Agentic Trading Performance widget.
+- **Agentic Trading:** Notifications now explicitly indicate if a trade was a paper trade.
+
+### Changed
+- **Agentic Trading (Backend):** Optimized cron functions to use `listDocuments` for improved performance.
+
+## [0.31.1] - 2026-01-28
+
+### Added
+- **Futures Positions:** Added historical data fetching and display for futures positions.
+- **Futures Positions:** Implemented Realized P&L and Day P&L calculations and display.
+- **Agentic Trading:** Implemented loading of auto-trade history from Firestore.
+- **Agentic Trading:** Added event handling and navigation to performance and settings widgets.
+
+### Fixed
+- **Chart:** Added animation control to PieChartItem for smoother rendering.
+- **Agentic Trading:** Fixed handling of unchanged indicators in Alpha agent processing.
+- **Agentic Trading:** Fixed monitoring of Take Profit/Stop Loss support for paper trading mode.
+- **Agentic Trading:** Streamlined indicator results handling in Alpha task and updated chart pattern detection.
+- **Build:** Updated NDK version to 28.2.13676358 in build.gradle.
+
+## [0.31.0] - 2026-01-28
+
+### Added
+- **Macro Assessment:** Integrated macro assessment logic into the trading engine to enhance decision making based on broader market conditions.
+- **Paper Trading:** Expanded paper trading functionality across various widgets, allowing users to test strategies risk-free throughout the app.
+- **Group Messaging:** Implemented group message notifications and read receipts for better communication within Investor Groups.
+- **Biometric Authentication:** Added biometric authentication support (FaceID/TouchID) for improved security.
+- **Remote Configuration:** Introduced `RemoteConfigService` to manage app configuration settings remotely.
+- **Testing:** Added integration tests and updated documentation with testing instructions.
+- **CI/CD:** Updated Android build workflow in CI/CD pipelines.
+
+### Changed
+- **Strategy UI:** Enhanced the Strategy Details bottom sheet with a confirmation dialog and improved UI for better usability.
+
+### Fixed
+- **Expiration Dates:** Ensured expiration dates are consistently handled in UTC format to prevent timezone discrepancies.
+- **Portfolio State:** Fixed an issue where buying power and cash available were not updating correctly across multiple widgets.
+
+## [0.30.1] - 2026-01-24
+
+### Added
+- **Trade Signals Widget:** Introduced a dedicated widget for displaying and filtering trade signals, accessible via the new `TradeSignalsPage`.
+- **In-App Purchases:** Integrated subscription support for premium features, including a paywall for Trade Signals access.
+- **Enhanced Signal Search:** Upgraded `TradeSignalsPage` and `SearchWidget` to support filtering by specific indicators and strategy templates.
+- **Strategy Enhancements:** Refactored `AgenticTradingConfig` to support `TradeStrategyConfig` for better strategy template management.
+- **Improved Chat:** Enhanced scrolling behavior and message handling in the Chat Widget for a smoother user experience.
+
+### Changed
+- **Indicator Defaults:** Default indicators in Agentic Trading are now set to `false` (opt-in) for cleaner initial configuration.
+- **UI Themes:** Updated color handling in Allocation and Rebalancing widgets for better theme support.
+
+## [0.30.0] - 2026-01-22
+
+### Added
+- **Custom Benchmarks:** Users can now compare their portfolio performance against any ticker symbol (e.g., BTC-USD, AAPL) in the Portfolio Analytics dashboard, not just standard indices.
+- **Improved Benchmark Selector:** Replaced the options menu with intuitive filter chips for quick switching between SPY, QQQ, DIA, IWM, and custom benchmarks.
+- **Enhanced Cash Allocation:** Short-term Treasury ETFs (e.g., SGOV, BIL, SHV) are now treated as cash equivalents in Asset Allocation, providing a more accurate view of portfolio liquidity.
+
+### Fixed
+- **Analytics Sync:** Resolved an issue where custom benchmark data was not correctly refreshing when changing the chart date range (e.g., from 1Y to 5Y).
+
+## [0.29.2] - 2026-01-20
+
+### Added
+- **Instrument Notes:** Introduced "Personal Instrument Notes" feature allowing users to maintain private, formatted notes for any ticker with AI-powered drafting.
+- **AI Asset Allocation:** Added AI-driven portfolio allocation recommendations based on user risk profiles within the Rebalancing widget.
+- **Strategy Optimization:** Enhanced the backtesting engine with strategy optimization capabilities to refine trading parameters.
+
+### Changed
+- **Market Assistant:** Improved prompts and chat widget structure for better readability and more relevant responses.
+- **Portfolio Calculation:** Refined cumulative return calculations to align with full historical data for improved accuracy.
+
+## [0.29.1] - 2026-01-17
+
+### Added
+- **Correlation Matrix:** Added a robust Correlation Matrix feature within Portfolio Analytics to analyze asset relationships.
+- **Correlation Filtering:** Implemented advanced filtering to select specific assets and benchmark indices (SPY, QQQ, DIA, IWM, GLD, TLT) for custom correlation analysis.
+- **Correlation Legend:** Enhanced the correlation matrix legend with a gradient visualizer and explanatory tooltips.
+- **Sample Size Tracking:** Added "Overlapping Days" count to correlation detail dialogs to provide context on data quality.
+- **Insider Activity:** New widget to visualize insider transactions (Buy/Sell) with detailed breakdown of officer/director trading activity.
+- **Institutional Ownership:** Added visualization for top institutional holders and position changes.
+- **Options Flow Enhancements:** Refined flag detection logic with better categorization for "Whale", "Golden Sweep", and "Steamroller" flags.
+- **Institutional Benchmarks:** Added VWAP-based institutional flow analysis to Trade Signals.
+- **Instrument Chart Indicators:** Added interactive technical overlays to the instrument chart, including SMA (10, 20, 50, 200), EMA (12, 26), VWAP, and Bollinger Bands with persistent user preferences.
+
+### Fixed
+- **Correlation Calculation:** Fixed a bug where time-of-day differences in historical data caused daily overlaps to be missed, resulting in false 0.00 correlations.
+- **Data Caching:** Optimized the correlation matrix to cache historical data locally, preventing unnecessary network requests when changing filters.
+- **Trade Stats:** Fixed a bug where protected orders were incorrectly included in market order execution statistics.
+
+## [0.29.0] - 2026-01-17
+
+### Added
+- **Sentiment Analysis:** Introduced a Market Sentiment Card and a dedicated Dashboard to visualize real-time market mood (Bullish/Bearish/Neutral) based on AI and quantitative data.
+- **Technical Indicators:** Added calculations for new indicators and integrated them into the instrument chart widget for enhanced technical analysis.
+- **Price Targets:** Implemented AI-driven price target analysis and integrated it into the UI.
+- **Trade Signal Notifications:** Enabled trade signal notifications with Firestore integration for reliable real-time alerts.
+- **Strategy Management:** Enhanced strategy management and UI components.
+
+## [0.28.1] - 2026-01-14
+
+### Added
+- **Trading Strategies Page:** A new dedicated page to manage, search, and load trading strategy templates.
+- **Entry Strategies UI:** New widget to visualize and configure entry strategies.
+- **Indicators:** Expanded technical indicator system from 12 to 15 indicators (Added Ichimoku Cloud, CCI, Parabolic SAR).
+- **Custom Indicators:** Added default period for Williams %R indicator.
+
+### Changed
+- **UI Consistency:** Improved visual consistency across the app by removing bold styling from section titles (Crypto, Futures, Allocation, Performance, Income).
+- **Home Widget:** Reintroduced `PerformanceChartWidget` with improved layout and padding adjustments.
+- **Refactoring:** Consolidated trade strategy defaults and templates into `TradeStrategyDefaults` logic.
+
+### Removed
+- **Validation:** Removed `maxDailyLossPercent` configuration as it is no longer used.
+
+## [0.28.0] - 2026-01-13
+
+### Added
+- **AI Trading Coach - Hidden Risks UI:** Enhanced the "Hidden Risks" card in the Personalized Coaching widget. It now dynamically adapts to dark mode, ensuring text readability against a dark background.
+- **AI Trading Coach - Challenge Adherence:** Implemented logic to detect if the user adhered to the previous coaching challenge. The AI prompt now includes previous challenge context, and a new "Previous Challenge Review" card displays the AI's assessment of adherence.
+- **AI Trading Coach - History visualization:** Added a new "Coaching Score Chart" that visualizes the user's discipline score and sub-scores over time, allowing them to track their improvement trend.
+- **AI Trading Coach - Enhanced Context:** The AI analysis now includes derived statistics such as Limit Order %, Protected Order %, Busiest Hour, and Symbol Concentration to provide more grounded and data-driven feedback.
+- **AI Trading Coach - Session Journaling:** Users can now write and save personal reflection notes for each coaching session, creating a trading journal alongside their AI analysis.
+- **AI Trading Coach - Custom Focus & Personas:** Added configuration options to customize the AI's analysis focus (e.g., Risk, Psychology) and Coaching Persona (e.g., Drill Sergeant, Zen Master, Wall St. Veteran).
+- **AI Trading Coach - Streak Tracking:** Implemented a "Day Streak" counter that tracks consecutive successful challenge completions to gamify discipline.
+- **AI Trading Coach - Share & Export:** Added functionality to share the coaching summary as text or copy the full detailed analysis to the clipboard.
+- **Market Assistant:** Integrated real-time market assistance to provide contextual insights and answers to user queries about market conditions and instrument details.
+- **Performance Optimization:** Optimized `RobinhoodService.pagedGet` to support an early exist mechanism (`shouldStop` callback). This is used in `PersonalizedCoachingWidget` to fetch only recent option orders (last 30 days) instead of fetching all history, significantly reducing load times and API calls.
+
+## [0.27.7] - 2026-01-12
+
+### Added
+- **Russell 2000 (IWM) Support:** Added Russell 2000 market index support to performance charts and benchmark comparisons.
+
+### Changed
+- **Option Instrument Position UI:**
+  - Redesigned position card for clarity and data density.
+  - Added ITM/OTM visualization badges.
+  - Improved P&L visibility with larger typography and better layout.
+  - Enhanced statistics grid showing break-even, expiration count-downs, and collateral requirements.
+- **Account Handling:** Refactored account handling logic for improved stability.
+
+## [0.27.6] - 2026-01-10
+
+### Added
+- **Portfolio Analytics Enhancements:**
+  - **Performance Overview Card:** New comprehensive card displaying key performance metrics (Total Return, Benchmark Return, Alpha, Tracking Error) in a side-by-side comparison layout.
+  - **Tracking Metrics:** Enhanced analytics to include benchmark-relative performance tracking with visual indicators.
+  - **Health Score Improvements:** Refined calculation logic for more accurate portfolio health assessment.
+- **UI/UX Improvements:**
+  - **Loading State Management:** Refactored Robinhood and Schwab service loading states for better user feedback during data fetching.
+  - **Allocation Widget:** Enhanced loading indicator with improved visual feedback and animation consistency.
+  - **Tooltips & Help Dialogs:** Improved portfolio analytics tooltips and help dialogs with clearer descriptions and visual hierarchy.
+
+### Fixed
+- **Data Loading:** Addressed performance issues with allocation widget rendering during initial data load.
+
+## [0.27.5] - 2026-01-07
+
+### Fixed
+- **Options Flow**: Resolved issue with Yahoo API integration
+- **ESG Scoring**: Fixed calculation errors in portfolio ESG aggregation
+- **Automated Trading**: Addressed edge cases in RiskGuard validation logic
+- **Auth Form**: Removed autofocus from authentication fields to prevent keyboard from hiding phone/email mode selector
+- **Daily Cron Job**: Fixed timezone handling for consistent signal generation with EST-based cache validation
+- **Toast Styling**: Improved message styling for better visibility and consistency
+
+
+## [0.27.4] - 2026-01-02
+
+### Added
+- **ESG Scoring:**
+  - **New Feature:** Comprehensive Environmental, Social, and Governance (ESG) scoring for individual instruments and the entire portfolio.
+  - **Portfolio Integration:** Weighted average ESG score calculation for the portfolio.
+  - **Instrument Details:** Dedicated ESG card on stock detail pages showing Total Score, Risk Rating, and component breakdowns (Environmental, Social, Governance).
+  - **Data Source:** Integration with Yahoo Finance for robust ESG data.
+- **Advanced Portfolio Analytics:**
+  - **New Metrics:** Added sophisticated risk and return metrics:
+    - **Correlation Matrix:** Measures how closely the portfolio moves with the benchmark.
+    - **CVaR (95%):** Conditional Value at Risk (Expected Shortfall) to capture tail risk.
+    - **Kelly Criterion:** Optimal position sizing based on win rate and payoff ratio.
+    - **Ulcer Index:** Measures the depth and duration of drawdowns (stress metric).
+    - **Tail Ratio:** Ratio of 95th percentile return to 5th percentile loss (skewness).
+  - **Documentation:** Comprehensive definitions added for all new metrics.
+
+### Changed
+- **Charts:**
+  - **Fullscreen UI:** Added bottom margin to fullscreen charts (`PortfolioChartWidget`, `InstrumentChartWidget`, `PerformanceChartWidget`, `RiskHeatmapWidget`) to prevent obstruction by system gestures and the home indicator.
+- **Home Widget:**
+  - **Refactor:** Improved layout and performance of the home screen widgets.
+  - **Performance Chart:** Enhanced data handling and animation logic.
+
+## [0.27.3] - 2026-01-01
+
+### Added
+- **Tax Loss Harvesting:**
+  - **New Feature:** Intelligent tool to identify and realize losses for tax optimization.
+  - **Smart Suggestions:** Automatically identifies positions with unrealized losses that can be harvested.
+  - **Seasonality:** Seasonality awareness to suggest harvesting at optimal times.
+  - **Visibility Rules:** Smart visibility rules to filter out wash sales or insignificant losses.
+- **Portfolio Rebalancing:**
+  - **UI Overhaul:** Complete redesign of the rebalancing tool with a cleaner, card-based layout.
+  - **Dual Views:** Toggle between "Asset Class" and "Sector" allocation views.
+  - **Edit Mode:** Enhanced target editing with precision controls (+/- buttons), sliders, and smart presets (Aggressive, Tech Heavy, etc.).
+  - **Drift Analysis:** Visual drift indicators (Green/Orange) and stacked progress bars to instantly spot deviations.
+  - **Recommendations:** Auto-generated "Buy" and "Sell" recommendations sorted by impact, with a configurable drift threshold.
+  - **Visuals:** Theme-aware chart colors and optimized rendering to prevent flickering during edits.
+  - **Normalization:** One-tap button to ensure target allocations sum to 100%.
+
+### Fixed
+- **Allocation Widget:** Resolved a null safety issue causing crashes when navigating from the home screen.
+
+## [0.27.2] - 2025-12-31
+
+### Added
+- **Charts:**
+  - **Fullscreen Support:** Added fullscreen mode for charts to provide a more immersive and detailed viewing experience.
+- **Income Analysis:**
+  - **Projected Income:** Implemented projected income calculations and filtering capabilities in the `IncomeTransactionsWidget` to help users track future dividends and interest.
+
+### Changed
+- **Portfolio Analytics:**
+  - **UI Polish:** Updated header styles for better visual hierarchy and consistency with the homepage.
+  - **Layout:** Adjusted padding and card header sizes (`titleMedium`) to match the app's design system.
+- **Generative AI:**
+  - **UI Refactor:** Refactored `GenerativeActionsWidget` layout and enhanced action cards for improved usability and visual appeal.
+
+## [0.27.1] - 2025-12-30
+
+### Added
+- **Agentic Trading UI:**
+  - **Processed Signals:** Overhauled the "Processed Signals" section in settings with a cleaner card-based layout and detailed inspection dialogs.
+  - **Signal Inspection:** Added ability to tap on processed signals to view detailed AI reasoning and rejection reasons.
+- **Reliability:**
+  - **Signal Deduplication:** Implemented local persistence for processed signal IDs to prevent re-processing of signals across app restarts.
+  - **Server-Side Safety:** Added `skipSignalUpdate` parameter to trade proposal API to prevent auto-trading checks from inadvertently updating signal timestamps on the server.
+
+### Fixed
+- **Agentic Trading:** Enhanced market data fetching logic to ensure sufficient historical data for MACD and other indicators.
+- **Trade Signals:** Improved trade signal sorting functionality and reliability.
+
+
+## [0.27.0] - 2025-12-30
+
+### Added
+- **Portfolio Analytics & Risk Heatmap:**
+  - **Risk Heatmap:** Interactive treemap visualization of portfolio exposure and performance.
+  - **Portfolio Analytics Dashboard:** Professional-grade metrics (Sharpe, Sortino, Alpha, Beta).
+  - **Benchmark Comparison:** Compare performance against SPY, QQQ, and DIA.
+  - **Risk Metrics:** Max Drawdown, Volatility, and Value at Risk (VaR).
+- **AI Enhancements:**
+  - **Model Upgrade:** Updated AI model references to use `gemini-2.5-flash-lite` for improved performance and cost efficiency.
+- **UI/UX Improvements:**
+  - **Navigation:** Updated `BottomNavigationBar` to Material 3 `NavigationBar` for better UI consistency and responsiveness.
+  - **Watchlists:** Added watchlist stream functionality in `SearchWidget` to display user watchlists directly.
+  - **Ad Integration:** Integrated ad banners into `OptionOrderWidget`.
+  - **Order Management:** Added "Cancel Order" functionality directly within `OptionOrderWidget`.
+
+### Changed
+- **Refactoring:**
+  - **Navigation:** Removed unused imports and code related to `ListsWidget` in `navigation_widget.dart`.
+  - **Order Widgets:** Refactored `PositionOrderWidget` to streamline data loading and improve UI presentation.
+  - **Option Orders:** Enhanced `OptionOrderWidget` with improved layout.
+
+## [0.26.1] - 2025-12-29
+
+### Added
+- **RiskGuard Manual Trade Protection:**
+  - **Pre-Trade Validation:** Integrated RiskGuard validation into manual trading workflows for Stocks, Options, and Crypto.
+  - **Warning Dialogs:** Users are presented with a warning dialog if a proposed trade violates risk parameters (e.g., concentration limits, sector exposure).
+  - **Override Capability:** Added a "Proceed Anyway" option for users to override risk warnings, with a persistent amber banner displayed during the order preview.
+  - **Analytics:** Implemented logging of `risk_guard_override` events to Firebase Analytics for tracking risk behavior.
+  - **Unified Engine:** Leverages the same RiskGuard engine used for Automated Trading, ensuring consistent risk application across the platform.
+- **Trading Enhancements:**
+  - **Dynamic Position Sizing:** Added "Calculate Dynamic Size" button to trade widgets to automatically calculate share quantity based on available buying power or portfolio percentage.
+  - **Order Templates:** Enabled saving and loading of order templates for faster execution across Stocks, Options, and Crypto.
+- **Portfolio Visualization:**
+  - **Allocation Widget:** Enhanced `PortfolioChartWidget` with improved legend interactions, visual page indicators, and bidirectional highlighting.
+- **Options Flow Analysis:**
+  - **Refinements:** Improved flag detection logic and performance optimizations for real-time streaming.
+
+### Changed
+- **UI:** Hidden the "Order Templates" icon in the app bar when the order preview is active to reduce clutter.
+- **Documentation:** Added comprehensive documentation for RiskGuard (`docs/risk-guard.md`) and updated existing docs to reflect the new manual protection features.
+
+## [0.26.0] - 2025-12-28
+
+### Added
+- **Options Flow Analysis:**
+  - **New Smart Flags:** Added support for "Cheap Vol", "High Premium", "Above Ask", "Below Bid", "Mid Market", and "Large Block" detection.
+  - **Comprehensive Flag Suite:** Full support for 30+ smart flags including "Whale", "Golden Sweep", "Steamroller", "Gamma Squeeze", "Panic Hedge", "Earnings Play", and "Divergences".
+  - **Improved Filtering:** Added filters for "High Premium" and "Cheap Vol" to the Options Flow filter dialog.
+  - **Documentation:** Comprehensive update to in-app tooltips and definitions for all flags.
+  - **Enhanced Flag Detection:** Refined algorithms and thresholds for detecting "Whale" (>$1M), "LEAPS" (>365 days), and other smart flags.
+- **Trade Signal Notifications:**
+  - **Configurable Alerts:** Users can now configure push notifications for trade signals (BUY/SELL/HOLD) with filters for symbols, intervals, and confidence thresholds.
+  - **Rich Notifications:** Notifications include signal type, symbol, price, interval, and confidence score.
+  - **Deep Linking:** Tapping a notification navigates directly to the instrument details page for immediate analysis.
+
+### Changed
+- **UI:** Updated app icons and asset images for improved visual consistency.
+- **Code Quality:** Refactored instrument and option positions widgets to handle null market values gracefully and removed unused code.
+
+## [0.25.0] - 2025-12-26
+
+### Added
+- **Crypto Trading:**
+  - **Crypto Order Widgets:** Added new widgets for placing and managing crypto orders.
+  - **Trading Interface:** Integrated crypto trading into the main trading interface.
+- **UI Enhancements:**
+  - **Animated Price Text:** Added `AnimatedPriceText` widget for dynamic price display with color-coded updates.
+
+### Changed
+- **Schwab Integration:**
+  - **Enhanced Integration:** Improved integration with Schwab brokerage services.
+  - **Option Order Handling:** Refined handling of option orders for better reliability and execution.
+
+## [0.24.0] - 2025-12-23
+
+### Added
+- **Automated Trading:**
+  - **Emergency Stop:** Added "Emergency Stop" button for immediate cessation of automated trading.
+  - **Status Display:** Updated auto-trade status display for better visibility of system state.
+- **Benchmark Chart:**
+  - **Date Range Selection:** Added ability to select different date ranges (1W, 1M, 3M, YTD, 1Y, ALL) for benchmark performance comparison.
+- **Copy Trading Enhancements:**
+  - **Inverse Copying:** Added option to copy trades in the opposite direction (e.g., buy when the leader sells).
+  - **Exit Strategies:** Implemented exit strategies for copied trades to manage risk and profit taking.
+  - **Copy Percentage:** Added ability to set a specific percentage of the portfolio or trade amount to allocate for copy trading.
+  - **Advanced Filtering:** Enhanced copy trade settings with more granular filtering options.
+  - **Performance Dashboard:** Updated dashboard with performance tracking and trader comparison features.
+- **Trade Signals:**
+  - **Enhanced Handling:** Improved trade signal processing with new sorting options and better error management.
+  - **Navigation Integration:** Direct integration of trade signals into the navigation widget for seamless instrument display.
+
+### Changed
+- **Instrument Chart:** Improved robustness of the instrument chart widget when handling historical data.
+- **Documentation:** Updated documentation for Advanced Order Types.
+
+## [0.23.0] - 2025-12-22
+
+### Added
+- **Option Chain Screener:**
+  - Advanced filtering capabilities for option chains including Delta, Theta, Gamma, Vega, Implied Volatility, and more.
+  - Support for saving, loading, and resetting filter presets.
+  - AI-powered "Find Best Contract" feature that analyzes the chain and suggests options based on risk tolerance and strategy.
+- **Strategy Builder:**
+  - New multi-leg options strategy builder supporting Spreads, Straddles, Iron Condors, and custom combinations.
+  - Visual payoff diagrams and risk/reward analysis for complex strategies.
+- **Advanced Order Types:**
+  - Added support for Trailing Stop and Stop-Limit orders for both stocks and options.
+  - Added Time in Force options: GTC (Good Till Cancelled), GFD (Good For Day), IOC (Immediate Or Cancel), OPG (At The Open).
+- **Stock Orders:**
+  - Enabled direct stock order placement from the new trading UI.
+- **Trading UI:**
+  - Completely refactored trading widgets with improved order preview and placement flow.
+  - Enhanced "Reset" functionality in filter options to correctly clear selected presets.
+
+### Changed
+- **AI Recommendations:** Improved robustness of AI response parsing for option suggestions, ensuring reliable JSON extraction and better error handling.
+- **User Feedback:** Added clearer notifications (SnackBars) when AI recommendations are found or if no options match criteria.
+
+## [0.22.0] - 2025-12-20
+
+### Added
+- **Copy Trading:**
+  - Implemented full copy trading functionality with order execution and data models.
+  - Added Copy Trading Dashboard with trade history and filtering options.
+  - Implemented copy trade request approval and rejection workflow with UI integration.
+- **Backtesting:**
+  - Added new default backtest templates for various trading strategies.
+- **Agentic Trading:**
+  - Added signal strength and individual indicator performance cards to the performance widget.
+
+## [0.21.0] - 2025-12-19
+
+### Added
+- **Custom Indicators:** Added support for defining and using custom indicators within the Agentic Trading system.
+- **ML Optimization:** Integrated Machine Learning models to optimize trade signals and improve decision accuracy.
+- **Advanced Exit Strategies:**
+  - **Partial Exits:** Configure multiple exit stages with specific profit targets and quantity percentages.
+  - **Time-Based Exits:** Option to close positions after a specific duration.
+  - **Market Close Exits:** Automatically close positions a set number of minutes before market close.
+- **Backtesting Templates:** Added ability to save, load, and manage custom backtesting configurations as templates.
+- **AI Enhancements:** Improved AI response handling with editing capabilities and better prompt management.
+
+### Changed
+- **App Badging:** Migrated from `flutter_app_badger` to `app_badge_plus` for improved reliability and platform support.
+- **Login Flow:** Updated login challenge handling to support prompt-based challenges and improved long-running session maintenance.
+- **Performance:** Optimized agentic trading cron jobs with batch processing and better config fetching.
+
+### Removed
+- **AI Prompt:** Removed the manual AI prompt input field from Agentic Trading settings to streamline the configuration interface.
+
+## [0.20.2] - 2025-12-17
+
+### Added
+- **Advanced Risk Controls:** Introduced `RiskGuardAgent` with configurable limits for sector exposure, correlation checks, volatility filters, and drawdown protection.
+- **Order Approval Workflow:** Added `requireApproval` setting to `AgenticTradingConfig`, allowing manual review of agent-generated orders before execution.
+- **Watchlist Management:** Implemented comprehensive watchlist features including creating new lists, adding/removing instruments, and improved list display UI.
+- **App Badging:** Integrated `flutter_app_badger` to support app icon badges for notifications or status updates.
+
+### Changed
+- **Trade Signals:** Enhanced `TradeSignalsProvider` with improved query handling and subscription management for better performance.
+- **Navigation:** Refactored `NavigationStatefulWidget` and bottom navigation bar for improved user experience and responsiveness.
+- **UI Consistency:** Enhanced various widgets for better visual consistency and functionality.
+
+## [0.20.1] - 2025-12-16
+
+### Added
+- **Generative Actions:** Added `GenerativeActionsWidget` to provide AI-driven actions and insights directly within the UI.
+- **Instrument Charting:** Introduced `InstrumentChartWidget` for enhanced charting capabilities on instrument details.
+- **Firestore Indexes:** Updated Firestore indexes to support new query patterns and improve performance.
+
+### Changed
+- **Instrument Details:** Major refactoring of `InstrumentWidget` to improve performance and maintainability.
+- **Home Screen:** Enhanced `HomeWidget` for better UI consistency and data presentation.
+- **Agentic Trading Settings:** Updated `AgenticTradingSettingsWidget` with improved configuration options.
+- **AI Utilities:** Enhanced `utils/ai.dart` to support new generative features.
+- **Error Handling:** Improved error handling in `RobinhoodService` for more robust data fetching.
+
+### Removed
+- **SliverAppBarWidget:** Removed obsolete `SliverAppBarWidget` in favor of standard app bar implementations.
+
+## [0.20.0] - 2025-12-15
+
+### Added
+- **Advanced Trade Signal Filtering:**
+  - **Signal Strength Filters:** Filter signals by Strong (75-100), Moderate (50-74), or Weak (0-49) categories.
+  - **4-Way Indicator Filters:** Granular control for each of the 12 indicators (Off, BUY, SELL, HOLD).
+  - **Exclusive Filtering:** Smart logic prevents conflicting queries by toggling between strength and indicator modes.
+- **Dedicated Search Widgets:**
+  - **ScreenerWidget:** Standalone widget for fundamental stock screening (Market Cap, P/E, etc.).
+  - **PresetsWidget:** Standalone widget for Yahoo Finance preset screeners.
+  - **SearchWidget:** Streamlined UI with navigation to new screener widgets.
+- **Performance Improvements:**
+  - **Server-Side Filtering:** Moved all trade signal filtering to Firestore for faster results and reduced data usage.
+  - **Optimized Querying:** Removed real-time subscriptions for search queries to improve UI responsiveness.
+  - **Composite Indexes:** Added new Firestore indexes to support complex multi-factor queries.
+
+### Changed
+- **Search UI:** Reorganized Search tab to feature "Stock Screener" and "Presets" buttons instead of inline lists.
+- **TradeSignalsProvider:** Refactored to support server-side filtering and single-fetch queries.
+- **Documentation:** Updated Agentic Trading and Multi-Indicator Trading docs with new filtering capabilities.
+
+### Fixed
+- **Initial Load:** Fixed issue where trade signals wouldn't appear on first load due to loading state logic.
+- **Error Handling:** Improved error messaging when trade signal fetching fails.
+
+    - SELL signal when %R > -20 (overbought) or -80 ≤ %R < -50 (bearish momentum)
+    - Provides early reversal signals and complements RSI analysis
+
+- **Indicator Documentation Widget:** New in-app technical reference system
+  - Comprehensive documentation for all 12 indicators accessible from settings
+  - Each indicator page includes: purpose, signals (BUY/SELL/HOLD), configuration, technical details
+  - Interactive help icon in indicator toggle cards links to full documentation
+  - Educational resource for understanding each indicator's role in the trading system
+  - Helps users make informed decisions about which indicators to enable
+
+- **Enhanced Signal Strength Display:** Improved visualization of trade signal quality
+  - Signal strength score (0-100) now prominently displayed with color-coded visual indicators
+  - Strength categories: Strong (75-100, green), Moderate (50-74, orange), Weak (0-49, red)
+  - Filter trade signals by minimum strength threshold in Search widget
+  - Signal strength chip with icon and percentage in Instrument widget
+  - Better understanding of signal confidence before entering trades
+
+### Changed
+- **Updated Trade Signal System:** All references to indicator count updated from 9 to 12
+  - Search widget now shows "12 indicators must align" in filter descriptions
+  - Agentic trading settings updated to reflect 12-indicator system
+  - Performance analytics updated to track 12 indicators in combination analysis
+  - Backtesting configuration supports all 12 indicators
+- **Improved Indicator Display:** Enhanced settings UI for better indicator management
+  - Alphabetical sorting option for indicator list (Price patterns always first)
+  - Help icons link to indicator documentation for each toggle card
+  - More compact spacing between indicator cards
+  - Better visual hierarchy in settings sections
+
+### Technical
+- **Backend Enhancements:**
+  - `evaluateVWAP()` function in `technical-indicators.ts` for VWAP calculations
+  - `evaluateADX()` function with +DI/-DI directional movement analysis
+  - `evaluateWilliamsR()` function for Williams %R momentum oscillator
+  - Updated `evaluateAllIndicators()` to include all 12 indicators
+- **Model Updates:**
+  - `AgenticTradingConfig` model expanded with `vwapEnabled`, `adxEnabled`, `williamsREnabled` fields
+  - `BacktestConfig` model supports new indicators for historical testing
+  - `TradeSignal` model tracks all 12 indicator states
+- **Widget Updates:**
+  - New `IndicatorDocumentationWidget` for in-app technical reference
+  - Enhanced `AgenticTradingSettingsWidget` with help icons and documentation links
+  - Updated `SearchWidget` with signal strength filtering and improved display
+  - Enhanced `InstrumentWidget` with signal strength chip and reorganized layout
+  - Updated `BacktestingWidget` to configure all 12 indicators
+  - Enhanced `AgenticTradingPerformanceWidget` to track 12-indicator combinations
+
+### Performance
+- Optimized indicator calculation pipeline for 12 indicators without performance degradation
+- Efficient VWAP calculation using cumulative volume-weighted price sums
+- ADX uses 14-period smoothing for accurate trend strength measurement
+- Williams %R leverages existing price data structures for fast computation
+
+## [0.19.0] - 2025-12-15
+
+### Added
+- **Backtesting Interface:** Comprehensive strategy testing on historical data
+  - 3-tab interface: Run (configure & execute), History (view past results), Templates (save/reuse)
+  - Support for multiple time intervals: Daily (1d), Hourly (1h), 15-minute (15m)
+  - Date range selection (5 days to 5 years) for historical data access
+  - Configure all 9 technical indicators with same parameters as live trading
+  - Advanced risk parameters: Take Profit %, Stop Loss %, Trailing Stop %
+  - Comprehensive performance metrics:
+    - Returns: Total return in dollars and percentage, final capital
+    - Trade Statistics: Total trades, winning/losing trades, win rate percentage
+    - Risk Metrics: Sharpe ratio (risk-adjusted returns), maximum drawdown, profit factor
+    - Trade Analysis: Average win/loss, largest win/loss, average hold time
+  - Visual Results Page with 4 tabs:
+    - Overview: Key metrics cards (total return, win rate, Sharpe ratio, profit factor, max drawdown)
+    - Trades: Complete trade-by-trade breakdown with entry/exit details and reasons
+    - Equity: Interactive equity curve chart with trade markers and statistics list
+    - Details: Configuration, enabled indicators, performance by indicator, additional stats
+  - Interactive equity curve visualization with clickable trade markers
+  - Trade marker system (BUY in blue, SELL in orange) overlaid on equity curve
+  - Template system to save and reuse backtest configurations
+  - Performance comparison features to analyze multiple backtest runs
+  - Export results as JSON for external analysis
+  - Share backtest results via system share sheet
+  - Quick access buttons in Home widget and Instrument trade signal view
+  - Seamless integration with live trading indicator configuration
+  - User backtest history persisted in Firestore (last 50 runs)
+  - Real-time Firestore updates for templates and history
+
+### Changed
+- Improved spacing in Agentic Trading Settings (reduced SizedBox heights from 24 to 16/8)
+- Reordered Notification Settings section to appear after Technical Indicators in settings
+- Enhanced home widget with prominent "Automated Trading & Backtesting" promotion card
+- Added "Run Backtest" button to Instrument widget trade signal view
+- Added "Backtest" menu item to User Settings for quick access
+- Moved Agentic Trading settings button to Trade Signal title trailing area in Instrument view
+- Reorganized Trade Signal interval selector from segmented button to popup menu with status chip
+- Fixed null-safe type casting in home_widget market data calculations
+- Improved null handling in home widget index mapping operations
+
+### Technical
+- New Firebase Function: `runBacktest` for backend backtest execution
+- New Dart models: `BacktestConfig`, `BacktestTrade`, `BacktestResult`, `BacktestTemplate`
+- New Provider: `BacktestingProvider` for state management and Firestore integration
+- New Widget: `BacktestingWidget` with 3-tab interface and result page
+- Firestore collections: `backtest_history` and `backtest_templates` per user
+- Firestore security rules: Added read/write permissions for backtest collections
+- Timestamp tracking added to market data for accurate historical bar indexing
+- Bar-by-bar historical simulation with indicator evaluation
+- Equity curve tracking and performance metric calculations
+- Performance by indicator analysis (signal counts and win rates)
+
+## [0.18.0] - 2025-12-13
+
+### Added
+- **Paper Trading Mode:** Risk-free strategy testing with simulated trade execution
+  - Toggle in Auto-Trade Configuration section
+  - Simulates order responses without calling broker API
+  - Tracks paper trades identically to real trades with all analytics
+  - Visual PAPER badges throughout UI
+  - Filter performance by paper vs real trades
+  - Perfect for validating strategies before risking capital
+
+- **Advanced Performance Analytics Dashboard:** 9 comprehensive analytics cards in Performance Widget
+  - **Performance Overview:** Total trades, success rate, win/loss counts
+  - **Profit & Loss:** Total P&L, average per trade, breakdown
+  - **Trade Breakdown:** Entry/exit counts by type (Buy, Take Profit, Stop Loss, Trailing Stop)
+  - **Best & Worst Trades:** Highlights with P&L details
+  - **Advanced Analytics (4 metrics):**
+    - Sharpe Ratio: Risk-adjusted returns (Good >1, Fair 0-1, Poor <0)
+    - Average Hold Time: Position duration in hours and minutes
+    - Profit Factor: Gross profit / Gross loss ratio (Profitable >1)
+    - Expectancy: Expected profit per trade in dollars
+  - **Risk Metrics:**
+    - Longest Win Streak: Best consecutive winning trades
+    - Longest Loss Streak: Worst consecutive losing trades
+    - Max Drawdown: Peak to trough decline in equity
+  - **Performance by Time of Day:** Win rates across market hours (Morning/Afternoon/Late Day)
+  - **Performance by Indicator Combo:** Tracks which indicator combinations perform best
+  - **Performance by Symbol:** Stock-specific win rates (top 10)
+
+- **Indicator Combination Tracking:** Stores active indicators with each automated trade
+  - Snapshot of enabled indicators preserved in trade records
+  - Win/loss tracking for each unique indicator combination
+  - Top 8 combinations displayed with win rates
+  - Helps identify optimal indicator configurations
+  - Abbreviated indicator names (Price, RSI, Market, MACD, BB, Stoch, ATR, OBV)
+
+- **Trailing Stop Loss:** Dynamic stop loss that adjusts with profits
+  - Automatically raises stop loss as position becomes profitable
+  - Locks in gains while allowing further upside
+  - Configurable trailing distance (default 3%)
+  - Tracks highest price (peak) for each automated trade
+  - Exits when price drops specified % from peak
+  - Separate tracking from fixed stop loss
+
+### Changed
+- **Moved Paper Trading Mode** from Automated Trading section to Auto-Trade Configuration section for better logical grouping
+- **Enhanced Trade Records** to include `enabledIndicators` snapshot and `paperMode` flag
+- **Improved Performance Widget** with filter chips to view All/Paper/Real trades separately
+- **Enhanced Trade Cards** with PAPER badges for simulated trades
+- **Updated AgenticTradingConfig** model with `paperTradingMode` field
+
+### Performance
+- **Comprehensive Analytics:** Real-time calculation of 20+ trading performance metrics
+- **Streak Tracking:** Monitors consecutive wins and losses for behavioral insights
+- **Drawdown Monitoring:** Tracks maximum equity decline for risk assessment
+- **Hold Time Analysis:** Calculates average position duration
+- **Time-Based Performance:** Win rates by market hours (morning/afternoon/late day)
+- **Indicator Effectiveness:** Win rates by active indicator combinations
+
+### Technical Details
+- **Files Changed:** 
+  - `lib/model/agentic_trading_config.dart` - Added paperTradingMode field
+  - `lib/model/agentic_trading_provider.dart` - Added paper trade simulation, indicator snapshots, trailing stop, advanced metrics
+  - `lib/widgets/agentic_trading_settings_widget.dart` - Added Paper Trading Mode toggle in config section
+  - `lib/widgets/agentic_trading_performance_widget.dart` - Added 9 analytics cards with filters and comprehensive metrics
+- **New Methods:**
+  - `_simulatePaperOrder()` - Generates realistic simulated order responses
+  - `_filterHistory()` - Filters trades by paper/real mode
+  - `_buildFilterChips()` - UI for trade mode filtering
+  - `_buildAdvancedAnalyticsCard()` - 4-metric grid (Sharpe, Hold Time, Profit Factor, Expectancy)
+  - `_buildRiskMetricsCard()` - Streaks and drawdown display
+  - `_buildTimeOfDayCard()` - Win rates by market hours
+  - `_buildIndicatorComboCard()` - Performance by indicator combinations
+  - `_buildMetricBox()` - Reusable metric display component
+- **Config Fields Added:**
+  - `paperTradingMode: bool` (default: false)
+  - `trailingStopEnabled: bool` (default: false) 
+  - `trailingStopPercent: double` (default: 3.0)
+- **Trade Record Fields Added:**
+  - `enabledIndicators: List<String>` - Active indicators at execution time
+  - `paperMode: bool` - Tracks if trade was simulated
+  - `highestPrice: double` - Peak price for trailing stop tracking
+- **Statistics Tracked:**
+  - `profitFactor`, `expectancy`, `longestWinStreak`, `longestLossStreak`, `maxDrawdown`
+  - `avgHoldTimeMinutes`, `timeOfDayStats`, `indicatorComboStats`
+
+## [0.17.6] - 2025-12-06
+
+### Changed
+- **UI Improvements and Fixes:** Enhanced visual consistency across the application by updating widget styles to use theme colors, improving button designs, dropdown borders, and layout structures for better user experience and accessibility.
+
+### Technical Details
+- **Files Changed:** 31 widget files updated with theme-consistent styling and UI improvements:
+  - `lib/enums.dart`
+  - `lib/widgets/agentic_trading_settings_widget.dart`
+  - `lib/widgets/chart_time_series_widget.dart`
+  - `lib/widgets/forex_instrument_widget.dart`
+  - `lib/widgets/forex_positions_page_widget.dart`
+  - `lib/widgets/forex_positions_widget.dart`
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/home_widget.dart`
+  - `lib/widgets/income_transactions_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/investor_group_create_widget.dart`
+  - `lib/widgets/investor_groups_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/login_widget.dart`
+  - `lib/widgets/more_menu_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/search_widget.dart`
+  - `lib/widgets/trade_instrument_widget.dart`
+  - `lib/widgets/user_info_widget.dart`
+  - `lib/widgets/user_widget.dart`
+  - `lib/widgets/users_widget.dart`
+
+## [0.17.5] - 2025-12-05
+
+### Added
+- **User Document Reference Threading:** Enhanced widget parameter passing to include `DocumentReference<User>?` (Firestore user document reference) alongside authentication user context. Enables better integration with user-specific settings and features throughout the navigation hierarchy.
+- **Indicator Toggle Enhancements:** Improved indicator toggle functionality in agentic trading with dynamic settings display, providing more intuitive control over trade signal indicators.
+
+### Changed
+- **Widget User Parameter Refactoring:** Refactored user handling across 14+ navigation widgets to properly use `brokerageUser` for brokerage operations and `userDocRef` for Firestore user document references. Improves code clarity and type safety:
+  - `instrument_positions_widget.dart` and related position widgets
+  - `option_positions_widget.dart` and option chain widgets
+  - `option_order_widget.dart` and order tracking widgets
+  - `instrument_widget.dart` and navigation chain
+  - `history_widget.dart` and other entry points
+- **Code Readability:** Improved code readability in multiple widgets by replacing `forEach` loops with standard `for` loops, enhancing maintainability and consistency.
+- **Cache Handling:** Updated cache handling logic in market data functions for improved clarity and consistency.
+
+### Fixed
+- **Whitespace Cleanup:** Cleaned up unnecessary whitespace in `handleAlphaTask` function for improved code formatting.
+
+### Technical Details
+- **Files Changed:** 14+ widget files updated with improved user context parameter handling:
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+- **Navigation Integration:** User document references now properly threaded from `SearchWidget` and `NavigationStatefulWidget` entry points through all navigation chains.
+- **Type Safety Improvements:** Consistent use of `DocumentReference<User>?` across widgets for proper Firebase Firestore type handling.
 
 ## [0.17.4] - 2025-11-30
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -6,12 +7,16 @@ import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
@@ -46,6 +51,17 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
+import 'package:robinhood_options_mobile/model/retirement.dart';
+import 'package:robinhood_options_mobile/model/spending_account.dart';
+import 'package:robinhood_options_mobile/model/external_token.dart';
+import 'package:robinhood_options_mobile/model/notification_item.dart';
+import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 
 class DemoService implements IBrokerageService {
   @override
@@ -63,6 +79,7 @@ class DemoService implements IBrokerageService {
 
   // Map<String, dynamic> logoUrls = {};
   List<dynamic> forexPairs = [];
+  final YahooService yahooService = YahooService();
 
   Future<String?> login() async {
     // Present the dialog to the user
@@ -220,6 +237,54 @@ class DemoService implements IBrokerageService {
                 'affiliate': 'rhf',
                 'second_trade_suitability_completed': false,
                 'has_futures_account': false
+              },
+              <String, dynamic>{
+                'url': 'https://api.robinhood.com/accounts/ROTH7890/',
+                'portfolio_cash': '7000.0000',
+                'can_downgrade_to_cash': null,
+                'user': 'api.robinhood.com/user/',
+                'account_number': 'ROTH7890',
+                'type': 'cash',
+                'brokerage_account_type': 'ira_roth',
+                'created_at': '2023-01-10T14:20:00.000000Z',
+                'updated_at': '2026-09-10T00:00:00.000000Z',
+                'deactivated': false,
+                'deposit_halted': false,
+                'withdrawal_halted': false,
+                'only_position_closing_trades': false,
+                'buying_power': '7000.0000',
+                'cash_available_for_withdrawal': '0.0000',
+                'cash': '7000.0000',
+                'cash_held_for_orders': '0.0000',
+                'uncleared_deposits': '0.0000',
+                'unsettled_funds': '0.0000',
+                'unsettled_debit': '0.0000',
+                'crypto_buying_power': '0.0000',
+                'day_trades_protection': true,
+              },
+              <String, dynamic>{
+                'url': 'https://api.robinhood.com/accounts/TRAD1234/',
+                'portfolio_cash': '12500.0000',
+                'can_downgrade_to_cash': null,
+                'user': 'api.robinhood.com/user/',
+                'account_number': 'TRAD1234',
+                'type': 'cash',
+                'brokerage_account_type': 'ira_traditional',
+                'created_at': '2023-03-15T10:00:00.000000Z',
+                'updated_at': '2026-09-10T00:00:00.000000Z',
+                'deactivated': false,
+                'deposit_halted': false,
+                'withdrawal_halted': false,
+                'only_position_closing_trades': false,
+                'buying_power': '12500.0000',
+                'cash_available_for_withdrawal': '0.0000',
+                'cash': '12500.0000',
+                'cash_held_for_orders': '0.0000',
+                'uncleared_deposits': '0.0000',
+                'unsettled_funds': '0.0000',
+                'unsettled_debit': '0.0000',
+                'crypto_buying_power': '0.0000',
+                'day_trades_protection': true,
               }
             ]);
     List<Account> accounts = [];
@@ -278,6 +343,7 @@ class DemoService implements IBrokerageService {
   Future<List<ForexHolding>> getNummusHoldings(
       BrokerageUser user, ForexHoldingStore store,
       {bool nonzero = true, DocumentReference? userDoc}) async {
+    store.setLoading(true);
     final results = await Future.delayed(
         Duration.zero,
         () => [
@@ -425,7 +491,7 @@ class DemoService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getForexPairs(BrokerageUser user) async {
+  Future<List<dynamic>> getForexPairs(BrokerageUser user) async {
     String jsonStr =
         '[{"asset_currency":{"brand_color":"EA963D","code":"BTC","crypto_type":"BASE_ASSET","display_only":false,"id":"d674efea-e623-4396-9026-39574b92b093","increment":"0.000000010000000000","name":"Bitcoin","type":"cryptocurrency"},"display_only":false,"id":"3d961844-d360-45fc-989b-f6fca761d511","market_orders_only":false,"max_order_size":"20.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":"0.01","min_order_size":"0.000001000000000000","name":"Bitcoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BTC-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"707DB5","code":"ETH","crypto_type":"BASE_ASSET","display_only":false,"id":"c527c04a-394b-4a44-ae07-19b901ca609c","increment":"0.000000000000000001","name":"Ethereum","type":"cryptocurrency"},"display_only":false,"id":"76637d50-c702-4ed1-bcb5-5b0732a81f48","market_orders_only":false,"max_order_size":"280.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":"0.01","min_order_size":"0.000100000000000000","name":"Ethereum to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ETH-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"99C061","code":"BCH","crypto_type":"BASE_ASSET","display_only":false,"id":"913a38ed-36f3-45fb-a967-fb6e30d4a7fb","increment":"0.000000010000000000","name":"Bitcoin Cash","type":"cryptocurrency"},"display_only":false,"id":"2f2b77c4-e426-4271-ae49-18d5cb296d3a","market_orders_only":false,"max_order_size":"750.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":"0.01","min_order_size":"0.001000000000000000","name":"Bitcoin Cash to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BCH-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"BEBBBB","code":"LTC","crypto_type":"BASE_ASSET","display_only":false,"id":"f9432751-b54d-4d84-b573-f06dc390b766","increment":"0.000000010000000000","name":"Litecoin","type":"cryptocurrency"},"display_only":false,"id":"383280b1-ff53-43fc-9c84-f01afd0989cd","market_orders_only":false,"max_order_size":"2200.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":"0.01","min_order_size":"0.001000000000000000","name":"Litecoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"LTC-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"BEA649","code":"DOGE","crypto_type":"BASE_ASSET","display_only":false,"id":"c6996ebc-2f9b-443a-b2c2-7ddf02e0ef3a","increment":"0.000000010000000000","name":"Dogecoin","type":"cryptocurrency"},"display_only":false,"id":"1ef78e1b-049b-4f12-90e5-555dcf2fe204","market_orders_only":false,"max_order_size":"6500000.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":"0.01","min_order_size":"1.000000000000000000","name":"Dogecoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DOGE-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"XRP","crypto_type":"BASE_ASSET","display_only":true,"id":"6b7f1ac0-79d2-4dd1-b227-d98b7474715b","increment":"0.000001000000000000","name":"XRP","type":"cryptocurrency"},"display_only":true,"id":"5f1325b6-f63c-4367-9d6f-713e3a0c5d76","market_orders_only":false,"max_order_size":"400000.0000000000000000","min_order_price_increment":"0.001000000000000000","min_order_quantity_increment":"0.001000000000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"XRP to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"XRP-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"QTUM","crypto_type":"BASE_ASSET","display_only":true,"id":"617f87b7-8e1c-4631-8260-c68374e9d978","increment":"0.000000000000000001","name":"Qtum","type":"cryptocurrency"},"display_only":true,"id":"7837d558-0fe9-4287-8f3e-6de592db127c","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000000000000001","min_order_quote_amount":null,"min_order_size":"0.000000000000000001","name":"Qtum to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"QTUM-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ETC","crypto_type":"BASE_ASSET","display_only":false,"id":"ee3bcf3e-4ac7-4f0a-b887-4cea2b49ff70","increment":"0.000001000000000000","name":"Ethereum Classic","type":"cryptocurrency"},"display_only":false,"id":"7b577ce3-489d-4269-9408-796a0d1abb3a","market_orders_only":false,"max_order_size":"2300.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":"0.01","min_order_size":"0.010000000000000000","name":"Ethereum Classic to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ETC-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"MATIC","crypto_type":"ERC20","display_only":true,"id":"e465003a-4790-44c6-b4e3-a43e6144e849","increment":"0.000000000000000001","name":"Polygon","type":"cryptocurrency"},"display_only":true,"id":"b668301c-44f9-4fbf-88e4-8140846f15ba","market_orders_only":false,"max_order_size":"434783.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000100000000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Polygon to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"MATIC-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"SOL","crypto_type":"BASE_ASSET","display_only":true,"id":"c39cc1c2-2748-43b8-8779-30565ca4de2a","increment":"0.000000001000000000","name":"Solana","type":"cryptocurrency"},"display_only":true,"id":"0cdc8c93-fbda-462f-94b7-26353d87a009","market_orders_only":false,"max_order_size":"1600.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000010000000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Solana to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"SOL-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"COMP","crypto_type":"ERC20","display_only":false,"id":"6543a22c-2746-49ed-8518-4f67751ffd3e","increment":"0.000000000000000001","name":"Compound","type":"cryptocurrency"},"display_only":false,"id":"715af4b3-26d0-4cd0-ad07-7a1cf5dc734a","market_orders_only":false,"max_order_size":"6083.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000010000000000000","min_order_quote_amount":"0.01","min_order_size":"0.000100000000000000","name":"Compound to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"COMP-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"SHIB","crypto_type":"ERC20","display_only":false,"id":"5ed4e8a1-5dcf-40a2-bff5-2eda98352fd8","increment":"0.010000000000000000","name":"Shiba Inu","type":"cryptocurrency"},"display_only":false,"id":"2d189ddb-bc0d-4aa4-bd6b-cd72e6679cd0","market_orders_only":false,"max_order_size":"26821636120.0000000000000000","min_order_price_increment":"0.000000010000000000","min_order_quantity_increment":"1.000000000000000000","min_order_quote_amount":"0.01","min_order_size":"800.000000000000000000","name":"Shiba Inu to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"SHIB-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"XLM","crypto_type":"BASE_ASSET","display_only":false,"id":"2989eeb7-b6c7-4b3b-b099-a273ba346c38","increment":"0.000000010000000000","name":"Stellar Lumens","type":"cryptocurrency"},"display_only":false,"id":"7a04fe7a-e3a8-4a07-8c35-d0fec9f35569","market_orders_only":false,"max_order_size":"2250000.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":"0.01","min_order_size":"1.000000000000000000","name":"Stellar Lumens to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"XLM-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"NEO","crypto_type":"BASE_ASSET","display_only":true,"id":"e6e6574f-6359-4220-ba44-4df2acde4ab1","increment":"1.000000000000000000","name":"NEO","type":"cryptocurrency"},"display_only":true,"id":"b9729798-2aec-4ca9-8637-4d9789d63764","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"1.000000000000000000","min_order_quote_amount":null,"min_order_size":"1.000000000000000000","name":"NEO to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"NEO-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ZEC","crypto_type":"BASE_ASSET","display_only":true,"id":"7c67eab0-3bed-4ead-8130-0435bfaa25ee","increment":"0.000000010000000000","name":"Zcash","type":"cryptocurrency"},"display_only":true,"id":"35f0496d-6c3a-4cac-9d2f-6702a8c387eb","market_orders_only":false,"max_order_size":"5612.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000100000000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Zcash to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ZEC-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"XMR","crypto_type":"BASE_ASSET","display_only":true,"id":"6b70c056-f526-43a7-bb83-cf35dd87575b","increment":"0.000000000001000000","name":"Monero","type":"cryptocurrency"},"display_only":true,"id":"cc2eb8d1-c42d-4f12-8801-1c4bbe43a274","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000000001000000","min_order_quote_amount":null,"min_order_size":"0.000000000001000000","name":"Monero to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"XMR-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"DASH","crypto_type":"BASE_ASSET","display_only":true,"id":"c2c86423-aea7-4fbb-adb7-a452125a9541","increment":"0.000000010000000000","name":"Dash","type":"cryptocurrency"},"display_only":true,"id":"1461976e-a656-481a-af27-dc6f2980e967","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Dash to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DASH-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"BTG","crypto_type":"BASE_ASSET","display_only":true,"id":"d409b958-c9fe-4837-9bae-e7a8fd314aee","increment":"0.000000010000000000","name":"Bitcoin Gold","type":"cryptocurrency"},"display_only":true,"id":"a31d3fe3-38e6-4adf-ab4b-e303349f5ee4","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000010000000000000","name":"Bitcoin Gold to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BTG-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"LSK","crypto_type":"BASE_ASSET","display_only":true,"id":"4fbc3184-0899-4987-b62c-9a976ebe21e5","increment":"0.000000010000000000","name":"Lisk","type":"cryptocurrency"},"display_only":true,"id":"2de36458-56cf-458d-b76a-6b3f61b2034c","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Lisk to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"LSK-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"OMG","crypto_type":"BASE_ASSET","display_only":true,"id":"aec15954-7d0f-4adb-b370-5e78e8bf3f30","increment":"0.000000000000000001","name":"OmiseGO","type":"cryptocurrency"},"display_only":true,"id":"bab5ccb4-6729-416e-ac75-019d650016c9","market_orders_only":false,"max_order_size":"0.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000000000000001","min_order_quote_amount":null,"min_order_size":"0.000000000000000001","name":"OmiseGO to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"OMG-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"HNT","crypto_type":"BASE_ASSET","display_only":true,"id":"8fbdabd8-6b4e-4585-a060-7f559bf36bbc","increment":"0.000000010000000000","name":"Helium","type":"cryptocurrency"},"display_only":true,"id":"2ffea689-6b72-423f-b487-06743f6164fd","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Helium to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"HNT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"APE","crypto_type":"BASE_ASSET","display_only":true,"id":"1d9f11d7-f60d-4782-bbdc-20d098cbd634","increment":"0.000000000000000001","name":"Apecoin","type":"cryptocurrency"},"display_only":true,"id":"1769041a-7607-4c0d-9fbb-4acbe93ee915","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Apecoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"APE-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ENJ","crypto_type":"BASE_ASSET","display_only":true,"id":"d67b1b17-c309-4ffb-979d-98aa7a06df56","increment":"0.000000000000000001","name":"Enjin","type":"cryptocurrency"},"display_only":true,"id":"ba7fe1e3-f5c7-4ca2-9645-09942d494f45","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Enjin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ENJ-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"RUNE","crypto_type":"BASE_ASSET","display_only":true,"id":"3cc35f23-838b-4858-b592-a30f7c8a8635","increment":"0.000001000000000000","name":"ThorChain","type":"cryptocurrency"},"display_only":true,"id":"c59484ee-cff5-4e95-943e-5e6290e7082c","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"ThorChain to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"RUNE-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"WBTC","crypto_type":"BASE_ASSET","display_only":true,"id":"6deaa5a1-9e22-4027-b897-b02a7d259dc6","increment":"0.000000010000000000","name":"Wrapped Bitcoin","type":"cryptocurrency"},"display_only":true,"id":"5257b7e3-b31e-4f7c-b3fc-3cbe16e1bd93","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"Wrapped Bitcoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"WBTC-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"TRX","crypto_type":"BASE_ASSET","display_only":true,"id":"27541bb0-8606-4782-b65e-e6235589434f","increment":"0.000001000000000000","name":"Tron","type":"cryptocurrency"},"display_only":true,"id":"9b3f12e8-b3ed-48db-bce9-78d451019b89","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"TRON to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"TRX-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ETHW","crypto_type":"BASE_ASSET","display_only":true,"id":"b98e0f2c-28bc-4eac-b7b1-7ddb62c1ccbc","increment":"0.000000000000000001","name":"ETHPoW","type":"cryptocurrency"},"display_only":true,"id":"43adddbe-d6ec-445f-8505-db6bdf8ceb83","market_orders_only":false,"max_order_size":"280.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"ETHPoW to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ETHW-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"WETH","crypto_type":"BASE_ASSET","display_only":true,"id":"588ae9df-4289-483e-acea-0c9a6e57e831","increment":"0.000000000000000001","name":"Wrapped Ether","type":"cryptocurrency"},"display_only":true,"id":"9fde9bbc-e3fc-4b8d-8464-b2bca89ae3ff","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Wrapped Ether to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"WETH-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"MANA","crypto_type":"BASE_ASSET","display_only":true,"id":"85321c9f-65bf-4e84-bb92-f3e2df51de58","increment":"0.000000000000000001","name":"Decentraland","type":"cryptocurrency"},"display_only":true,"id":"cf673624-5aff-4252-aebb-6a499893d8cb","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"Decentraland to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"MANA-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"BNB","crypto_type":"BASE_ASSET","display_only":true,"id":"e7295ac0-3d9e-4819-90c0-fa4a97973f70","increment":"0.000000010000000000","name":"Binance Coin","type":"cryptocurrency"},"display_only":true,"id":"7a760c7d-490e-4395-a6cf-3c1d5f035a48","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"BNB to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BNB-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"BAL","crypto_type":"BASE_ASSET","display_only":true,"id":"44749fb6-41c3-4004-bf51-f0d0b365648f","increment":"0.000000000000000001","name":"Balancer","type":"cryptocurrency"},"display_only":true,"id":"71f8455e-3738-4f36-a2be-e6d2abf63cc5","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Balancer to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BAL-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"DAI","crypto_type":"BASE_ASSET","display_only":true,"id":"56d9b0a5-5b6e-4eb1-bb9d-ab11fadbd389","increment":"0.000001000000000000","name":"Dai","type":"cryptocurrency"},"display_only":true,"id":"dc8a92a1-f292-4680-9852-432ab48883d8","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"Dai to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DAI-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"CAKE","crypto_type":"BASE_ASSET","display_only":true,"id":"5f483611-34ee-4e21-91fc-cc4ab2803fb4","increment":"0.000000010000000000","name":"Pancake Swap","type":"cryptocurrency"},"display_only":true,"id":"d053c4d3-a612-4f4e-a587-186c0638b4ef","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Pancake Swap to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"CAKE-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ICP","crypto_type":"BASE_ASSET","display_only":true,"id":"3f5e8c48-bba6-4f90-9d72-303055315bad","increment":"0.000000010000000000","name":"Internet Computer","type":"cryptocurrency"},"display_only":true,"id":"6f138590-a0a2-4ab8-80bc-d3e9150380bd","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Internet Computer to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ICP-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"GRT","crypto_type":"BASE_ASSET","display_only":true,"id":"d75687f0-37f4-4fb3-b6f3-cae06e041054","increment":"0.000000010000000000","name":"The Graph","type":"cryptocurrency"},"display_only":true,"id":"220d1a45-75f3-4d1d-977b-a7ce626ad5a8","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"1.000000000000000000","name":"The Graph to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"GRT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"BAT","crypto_type":"BASE_ASSET","display_only":true,"id":"cdbc94f8-631d-4b1b-af97-e113ed0e4f91","increment":"0.000000000000000001","name":"Basic Attention Token","type":"cryptocurrency"},"display_only":true,"id":"3e5aaf7a-caa6-470e-932d-9cf264ffb19a","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Basic Attention Token to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BAT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ALGO","crypto_type":"BASE_ASSET","display_only":true,"id":"0f20b185-3b83-4632-b831-aeeae0bcdcb9","increment":"0.000001000000000000","name":"Algorand","type":"cryptocurrency"},"display_only":true,"id":"07244e5a-8953-4079-bae2-165e5e02c1cf","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"Algorand to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ALGO-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"DFI","crypto_type":"BASE_ASSET","display_only":true,"id":"621fd8ef-d120-4d3f-92e7-ce2a3ff12477","increment":"0.000000010000000000","name":"DefiChain","type":"cryptocurrency"},"display_only":true,"id":"c8a04ad2-a233-4240-83b7-5038620d8eec","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"DefiChain to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DFI-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"AAVE","crypto_type":"BASE_ASSET","display_only":false,"id":"884fd5dd-726a-4104-92c2-6d751f857827","increment":"0.000000000000000001","name":"Aave","type":"cryptocurrency"},"display_only":false,"id":"f649e71a-543b-4fd8-9faa-bc6c2c9e3d21","market_orders_only":false,"max_order_size":"3300.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000010000000000000","min_order_quote_amount":"0.01","min_order_size":"0.000100000000000000","name":"Aave to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"AAVE-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"VET","crypto_type":"BASE_ASSET","display_only":true,"id":"e1ca58d6-5860-440c-9bf3-ec965d54909b","increment":"0.000000000000000001","name":"Vechain","type":"cryptocurrency"},"display_only":true,"id":"8f137ded-7728-46ce-9b0f-e2d39326f591","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Vechain to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"VET-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"FIL","crypto_type":"BASE_ASSET","display_only":true,"id":"0c69c819-6217-4a24-9f81-522bec5d909e","increment":"0.001000000000000000","name":"Filecoin","type":"cryptocurrency"},"display_only":true,"id":"84e52b1d-3ca7-48ff-829a-b40e8b719810","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Filecoin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"FIL-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"GUSD","crypto_type":"BASE_ASSET","display_only":true,"id":"e5dc1595-bf58-40c6-84d1-63fe95d2e23b","increment":"0.010000000000000000","name":"Gemini Dollar","type":"cryptocurrency"},"display_only":true,"id":"ca5a2387-de9d-46ac-a592-d2811fdb8198","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Gemini Dollar to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"GUSD-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"SAND","crypto_type":"BASE_ASSET","display_only":true,"id":"0bebad0a-9a1e-43cf-ac59-2abb1ed0c8f1","increment":"0.000000000000000001","name":"Sandbox","type":"cryptocurrency"},"display_only":true,"id":"b40857da-99fa-4762-9cd0-cbb960fca571","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"The Sandbox to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"SAND-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"AVAX","crypto_type":"BASE_ASSET","display_only":false,"id":"b8b501ae-e6d2-474c-8595-5049ff23d9f6","increment":"0.000000001000000000","name":"Avalanche","type":"cryptocurrency"},"display_only":false,"id":"f62a25b6-31c0-4c92-846d-3c8105627b62","market_orders_only":false,"max_order_size":"20000.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000100000000000000","min_order_quote_amount":"0.01","min_order_size":"0.001000000000000000","name":"Avalanche to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"AVAX-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"YFI","crypto_type":"BASE_ASSET","display_only":true,"id":"2a63f39e-cdbc-4357-9633-0fead8c30208","increment":"0.000000000000000001","name":"Yearn Finance","type":"cryptocurrency"},"display_only":true,"id":"03dc6043-d6a9-4e39-bc41-ed9477cf156b","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000010000000000000","name":"Yearn Finance to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"YFI-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"FRAX","crypto_type":"BASE_ASSET","display_only":true,"id":"1931dd42-6e64-40e7-bac1-9e39f9d67188","increment":"0.000000010000000000","name":"Frax","type":"cryptocurrency"},"display_only":true,"id":"458f8424-251f-45c0-8e16-3dc6dac80a25","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Frax to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"FRAX-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"USDC","crypto_type":"BASE_ASSET","display_only":false,"id":"e8e4379a-ff48-4700-90c8-3557a9589f47","increment":"0.000000010000000000","name":"USDC","type":"cryptocurrency"},"display_only":false,"id":"3a3d9131-b627-4782-95e6-aeb874558e99","market_orders_only":true,"max_order_size":"250000.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"USD Coin to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.000000000000000000","symbol":"USDC-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"UNI","crypto_type":"ERC20","display_only":false,"id":"53820992-76d3-4db4-8611-0a9ec85d1a91","increment":"0.000000000000000001","name":"Uniswap","type":"cryptocurrency"},"display_only":false,"id":"33316259-af8c-4f31-86a4-c5c07e12d625","market_orders_only":false,"max_order_size":"50000.0000000000000000","min_order_price_increment":"0.001000000000000000","min_order_quantity_increment":"0.000100000000000000","min_order_quote_amount":"0.01","min_order_size":"0.010000000000000000","name":"Uniswap to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"UNI-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"USDP","crypto_type":"BASE_ASSET","display_only":true,"id":"d1f58303-b4e0-4b56-bd54-50ccb8a0a2be","increment":"0.010000000000000000","name":"Pax USD","type":"cryptocurrency"},"display_only":true,"id":"101a1cb7-b538-4e81-a23d-62128f29fcaf","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Pax USD to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"USDP-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"FTM","crypto_type":"BASE_ASSET","display_only":true,"id":"f166b571-a1b7-4d51-b5f0-219f2a327845","increment":"0.000000000000000001","name":"Fantom","type":"cryptocurrency"},"display_only":true,"id":"de964eb2-d699-4457-aff3-19580fe3eccb","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Fantom to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"FTM-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ADA","crypto_type":"BASE_ASSET","display_only":true,"id":"f5cd90c4-6058-4e2c-909d-2fe46bb80caf","increment":"0.000001000000000000","name":"Cardano","type":"cryptocurrency"},"display_only":true,"id":"6f2afc32-702e-41ad-b232-ed26b77c1943","market_orders_only":false,"max_order_size":"500000.0000000000000000","min_order_price_increment":"0.000000100000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Cardano to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ADA-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"GMT","crypto_type":"BASE_ASSET","display_only":true,"id":"128a88d4-b7e0-4c9f-88ed-4296e5f43fe7","increment":"0.000000001000000000","name":"Stepn","type":"cryptocurrency"},"display_only":true,"id":"c9f89275-9d9c-45d1-9e55-4e20dece4f93","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Stepn to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"GMT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"WAVES","crypto_type":"BASE_ASSET","display_only":true,"id":"d3980c58-aa7e-426c-8419-1d7a2c9e2bd7","increment":"0.000000010000000000","name":"Waves","type":"cryptocurrency"},"display_only":true,"id":"de237308-cc5f-45b1-b605-b95cb528000e","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Waves to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"WAVES-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"USDT","crypto_type":"BASE_ASSET","display_only":true,"id":"93efe0dd-b1aa-4ef3-b7de-cc16336a3fe7","increment":"0.000000010000000000","name":"Tether","type":"cryptocurrency"},"display_only":true,"id":"449ab99c-4eab-4bba-bada-e9b8d474e06e","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000010000000000000","name":"Tether to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"USDT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"LINK","crypto_type":"ERC20","display_only":false,"id":"8d47d48e-e49c-4e99-9c1e-154f53f2e685","increment":"0.000000000000000001","name":"Chainlink","type":"cryptocurrency"},"display_only":false,"id":"9f0a3a2e-e72e-4361-bf15-91d962487922","market_orders_only":false,"max_order_size":"35000.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000100000000000000","min_order_quote_amount":"0.01","min_order_size":"0.010000000000000000","name":"Chainlink to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"LINK-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"CELO","crypto_type":"BASE_ASSET","display_only":true,"id":"5e5a2685-d7f3-4293-9db3-209cbb6a41b2","increment":"0.000000010000000000","name":"Celo","type":"cryptocurrency"},"display_only":true,"id":"0a9ce9fc-6ece-4596-9bfe-68c4f3679221","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Celo to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"CELO-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"DOT","crypto_type":"BASE_ASSET","display_only":true,"id":"d618342f-1d6d-49fa-b092-25c91fa77aba","increment":"0.000000000100000000","name":"Polkadot","type":"cryptocurrency"},"display_only":true,"id":"8f8e9726-2a4e-4d7b-b620-fd3c459e7d57","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Polkadot to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DOT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"TUSD","crypto_type":"BASE_ASSET","display_only":true,"id":"fbde01ce-f2e5-477b-9740-98dc3e2b47d1","increment":"0.010000000000000000","name":"True USD","type":"cryptocurrency"},"display_only":true,"id":"11c9f4af-aa1d-45e2-94fb-52b505215bc1","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"True USD to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"TUSD-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"RARI","crypto_type":"BASE_ASSET","display_only":true,"id":"0a701d26-8a41-46d4-ad77-c077a8cc5e14","increment":"0.000000000000000001","name":"Rarible","type":"cryptocurrency"},"display_only":true,"id":"a0cf9216-8cb0-4e34-a0ce-20b15529c591","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.010000000000000000","name":"Rarible to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"RARI-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"MIOTA","crypto_type":"BASE_ASSET","display_only":true,"id":"3d32e79e-bee1-4731-9680-7e514e090f2a","increment":"0.000000010000000000","name":"Iota","type":"cryptocurrency"},"display_only":true,"id":"be018c5b-b768-451e-a7e8-8609a11774bc","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Iota to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"MIOTA-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"AXS","crypto_type":"BASE_ASSET","display_only":true,"id":"8e61198e-af2f-4964-993b-df2809ec53c4","increment":"0.000000000000000001","name":"Axie Infinity","type":"cryptocurrency"},"display_only":true,"id":"c876ffe9-c2b4-4670-90bd-34a32fd250ab","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Axie Infinity to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"AXS-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"FLOW","crypto_type":"BASE_ASSET","display_only":true,"id":"cfce3b7e-57bb-4cd5-9928-3146fa98ec48","increment":"0.000000010000000000","name":"Flow","type":"cryptocurrency"},"display_only":true,"id":"36e3af9a-ef60-4e4e-adb2-4f64b5c151df","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Flow to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"FLOW-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ATOM","crypto_type":"BASE_ASSET","display_only":true,"id":"6f64d0ab-aa87-4cb2-ae2b-2287a2b2c7a4","increment":"0.000001000000000000","name":"Cosmos","type":"cryptocurrency"},"display_only":true,"id":"69432091-9fd3-4ca8-aef3-78fc2f193608","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000001000000000000","min_order_quote_amount":null,"min_order_size":"0.000001000000000000","name":"Cosmos to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ATOM-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"XEM","crypto_type":"BASE_ASSET","display_only":true,"id":"f5babad8-a310-4d5a-b39d-d73a4c430fd9","increment":"0.000000010000000000","name":"NEM","type":"cryptocurrency"},"display_only":true,"id":"d6765e25-b287-4a24-b507-6070289abe0d","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"NEM to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"XEM-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"MKR","crypto_type":"BASE_ASSET","display_only":true,"id":"a1ad7762-dff4-494a-bd5b-bad2bbd59261","increment":"0.000000000000000001","name":"Maker","type":"cryptocurrency"},"display_only":true,"id":"60ed50be-c6e0-4422-ac27-7864ad94b6bb","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Maker to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"MKR-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"FTT","crypto_type":"BASE_ASSET","display_only":true,"id":"d20c7d04-2610-43fe-ae8b-7c165757f99e","increment":"0.000000000000000001","name":"FTX Token","type":"cryptocurrency"},"display_only":true,"id":"0d49c833-c706-4f80-ad24-6d1fa9673b63","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"FTX Token to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"FTT-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"ZRX","crypto_type":"BASE_ASSET","display_only":true,"id":"e627516c-ac34-47f5-9cd8-24d6c6dd5781","increment":"0.000000000000000001","name":"0x","type":"cryptocurrency"},"display_only":true,"id":"1649dabb-d770-450d-8ceb-c3bb72560e7c","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"0x to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"ZRX-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"HBAR","crypto_type":"BASE_ASSET","display_only":true,"id":"83ec0def-b097-4344-96c5-9c39bd97fd2a","increment":"0.010000000000000000","name":"Hedera","type":"cryptocurrency"},"display_only":true,"id":"bf36b6fb-b07f-4eaf-8784-f22ee9084e44","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Hedera to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"HBAR-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"NEAR","crypto_type":"BASE_ASSET","display_only":true,"id":"dd534245-6f84-435d-8ac3-6e6a539db694","increment":"0.000000000000000001","name":"Near","type":"cryptocurrency"},"display_only":true,"id":"b6717016-b60c-4111-9da9-87970c6b7237","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"NEAR Protocol to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"NEAR-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"STX","crypto_type":"BASE_ASSET","display_only":true,"id":"0f924af1-d263-4e6c-adac-8ee1b690112a","increment":"0.000000010000000000","name":"Stacks","type":"cryptocurrency"},"display_only":true,"id":"2f129148-2a8b-4296-9969-4da95d0f10b2","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Stacks to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"STX-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"PAXG","crypto_type":"BASE_ASSET","display_only":true,"id":"a563c6bf-f2ed-47f5-b057-fd67f4ec5d96","increment":"0.010000000000000000","name":"Pax Gold","type":"cryptocurrency"},"display_only":true,"id":"53bb199c-2ddd-43c4-b106-9743f8b812b9","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.010000000000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Pax Gold to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"PAXG-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"XTZ","crypto_type":"BASE_ASSET","display_only":false,"id":"fef27b16-5eca-45f3-ae04-7533f4665f7b","increment":"0.000001000000000000","name":"Tezos","type":"cryptocurrency"},"display_only":false,"id":"022bb5c2-d394-4e1c-a8c0-5b16ce1eab8d","market_orders_only":false,"max_order_size":"180000.0000000000000000","min_order_price_increment":"0.001000000000000000","min_order_quantity_increment":"0.001000000000000000","min_order_quote_amount":"0.01","min_order_size":"0.010000000000000000","name":"Tezos to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"XTZ-USD","tradability":"tradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"DCR","crypto_type":"BASE_ASSET","display_only":true,"id":"d2751ef6-5bb3-4118-8fc2-1e97d7eaf88b","increment":"0.000000010000000000","name":"Decred","type":"cryptocurrency"},"display_only":true,"id":"f53db757-bb9a-4325-8ce4-97397179bf8d","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.001000000000000000","name":"Decred to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"DCR-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"CRO","crypto_type":"BASE_ASSET","display_only":true,"id":"295bc643-c370-48f6-955a-e9cd3304f3b2","increment":"0.000000010000000000","name":"Crypto.com","type":"cryptocurrency"},"display_only":true,"id":"67a5efb6-161f-4fc2-8bcf-a5e5b69a7ecb","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.000001000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000000010000000000","name":"Cronos to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"CRO-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"BSV","crypto_type":"BASE_ASSET","display_only":true,"id":"4a7924c8-d554-47d6-8595-c4e522b0183a","increment":"0.000000010000000000","name":"Bitcoin SV","type":"cryptocurrency"},"display_only":true,"id":"086a8f9f-6c39-43fa-ac9f-57952f4a1ba6","market_orders_only":false,"max_order_size":"6000.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.000100000000000000","name":"Bitcoin SV to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"BSV-USD","tradability":"untradable","type":"cryptocurrency"},{"asset_currency":{"brand_color":"","code":"CRV","crypto_type":"BASE_ASSET","display_only":true,"id":"5ea3f3f4-c00d-4680-8a49-21661d32938c","increment":"0.000000000000000001","name":"Curve","type":"cryptocurrency"},"display_only":true,"id":"09bd2c0e-d9df-46a1-909b-dc59eb727c71","market_orders_only":false,"max_order_size":"100003.0000000000000000","min_order_price_increment":"0.010000000000000000","min_order_quantity_increment":"0.000000010000000000","min_order_quote_amount":null,"min_order_size":"0.100000000000000000","name":"Curve to US Dollar","quote_currency":{"brand_color":"","code":"USD","crypto_type":"BASE_ASSET","display_only":false,"id":"1072fc76-1862-41ab-82c2-485837590762","increment":"0.010000000000000000","name":"US Dollar","type":"fiat"},"quote_fee":null,"rebate":"0.004900000000000000","symbol":"CRV-USD","tradability":"untradable","type":"cryptocurrency"}]';
     return jsonDecode(jsonStr);
@@ -433,8 +499,28 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
+    try {
+      return await yahooService.getForexQuote(id);
+    } catch (_) {
+      // Fallback to offline demo fixtures
+    }
     dynamic json = '';
-    if (id == '2d189ddb-bc0d-4aa4-bd6b-cd72e6679cd0') {
+    if (id == 'EURUSD' ||
+        id.toLowerCase().contains('eurusd') ||
+        id == 'forex_eurusd') {
+      json = jsonDecode(
+          '{"ask_price":"1.0855","bid_price":"1.0853","mark_price":"1.0854","high_price":"1.0890","low_price":"1.0820","open_price":"1.0840","symbol":"EURUSD","id":"forex_eurusd","volume":"150000","updated_at":"2026-09-07T12:00:00Z"}');
+    } else if (id == 'USDJPY' ||
+        id.toLowerCase().contains('usdjpy') ||
+        id == 'forex_usdjpy') {
+      json = jsonDecode(
+          '{"ask_price":"154.25","bid_price":"154.20","mark_price":"154.22","high_price":"154.80","low_price":"153.90","open_price":"154.10","symbol":"USDJPY","id":"forex_usdjpy","volume":"220000","updated_at":"2026-09-07T12:00:00Z"}');
+    } else if (id == 'GBPUSD' ||
+        id.toLowerCase().contains('gbpusd') ||
+        id == 'forex_gbpusd') {
+      json = jsonDecode(
+          '{"ask_price":"1.2925","bid_price":"1.2920","mark_price":"1.2922","high_price":"1.2960","low_price":"1.2890","open_price":"1.2910","symbol":"GBPUSD","id":"forex_gbpusd","volume":"180000","updated_at":"2026-09-07T12:00:00Z"}');
+    } else if (id == '2d189ddb-bc0d-4aa4-bd6b-cd72e6679cd0') {
       json = jsonDecode(
           '{"ask_price":"0.00001876","ask_source":"7b2cceddebf3891b874916889d6c002a23ad95417f08a37f400403d1a2b3ce87","bid_price":"0.00001857","bid_source":"0ae10bdb02a9b718c7908c07f604929793ec76a0d308fdd82419235bbdf48a87","mark_price":"0.000018665","high_price":"0.0000191","low_price":"0.00001847","open_price":"0.00001868","symbol":"SHIBUSD","id":"2d189ddb-bc0d-4aa4-bd6b-cd72e6679cd0","volume":"0","updated_at":"2024-10-18T21:17:25.54Z"}');
     } else if (id == '1ef78e1b-049b-4f12-90e5-555dcf2fe204') {
@@ -457,6 +543,12 @@ class DemoService implements IBrokerageService {
     if (symbol == 'LYFT') {
       json = jsonDecode(
           '{"next":null,"previous":null,"results":[{"id":"2fd39520-01a7-4612-ab1f-ddbb9a861268","url":"https://api.robinhood.com/instruments/2fd39520-01a7-4612-ab1f-ddbb9a861268/","quote":"https://api.robinhood.com/quotes/LYFT/","fundamentals":"https://api.robinhood.com/fundamentals/LYFT/","splits":"https://api.robinhood.com/instruments/2fd39520-01a7-4612-ab1f-ddbb9a861268/splits/","state":"active","market":"https://api.robinhood.com/markets/XNAS/","simple_name":"Lyft","name":"Lyft, Inc. Class A Common Stock","tradeable":true,"tradability":"tradable","symbol":"LYFT","bloomberg_unique":"EQ0000000030316495","margin_initial_ratio":"0.5000","maintenance_ratio":"0.3500","country":"US","day_trade_ratio":"0.2500","list_date":"2019-03-29","min_tick_size":null,"type":"stock","tradable_chain_id":"6d718fff-da2d-4909-909f-bebb28be476b","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
+    } else if (symbol == 'AAPL') {
+      json = jsonDecode(
+          '{"next":null,"previous":null,"results":[{"id":"dummy_id_aapl","url":"https://api.robinhood.com/instruments/dummy_id_aapl/","quote":"https://api.robinhood.com/quotes/AAPL/","fundamentals":"https://api.robinhood.com/fundamentals/AAPL/","splits":"https://api.robinhood.com/instruments/dummy_id_aapl/splits/","state":"active","market":"https://api.robinhood.com/markets/XNAS/","simple_name":"Apple","name":"Apple Inc.","tradeable":true,"tradability":"tradable","symbol":"AAPL","bloomberg_unique":"EQ000000000000AAPL","margin_initial_ratio":"0.5000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"1980-12-12","min_tick_size":null,"type":"stock","tradable_chain_id":"dummy_chain_id_aapl","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
+    } else if (symbol == 'SPY') {
+      json = jsonDecode(
+          '{"next":null,"previous":null,"results":[{"id":"dummy_id_spy","url":"https://api.robinhood.com/instruments/dummy_id_spy/","quote":"https://api.robinhood.com/quotes/SPY/","fundamentals":"https://api.robinhood.com/fundamentals/SPY/","splits":"https://api.robinhood.com/instruments/dummy_id_spy/splits/","state":"active","market":"https://api.robinhood.com/markets/XNYS/","simple_name":"SPDR S&P 500","name":"SPDR S&P 500 ETF Trust","tradeable":true,"tradability":"tradable","symbol":"SPY","bloomberg_unique":"EQ0000000000000000","margin_initial_ratio":"0.5000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"1993-01-22","min_tick_size":null,"type":"etp","tradable_chain_id":"dummy_chain_id_spy","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":true,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"etf","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
     } else if (symbol == 'DG') {
       json = jsonDecode(
           '{"next":null,"previous":null,"results":[{"id":"e1e032ac-54a4-40fd-9d90-979044454bec","url":"https://api.robinhood.com/instruments/e1e032ac-54a4-40fd-9d90-979044454bec/","quote":"https://api.robinhood.com/quotes/DG/","fundamentals":"https://api.robinhood.com/fundamentals/DG/","splits":"https://api.robinhood.com/instruments/e1e032ac-54a4-40fd-9d90-979044454bec/splits/","state":"active","market":"https://api.robinhood.com/markets/XNYS/","simple_name":"Dollar General","name":"Dollar General Corp.","tradeable":true,"tradability":"tradable","symbol":"DG","bloomberg_unique":"EQ0000000008890202","margin_initial_ratio":"0.6000","maintenance_ratio":"0.2500","country":"US","day_trade_ratio":"0.2500","list_date":"2009-11-13","min_tick_size":null,"type":"stock","tradable_chain_id":"7b5c75cd-bbb8-4057-b860-dcbad05825d2","rhs_tradability":"tradable","affiliate_tradability":"tradable","fractional_tradability":"tradable","default_collar_fraction":"0.05","ipo_access_status":null,"ipo_access_cob_deadline":null,"ipo_s1_url":null,"ipo_roadshow_url":null,"is_spac":false,"is_test":false,"ipo_access_supports_dsp":false,"extended_hours_fractional_tradability":false,"internal_halt_reason":"","internal_halt_details":"","internal_halt_sessions":null,"internal_halt_start_time":null,"internal_halt_end_time":null,"internal_halt_source":"","all_day_tradability":"tradable","notional_estimated_quantity_decimals":5,"tax_security_type":"stock","reserved_buying_power_percent_queued":"0.10000000","reserved_buying_power_percent_immediate":"0.05000000","otc_market_tier":""}]}');
@@ -527,62 +619,64 @@ class DemoService implements IBrokerageService {
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
       {bool nonzero = true, DocumentReference? userDoc}) async {
-    List<OptionAggregatePosition> ops =
-        await getAggregateOptionPositions(user, nonzero: nonzero);
-    for (var op in ops) {
-      store.addOrUpdate(op);
-    }
-    store.sort();
-
-    var len = ops.length;
-    var size = 25; //20; //15; //17;
-    List<List<OptionAggregatePosition>> chunks = [];
-    for (var i = 0; i < len; i += size) {
-      var end = (i + size < len) ? i + size : len;
-      chunks.add(ops.sublist(i, end));
-    }
-    for (var chunk in chunks) {
-      var optionIds = chunk.map((e) {
-        var splits = e.legs.first.option.split("/");
-        return splits[splits.length - 2];
-      })
-          //.toSet()
-          .toList();
-
-      var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
-
-      for (var optionInstrument in optionInstruments) {
-        var optionPosition = ops.singleWhere((element) {
-          var splits = element.legs.first.option.split("/");
-          return splits[splits.length - 2] == optionInstrument.id;
-        });
-
-        optionPosition.optionInstrument = optionInstrument;
+    store.setLoading(true);
+    try {
+      List<OptionAggregatePosition> ops =
+          await getAggregateOptionPositions(user, nonzero: nonzero);
+      for (var op in ops) {
+        store.addOrUpdate(op);
       }
+      store.sort();
 
-      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+      var len = ops.length;
+      var size = 25; //20; //15; //17;
+      List<List<OptionAggregatePosition>> chunks = [];
+      for (var i = 0; i < len; i += size) {
+        var end = (i + size < len) ? i + size : len;
+        chunks.add(ops.sublist(i, end));
+      }
+      for (var chunk in chunks) {
+        var optionIds = chunk.map((e) {
+          var splits = e.legs.first.option.split("/");
+          return splits[splits.length - 2];
+        })
+            //.toSet()
+            .toList();
 
-      for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = ops.singleWhere((element) {
-          var splits = element.legs.first.option.split("/");
-          return splits[splits.length - 2] == optionMarketDatum.instrumentId;
-        });
+        var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
 
-        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        //optionPosition.marketData = optionMarketDatum;
+        for (var optionInstrument in optionInstruments) {
+          var optionPosition = ops.singleWhere((element) {
+            var splits = element.legs.first.option.split("/");
+            return splits[splits.length - 2] == optionInstrument.id;
+          });
 
-        // Link OptionPosition to Instrument and vice-versa.
-        var instrument = await getInstrumentBySymbol(
-            user, instrumentStore, optionPosition.symbol);
-        optionPosition.instrumentObj = instrument;
-        /*
+          optionPosition.optionInstrument = optionInstrument;
+        }
+
+        var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+
+        for (var optionMarketDatum in optionMarketData) {
+          var optionPosition = ops.singleWhere((element) {
+            var splits = element.legs.first.option.split("/");
+            return splits[splits.length - 2] == optionMarketDatum.instrumentId;
+          });
+
+          optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+          //optionPosition.marketData = optionMarketDatum;
+
+          // Link OptionPosition to Instrument and vice-versa.
+          var instrument = await getInstrumentBySymbol(
+              user, instrumentStore, optionPosition.symbol);
+          optionPosition.instrumentObj = instrument;
+          /*
         if (instrument!.optionPositions == null) {
           instrument.optionPositions = [];
         }
         instrument.optionPositions!.add(optionPosition);
         */
 
-        /*
+          /*
         ops.sort((a, b) {
           int comp = a.legs.first.expirationDate!
               .compareTo(b.legs.first.expirationDate!);
@@ -591,18 +685,21 @@ class DemoService implements IBrokerageService {
         });
         */
 
-        // Update store
-        store.update(optionPosition);
+          // Update store
+          store.update(optionPosition);
+        }
       }
-    }
 
-    // Load logos from cache.
-    for (var op in ops) {
-      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
-        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      // Load logos from cache.
+      for (var op in ops) {
+        if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
+          op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+        }
       }
+      return store;
+    } finally {
+      store.setLoading(false);
     }
-    return store;
   }
 
   @override
@@ -613,43 +710,48 @@ class DemoService implements IBrokerageService {
       QuoteStore quoteStore,
       {bool nonzero = true,
       DocumentReference? userDoc}) async {
-    final json = await Future.delayed(
-        Duration.zero,
-        () => jsonDecode(
-            '[{"url":"https://api.robinhood.com/positions/1AB23456/8f92e76f-1e0e-4478-8580-16a6ffcfaef5/","instrument":"https://api.robinhood.com/instruments/8f92e76f-1e0e-4478-8580-16a6ffcfaef5/","instrument_id":"8f92e76f-1e0e-4478-8580-16a6ffcfaef5","symbol":"SPY","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"452.6748","pending_average_buy_price":"452.6748","quantity":"16.08002400","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"16.08002400","shares_available_for_sells":"16.08002400","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-08-01T14:44:02.540785Z","created_at":"2021-10-05T16:10:14.853949Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/50810c35-d215-4866-9758-0ada4ac79ffa/","instrument":"https://api.robinhood.com/instruments/50810c35-d215-4866-9758-0ada4ac79ffa/","instrument_id":"50810c35-d215-4866-9758-0ada4ac79ffa","symbol":"MSFT","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"312.5609","pending_average_buy_price":"312.5609","quantity":"15.00520900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"15.00520900","shares_available_for_sells":"15.00520900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-13T14:45:14.822039Z","created_at":"2015-02-25T16:16:23.004380Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/","instrument":"https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/","instrument_id":"c0bb3aec-bd1e-471e-a4f0-ca011cbec711","symbol":"AMZN","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"146.3502","pending_average_buy_price":"146.3502","quantity":"35.73804000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"35.73804000","shares_available_for_sells":"35.73804000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2023-03-20T18:34:27.987760Z","created_at":"2020-11-23T19:41:46.679191Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/943c5009-a0bb-4665-8cf4-a95dab5874e4/","instrument":"https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/","instrument_id":"943c5009-a0bb-4665-8cf4-a95dab5874e4","symbol":"GOOG","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"135.3694","pending_average_buy_price":"135.3694","quantity":"44.94164100","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"44.94164100","shares_available_for_sells":"44.94164100","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-17T14:39:28.946129Z","created_at":"2020-11-23T19:50:27.262691Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/f37d1017-e4cf-438e-bd3f-32ec6199e12f/","instrument":"https://api.robinhood.com/instruments/f37d1017-e4cf-438e-bd3f-32ec6199e12f/","instrument_id":"f37d1017-e4cf-438e-bd3f-32ec6199e12f","symbol":"STLA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"17.1063","pending_average_buy_price":"17.1063","quantity":"63.84963400","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"63.84963400","shares_available_for_sells":"63.84963400","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-05-06T14:31:26.482270Z","created_at":"2023-06-13T23:48:11.543569Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/6df56bd0-0bf2-44ab-8875-f94fd8526942/","instrument":"https://api.robinhood.com/instruments/6df56bd0-0bf2-44ab-8875-f94fd8526942/","instrument_id":"6df56bd0-0bf2-44ab-8875-f94fd8526942","symbol":"F","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"13.9957","pending_average_buy_price":"13.9957","quantity":"108.02234600","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"108.02234600","shares_available_for_sells":"108.02234600","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:55:41.783610Z","created_at":"2021-10-14T18:30:14.162378Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/ef29fd22-6e22-44ef-9911-a8f5bd68abd3/","instrument":"https://api.robinhood.com/instruments/ef29fd22-6e22-44ef-9911-a8f5bd68abd3/","instrument_id":"ef29fd22-6e22-44ef-9911-a8f5bd68abd3","symbol":"HOOD","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"41.7500","pending_average_buy_price":"41.7500","quantity":"100.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"100.00000000","shares_available_for_sells":"100.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"50.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2023-07-15T04:15:44.659841Z","created_at":"2021-07-20T14:45:45.291733Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/31f1745b-6060-49c4-a728-3be519f31315/","instrument":"https://api.robinhood.com/instruments/31f1745b-6060-49c4-a728-3be519f31315/","instrument_id":"31f1745b-6060-49c4-a728-3be519f31315","symbol":"C","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"45.3574","pending_average_buy_price":"45.3574","quantity":"1.76720900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.76720900","shares_available_for_sells":"1.76720900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T17:50:20.702396Z","created_at":"2021-01-27T03:10:03.797147Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/801a9500-8a61-4e1c-ae76-0beb4a135fb1/","instrument":"https://api.robinhood.com/instruments/801a9500-8a61-4e1c-ae76-0beb4a135fb1/","instrument_id":"801a9500-8a61-4e1c-ae76-0beb4a135fb1","symbol":"GS","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"304.9665","pending_average_buy_price":"304.9665","quantity":"1.06739600","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.06739600","shares_available_for_sells":"1.06739600","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T14:31:43.970217Z","created_at":"2022-06-27T16:55:18.089635Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/48bbe4a0-d167-4bfe-8d3b-494f9bb56350/","instrument":"https://api.robinhood.com/instruments/48bbe4a0-d167-4bfe-8d3b-494f9bb56350/","instrument_id":"48bbe4a0-d167-4bfe-8d3b-494f9bb56350","symbol":"GM","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"40.2674","pending_average_buy_price":"40.2674","quantity":"10.05004800","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.05004800","shares_available_for_sells":"10.05004800","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-20T14:32:24.448195Z","created_at":"2017-11-30T08:10:04.857569Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","symbol":"AAPL","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"176.2250","pending_average_buy_price":"176.2250","quantity":"10.02428900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.02428900","shares_available_for_sells":"10.02428900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-08-16T15:00:05.023450Z","created_at":"2018-04-01T02:36:08.528152Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/ebab2398-028d-4939-9f1d-13bf38f81c50/","instrument":"https://api.robinhood.com/instruments/ebab2398-028d-4939-9f1d-13bf38f81c50/","instrument_id":"ebab2398-028d-4939-9f1d-13bf38f81c50","symbol":"META","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"462.5413","pending_average_buy_price":"462.5413","quantity":"2.00176700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"2.00176700","shares_available_for_sells":"2.00176700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-27T14:37:46.550427Z","created_at":"2018-04-01T02:49:13.409730Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/6ec6c70e-d686-4d73-b5a8-74fec96aca0e/","instrument":"https://api.robinhood.com/instruments/6ec6c70e-d686-4d73-b5a8-74fec96aca0e/","instrument_id":"6ec6c70e-d686-4d73-b5a8-74fec96aca0e","symbol":"PFE","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"28.2418","pending_average_buy_price":"28.2418","quantity":"41.24091300","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"41.24091300","shares_available_for_sells":"41.24091300","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:41:28.209808Z","created_at":"2021-01-23T21:24:59.331758Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/5ea5e761-1747-4911-beec-5a24af338329/","instrument":"https://api.robinhood.com/instruments/5ea5e761-1747-4911-beec-5a24af338329/","instrument_id":"5ea5e761-1747-4911-beec-5a24af338329","symbol":"QCOM","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"191.7167","pending_average_buy_price":"191.7167","quantity":"5.02475800","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"5.02475800","shares_available_for_sells":"5.02475800","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-27T14:33:27.315924Z","created_at":"2023-09-12T02:55:43.199504Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/e50319cc-c130-4220-9ae6-95b745f73613/","instrument":"https://api.robinhood.com/instruments/e50319cc-c130-4220-9ae6-95b745f73613/","instrument_id":"e50319cc-c130-4220-9ae6-95b745f73613","symbol":"JEPQ","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"53.1223","pending_average_buy_price":"53.1223","quantity":"93.64994700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"93.64994700","shares_available_for_sells":"93.64994700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-04T14:37:36.284169Z","created_at":"2023-12-09T16:45:01.775959Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/a4f0cca4-79dc-4297-9c02-5bce1909cd4b/","instrument":"https://api.robinhood.com/instruments/a4f0cca4-79dc-4297-9c02-5bce1909cd4b/","instrument_id":"a4f0cca4-79dc-4297-9c02-5bce1909cd4b","symbol":"BRK.B","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"405.7600","pending_average_buy_price":"405.7600","quantity":"1.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00000000","shares_available_for_sells":"1.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-03-06T15:31:23.528648Z","created_at":"2024-02-17T21:37:42.180317Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb/","instrument":"https://api.robinhood.com/instruments/a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb/","instrument_id":"a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb","symbol":"NVDA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"122.5000","pending_average_buy_price":"122.5000","quantity":"5.00040700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"5.00040700","shares_available_for_sells":"5.00040700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-04T14:31:41.605097Z","created_at":"2024-02-19T00:43:25.974534Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/bb69e3f5-6fd8-421c-b2bb-a347dfa84275/","instrument":"https://api.robinhood.com/instruments/bb69e3f5-6fd8-421c-b2bb-a347dfa84275/","instrument_id":"bb69e3f5-6fd8-421c-b2bb-a347dfa84275","symbol":"WFC","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"56.9523","pending_average_buy_price":"56.9523","quantity":"10.12777000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.12777000","shares_available_for_sells":"10.12777000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:46:21.914975Z","created_at":"2024-03-06T15:34:18.232551Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/e39ed23a-7bd1-4587-b060-71988d9ef483/","instrument":"https://api.robinhood.com/instruments/e39ed23a-7bd1-4587-b060-71988d9ef483/","instrument_id":"e39ed23a-7bd1-4587-b060-71988d9ef483","symbol":"TSLA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"183.5300","pending_average_buy_price":"183.5300","quantity":"1.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00000000","shares_available_for_sells":"1.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T17:47:36.607031Z","created_at":"2024-06-14T04:45:30.668727Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/306245dd-b82d-4d8d-bcc5-7c58e87cdd15/","instrument":"https://api.robinhood.com/instruments/306245dd-b82d-4d8d-bcc5-7c58e87cdd15/","instrument_id":"306245dd-b82d-4d8d-bcc5-7c58e87cdd15","symbol":"VOO","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"508.2546","pending_average_buy_price":"508.2546","quantity":"1.00313900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00313900","shares_available_for_sells":"1.00313900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-02T14:59:48.309204Z","created_at":"2024-08-15T21:16:11.522970Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false}]'));
-    final results = await Future.delayed(Duration.zero, () => json);
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = InstrumentPosition.fromJson(result);
+    store.setLoading(true);
+    try {
+      final json = await Future.delayed(
+          Duration.zero,
+          () => jsonDecode(
+              '[{"url":"https://api.robinhood.com/positions/1AB23456/8f92e76f-1e0e-4478-8580-16a6ffcfaef5/","instrument":"https://api.robinhood.com/instruments/8f92e76f-1e0e-4478-8580-16a6ffcfaef5/","instrument_id":"8f92e76f-1e0e-4478-8580-16a6ffcfaef5","symbol":"SPY","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"452.6748","pending_average_buy_price":"452.6748","quantity":"16.08002400","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"16.08002400","shares_available_for_sells":"16.08002400","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-08-01T14:44:02.540785Z","created_at":"2021-10-05T16:10:14.853949Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/50810c35-d215-4866-9758-0ada4ac79ffa/","instrument":"https://api.robinhood.com/instruments/50810c35-d215-4866-9758-0ada4ac79ffa/","instrument_id":"50810c35-d215-4866-9758-0ada4ac79ffa","symbol":"MSFT","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"312.5609","pending_average_buy_price":"312.5609","quantity":"15.00520900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"15.00520900","shares_available_for_sells":"15.00520900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-13T14:45:14.822039Z","created_at":"2015-02-25T16:16:23.004380Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/","instrument":"https://api.robinhood.com/instruments/c0bb3aec-bd1e-471e-a4f0-ca011cbec711/","instrument_id":"c0bb3aec-bd1e-471e-a4f0-ca011cbec711","symbol":"AMZN","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"146.3502","pending_average_buy_price":"146.3502","quantity":"35.73804000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"35.73804000","shares_available_for_sells":"35.73804000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2023-03-20T18:34:27.987760Z","created_at":"2020-11-23T19:41:46.679191Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/943c5009-a0bb-4665-8cf4-a95dab5874e4/","instrument":"https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/","instrument_id":"943c5009-a0bb-4665-8cf4-a95dab5874e4","symbol":"GOOG","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"135.3694","pending_average_buy_price":"135.3694","quantity":"44.94164100","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"44.94164100","shares_available_for_sells":"44.94164100","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-17T14:39:28.946129Z","created_at":"2020-11-23T19:50:27.262691Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/f37d1017-e4cf-438e-bd3f-32ec6199e12f/","instrument":"https://api.robinhood.com/instruments/f37d1017-e4cf-438e-bd3f-32ec6199e12f/","instrument_id":"f37d1017-e4cf-438e-bd3f-32ec6199e12f","symbol":"STLA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"17.1063","pending_average_buy_price":"17.1063","quantity":"63.84963400","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"63.84963400","shares_available_for_sells":"63.84963400","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-05-06T14:31:26.482270Z","created_at":"2023-06-13T23:48:11.543569Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/6df56bd0-0bf2-44ab-8875-f94fd8526942/","instrument":"https://api.robinhood.com/instruments/6df56bd0-0bf2-44ab-8875-f94fd8526942/","instrument_id":"6df56bd0-0bf2-44ab-8875-f94fd8526942","symbol":"F","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"13.9957","pending_average_buy_price":"13.9957","quantity":"108.02234600","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"108.02234600","shares_available_for_sells":"108.02234600","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:55:41.783610Z","created_at":"2021-10-14T18:30:14.162378Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/ef29fd22-6e22-44ef-9911-a8f5bd68abd3/","instrument":"https://api.robinhood.com/instruments/ef29fd22-6e22-44ef-9911-a8f5bd68abd3/","instrument_id":"ef29fd22-6e22-44ef-9911-a8f5bd68abd3","symbol":"HOOD","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"41.7500","pending_average_buy_price":"41.7500","quantity":"100.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"100.00000000","shares_available_for_sells":"100.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"50.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2023-07-15T04:15:44.659841Z","created_at":"2021-07-20T14:45:45.291733Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/31f1745b-6060-49c4-a728-3be519f31315/","instrument":"https://api.robinhood.com/instruments/31f1745b-6060-49c4-a728-3be519f31315/","instrument_id":"31f1745b-6060-49c4-a728-3be519f31315","symbol":"C","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"45.3574","pending_average_buy_price":"45.3574","quantity":"1.76720900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.76720900","shares_available_for_sells":"1.76720900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T17:50:20.702396Z","created_at":"2021-01-27T03:10:03.797147Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/801a9500-8a61-4e1c-ae76-0beb4a135fb1/","instrument":"https://api.robinhood.com/instruments/801a9500-8a61-4e1c-ae76-0beb4a135fb1/","instrument_id":"801a9500-8a61-4e1c-ae76-0beb4a135fb1","symbol":"GS","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"304.9665","pending_average_buy_price":"304.9665","quantity":"1.06739600","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.06739600","shares_available_for_sells":"1.06739600","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T14:31:43.970217Z","created_at":"2022-06-27T16:55:18.089635Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/48bbe4a0-d167-4bfe-8d3b-494f9bb56350/","instrument":"https://api.robinhood.com/instruments/48bbe4a0-d167-4bfe-8d3b-494f9bb56350/","instrument_id":"48bbe4a0-d167-4bfe-8d3b-494f9bb56350","symbol":"GM","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"40.2674","pending_average_buy_price":"40.2674","quantity":"10.05004800","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.05004800","shares_available_for_sells":"10.05004800","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-20T14:32:24.448195Z","created_at":"2017-11-30T08:10:04.857569Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","symbol":"AAPL","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"176.2250","pending_average_buy_price":"176.2250","quantity":"10.02428900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.02428900","shares_available_for_sells":"10.02428900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-08-16T15:00:05.023450Z","created_at":"2018-04-01T02:36:08.528152Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/ebab2398-028d-4939-9f1d-13bf38f81c50/","instrument":"https://api.robinhood.com/instruments/ebab2398-028d-4939-9f1d-13bf38f81c50/","instrument_id":"ebab2398-028d-4939-9f1d-13bf38f81c50","symbol":"META","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"462.5413","pending_average_buy_price":"462.5413","quantity":"2.00176700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"2.00176700","shares_available_for_sells":"2.00176700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-27T14:37:46.550427Z","created_at":"2018-04-01T02:49:13.409730Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/6ec6c70e-d686-4d73-b5a8-74fec96aca0e/","instrument":"https://api.robinhood.com/instruments/6ec6c70e-d686-4d73-b5a8-74fec96aca0e/","instrument_id":"6ec6c70e-d686-4d73-b5a8-74fec96aca0e","symbol":"PFE","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"28.2418","pending_average_buy_price":"28.2418","quantity":"41.24091300","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"41.24091300","shares_available_for_sells":"41.24091300","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:41:28.209808Z","created_at":"2021-01-23T21:24:59.331758Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/5ea5e761-1747-4911-beec-5a24af338329/","instrument":"https://api.robinhood.com/instruments/5ea5e761-1747-4911-beec-5a24af338329/","instrument_id":"5ea5e761-1747-4911-beec-5a24af338329","symbol":"QCOM","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"191.7167","pending_average_buy_price":"191.7167","quantity":"5.02475800","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"5.02475800","shares_available_for_sells":"5.02475800","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-27T14:33:27.315924Z","created_at":"2023-09-12T02:55:43.199504Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/e50319cc-c130-4220-9ae6-95b745f73613/","instrument":"https://api.robinhood.com/instruments/e50319cc-c130-4220-9ae6-95b745f73613/","instrument_id":"e50319cc-c130-4220-9ae6-95b745f73613","symbol":"JEPQ","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"53.1223","pending_average_buy_price":"53.1223","quantity":"93.64994700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"93.64994700","shares_available_for_sells":"93.64994700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-04T14:37:36.284169Z","created_at":"2023-12-09T16:45:01.775959Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/a4f0cca4-79dc-4297-9c02-5bce1909cd4b/","instrument":"https://api.robinhood.com/instruments/a4f0cca4-79dc-4297-9c02-5bce1909cd4b/","instrument_id":"a4f0cca4-79dc-4297-9c02-5bce1909cd4b","symbol":"BRK.B","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"405.7600","pending_average_buy_price":"405.7600","quantity":"1.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00000000","shares_available_for_sells":"1.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-03-06T15:31:23.528648Z","created_at":"2024-02-17T21:37:42.180317Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb/","instrument":"https://api.robinhood.com/instruments/a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb/","instrument_id":"a4ecd608-e7b4-4ff3-afa5-f77ae7632dfb","symbol":"NVDA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"122.5000","pending_average_buy_price":"122.5000","quantity":"5.00040700","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"5.00040700","shares_available_for_sells":"5.00040700","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-04T14:31:41.605097Z","created_at":"2024-02-19T00:43:25.974534Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/bb69e3f5-6fd8-421c-b2bb-a347dfa84275/","instrument":"https://api.robinhood.com/instruments/bb69e3f5-6fd8-421c-b2bb-a347dfa84275/","instrument_id":"bb69e3f5-6fd8-421c-b2bb-a347dfa84275","symbol":"WFC","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"56.9523","pending_average_buy_price":"56.9523","quantity":"10.12777000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"10.12777000","shares_available_for_sells":"10.12777000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-04T14:46:21.914975Z","created_at":"2024-03-06T15:34:18.232551Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/e39ed23a-7bd1-4587-b060-71988d9ef483/","instrument":"https://api.robinhood.com/instruments/e39ed23a-7bd1-4587-b060-71988d9ef483/","instrument_id":"e39ed23a-7bd1-4587-b060-71988d9ef483","symbol":"TSLA","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"183.5300","pending_average_buy_price":"183.5300","quantity":"1.00000000","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00000000","shares_available_for_sells":"1.00000000","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-09-30T17:47:36.607031Z","created_at":"2024-06-14T04:45:30.668727Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false},{"url":"https://api.robinhood.com/positions/1AB23456/306245dd-b82d-4d8d-bcc5-7c58e87cdd15/","instrument":"https://api.robinhood.com/instruments/306245dd-b82d-4d8d-bcc5-7c58e87cdd15/","instrument_id":"306245dd-b82d-4d8d-bcc5-7c58e87cdd15","symbol":"VOO","account":"https://api.robinhood.com/accounts/1AB23456/","account_number":"1AB23456","brokerage_account_type":"individual","average_buy_price":"508.2546","pending_average_buy_price":"508.2546","quantity":"1.00313900","intraday_average_buy_price":"0.0000","intraday_quantity":"0.00000000","shares_available_for_exercise":"1.00313900","shares_available_for_sells":"1.00313900","shares_held_for_buys":"0.00000000","shares_held_for_sells":"0.00000000","shares_held_for_stock_grants":"0.00000000","shares_held_for_options_collateral":"0.00000000","shares_held_for_options_events":"0.00000000","shares_pending_from_options_events":"0.00000000","shares_available_for_closing_short_position":"0.00000000","ipo_allocated_quantity":"0.00000000","ipo_dsp_allocated_quantity":"0.00000000","avg_cost_affected":false,"avg_cost_affected_reason":null,"is_primary_account":true,"updated_at":"2024-10-02T14:59:48.309204Z","created_at":"2024-08-15T21:16:11.522970Z","instrument_is_halted":false,"clearing_cost_basis":null,"clearing_running_quantity":null,"clearing_intraday_cost_basis":null,"clearing_intraday_running_quantity":null,"custom_tax_lot_selection_eligible":false}]'));
+      final results = await Future.delayed(Duration.zero, () => json);
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var op = InstrumentPosition.fromJson(result);
 
-      //if ((withQuantity && op.quantity! > 0) ||
-      //    (!withQuantity && op.quantity == 0)) {
-      store.addOrUpdate(op);
+        //if ((withQuantity && op.quantity! > 0) ||
+        //    (!withQuantity && op.quantity == 0)) {
+        store.addOrUpdate(op);
+      }
+      var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+      for (var instrumentObj in instrumentObjs) {
+        var position = store.items
+            .firstWhere((element) => element.instrumentId == instrumentObj.id);
+        position.instrumentObj = instrumentObj;
+        store.update(position);
+      }
+      var symbols = store.items
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
+          .map((e) => e.instrumentObj!.symbol)
+          .toList();
+      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+      for (var quoteObj in quoteObjs) {
+        var position = store.items.firstWhere((element) =>
+            element.instrumentObj != null &&
+            element.instrumentObj!.symbol == quoteObj.symbol);
+        position.instrumentObj!.quoteObj = quoteObj;
+        store.update(position);
+      }
+      return store;
+    } finally {
+      store.setLoading(false);
     }
-    var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-    var instrumentObjs =
-        await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-    for (var instrumentObj in instrumentObjs) {
-      var position = store.items
-          .firstWhere((element) => element.instrumentId == instrumentObj.id);
-      position.instrumentObj = instrumentObj;
-      store.update(position);
-    }
-    var symbols = store.items
-        .where((e) =>
-            e.instrumentObj !=
-            null) // Figure out why in certain conditions, instrumentObj is null
-        .map((e) => e.instrumentObj!.symbol)
-        .toList();
-    var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-    for (var quoteObj in quoteObjs) {
-      var position = store.items.firstWhere((element) =>
-          element.instrumentObj != null &&
-          element.instrumentObj!.symbol == quoteObj.symbol);
-      position.instrumentObj!.quoteObj = quoteObj;
-      store.update(position);
-    }
-    return store;
   }
 
   List<dynamic> quotes = jsonDecode(
@@ -942,7 +1044,7 @@ class DemoService implements IBrokerageService {
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem = WatchlistItem('instrument', instrumentObj.id,
+        var watchlistItem = WatchlistItem(null, 'instrument', instrumentObj.id,
             instrumentObj.id, DateTime.now(), entry.key, "");
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
@@ -969,8 +1071,8 @@ class DemoService implements IBrokerageService {
       if (forexIds.isNotEmpty) {
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
-          var watchlistItem = WatchlistItem('currency_pair', forexQuote.id,
-              forexQuote.id, DateTime.now(), entry.key, "");
+          var watchlistItem = WatchlistItem(null, 'currency_pair',
+              forexQuote.id, forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;
@@ -1083,13 +1185,12 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
-        return getPortfolioHistoricals(user, store, account, chartBoundsFilter, chartDateSpanFilter);
-    }
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return getPortfolioHistoricals(
+        user, store, account, chartBoundsFilter, chartDateSpanFilter);
+  }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
@@ -1130,9 +1231,12 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<List<ForexQuote>> getForexQuoteByIds(
-      BrokerageUser user, List<String> ids) {
-    // TODO: implement getForexQuoteByIds
-    throw UnimplementedError();
+      BrokerageUser user, List<String> ids) async {
+    try {
+      return await yahooService.getForexQuotesByIds(ids);
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
@@ -1175,9 +1279,433 @@ class DemoService implements IBrokerageService {
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeOptionsOrder
     throw UnimplementedError();
+  }
+
+  @override
+  Future placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) {
+    // TODO: implement placeMultiLegOptionsOrder
+    throw UnimplementedError();
+  }
+
+  static final List<ComboOrder> _defaultDemoComboOrders = [
+    ComboOrder(
+      id: 'demo-combo-order-1',
+      account: '1AB23456',
+      cancelUrl: null,
+      direction: 'credit',
+      legs: [
+        ComboLeg(
+          id: 'leg-1-stock',
+          legType: ComboLegType.equity,
+          symbol: 'AAPL',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+          executions: [
+            ComboLegExecution(
+              id: 'exec-1-stock',
+              price: 224.50,
+              quantity: 100,
+              settlementDate: '2026-09-10',
+              timestamp: DateTime(2026, 9, 8, 14, 30),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-1-call',
+          legType: ComboLegType.option,
+          symbol: 'AAPL',
+          side: 'sell',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'call',
+          strikePrice: 235.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-1-call',
+              price: 2.15,
+              quantity: 1,
+              settlementDate: '2026-09-09',
+              timestamp: DateTime(2026, 9, 8, 14, 30),
+            )
+          ],
+        ),
+      ],
+      quantity: 1.0,
+      price: 2.15,
+      processedQuantity: 1.0,
+      premium: 215.0,
+      processedPremium: 215.0,
+      refId: 'demo-ref-combo-1',
+      state: 'filled',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'covered_call',
+      chainSymbol: 'AAPL',
+      createdAt: DateTime(2026, 9, 8, 14, 30),
+      updatedAt: DateTime(2026, 9, 8, 14, 30),
+    ),
+    ComboOrder(
+      id: 'demo-combo-order-2',
+      account: '1AB23456',
+      cancelUrl: null,
+      direction: 'debit',
+      legs: [
+        ComboLeg(
+          id: 'leg-2-stock',
+          legType: ComboLegType.equity,
+          symbol: 'TSLA',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-stock',
+              price: 218.00,
+              quantity: 100,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-2-put',
+          legType: ComboLegType.option,
+          symbol: 'TSLA',
+          side: 'buy',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'put',
+          strikePrice: 205.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-put',
+              price: 3.50,
+              quantity: 1,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+        ComboLeg(
+          id: 'leg-2-call',
+          legType: ComboLegType.option,
+          symbol: 'TSLA',
+          side: 'sell',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'call',
+          strikePrice: 240.0,
+          expirationDate: DateTime(2026, 10, 16),
+          executions: [
+            ComboLegExecution(
+              id: 'exec-2-call',
+              price: 2.65,
+              quantity: 1,
+              settlementDate: '2026-09-08',
+              timestamp: DateTime(2026, 9, 5, 15, 15),
+            )
+          ],
+        ),
+      ],
+      quantity: 1.0,
+      price: 0.85,
+      processedQuantity: 1.0,
+      premium: 85.0,
+      processedPremium: 85.0,
+      refId: 'demo-ref-combo-2',
+      state: 'filled',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'collar',
+      chainSymbol: 'TSLA',
+      createdAt: DateTime(2026, 9, 5, 15, 15),
+      updatedAt: DateTime(2026, 9, 5, 15, 15),
+    ),
+    ComboOrder(
+      id: 'demo-combo-order-3',
+      account: '1AB23456',
+      cancelUrl:
+          'https://api.robinhood.com/combo/orders/demo-combo-order-3/cancel/',
+      direction: 'debit',
+      legs: [
+        ComboLeg(
+          id: 'leg-3-stock',
+          legType: ComboLegType.equity,
+          symbol: 'NVDA',
+          side: 'buy',
+          ratioQuantity: 100,
+          positionEffect: 'open',
+        ),
+        ComboLeg(
+          id: 'leg-3-put',
+          legType: ComboLegType.option,
+          symbol: 'NVDA',
+          side: 'buy',
+          ratioQuantity: 1,
+          positionEffect: 'open',
+          optionType: 'put',
+          strikePrice: 115.0,
+          expirationDate: DateTime(2026, 10, 16),
+        ),
+      ],
+      quantity: 1.0,
+      price: 124.50,
+      processedQuantity: 0.0,
+      pendingQuantity: 1.0,
+      premium: 12450.0,
+      refId: 'demo-ref-combo-3',
+      state: 'queued',
+      timeInForce: 'gtc',
+      trigger: 'immediate',
+      type: 'limit',
+      openingStrategy: 'married_put',
+      chainSymbol: 'NVDA',
+      createdAt: DateTime(2026, 9, 12, 16, 45),
+      updatedAt: DateTime(2026, 9, 12, 16, 45),
+    ),
+  ];
+
+  @override
+  Future<dynamic> previewOrder(BrokerageUser user, Account account,
+      Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    return null;
+  }
+
+  final List<ComboOrder> _demoComboOrders = List.from(_defaultDemoComboOrders);
+
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return List.from(_demoComboOrders);
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+    BrokerageUser user,
+    ComboOrderStore store, {
+    DocumentReference? userDoc,
+    String? symbol,
+    String? accountNumber,
+  }) async* {
+    var filtered = _demoComboOrders.where((order) {
+      if (symbol != null &&
+          order.primarySymbol.toUpperCase() != symbol.toUpperCase()) {
+        return false;
+      }
+      return true;
+    }).toList();
+    for (var order in filtered) {
+      store.addOrUpdate(order);
+    }
+    yield filtered;
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    final now = DateTime.now();
+    final newId = 'demo-combo-order-${now.millisecondsSinceEpoch}';
+    final parsedLegs = legs.map((l) => ComboLeg.fromJson(l)).toList();
+    final newOrder = ComboOrder(
+      id: newId,
+      account: account.accountNumber,
+      cancelUrl: 'https://api.robinhood.com/combo/orders/$newId/cancel/',
+      direction: creditOrDebit,
+      legs: parsedLegs,
+      quantity: quantity.toDouble(),
+      price: price,
+      pendingQuantity: quantity.toDouble(),
+      processedQuantity: 0.0,
+      premium: price * quantity * 100,
+      refId: 'demo-ref-$newId',
+      state: 'confirmed',
+      timeInForce: timeInForce,
+      trigger: trigger,
+      type: type,
+      openingStrategy: openingStrategy ?? 'custom',
+      chainSymbol: parsedLegs.firstOrNull?.symbol,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _demoComboOrders.insert(0, newOrder);
+    return {'id': newId, 'state': 'confirmed'};
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    final order =
+        _demoComboOrders.firstWhereOrNull((o) => o.cancelUrl == cancelUrl);
+    if (order != null) {
+      final updated = ComboOrder(
+        id: order.id,
+        account: order.account,
+        cancelUrl: null,
+        direction: order.direction,
+        legs: order.legs,
+        quantity: order.quantity,
+        price: order.price,
+        stopPrice: order.stopPrice,
+        processedQuantity: order.processedQuantity,
+        pendingQuantity: 0.0,
+        canceledQuantity: order.quantity,
+        premium: order.premium,
+        processedPremium: order.processedPremium,
+        refId: order.refId,
+        state: 'cancelled',
+        timeInForce: order.timeInForce,
+        trigger: order.trigger,
+        type: order.type,
+        responseCategory: order.responseCategory,
+        openingStrategy: order.openingStrategy,
+        closingStrategy: order.closingStrategy,
+        chainSymbol: order.chainSymbol,
+        chainId: order.chainId,
+        createdAt: order.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      final idx = _demoComboOrders.indexWhere((o) => o.id == order.id);
+      if (idx != -1) {
+        _demoComboOrders[idx] = updated;
+      }
+    }
+    return {'state': 'cancelled'};
+  }
+
+  @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    final now = DateTime.now();
+    if (symbol == 'AMZN') {
+      return [
+        TaxLot(
+          openLotId: 'demo_amzn_lot_1',
+          symbol: 'AMZN',
+          quantity: 15.0,
+          quantityAvailable: 15.0,
+          costPerShare: 198.50,
+          taxCostBasis: 198.50 * 15.0,
+          openDate: now.subtract(const Duration(days: 410)),
+          term: 'lt',
+        ),
+        TaxLot(
+          openLotId: 'demo_amzn_lot_2',
+          symbol: 'AMZN',
+          quantity: 20.0,
+          quantityAvailable: 20.0,
+          costPerShare: 235.00,
+          taxCostBasis: 235.00 * 20.0,
+          openDate: now.subtract(const Duration(days: 60)),
+          term: 'st',
+        ),
+        TaxLot(
+          openLotId: 'demo_amzn_lot_3',
+          symbol: 'AMZN',
+          quantity: 15.0,
+          quantityAvailable: 15.0,
+          costPerShare: 212.00,
+          taxCostBasis: 212.00 * 15.0,
+          openDate: now.subtract(const Duration(days: 15)),
+          term: 'st',
+        ),
+      ];
+    } else if (symbol == 'AAPL') {
+      return [
+        TaxLot(
+          openLotId: 'demo_aapl_lot_1',
+          symbol: 'AAPL',
+          quantity: 5.0,
+          quantityAvailable: 5.0,
+          costPerShare: 165.00,
+          taxCostBasis: 165.00 * 5.0,
+          openDate: now.subtract(const Duration(days: 400)),
+          term: 'lt',
+        ),
+        TaxLot(
+          openLotId: 'demo_aapl_lot_2',
+          symbol: 'AAPL',
+          quantity: 5.0,
+          quantityAvailable: 5.0,
+          costPerShare: 245.00,
+          taxCostBasis: 245.00 * 5.0,
+          openDate: now.subtract(const Duration(days: 45)),
+          term: 'st',
+        ),
+      ];
+    }
+    return [
+      TaxLot(
+        openLotId: 'demo_${symbol.toLowerCase()}_lot_1',
+        symbol: symbol,
+        quantity: 10.0,
+        quantityAvailable: 10.0,
+        costPerShare: 100.0,
+        taxCostBasis: 1000.0,
+        openDate: now.subtract(const Duration(days: 120)),
+        term: 'st',
+      ),
+      TaxLot(
+        openLotId: 'demo_${symbol.toLowerCase()}_lot_2',
+        symbol: symbol,
+        quantity: 10.0,
+        quantityAvailable: 10.0,
+        costPerShare: 120.0,
+        taxCostBasis: 1200.0,
+        openDate: now.subtract(const Duration(days: 30)),
+        term: 'st',
+      ),
+    ];
   }
 
   @override
@@ -1187,13 +1715,24 @@ class DemoService implements IBrokerageService {
       Instrument instrument,
       String symbol,
       String side,
-      double price,
+      double? price,
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
-    // TODO: implement placeInstrumentOrder
-    throw UnimplementedError();
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) {
+    return Future.value({
+      'id': 'demo-order-${DateTime.now().millisecondsSinceEpoch}',
+      'state': 'confirmed',
+      'side': side,
+      'quantity': quantity.toString(),
+      'symbol': symbol,
+      'tax_lot_selection_type': taxLotSelectionType ?? 'fifo',
+      'tax_lots': taxLots ?? [],
+    });
   }
 
   @override
@@ -1212,9 +1751,35 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future search(BrokerageUser user, String query) {
-    // TODO: implement search
-    throw UnimplementedError();
+  Future search(BrokerageUser user, String query) async {
+    // Return dummy search results
+    if (query.toUpperCase() == 'SPY') {
+      return [
+        {
+          "symbol": "SPY",
+          "simple_name": "SPDR S&P 500",
+          "name": "SPDR S&P 500 ETF Trust",
+          "id": "dummy_id_spy"
+        }
+      ];
+    } else if (query.toUpperCase() == 'AAPL') {
+      return [
+        {
+          "symbol": "AAPL",
+          "simple_name": "Apple",
+          "name": "Apple Inc.",
+          "id": "dummy_id_aapl"
+        }
+      ];
+    }
+    return [
+      {
+        "symbol": "MSFT",
+        "simple_name": "Microsoft",
+        "name": "Microsoft Corporation",
+        "id": "50810c35-d215-4866-9758-0ada4ac79ffa"
+      }
+    ];
   }
 
   @override
@@ -1293,7 +1858,7 @@ class DemoService implements IBrokerageService {
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
       InstrumentOrderStore store, List<String> instrumentUrls) async {
     dynamic json = jsonDecode(
-        '[{"id":"66bebb18-b7b4-4e28-89b4-d7ad5da533b6","ref_id":"90c2eaf9-aeb5-490f-8b1c-07772a65b391","url":"https://api.robinhood.com/orders/66bebb18-b7b4-4e28-89b4-d7ad5da533b6/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"0.01114300","average_price":"224.35610000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"221.61000000","stop_price":null,"quantity":"0.01114300","reject_reason":null,"created_at":"2024-08-16T02:36:08.101873Z","updated_at":"2024-08-16T15:00:04.585013Z","last_transaction_at":"2024-08-16T14:37:55Z","executions":[{"price":"224.35000000","quantity":"0.01114300","rounded_notional":"2.50000000","settlement_date":"2024-08-19","timestamp":"2024-08-16T14:37:55.952784Z","id":"6fa89d11-d43f-4599-a5ce-e9d4b827b44f","ipo_access_execution_rank":null,"trade_execution_date":"2024-08-16"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":true,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":{"amount":"2.50000000","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"drip_dividend_id":"377639bb-241d-438a-9328-89492d4565b3","total_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":null,"order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"drip","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"6646b283-6b8e-425f-95f0-03c5e87e6067","ref_id":"89af4993-7401-4f3b-ba5b-008857e4c103","url":"https://api.robinhood.com/orders/6646b283-6b8e-425f-95f0-03c5e87e6067/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"0.01314600","average_price":"190.17190000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"189.75000000","stop_price":null,"quantity":"0.01314600","reject_reason":null,"created_at":"2024-05-17T01:27:31.818191Z","updated_at":"2024-05-17T14:39:04.756301Z","last_transaction_at":"2024-05-17T14:32:13Z","executions":[{"price":"190.17000000","quantity":"0.01314600","rounded_notional":"2.50000000","settlement_date":"2024-05-21","timestamp":"2024-05-17T14:32:13.007424Z","id":"44d0d3a1-e02f-4775-8c2b-cc2b36824020","ipo_access_execution_rank":null,"trade_execution_date":"2024-05-17"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":true,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":{"amount":"2.50000000","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"drip_dividend_id":"f718b682-f010-425a-a463-22d0a5967ade","total_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":null,"order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"drip","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"65e88901-70e6-42e0-9ece-f4becb2b2bbd","ref_id":"4F29AFED-A2FE-4F31-B704-0C51ADE2449A","url":"https://api.robinhood.com/orders/65e88901-70e6-42e0-9ece-f4becb2b2bbd/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":"8e620d87-d864-4297-828b-c9b7662f2c2b","position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"4.50000000","average_price":"169.41560000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"limit","side":"buy","time_in_force":"gfd","trigger":"immediate","price":"177.89000000","stop_price":null,"quantity":"4.50000000","reject_reason":null,"created_at":"2024-03-06T15:17:21.264255Z","updated_at":"2024-03-06T15:17:21.961051Z","last_transaction_at":"2024-03-06T15:17:21.542000Z","executions":[{"price":"169.41500000","quantity":"4.50000000","rounded_notional":"762.37000000","settlement_date":"2024-03-08","timestamp":"2024-03-06T15:17:21.542000Z","id":"65e88901-482a-455b-a470-65b660140997","ipo_access_execution_rank":null,"trade_execution_date":"2024-03-06"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":false,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":null,"drip_dividend_id":null,"total_notional":{"amount":"800.51","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"762.37","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":"0.050000","order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"user","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"65ce41e2-a1cb-43e5-80c8-6563749e489c","ref_id":"0F9C67E4-0973-45A3-9B06-196BAD987D70","url":"https://api.robinhood.com/orders/65ce41e2-a1cb-43e5-80c8-6563749e489c/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":"8e620d87-d864-4297-828b-c9b7662f2c2b","position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"5.50000000","average_price":"181.66550000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"limit","side":"buy","time_in_force":"gfd","trigger":"immediate","price":"190.75000000","stop_price":null,"quantity":"5.50000000","reject_reason":null,"created_at":"2024-02-15T16:54:58.461789Z","updated_at":"2024-02-15T16:54:59.211582Z","last_transaction_at":"2024-02-15T16:54:58.801000Z","executions":[{"price":"181.66500000","quantity":"5.50000000","rounded_notional":"999.16000000","settlement_date":"2024-02-20","timestamp":"2024-02-15T16:54:58.801000Z","id":"65ce41e2-159f-4546-a72f-8afee0834f79","ipo_access_execution_rank":null,"trade_execution_date":"2024-02-15"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":false,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":null,"drip_dividend_id":null,"total_notional":{"amount":"1049.13","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"999.16","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":"0.050000","order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"user","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null}]');
+        '[{"id":"demo-closed-sell-2","ref_id":"demo-sell-2","url":"https://api.robinhood.com/orders/demo-closed-sell-2/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"15.00000000","average_price":"188.50000000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"sell","time_in_force":"gtc","trigger":"immediate","price":"188.50000000","stop_price":null,"quantity":"15.00000000","reject_reason":null,"created_at":"2024-01-22T16:20:00.000000Z","updated_at":"2024-01-22T16:20:05.000000Z"},{"id":"demo-closed-buy-2","ref_id":"demo-buy-2","url":"https://api.robinhood.com/orders/demo-closed-buy-2/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"15.00000000","average_price":"165.00000000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"165.00000000","stop_price":null,"quantity":"15.00000000","reject_reason":null,"created_at":"2023-12-04T15:10:00.000000Z","updated_at":"2023-12-04T15:10:05.000000Z"},{"id":"demo-closed-sell-1","ref_id":"demo-sell-1","url":"https://api.robinhood.com/orders/demo-closed-sell-1/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"10.00000000","average_price":"174.00000000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"sell","time_in_force":"gtc","trigger":"immediate","price":"174.00000000","stop_price":null,"quantity":"10.00000000","reject_reason":null,"created_at":"2023-10-18T19:30:00.000000Z","updated_at":"2023-10-18T19:30:05.000000Z"},{"id":"demo-closed-buy-1","ref_id":"demo-buy-1","url":"https://api.robinhood.com/orders/demo-closed-buy-1/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"10.00000000","average_price":"152.00000000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"152.00000000","stop_price":null,"quantity":"10.00000000","reject_reason":null,"created_at":"2023-09-05T14:45:00.000000Z","updated_at":"2023-09-05T14:45:05.000000Z"},{"id":"66bebb18-b7b4-4e28-89b4-d7ad5da533b6","ref_id":"90c2eaf9-aeb5-490f-8b1c-07772a65b391","url":"https://api.robinhood.com/orders/66bebb18-b7b4-4e28-89b4-d7ad5da533b6/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"0.01114300","average_price":"224.35610000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"221.61000000","stop_price":null,"quantity":"0.01114300","reject_reason":null,"created_at":"2024-08-16T02:36:08.101873Z","updated_at":"2024-08-16T15:00:04.585013Z","last_transaction_at":"2024-08-16T14:37:55Z","executions":[{"price":"224.35000000","quantity":"0.01114300","rounded_notional":"2.50000000","settlement_date":"2024-08-19","timestamp":"2024-08-16T14:37:55.952784Z","id":"6fa89d11-d43f-4599-a5ce-e9d4b827b44f","ipo_access_execution_rank":null,"trade_execution_date":"2024-08-16"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":true,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":{"amount":"2.50000000","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"drip_dividend_id":"377639bb-241d-438a-9328-89492d4565b3","total_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":null,"order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"drip","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"6646b283-6b8e-425f-95f0-03c5e87e6067","ref_id":"89af4993-7401-4f3b-ba5b-008857e4c103","url":"https://api.robinhood.com/orders/6646b283-6b8e-425f-95f0-03c5e87e6067/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":null,"position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"0.01314600","average_price":"190.17190000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"market","side":"buy","time_in_force":"gtc","trigger":"immediate","price":"189.75000000","stop_price":null,"quantity":"0.01314600","reject_reason":null,"created_at":"2024-05-17T01:27:31.818191Z","updated_at":"2024-05-17T14:39:04.756301Z","last_transaction_at":"2024-05-17T14:32:13Z","executions":[{"price":"190.17000000","quantity":"0.01314600","rounded_notional":"2.50000000","settlement_date":"2024-05-21","timestamp":"2024-05-17T14:32:13.007424Z","id":"44d0d3a1-e02f-4775-8c2b-cc2b36824020","ipo_access_execution_rank":null,"trade_execution_date":"2024-05-17"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":true,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":{"amount":"2.50000000","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"drip_dividend_id":"f718b682-f010-425a-a463-22d0a5967ade","total_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"2.50","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":null,"order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"drip","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"65e88901-70e6-42e0-9ece-f4becb2b2bbd","ref_id":"4F29AFED-A2FE-4F31-B704-0C51ADE2449A","url":"https://api.robinhood.com/orders/65e88901-70e6-42e0-9ece-f4becb2b2bbd/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":"8e620d87-d864-4297-828b-c9b7662f2c2b","position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"4.50000000","average_price":"169.41560000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"limit","side":"buy","time_in_force":"gfd","trigger":"immediate","price":"177.89000000","stop_price":null,"quantity":"4.50000000","reject_reason":null,"created_at":"2024-03-06T15:17:21.264255Z","updated_at":"2024-03-06T15:17:21.961051Z","last_transaction_at":"2024-03-06T15:17:21.542000Z","executions":[{"price":"169.41500000","quantity":"4.50000000","rounded_notional":"762.37000000","settlement_date":"2024-03-08","timestamp":"2024-03-06T15:17:21.542000Z","id":"65e88901-482a-455b-a470-65b660140997","ipo_access_execution_rank":null,"trade_execution_date":"2024-03-06"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":false,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":null,"drip_dividend_id":null,"total_notional":{"amount":"800.51","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"762.37","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":"0.050000","order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"user","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null},{"id":"65ce41e2-a1cb-43e5-80c8-6563749e489c","ref_id":"0F9C67E4-0973-45A3-9B06-196BAD987D70","url":"https://api.robinhood.com/orders/65ce41e2-a1cb-43e5-80c8-6563749e489c/","account":"https://api.robinhood.com/accounts/1AB23456/","user_uuid":"8e620d87-d864-4297-828b-c9b7662f2c2b","position":"https://api.robinhood.com/positions/1AB23456/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","cancel":null,"instrument":"https://api.robinhood.com/instruments/450dfc6d-5510-4d40-abfb-f633b7d9be3e/","instrument_id":"450dfc6d-5510-4d40-abfb-f633b7d9be3e","cumulative_quantity":"5.50000000","average_price":"181.66550000","fees":"0.00","state":"filled","derived_state":"filled","pending_cancel_open_agent":null,"type":"limit","side":"buy","time_in_force":"gfd","trigger":"immediate","price":"190.75000000","stop_price":null,"quantity":"5.50000000","reject_reason":null,"created_at":"2024-02-15T16:54:58.461789Z","updated_at":"2024-02-15T16:54:59.211582Z","last_transaction_at":"2024-02-15T16:54:58.801000Z","executions":[{"price":"181.66500000","quantity":"5.50000000","rounded_notional":"999.16000000","settlement_date":"2024-02-20","timestamp":"2024-02-15T16:54:58.801000Z","id":"65ce41e2-159f-4546-a72f-8afee0834f79","ipo_access_execution_rank":null,"trade_execution_date":"2024-02-15"}],"extended_hours":false,"market_hours":"regular_hours","override_dtbp_checks":false,"override_day_trade_checks":false,"response_category":null,"stop_triggered_at":null,"last_trail_price":null,"last_trail_price_updated_at":null,"last_trail_price_source":null,"dollar_based_amount":null,"drip_dividend_id":null,"total_notional":{"amount":"1049.13","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"executed_notional":{"amount":"999.16","currency_code":"USD","currency_id":"1072fc76-1862-41ab-82c2-485837590762"},"investment_schedule_id":null,"is_ipo_access_order":false,"ipo_access_cancellation_reason":null,"ipo_access_lower_collared_price":null,"ipo_access_upper_collared_price":null,"ipo_access_upper_price":null,"ipo_access_lower_price":null,"is_ipo_access_price_finalized":false,"is_visible_to_user":true,"has_ipo_access_custom_price_limit":false,"is_primary_account":true,"order_form_version":4,"preset_percent_limit":"0.050000","order_form_type":"all_day_trading_v1_2","last_update_version":2,"placed_agent":"user","is_editable":false,"replaces":null,"user_cancel_request_state":"order_finalized","tax_lot_selection_type":null}]');
     final results = await Future.delayed(Duration.zero, () => json);
     List<InstrumentOrder> list = [];
     for (var i = 0; i < results.length; i++) {
@@ -1333,6 +1898,34 @@ class DemoService implements IBrokerageService {
       list.add(result);
     }
     return list;
+  }
+
+  @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement addToList
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement removeFromList
+  }
+
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    // TODO: implement createList
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    // TODO: implement deleteList
   }
 
   @override
@@ -1443,13 +2036,41 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<List> getSplits(BrokerageUser user, Instrument instrumentObj) async {
-    dynamic json = jsonDecode('[]');
-    final results = await Future.delayed(Duration.zero, () => json);
+    final payments = await getSplitPaymentsModel(user);
     List<dynamic> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      //var op = Split.fromJson(result);
-      list.add(result);
+    for (var payment in payments) {
+      final matchesId = instrumentObj.id.isNotEmpty &&
+          (payment.instrumentId == instrumentObj.id ||
+              payment.oldInstrumentId == instrumentObj.id ||
+              payment.newInstrumentId == instrumentObj.id);
+      final matchesSym = payment.symbol.isNotEmpty &&
+          payment.symbol.toUpperCase() == instrumentObj.symbol.toUpperCase();
+
+      if (matchesId || matchesSym) {
+        final splitObj = payment.split;
+        final mult = (splitObj != null && splitObj.multiplier > 0)
+            ? splitObj.multiplier
+            : payment.multiplier;
+        final div = (splitObj != null && splitObj.divisor > 0)
+            ? splitObj.divisor
+            : payment.divisor;
+        final execDate = splitObj?.effectiveDate ??
+            payment.executionDate ??
+            payment.paymentDate;
+
+        list.add({
+          'id': splitObj?.id.isNotEmpty == true ? splitObj!.id : payment.id,
+          'instrument': payment.instrumentId.isNotEmpty
+              ? payment.instrumentId
+              : (splitObj?.oldInstrumentId.isNotEmpty == true
+                  ? splitObj!.oldInstrumentId
+                  : instrumentObj.id),
+          'multiplier': mult.toString(),
+          'divisor': div.toString(),
+          'execution_date': execDate?.toIso8601String(),
+          'description': payment.description,
+        });
+      }
     }
     return list;
   }
@@ -1458,6 +2079,13 @@ class DemoService implements IBrokerageService {
   Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    try {
+      return await yahooService.getForexHistoricals(id,
+          chartBoundsFilter: chartBoundsFilter,
+          chartDateSpanFilter: chartDateSpanFilter);
+    } catch (_) {
+      // Fallback to offline demo fixtures
+    }
     dynamic json = jsonDecode(
         '{"data_points":[{"begins_at":"2024-10-19T19:05:00Z","open_price":"68160.985","close_price":"68183.245","high_price":"68194.51843835","low_price":"68153.029465675","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:10:00Z","open_price":"68183.245","close_price":"68189.085","high_price":"68205.0722372","low_price":"68173.17","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:15:00Z","open_price":"68189.315","close_price":"68189.575","high_price":"68204.3963123","low_price":"68182.925","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:20:00Z","open_price":"68188.89","close_price":"68217.035","high_price":"68250.121918","low_price":"68184.585","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:25:00Z","open_price":"68216.535","close_price":"68222.45","high_price":"68258.7814373","low_price":"68210.975","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:30:00Z","open_price":"68222.7","close_price":"68222.005","high_price":"68245.545","low_price":"68211.323747315","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:35:00Z","open_price":"68222.005","close_price":"68216.535","high_price":"68232.01208665","low_price":"68183.42","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:40:00Z","open_price":"68215.165","close_price":"68191.05","high_price":"68226.6528474","low_price":"68182.46","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:45:00Z","open_price":"68191.05","close_price":"68164.28","high_price":"68204.5700011","low_price":"68156.99","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:50:00Z","open_price":"68164.28","close_price":"68169.965","high_price":"68185.685","low_price":"68145.72","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T19:55:00Z","open_price":"68169.965","close_price":"68186.125","high_price":"68202.195","low_price":"68164.505","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:00:00Z","open_price":"68186.125","close_price":"68189.685","high_price":"68206.99120245","low_price":"68165.67","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:05:00Z","open_price":"68188.53","close_price":"68183.435","high_price":"68222.3188567","low_price":"68174.76","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:10:00Z","open_price":"68183.435","close_price":"68208.035","high_price":"68224.96793115","low_price":"68170.245","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:15:00Z","open_price":"68210.545","close_price":"68201.835","high_price":"68223.83","low_price":"68193.31","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:20:00Z","open_price":"68202.085","close_price":"68226.535","high_price":"68252.97089765","low_price":"68188.585","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:25:00Z","open_price":"68226.535","close_price":"68239.225","high_price":"68246.75","low_price":"68209.725","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:30:00Z","open_price":"68240.115","close_price":"68218.025","high_price":"68246.29697795","low_price":"68214.71","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:35:00Z","open_price":"68217.38","close_price":"68257.37","high_price":"68273.07388685","low_price":"68214.96","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:40:00Z","open_price":"68260.28","close_price":"68254.28","high_price":"68279.255","low_price":"68249.175","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:45:00Z","open_price":"68254.28","close_price":"68253.035","high_price":"68263.8370137","low_price":"68228.735","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:50:00Z","open_price":"68253.035","close_price":"68247.915","high_price":"68257.20663695","low_price":"68229.725","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T20:55:00Z","open_price":"68246.735","close_price":"68245.885","high_price":"68261.395","low_price":"68221.045","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:00:00Z","open_price":"68245.885","close_price":"68252.615","high_price":"68262.155","low_price":"68222.09","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:05:00Z","open_price":"68253.25","close_price":"68273.375","high_price":"68304.585","low_price":"68241.07","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:10:00Z","open_price":"68272.645","close_price":"68278.06","high_price":"68298.17","low_price":"68263.18","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:15:00Z","open_price":"68278.565","close_price":"68260.53","high_price":"68286.06","low_price":"68252.485","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:20:00Z","open_price":"68260.445","close_price":"68318.285","high_price":"68336.44059095","low_price":"68250.34","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:25:00Z","open_price":"68318.3","close_price":"68342.28","high_price":"68357.94","low_price":"68296.675","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:30:00Z","open_price":"68343.34","close_price":"68297.23","high_price":"68352.733645","low_price":"68281.672862275","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:35:00Z","open_price":"68297.23","close_price":"68297.34","high_price":"68305.99811565","low_price":"68285.865","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:40:00Z","open_price":"68294.46","close_price":"68277.335","high_price":"68301.52974515","low_price":"68256.645","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:45:00Z","open_price":"68278.285","close_price":"68324.535","high_price":"68329.125","low_price":"68266.01088062","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:50:00Z","open_price":"68324.535","close_price":"68269.01","high_price":"68327.87134705","low_price":"68260.334782705","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T21:55:00Z","open_price":"68269.01","close_price":"68222.09","high_price":"68274.2316144","low_price":"68167.985","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:00:00Z","open_price":"68220.835","close_price":"68225.075","high_price":"68295.58","low_price":"68208.235","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:05:00Z","open_price":"68225.075","close_price":"68254.03","high_price":"68278.675","low_price":"68192.97","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:10:00Z","open_price":"68254.03","close_price":"68246.155","high_price":"68296.6476524","low_price":"68229.575","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:15:00Z","open_price":"68244.21","close_price":"68257.75","high_price":"68269.48449495","low_price":"68220.215","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:20:00Z","open_price":"68254.23","close_price":"68274.28","high_price":"68303.535","low_price":"68244.50998268","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:25:00Z","open_price":"68269.945","close_price":"68285.605","high_price":"68306.94","low_price":"68251.225","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:30:00Z","open_price":"68285.605","close_price":"68327.035","high_price":"68334.675","low_price":"68253.94","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:35:00Z","open_price":"68331.38","close_price":"68344.885","high_price":"68355.59366195","low_price":"68302.28","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:40:00Z","open_price":"68344.565","close_price":"68387.69","high_price":"68424.155","low_price":"68334.86742212","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:45:00Z","open_price":"68387.69","close_price":"68356.655","high_price":"68409.49248825","low_price":"68315.005","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:50:00Z","open_price":"68354.585","close_price":"68331.055","high_price":"68360.03","low_price":"68245.615","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T22:55:00Z","open_price":"68333.035","close_price":"68326.415","high_price":"68353.13","low_price":"68309.895","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:00:00Z","open_price":"68331.635","close_price":"68307.485","high_price":"68349.88","low_price":"68296.525","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:05:00Z","open_price":"68308.48","close_price":"68322.035","high_price":"68347.64","low_price":"68292.325","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:10:00Z","open_price":"68322.035","close_price":"68334.535","high_price":"68352.555","low_price":"68302.285","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:15:00Z","open_price":"68334.535","close_price":"68325.53","high_price":"68362.305","low_price":"68297.735","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:20:00Z","open_price":"68325.53","close_price":"68393.195","high_price":"68409.195","low_price":"68319.355","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:25:00Z","open_price":"68393.195","close_price":"68378.61","high_price":"68421.485","low_price":"68346.245","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:30:00Z","open_price":"68378.61","close_price":"68410.43","high_price":"68432.335","low_price":"68368.38","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:35:00Z","open_price":"68410.43","close_price":"68338.985","high_price":"68411.785","low_price":"68271.685","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:40:00Z","open_price":"68339.86","close_price":"68365.235","high_price":"68378.78","low_price":"68291.205","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:45:00Z","open_price":"68365.235","close_price":"68369.685","high_price":"68392.225","low_price":"68342.345","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:50:00Z","open_price":"68369.685","close_price":"68400.075","high_price":"68408.485","low_price":"68351.41","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-19T23:55:00Z","open_price":"68400.075","close_price":"68381.25","high_price":"68427.51","low_price":"68324.11","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:00:00Z","open_price":"68381.25","close_price":"68399.51","high_price":"68402.19183115","low_price":"68359.415","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:05:00Z","open_price":"68381.25","close_price":"68393.91","high_price":"68449.70081925","low_price":"68363.05","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:10:00Z","open_price":"68393.91","close_price":"68436.655","high_price":"68447.165","low_price":"68379.27751337","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:15:00Z","open_price":"68434.355","close_price":"68412.165","high_price":"68445.5","low_price":"68398.015","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:20:00Z","open_price":"68412.165","close_price":"68428.485","high_price":"68462.325","low_price":"68311.005","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:25:00Z","open_price":"68412.18","close_price":"68395.135","high_price":"68437.53","low_price":"68375.575","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:30:00Z","open_price":"68396.595","close_price":"68315.23","high_price":"68398.505","low_price":"68259.61","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:35:00Z","open_price":"68315.23","close_price":"68269.67","high_price":"68321.005","low_price":"68239.71","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:40:00Z","open_price":"68267.355","close_price":"68290.69","high_price":"68309.025","low_price":"68254.845","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:45:00Z","open_price":"68290.69","close_price":"68286.93","high_price":"68296.98","low_price":"68232.02","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:50:00Z","open_price":"68286.93","close_price":"68256.885","high_price":"68291.28807545","low_price":"68225.85","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T00:55:00Z","open_price":"68256.885","close_price":"68230.425","high_price":"68258.72","low_price":"68218.025","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:00:00Z","open_price":"68224.16","close_price":"68253.065","high_price":"68253.065","low_price":"68220.795","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:05:00Z","open_price":"68253.065","close_price":"68257.735","high_price":"68264.36","low_price":"68163.44","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:10:00Z","open_price":"68259.84","close_price":"68217.995","high_price":"68267.92","low_price":"68163.44","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:15:00Z","open_price":"68214.135","close_price":"68212.95","high_price":"68219.06","low_price":"68137.49","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:20:00Z","open_price":"68212.95","close_price":"68220.645","high_price":"68223.76","low_price":"68149.71","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:25:00Z","open_price":"68214.905","close_price":"68253.57","high_price":"68253.69","low_price":"68161.885","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:30:00Z","open_price":"68231.055","close_price":"68191.77","high_price":"68253.59","low_price":"68189.98","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:35:00Z","open_price":"68191.77","close_price":"68178.895","high_price":"68200.481023","low_price":"68131.065","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:40:00Z","open_price":"68179.235","close_price":"68176.42","high_price":"68184.17","low_price":"68158.021008305","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:45:00Z","open_price":"68176.42","close_price":"68204.48","high_price":"68211.12","low_price":"68099.205","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:50:00Z","open_price":"68204.48","close_price":"68179.67","high_price":"68204.48","low_price":"68116.65","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T01:55:00Z","open_price":"68167.98","close_price":"68163.415","high_price":"68183.56","low_price":"68145.83","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:00:00Z","open_price":"68162.52","close_price":"68198.72","high_price":"68206.915","low_price":"68147.58","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:05:00Z","open_price":"68198.72","close_price":"68194.045","high_price":"68207.88822175","low_price":"68138.605","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:10:00Z","open_price":"68194.045","close_price":"68203.39","high_price":"68231.81041025","low_price":"68153.585","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:15:00Z","open_price":"68203.39","close_price":"68206.545","high_price":"68216.0745073","low_price":"68193.98","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:20:00Z","open_price":"68206.545","close_price":"68180.295","high_price":"68217.38","low_price":"68114.22","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:25:00Z","open_price":"68180.295","close_price":"68155.095","high_price":"68180.295","low_price":"68091.49","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:30:00Z","open_price":"68155.095","close_price":"68178.335","high_price":"68192.21941875","low_price":"68101.92","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:35:00Z","open_price":"68178.335","close_price":"68180.495","high_price":"68190.55882225","low_price":"68105.7","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:40:00Z","open_price":"68180.495","close_price":"68155.745","high_price":"68181.91391735","low_price":"68101.4","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:45:00Z","open_price":"68155.745","close_price":"68154.795","high_price":"68159.365","low_price":"68071.925","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:50:00Z","open_price":"68154.795","close_price":"68161.04","high_price":"68175.535","low_price":"68088.48","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T02:55:00Z","open_price":"68161.04","close_price":"68184.435","high_price":"68186.295","low_price":"68161.04","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:00:00Z","open_price":"68184.435","close_price":"68158.99","high_price":"68186.295","low_price":"68055.675","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:05:00Z","open_price":"68158.99","close_price":"68122.665","high_price":"68158.99","low_price":"68048.1","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:10:00Z","open_price":"68121.36","close_price":"68135.55","high_price":"68154.6111067","low_price":"68118.405","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:15:00Z","open_price":"68135.55","close_price":"68163.555","high_price":"68176.16478725","low_price":"68124.185","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:20:00Z","open_price":"68163.555","close_price":"68163.405","high_price":"68175.62783755","low_price":"68148.795","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:25:00Z","open_price":"68163.555","close_price":"68119.46","high_price":"68166.95521205","low_price":"68078.66","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:30:00Z","open_price":"68119.46","close_price":"68143.91","high_price":"68151.895","low_price":"68047.685","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:35:00Z","open_price":"68143.91","close_price":"68156.97","high_price":"68173.80830905","low_price":"68134.96","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:40:00Z","open_price":"68156.97","close_price":"68154.91","high_price":"68170.3712964","low_price":"68095.4","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:45:00Z","open_price":"68156.97","close_price":"68156.97","high_price":"68172.79903158","low_price":"68140.59","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:50:00Z","open_price":"68156.97","close_price":"68192.835","high_price":"68201.07768705","low_price":"68110.195","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T03:55:00Z","open_price":"68192.835","close_price":"68192.835","high_price":"68212.57070405","low_price":"68177.635","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:00:00Z","open_price":"68192.835","close_price":"68192.835","high_price":"68207.16544595","low_price":"68180.765","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:05:00Z","open_price":"68192.835","close_price":"68193.62","high_price":"68215.7","low_price":"68098.895","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:10:00Z","open_price":"68193.62","close_price":"68202.92","high_price":"68212.1021994","low_price":"68107.74","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:15:00Z","open_price":"68202.92","close_price":"68211.49","high_price":"68242.245","low_price":"68166.755","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:20:00Z","open_price":"68211.49","close_price":"68228.465","high_price":"68249.045","low_price":"68198.465","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:25:00Z","open_price":"68211.895","close_price":"68298.705","high_price":"68311.8774363","low_price":"68211.895","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:30:00Z","open_price":"68298.705","close_price":"68262.975","high_price":"68336.925","low_price":"68234.605","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:35:00Z","open_price":"68262.975","close_price":"68265.625","high_price":"68273.6134485","low_price":"68236.135","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:40:00Z","open_price":"68265.625","close_price":"68258.49","high_price":"68271.777077","low_price":"68235.025163045","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:45:00Z","open_price":"68258.49","close_price":"68264.16","high_price":"68277.1265793","low_price":"68243.75","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:50:00Z","open_price":"68264.16","close_price":"68247.295","high_price":"68272.0049794","low_price":"68241.045","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T04:55:00Z","open_price":"68258.14","close_price":"68249.78","high_price":"68258.14","low_price":"68218.79","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:00:00Z","open_price":"68249.78","close_price":"68260.645","high_price":"68287.15","low_price":"68227.555","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:05:00Z","open_price":"68260.645","close_price":"68299.635","high_price":"68314.645261705","low_price":"68245.085","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:10:00Z","open_price":"68299.635","close_price":"68283.295","high_price":"68299.635","low_price":"68261.96","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:15:00Z","open_price":"68283.295","close_price":"68232.505","high_price":"68293.815","low_price":"68161.035","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:20:00Z","open_price":"68227.125","close_price":"68203.245","high_price":"68241.015","low_price":"68132.75","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:25:00Z","open_price":"68192.95","close_price":"68189.395","high_price":"68207.54","low_price":"68175.365","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:30:00Z","open_price":"68196.345","close_price":"68194.225","high_price":"68205.24826875","low_price":"68122.68","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:35:00Z","open_price":"68194.225","close_price":"68208.235","high_price":"68208.235","low_price":"68170.515","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:40:00Z","open_price":"68208.235","close_price":"68215.005","high_price":"68228.675","low_price":"68121.285","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:45:00Z","open_price":"68198.185","close_price":"68222.455","high_price":"68228.07","low_price":"68193.385","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:50:00Z","open_price":"68228.07","close_price":"68226.455","high_price":"68230.17","low_price":"68191.16","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T05:55:00Z","open_price":"68229.92","close_price":"68224.485","high_price":"68233.62","low_price":"68147.685","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:00:00Z","open_price":"68213.39","close_price":"68187.28","high_price":"68224.485","low_price":"68139.46","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:05:00Z","open_price":"68193.965","close_price":"68228.735","high_price":"68228.735","low_price":"68131.785","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:10:00Z","open_price":"68228.735","close_price":"68228.735","high_price":"68235.87","low_price":"68204.995","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:15:00Z","open_price":"68228.735","close_price":"68228.735","high_price":"68235.87","low_price":"68208","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:20:00Z","open_price":"68228.735","close_price":"68251.64","high_price":"68261.535","low_price":"68209.8","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:25:00Z","open_price":"68242.385","close_price":"68245.295","high_price":"68256.49","low_price":"68229.71","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:30:00Z","open_price":"68245.295","close_price":"68225.575","high_price":"68249.66","low_price":"68205.515","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:35:00Z","open_price":"68226.085","close_price":"68220.775","high_price":"68226.865","low_price":"68197.615","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:40:00Z","open_price":"68219.875","close_price":"68226.375","high_price":"68226.375","low_price":"68196.835","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:45:00Z","open_price":"68226.375","close_price":"68250.18","high_price":"68265.795","low_price":"68208.365","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:50:00Z","open_price":"68250.01","close_price":"68280.15","high_price":"68286.88","low_price":"68196.03","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T06:55:00Z","open_price":"68280.15","close_price":"68406.505","high_price":"68428.495","low_price":"68256.7","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:00:00Z","open_price":"68395.21","close_price":"68361.815","high_price":"68406.9050803","low_price":"68305.73","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:05:00Z","open_price":"68361.815","close_price":"68386.99","high_price":"68388.15365745","low_price":"68324.415","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:10:00Z","open_price":"68386.99","close_price":"68436.695","high_price":"68446.895","low_price":"68372.54","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:15:00Z","open_price":"68422.065","close_price":"68408.37","high_price":"68436.895","low_price":"68343.68","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:20:00Z","open_price":"68408.37","close_price":"68406.205","high_price":"68436.535","low_price":"68377.935","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:25:00Z","open_price":"68391.985","close_price":"68403.44","high_price":"68434.295","low_price":"68325.68","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:30:00Z","open_price":"68406.205","close_price":"68420.685","high_price":"68434.4690822","low_price":"68403.44","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:35:00Z","open_price":"68420.685","close_price":"68386.46","high_price":"68421.235","low_price":"68323.63","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:40:00Z","open_price":"68384.705","close_price":"68379.23","high_price":"68388.42956395","low_price":"68316.49","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:45:00Z","open_price":"68379.23","close_price":"68374.73","high_price":"68382.525","low_price":"68357.245","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:50:00Z","open_price":"68374.73","close_price":"68375.635","high_price":"68380.26","low_price":"68357.06","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T07:55:00Z","open_price":"68375.635","close_price":"68367.29","high_price":"68388.17561135","low_price":"68357.23057771","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:00:00Z","open_price":"68370.495","close_price":"68407.65","high_price":"68413.23132965","low_price":"68365.375","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:05:00Z","open_price":"68394.595","close_price":"68390.625","high_price":"68407.65","low_price":"68374.245","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:10:00Z","open_price":"68390.625","close_price":"68392.68","high_price":"68399.87","low_price":"68375.13","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:15:00Z","open_price":"68392.68","close_price":"68409.055","high_price":"68421.27","low_price":"68380.58","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:20:00Z","open_price":"68409.055","close_price":"68427.4","high_price":"68433.82","low_price":"68347.275","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:25:00Z","open_price":"68427.4","close_price":"68492.13","high_price":"68509.5705808","low_price":"68401.385","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:30:00Z","open_price":"68496.95","close_price":"68447.635","high_price":"68496.95","low_price":"68428.76","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:35:00Z","open_price":"68447.635","close_price":"68422.215","high_price":"68467.675","low_price":"68397.7","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:40:00Z","open_price":"68420.515","close_price":"68414.03","high_price":"68426.3586926","low_price":"68390.82","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:45:00Z","open_price":"68417.66","close_price":"68377.435","high_price":"68417.66","low_price":"68364.46","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:50:00Z","open_price":"68388.35","close_price":"68381.695","high_price":"68388.35","low_price":"68344.485","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T08:55:00Z","open_price":"68381.695","close_price":"68404.15","high_price":"68410.895","low_price":"68372.535","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:00:00Z","open_price":"68399.45","close_price":"68394.925","high_price":"68412.83","low_price":"68380.515","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:05:00Z","open_price":"68389.25","close_price":"68364.57","high_price":"68401.24","low_price":"68285.175","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:10:00Z","open_price":"68351.385","close_price":"68389","high_price":"68403.12","low_price":"68346.65","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:15:00Z","open_price":"68389","close_price":"68400.445","high_price":"68414.775","low_price":"68371.835","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:20:00Z","open_price":"68400.445","close_price":"68386.635","high_price":"68400.445","low_price":"68314.455","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:25:00Z","open_price":"68386.635","close_price":"68409.985","high_price":"68411.39","low_price":"68325.31","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:30:00Z","open_price":"68398.94","close_price":"68409.985","high_price":"68409.985","low_price":"68390.125","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:35:00Z","open_price":"68398.94","close_price":"68449.88","high_price":"68463.345","low_price":"68354.145","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:40:00Z","open_price":"68440.155","close_price":"68438.175","high_price":"68450.325","low_price":"68420.115","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:45:00Z","open_price":"68438.175","close_price":"68430.36","high_price":"68442.97996465","low_price":"68409.755","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:50:00Z","open_price":"68431.59","close_price":"68455.145","high_price":"68468.105","low_price":"68366.495","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T09:55:00Z","open_price":"68455.145","close_price":"68446.955","high_price":"68466.22175745","low_price":"68366.605","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:00:00Z","open_price":"68445.07","close_price":"68451.835","high_price":"68463.80259605","low_price":"68424.045","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:05:00Z","open_price":"68451.835","close_price":"68459.96","high_price":"68465.2754562","low_price":"68406.19","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:10:00Z","open_price":"68454.54","close_price":"68463.48","high_price":"68477.7554431","low_price":"68437.01","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:15:00Z","open_price":"68463.48","close_price":"68447.385","high_price":"68479.705","low_price":"68369.62","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:20:00Z","open_price":"68447.385","close_price":"68451.885","high_price":"68459.425","low_price":"68418.87","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:25:00Z","open_price":"68451.885","close_price":"68434.48","high_price":"68451.885","low_price":"68413.72","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:30:00Z","open_price":"68434.48","close_price":"68437.515","high_price":"68464.995","low_price":"68413.935","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:35:00Z","open_price":"68437.515","close_price":"68410.85","high_price":"68443.36038455","low_price":"68354.96","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:40:00Z","open_price":"68402.535","close_price":"68397.685","high_price":"68428.07247725","low_price":"68340.415","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:45:00Z","open_price":"68397.685","close_price":"68411.915","high_price":"68430.115","low_price":"68383.675","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:50:00Z","open_price":"68404.035","close_price":"68384.2","high_price":"68413.5106955","low_price":"68317.69","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T10:55:00Z","open_price":"68384.2","close_price":"68380.805","high_price":"68389.635","low_price":"68326.735","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:00:00Z","open_price":"68380.805","close_price":"68317.87","high_price":"68393.62033045","low_price":"68269.47","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:05:00Z","open_price":"68317.87","close_price":"68314.855","high_price":"68393.37183665","low_price":"68314.855","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:10:00Z","open_price":"68334.185","close_price":"68328.155","high_price":"68421.53823355","low_price":"68328.155","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:15:00Z","open_price":"68328.155","close_price":"68352.27","high_price":"68456.39675475","low_price":"68328.155","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:20:00Z","open_price":"68352.27","close_price":"68349.255","high_price":"68456.35007705","low_price":"68349.255","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:25:00Z","open_price":"68349.255","close_price":"68352.27","high_price":"68457.0234144","low_price":"68349.255","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:30:00Z","open_price":"68349.255","close_price":"68362.25","high_price":"68453.50523245","low_price":"68322.85","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:35:00Z","open_price":"68362.25","close_price":"68356.24","high_price":"68438.0544489","low_price":"68313.805","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:40:00Z","open_price":"68356.24","close_price":"68371.795","high_price":"68464.287276","low_price":"68315.905","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:45:00Z","open_price":"68371.795","close_price":"68383.13","high_price":"68464.287276","low_price":"68336.16","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:50:00Z","open_price":"68380.42","close_price":"68366.61","high_price":"68455.00905225","low_price":"68318.84","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T11:55:00Z","open_price":"68371.205","close_price":"68368.19","high_price":"68445.66784165","low_price":"68368.19","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:00:00Z","open_price":"68429.515","close_price":"68441.035","high_price":"68457.644988","low_price":"68414.275","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:05:00Z","open_price":"68430.505","close_price":"68430.505","high_price":"68459.08264065","low_price":"68413.03","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:10:00Z","open_price":"68440.2","close_price":"68421.84","high_price":"68445.07126015","low_price":"68410.85471668","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:15:00Z","open_price":"68421.84","close_price":"68404.695","high_price":"68465.05","low_price":"68331.455","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:20:00Z","open_price":"68404.695","close_price":"68383.635","high_price":"68428.505","low_price":"68306.96","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:25:00Z","open_price":"68383.635","close_price":"68390.115","high_price":"68441.44","low_price":"68307.73","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:30:00Z","open_price":"68390.115","close_price":"68375.885","high_price":"68440.325","low_price":"68364.64","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:35:00Z","open_price":"68375.885","close_price":"68408.525","high_price":"68457.775","low_price":"68275.54","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:40:00Z","open_price":"68408.525","close_price":"68403.19","high_price":"68454.29","low_price":"68317.865","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:45:00Z","open_price":"68403.19","close_price":"68383.775","high_price":"68425.735","low_price":"68247.755","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:50:00Z","open_price":"68383.775","close_price":"68352.84","high_price":"68429.25","low_price":"68279.79","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T12:55:00Z","open_price":"68279.79","close_price":"68266.05","high_price":"68363.13310835","low_price":"68149.295","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:00:00Z","open_price":"68266.05","close_price":"68326.265","high_price":"68346.285","low_price":"68178.65","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:05:00Z","open_price":"68325.86","close_price":"68300.405","high_price":"68353.7177315","low_price":"68197.765","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:10:00Z","open_price":"68299.63","close_price":"68272.02","high_price":"68319.0766234","low_price":"68258.855","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:15:00Z","open_price":"68270.08","close_price":"68245.185","high_price":"68311.39978765","low_price":"68211.77","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:20:00Z","open_price":"68248.03","close_price":"68254.21","high_price":"68273.815","low_price":"68195.12","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:25:00Z","open_price":"68257.035","close_price":"68271.025","high_price":"68308.17097465","low_price":"68240.485","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:30:00Z","open_price":"68270.38","close_price":"68329.62","high_price":"68349.9796577","low_price":"68267.345","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:35:00Z","open_price":"68327.335","close_price":"68438.03","high_price":"68479.28037635","low_price":"68320.77","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:40:00Z","open_price":"68438.03","close_price":"68404.01","high_price":"68472.3540577","low_price":"68384.93","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:45:00Z","open_price":"68405.515","close_price":"68438.03","high_price":"68495.09448645","low_price":"68399.244514305","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:50:00Z","open_price":"68438.03","close_price":"68439.155","high_price":"68464.08903265","low_price":"68389.095","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T13:55:00Z","open_price":"68436.535","close_price":"68458.83","high_price":"68461.49827465","low_price":"68412.345","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:00:00Z","open_price":"68450.555","close_price":"68533.49","high_price":"68573.90690105","low_price":"68446.770060005","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:05:00Z","open_price":"68538.785","close_price":"68646.905","high_price":"68674.19854275","low_price":"68511.5","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:10:00Z","open_price":"68646.905","close_price":"68591.605","high_price":"68676.95940545","low_price":"68532.24","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:15:00Z","open_price":"68591.605","close_price":"68738.47","high_price":"68771.8164756","low_price":"68583.055","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:20:00Z","open_price":"68737.895","close_price":"68706.47","high_price":"68751.2614716","low_price":"68670.9","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:25:00Z","open_price":"68706.47","close_price":"68651.025","high_price":"68711.9530996","low_price":"68576.24","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:30:00Z","open_price":"68651.525","close_price":"68719.19","high_price":"68766.31464275","low_price":"68640.8","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:35:00Z","open_price":"68720.485","close_price":"68702.685","high_price":"68739.49012775","low_price":"68666.085","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:40:00Z","open_price":"68700.78","close_price":"68701.57","high_price":"68723.355503","low_price":"68632.204114705","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:45:00Z","open_price":"68703.03","close_price":"68645.915","high_price":"68709.00044995","low_price":"68574.82","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:50:00Z","open_price":"68648.545","close_price":"68588.215","high_price":"68653.72","low_price":"68582.575","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T14:55:00Z","open_price":"68588.9","close_price":"68638.455","high_price":"68654.3749876","low_price":"68583.21","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:00:00Z","open_price":"68636.51","close_price":"68533.28","high_price":"68692.138058","low_price":"68526.935","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:05:00Z","open_price":"68537.36","close_price":"68511.33","high_price":"68569.48","low_price":"68487.34","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:10:00Z","open_price":"68512.315","close_price":"68514.28","high_price":"68557.04138585","low_price":"68503.185","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:15:00Z","open_price":"68512.09","close_price":"68424.82","high_price":"68530.25314445","low_price":"68409.365","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:20:00Z","open_price":"68424.905","close_price":"68437.815","high_price":"68459.355","low_price":"68335.915","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:25:00Z","open_price":"68431.695","close_price":"68464.61","high_price":"68475.29979315","low_price":"68419.915","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:30:00Z","open_price":"68464.055","close_price":"68529.84","high_price":"68544.51631765","low_price":"68438.465","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:35:00Z","open_price":"68531.67","close_price":"68542.795","high_price":"68552.54582275","low_price":"68492.985","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:40:00Z","open_price":"68542.795","close_price":"68539.655","high_price":"68560.45981435","low_price":"68478.47157843","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:45:00Z","open_price":"68539.655","close_price":"68548.29","high_price":"68594.17869495","low_price":"68534.535","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:50:00Z","open_price":"68549.54","close_price":"68608.73","high_price":"68622.8437205","low_price":"68546.3","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T15:55:00Z","open_price":"68608.73","close_price":"68612.15","high_price":"68622.46087915","low_price":"68572.25","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:00:00Z","open_price":"68615.395","close_price":"68559.21","high_price":"68653.39101265","low_price":"68541.73","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:05:00Z","open_price":"68559.75","close_price":"68530.345","high_price":"68596.06","low_price":"68470.895","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:10:00Z","open_price":"68528.035","close_price":"68540.445","high_price":"68575.0763692","low_price":"68520.34","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:15:00Z","open_price":"68540.195","close_price":"68552.655","high_price":"68566.11950975","low_price":"68505.415","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:20:00Z","open_price":"68552.655","close_price":"68578.63","high_price":"68620.0181486","low_price":"68540.02","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:25:00Z","open_price":"68578.63","close_price":"68568.385","high_price":"68593.77544605","low_price":"68544.875","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:30:00Z","open_price":"68570.525","close_price":"68591.83","high_price":"68601.80852685","low_price":"68545.125","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:35:00Z","open_price":"68591.385","close_price":"68548.56","high_price":"68613.94084295","low_price":"68536.59","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:40:00Z","open_price":"68549.085","close_price":"68555.35","high_price":"68568.8024302","low_price":"68538.065","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:45:00Z","open_price":"68555.35","close_price":"68539.115","high_price":"68563.3544534","low_price":"68495.065","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:50:00Z","open_price":"68539.42","close_price":"68544.145","high_price":"68555.43","low_price":"68525.315","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T16:55:00Z","open_price":"68544.7","close_price":"68489.3","high_price":"68552.1328695","low_price":"68476.605","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:00:00Z","open_price":"68494.54","close_price":"68524.43","high_price":"68541.13373315","low_price":"68484.035","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:05:00Z","open_price":"68524.43","close_price":"68540.235","high_price":"68556.4046796","low_price":"68517.56","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:10:00Z","open_price":"68540.235","close_price":"68539.87","high_price":"68555.8729165","low_price":"68527.485","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:15:00Z","open_price":"68539.87","close_price":"68525.715","high_price":"68551.92380025","low_price":"68512.54","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:20:00Z","open_price":"68524.62","close_price":"68494.27","high_price":"68548.90071625","low_price":"68484.035","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:25:00Z","open_price":"68495.57","close_price":"68504.955","high_price":"68534.215","low_price":"68468.91","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:30:00Z","open_price":"68504.955","close_price":"68453.755","high_price":"68526.1298685","low_price":"68453.755","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:35:00Z","open_price":"68458.455","close_price":"68419.1","high_price":"68486.99913265","low_price":"68404.845","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:40:00Z","open_price":"68420.01","close_price":"68443.655","high_price":"68476.30831615","low_price":"68415.06","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:45:00Z","open_price":"68443.655","close_price":"68477.015","high_price":"68493.59955255","low_price":"68434.025","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:50:00Z","open_price":"68476.53","close_price":"68571.605","high_price":"68623.9630298","low_price":"68470.53","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T17:55:00Z","open_price":"68569.045","close_price":"68547.09","high_price":"68594.00667995","low_price":"68540.145","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:00:00Z","open_price":"68546.93","close_price":"68573.075","high_price":"68592.452197","low_price":"68541.865","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:05:00Z","open_price":"68570.135","close_price":"68636.075","high_price":"68665.4452984","low_price":"68562.28","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:10:00Z","open_price":"68636.1","close_price":"68599.57","high_price":"68660.16798565","low_price":"68584.515","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:15:00Z","open_price":"68599.57","close_price":"68604.425","high_price":"68641.7979955","low_price":"68578.585083885","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:20:00Z","open_price":"68604.425","close_price":"68636.73","high_price":"68659.4167633","low_price":"68601.065","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:25:00Z","open_price":"68637.395","close_price":"68634.55","high_price":"68655.2541751","low_price":"68619.66","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:30:00Z","open_price":"68635.22","close_price":"68637.66","high_price":"68649.61826025","low_price":"68616.42","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:35:00Z","open_price":"68637.225","close_price":"68637.63","high_price":"68653.5528001","low_price":"68625.515","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:40:00Z","open_price":"68637.63","close_price":"68632.305","high_price":"68645.9638832","low_price":"68629.38","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:45:00Z","open_price":"68632.305","close_price":"68597.975","high_price":"68650.374998","low_price":"68580.425","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:50:00Z","open_price":"68598.77","close_price":"68608.685","high_price":"68619.2908074","low_price":"68590.69","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T18:55:00Z","open_price":"68609.495","close_price":"68594.02","high_price":"68618.5302397","low_price":"68588.01","volume":0,"session":"reg","interpolated":false},{"begins_at":"2024-10-20T19:00:00Z","open_price":"68594.02","close_price":"68548.605","high_price":"68606.3686387","low_price":"68543.94","volume":0,"session":"reg","interpolated":false}],"bounds":"24_7","interval":"5minute","span":"day","symbol":"BTCUSD","id":"3d961844-d360-45fc-989b-f6fca761d511","open_price":"66837.1060293","open_time":"2024-10-18T13:30:00Z","previous_close_price":"66837.1060293","previous_close_time":"2024-10-17T20:00:00Z"}');
     final resultJson = await Future.delayed(Duration.zero, () => json);
@@ -1466,16 +2094,25 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<OptionChain> getOptionChains(BrokerageUser user, String id) {
-    // TODO: implement getOptionChains
-    throw UnimplementedError();
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    return Future.value(null);
+  }
+
+  @override
+  Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
+    final json = jsonDecode(
+        '{"next":null,"previous":null,"results":[{"id":"dummy_chain_id","symbol":"AAPL","can_open_position":true,"cash_component":null,"expiration_dates":["2025-12-19"],"trade_value_multiplier":"100.0000","underlying_instruments":[{"id":"dummy_uid","instrument":"https://api.robinhood.com/instruments/dummy_id/","quantity":100}],"min_ticks":{"above_tick":"0.05","below_tick":"0.01","cutoff_price":"3.00"},"late_close_state":"disabled"}]}');
+    final resultJson = await Future.delayed(Duration.zero, () => json);
+    return OptionChain.fromJson(resultJson['results'][0]);
   }
 
   @override
   Future<List<OptionChain>> getOptionChainsByIds(
-      BrokerageUser user, List<String> ids) {
-    // TODO: implement getOptionChainsByIds
-    throw UnimplementedError();
+      BrokerageUser user, List<String> ids) async {
+    return [await getOptionChains(user, ids.first)];
   }
 
   @override
@@ -1511,9 +2148,70 @@ class DemoService implements IBrokerageService {
       Instrument instrument,
       String? expirationDates,
       String? type,
-      {String? state = "active"}) {
-    // TODO: implement streamOptionInstruments
-    throw UnimplementedError();
+      {String? state = "active",
+      bool includeMarketData = false}) async* {
+    var optionInstrument = OptionInstrument.fromJson({
+      "chain_id": "93eb5d71-55db-449e-ba60-31af7a192aa0",
+      "chain_symbol": "AAPL",
+      "created_at": "2020-08-28T02:00:00.000000Z",
+      "expiration_date": "2025-12-19",
+      "id": "c1d3c026-6dcf-432d-88f6-28569992c303",
+      "issue_date": "2020-08-28",
+      "min_ticks": {
+        "above_tick": "0.01",
+        "below_tick": "0.01",
+        "cutoff_price": "0.00"
+      },
+      "rhs_tradability": "tradable",
+      "state": "active",
+      "strike_price": "150.0000",
+      "tradability": "tradable",
+      "type": "call",
+      "updated_at": "2022-10-31T03:00:19.499690Z",
+      "url":
+          "https://api.robinhood.com/options/instruments/c1d3c026-6dcf-432d-88f6-28569992c303/",
+      "sellout_datetime": "2025-12-19T21:00:00+00:00",
+      "long_strategy_code": "long_call",
+      "short_strategy_code": "short_call"
+    });
+    // Add dummy market data so it renders price
+    optionInstrument.optionMarketData = OptionMarketData.fromJson({
+      "adjusted_mark_price": "10.50",
+      "ask_price": "11.00",
+      "ask_size": 100,
+      "bid_price": "10.00",
+      "bid_size": 100,
+      "break_even_price": "160.50",
+      "high_price": "12.00",
+      "instrument":
+          "https://api.robinhood.com/options/instruments/c1d3c026-6dcf-432d-88f6-28569992c303/",
+      "instrument_id": "c1d3c026-6dcf-432d-88f6-28569992c303",
+      "last_trade_price": "10.50",
+      "last_trade_size": 5,
+      "low_price": "9.50",
+      "mark_price": "10.50",
+      "open_interest": 500,
+      "previous_close_date": "2023-11-20",
+      "previous_close_price": "10.00",
+      "volume": 1000,
+      "symbol": "AAPL",
+      "occ_symbol": "AAPL251219C00150000",
+      "chance_of_profit_long": "0.45",
+      "chance_of_profit_short": "0.55",
+      "delta": "0.65",
+      "gamma": "0.05",
+      "implied_volatility": "0.25",
+      "rho": "0.01",
+      "theta": "-0.02",
+      "vega": "0.15",
+      "high_fill_rate_buy_price": "10.90",
+      "high_fill_rate_sell_price": "10.10",
+      "low_fill_rate_buy_price": "10.10",
+      "low_fill_rate_sell_price": "10.90",
+      "updated_at": "2023-11-20T00:00:00Z"
+    });
+
+    yield [optionInstrument];
   }
 
   @override
@@ -1557,7 +2255,4132 @@ class DemoService implements IBrokerageService {
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String? cancel) {
-    // TODO: implement
-    throw UnimplementedError();
+    final parts = (cancel ?? '').split('/').where((s) => s.isNotEmpty).toList();
+    final cancelIndex = parts.indexOf('cancel');
+    final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
+    return Future.value({
+      'status': 'not_supported',
+      'message': 'Order cancellation is not supported in demo mode.',
+      'target': target,
+    });
+  }
+
+  @override
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
+    return Future.value([]);
+  }
+
+  @override
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) {
+    final now = DateTime.now();
+    final orderId = 'demo_${now.millisecondsSinceEpoch}';
+    final execPrice = price ?? 1.0;
+    return Future.value(http.Response(
+        jsonEncode({
+          'id': orderId,
+          'ref_id': orderId,
+          'currency_pair_id': pairId,
+          'side': side.toLowerCase(),
+          'type': type,
+          'time_in_force': timeInForce,
+          'price': execPrice.toString(),
+          'stop_price': stopPrice?.toString(),
+          'quantity': quantity.toString(),
+          'cumulative_quantity': quantity.toString(),
+          'average_price': execPrice.toString(),
+          'fees': '0.00',
+          'state': 'filled',
+          'created_at': now.toIso8601String(),
+          'updated_at': now.toIso8601String(),
+        }),
+        201,
+        headers: {'content-type': 'application/json'}));
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) =>
+      Future.error(UnsupportedError('Live futures quotes are not supported.'));
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) {
+    return Future.error(
+      'Futures orders are not supported in DemoService',
+    );
+  }
+
+  @override
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    final now = DateTime.now();
+    // 1 business day ago
+    DateTime day1 = now.subtract(const Duration(days: 1));
+    while (
+        day1.weekday == DateTime.saturday || day1.weekday == DateTime.sunday) {
+      day1 = day1.subtract(const Duration(days: 1));
+    }
+    // 2 business days ago
+    DateTime day2 = day1.subtract(const Duration(days: 1));
+    while (
+        day2.weekday == DateTime.saturday || day2.weekday == DateTime.sunday) {
+      day2 = day2.subtract(const Duration(days: 1));
+    }
+
+    final dateStr1 =
+        "${day1.year.toString().padLeft(4, '0')}-${day1.month.toString().padLeft(2, '0')}-${day1.day.toString().padLeft(2, '0')}";
+    final dateStr2 =
+        "${day2.year.toString().padLeft(4, '0')}-${day2.month.toString().padLeft(2, '0')}-${day2.day.toString().padLeft(2, '0')}";
+
+    return {
+      'account': 'https://api.robinhood.com/accounts/$accountNumber/',
+      'day_trades_protection': true,
+      'is_pattern_day_trader': false,
+      'equity_day_trades': [
+        {
+          'id': 'dt_eq_1',
+          'symbol': 'AAPL',
+          'trade_execution_date': dateStr1,
+          'created_at': '${dateStr1}T14:32:10Z',
+          'direction': 'buy_then_sell',
+          'quantity': 25,
+          'price': 185.50,
+          'type': 'equity',
+        }
+      ],
+      'option_day_trades': [
+        {
+          'id': 'dt_opt_1',
+          'symbol': 'TSLA 260327C00220000',
+          'trade_execution_date': dateStr2,
+          'created_at': '${dateStr2}T15:10:44Z',
+          'direction': 'buy_then_sell',
+          'quantity': 2,
+          'price': 4.25,
+          'type': 'option',
+        }
+      ],
+      'day_trades': [],
+    };
+  }
+
+  @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'results': [
+          {
+            'instrument_id': instrumentId,
+            'symbol': 'GME',
+            'pc_freefloat': 0.245,
+            'shares_short': 64500000,
+            'shares_short_prior': 58200000,
+            'short_interest_change': 6300000,
+            'short_interest_change_pct': 0.1082,
+            'days_to_cover': 6.4,
+            'settlement_date': '2026-08-15',
+            'free_float': 263000000,
+            'average_daily_volume': 10080000,
+            'updated_at': '2026-08-28T00:00:00Z',
+          }
+        ]
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'results': [
+          {
+            'instrument_id': instrumentId,
+            'symbol': 'TSLA',
+            'pc_freefloat': 0.082,
+            'shares_short': 85400000,
+            'shares_short_prior': 89100000,
+            'short_interest_change': -3700000,
+            'short_interest_change_pct': -0.0415,
+            'days_to_cover': 2.8,
+            'settlement_date': '2026-08-15',
+            'free_float': 1041000000,
+            'average_daily_volume': 30500000,
+            'updated_at': '2026-08-28T00:00:00Z',
+          }
+        ]
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'results': [
+        {
+          'instrument_id': instrumentId,
+          'symbol': 'AAPL',
+          'pc_freefloat': 0.0285,
+          'shares_short': 121400000,
+          'shares_short_prior': 119800000,
+          'short_interest_change': 1600000,
+          'short_interest_change_pct': 0.0133,
+          'days_to_cover': 1.9,
+          'settlement_date': '2026-08-15',
+          'free_float': 4260000000,
+          'average_daily_volume': 63900000,
+          'updated_at': '2026-08-28T00:00:00Z',
+        }
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'instrument_id': instrumentId,
+        'can_short': true,
+        'inventory': 'LOW',
+        'borrow_fee_rate': 0.185,
+        'is_hard_to_borrow': true,
+        'hard_to_borrow_reason':
+            'High borrow demand and tight loan availability',
+        'margin_requirement': 2.0,
+        'locate_required': true,
+        'updated_at': '2026-09-08T14:30:00Z',
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'instrument_id': instrumentId,
+        'can_short': true,
+        'inventory': 'MEDIUM',
+        'borrow_fee_rate': 0.0125,
+        'is_hard_to_borrow': false,
+        'hard_to_borrow_reason': null,
+        'margin_requirement': 1.5,
+        'locate_required': false,
+        'updated_at': '2026-09-08T14:30:00Z',
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'instrument_id': instrumentId,
+      'can_short': true,
+      'inventory': 'HIGH',
+      'borrow_fee_rate': 0.0035,
+      'is_hard_to_borrow': false,
+      'hard_to_borrow_reason': null,
+      'margin_requirement': 1.5,
+      'locate_required': false,
+      'updated_at': '2026-09-08T14:30:00Z',
+    };
+  }
+
+  @override
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'daily_transactions': [
+            {
+              'date': '2026-09-06',
+              'net_buy_percentage': 44.2,
+              'net_sell_percentage': -44.2,
+              'buy_volume_percentage_change': 18.4,
+              'sell_volume_percentage_change': -5.2,
+            },
+            {
+              'date': '2026-09-07',
+              'net_buy_percentage': 53.0,
+              'net_sell_percentage': -53.0,
+              'buy_volume_percentage_change': 25.1,
+              'sell_volume_percentage_change': -8.0,
+            },
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': 60.8,
+              'net_sell_percentage': -60.8,
+              'buy_volume_percentage_change': 41.3,
+              'sell_volume_percentage_change': -12.4,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': 65.6,
+              'net_sell_percentage': -65.6,
+              'buy_volume_percentage_change': 55.0,
+              'sell_volume_percentage_change': -15.1,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': 68.4,
+              'net_sell_percentage': -68.4,
+              'buy_volume_percentage_change': 62.1,
+              'sell_volume_percentage_change': -18.5,
+            },
+          ],
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'daily_transactions': [
+            {
+              'date': '2026-09-06',
+              'net_buy_percentage': 40.4,
+              'net_sell_percentage': -40.4,
+              'buy_volume_percentage_change': 8.5,
+              'sell_volume_percentage_change': 2.1,
+            },
+            {
+              'date': '2026-09-07',
+              'net_buy_percentage': 45.6,
+              'net_sell_percentage': -45.6,
+              'buy_volume_percentage_change': 12.0,
+              'sell_volume_percentage_change': -1.5,
+            },
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': 50.2,
+              'net_sell_percentage': -50.2,
+              'buy_volume_percentage_change': 18.2,
+              'sell_volume_percentage_change': -3.2,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': 53.8,
+              'net_sell_percentage': -53.8,
+              'buy_volume_percentage_change': 21.4,
+              'sell_volume_percentage_change': -4.0,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': 57.0,
+              'net_sell_percentage': -57.0,
+              'buy_volume_percentage_change': 24.8,
+              'sell_volume_percentage_change': -6.5,
+            },
+          ],
+        }
+      };
+    } else if (lowerId.contains('bear')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'BEAR',
+          'daily_transactions': [
+            {
+              'date': '2026-09-08',
+              'net_buy_percentage': -16.0,
+              'net_sell_percentage': 16.0,
+              'buy_volume_percentage_change': -4.5,
+              'sell_volume_percentage_change': 10.2,
+            },
+            {
+              'date': '2026-09-09',
+              'net_buy_percentage': -24.0,
+              'net_sell_percentage': 24.0,
+              'buy_volume_percentage_change': -8.0,
+              'sell_volume_percentage_change': 18.5,
+            },
+            {
+              'date': '2026-09-10',
+              'net_buy_percentage': -32.0,
+              'net_sell_percentage': 32.0,
+              'buy_volume_percentage_change': -12.0,
+              'sell_volume_percentage_change': 25.4,
+            },
+          ],
+        }
+      };
+    }
+
+    // Default (AAPL / general equity) matches exact Robinhood marketdata response structure
+    return {
+      "instrument_id": instrumentId,
+      "symbol": "AAPL",
+      "daily_transactions": [
+        {
+          "date": "2026-08-12",
+          "net_buy_percentage": 6.733010406913009,
+          "net_sell_percentage": -6.733010406913009,
+          "buy_volume_percentage_change": null,
+          "sell_volume_percentage_change": null
+        },
+        {
+          "date": "2026-08-13",
+          "net_buy_percentage": 2.2814620083776327,
+          "net_sell_percentage": -2.2814620083776327,
+          "buy_volume_percentage_change": -34.70567348204625,
+          "sell_volume_percentage_change": -28.611824946031497
+        },
+        {
+          "date": "2026-08-14",
+          "net_buy_percentage": -5.055151777329453,
+          "net_sell_percentage": 5.055151777329453,
+          "buy_volume_percentage_change": -13.866593391011422,
+          "sell_volume_percentage_change": -0.24434133127768348
+        },
+        {
+          "date": "2026-08-17",
+          "net_buy_percentage": 19.189000228545446,
+          "net_sell_percentage": -19.189000228545446,
+          "buy_volume_percentage_change": 29.120929708272094,
+          "sell_volume_percentage_change": -20.880233413744534
+        },
+        {
+          "date": "2026-09-08",
+          "net_buy_percentage": 16.631773895830328,
+          "net_sell_percentage": -16.631773895830328,
+          "buy_volume_percentage_change": -2.3809395349908087,
+          "sell_volume_percentage_change": 14.806796950636732
+        },
+        {
+          "date": "2026-09-09",
+          "net_buy_percentage": 31.58138057168694,
+          "net_sell_percentage": -31.58138057168694,
+          "buy_volume_percentage_change": 112.82247169835675,
+          "sell_volume_percentage_change": 54.81522591529
+        }
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'net_sentiment': 'positive',
+          'sentiment_score': 68.0,
+          'total_buy_shares': 450000,
+          'total_sell_shares': 0,
+          'total_buy_value': 10125000.0,
+          'total_sell_value': 0.0,
+          'buy_count': 5,
+          'sell_count': 0,
+          'net_shares': 450000,
+          'net_value': 10125000.0,
+          'monthly_summary': [
+            {
+              'month': '2026-08',
+              'buy_shares': 250000,
+              'sell_shares': 0,
+              'buy_value': 5625000.0,
+              'sell_value': 0.0,
+              'net_sentiment': 'positive',
+              'buy_count': 3,
+              'sell_count': 0,
+            },
+            {
+              'month': '2026-07',
+              'buy_shares': 200000,
+              'sell_shares': 0,
+              'buy_value': 4500000.0,
+              'sell_value': 0.0,
+              'net_sentiment': 'positive',
+              'buy_count': 2,
+              'sell_count': 0,
+            },
+          ],
+          'updated_at': '2026-09-08T18:00:00Z',
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'net_sentiment': 'negative',
+          'sentiment_score': -42.0,
+          'total_buy_shares': 12000,
+          'total_sell_shares': 285000,
+          'total_buy_value': 2760000.0,
+          'total_sell_value': 65550000.0,
+          'buy_count': 1,
+          'sell_count': 7,
+          'net_shares': -273000,
+          'net_value': -62790000.0,
+          'monthly_summary': [
+            {
+              'month': '2026-08',
+              'buy_shares': 0,
+              'sell_shares': 180000,
+              'buy_value': 0.0,
+              'sell_value': 41400000.0,
+              'net_sentiment': 'negative',
+              'buy_count': 0,
+              'sell_count': 4,
+            },
+            {
+              'month': '2026-07',
+              'buy_shares': 12000,
+              'sell_shares': 105000,
+              'buy_value': 2760000.0,
+              'sell_value': 24150000.0,
+              'net_sentiment': 'negative',
+              'buy_count': 1,
+              'sell_count': 3,
+            },
+          ],
+          'updated_at': '2026-09-08T18:00:00Z',
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'net_sentiment': 'positive',
+        'sentiment_score': 28.5,
+        'total_buy_shares': 145000,
+        'total_sell_shares': 82000,
+        'total_buy_value': 32625000.0,
+        'total_sell_value': 18450000.0,
+        'buy_count': 8,
+        'sell_count': 3,
+        'net_shares': 63000,
+        'net_value': 14175000.0,
+        'monthly_summary': [
+          {
+            'month': '2026-08',
+            'buy_shares': 65000,
+            'sell_shares': 22000,
+            'buy_value': 14625000.0,
+            'sell_value': 4950000.0,
+            'net_sentiment': 'positive',
+            'buy_count': 4,
+            'sell_count': 1,
+          },
+          {
+            'month': '2026-07',
+            'buy_shares': 48000,
+            'sell_shares': 30000,
+            'buy_value': 10800000.0,
+            'sell_value': 6750000.0,
+            'net_sentiment': 'positive',
+            'buy_count': 2,
+            'sell_count': 1,
+          },
+          {
+            'month': '2026-06',
+            'buy_shares': 32000,
+            'sell_shares': 30000,
+            'buy_value': 7200000.0,
+            'sell_value': 6750000.0,
+            'net_sentiment': 'neutral',
+            'buy_count': 2,
+            'sell_count': 1,
+          },
+        ],
+        'updated_at': '2026-09-08T18:00:00Z',
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'results': [
+            {
+              'filer_name': 'Ryan Cohen',
+              'relationship': 'Chairman of the Board & CEO',
+              'transaction_date': '2026-08-28',
+              'filing_date': '2026-08-30',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 150000,
+              'price': 22.50,
+              'value': 3375000.0,
+              'shares_held_after': 36840000,
+              'is_direct': true,
+              'sec_form4_url':
+                  'https://www.sec.gov/edgar/data/1326380/000132638026000045/wf-form4_rc.xml',
+            },
+            {
+              'filer_name': 'Larry Cheng',
+              'relationship': 'Director',
+              'transaction_date': '2026-08-15',
+              'filing_date': '2026-08-17',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 50000,
+              'price': 22.00,
+              'value': 1100000.0,
+              'shares_held_after': 142000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Alain Attal',
+              'relationship': 'Director',
+              'transaction_date': '2026-07-22',
+              'filing_date': '2026-07-24',
+              'transaction_type': 'Open Market Purchase',
+              'transaction_code': 'P',
+              'shares': 40000,
+              'price': 21.80,
+              'value': 872000.0,
+              'shares_held_after': 565000,
+              'is_direct': true,
+            },
+          ]
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'results': [
+            {
+              'filer_name': 'Robyn Denholm',
+              'relationship': 'Chair of the Board',
+              'transaction_date': '2026-08-25',
+              'filing_date': '2026-08-27',
+              'transaction_type': 'Open Market Sale',
+              'transaction_code': 'S',
+              'shares': 110000,
+              'price': 230.00,
+              'value': 25300000.0,
+              'shares_held_after': 85000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Kimbal Musk',
+              'relationship': 'Director',
+              'transaction_date': '2026-08-12',
+              'filing_date': '2026-08-14',
+              'transaction_type': 'Open Market Sale',
+              'transaction_code': 'S',
+              'shares': 70000,
+              'price': 228.50,
+              'value': 15995000.0,
+              'shares_held_after': 1480000,
+              'is_direct': true,
+            },
+            {
+              'filer_name': 'Vaibhav Taneja',
+              'relationship': 'Chief Financial Officer',
+              'transaction_date': '2026-07-20',
+              'filing_date': '2026-07-22',
+              'transaction_type': 'Option Exercise',
+              'transaction_code': 'M',
+              'shares': 12000,
+              'price': 230.00,
+              'value': 2760000.0,
+              'shares_held_after': 105000,
+              'is_direct': true,
+            },
+          ]
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'results': [
+          {
+            'filer_name': 'Tim Cook',
+            'relationship': 'Chief Executive Officer',
+            'transaction_date': '2026-08-22',
+            'filing_date': '2026-08-24',
+            'transaction_type': 'Option Exercise',
+            'transaction_code': 'M',
+            'shares': 50000,
+            'price': 225.50,
+            'value': 11275000.0,
+            'shares_held_after': 3280000,
+            'is_direct': true,
+            'sec_form4_url':
+                'https://www.sec.gov/edgar/data/320193/000032019326000101/wf-form4_172445012345678.xml',
+          },
+          {
+            'filer_name': 'Luca Maestri',
+            'relationship': 'Chief Financial Officer',
+            'transaction_date': '2026-08-18',
+            'filing_date': '2026-08-20',
+            'transaction_type': 'Open Market Sale',
+            'transaction_code': 'S',
+            'shares': 20000,
+            'price': 224.80,
+            'value': 4496000.0,
+            'shares_held_after': 112000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Arthur Levinson',
+            'relationship': 'Chairman of the Board',
+            'transaction_date': '2026-08-10',
+            'filing_date': '2026-08-12',
+            'transaction_type': 'Open Market Purchase',
+            'transaction_code': 'P',
+            'shares': 15000,
+            'price': 221.00,
+            'value': 3315000.0,
+            'shares_held_after': 4520000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Deirdre O\'Brien',
+            'relationship': 'Senior Vice President',
+            'transaction_date': '2026-07-28',
+            'filing_date': '2026-07-30',
+            'transaction_type': 'Grant/Award',
+            'transaction_code': 'A',
+            'shares': 12000,
+            'price': 218.40,
+            'value': 2620800.0,
+            'shares_held_after': 135000,
+            'is_direct': true,
+          },
+          {
+            'filer_name': 'Katherine Adams',
+            'relationship': 'Senior VP & General Counsel',
+            'transaction_date': '2026-07-15',
+            'filing_date': '2026-07-17',
+            'transaction_type': 'Open Market Sale',
+            'transaction_code': 'S',
+            'shares': 10000,
+            'price': 216.50,
+            'value': 2165000.0,
+            'shares_held_after': 98000,
+            'is_direct': true,
+          },
+        ]
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'net_sentiment': 'positive',
+          'sentiment_score': 54.0,
+          'total_shares_held': 28500000,
+          'total_value_held': 641250000.0,
+          'institutional_ownership_percentage': 29.8,
+          'total_managers_count': 64,
+          'buying_managers_count': 38,
+          'selling_managers_count': 14,
+          'holding_managers_count': 12,
+          'new_positions_count': 9,
+          'sold_out_count': 3,
+          'net_shares_changed': 4200000,
+          'net_value_changed': 94500000.0,
+          'quarterly_summary': [
+            {
+              'quarter': 'Q2 2026',
+              'buy_shares': 6200000,
+              'sell_shares': 2000000,
+              'buy_value': 139500000.0,
+              'sell_value': 45000000.0,
+              'buying_managers_count': 38,
+              'selling_managers_count': 14,
+              'holding_managers_count': 12,
+              'new_positions_count': 9,
+              'sold_out_positions_count': 3,
+              'net_sentiment': 'positive',
+            },
+            {
+              'quarter': 'Q1 2026',
+              'buy_shares': 4100000,
+              'sell_shares': 2800000,
+              'buy_value': 86100000.0,
+              'sell_value': 58800000.0,
+              'buying_managers_count': 28,
+              'selling_managers_count': 22,
+              'holding_managers_count': 14,
+              'new_positions_count': 5,
+              'sold_out_positions_count': 6,
+              'net_sentiment': 'positive',
+            },
+          ],
+          'updated_at': '2026-08-15T16:00:00Z',
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'net_sentiment': 'negative',
+          'sentiment_score': -36.0,
+          'total_shares_held': 142000000,
+          'total_value_held': 32660000000.0,
+          'institutional_ownership_percentage': 44.5,
+          'total_managers_count': 185,
+          'buying_managers_count': 42,
+          'selling_managers_count': 118,
+          'holding_managers_count': 25,
+          'new_positions_count': 4,
+          'sold_out_count': 22,
+          'net_shares_changed': -18500000,
+          'net_value_changed': -4255000000.0,
+          'quarterly_summary': [
+            {
+              'quarter': 'Q2 2026',
+              'buy_shares': 12500000,
+              'sell_shares': 31000000,
+              'buy_value': 2875000000.0,
+              'sell_value': 7130000000.0,
+              'buying_managers_count': 42,
+              'selling_managers_count': 118,
+              'holding_managers_count': 25,
+              'new_positions_count': 4,
+              'sold_out_positions_count': 22,
+              'net_sentiment': 'negative',
+            },
+            {
+              'quarter': 'Q1 2026',
+              'buy_shares': 16000000,
+              'sell_shares': 22000000,
+              'buy_value': 3520000000.0,
+              'sell_value': 4840000000.0,
+              'buying_managers_count': 55,
+              'selling_managers_count': 92,
+              'holding_managers_count': 38,
+              'new_positions_count': 7,
+              'sold_out_positions_count': 15,
+              'net_sentiment': 'negative',
+            },
+          ],
+          'updated_at': '2026-08-15T16:00:00Z',
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'net_sentiment': 'positive',
+        'sentiment_score': 32.0,
+        'total_shares_held': 840000000,
+        'total_value_held': 189000000000.0,
+        'institutional_ownership_percentage': 58.2,
+        'total_managers_count': 312,
+        'buying_managers_count': 184,
+        'selling_managers_count': 86,
+        'holding_managers_count': 42,
+        'new_positions_count': 16,
+        'sold_out_count': 8,
+        'net_shares_changed': 24500000,
+        'net_value_changed': 5512500000.0,
+        'quarterly_summary': [
+          {
+            'quarter': 'Q2 2026',
+            'buy_shares': 58000000,
+            'sell_shares': 33500000,
+            'buy_value': 13050000000.0,
+            'sell_value': 7537500000.0,
+            'buying_managers_count': 184,
+            'selling_managers_count': 86,
+            'holding_managers_count': 42,
+            'new_positions_count': 16,
+            'sold_out_positions_count': 8,
+            'net_sentiment': 'positive',
+          },
+          {
+            'quarter': 'Q1 2026',
+            'buy_shares': 49000000,
+            'sell_shares': 38000000,
+            'buy_value': 10780000000.0,
+            'sell_value': 8360000000.0,
+            'buying_managers_count': 162,
+            'selling_managers_count': 105,
+            'holding_managers_count': 45,
+            'new_positions_count': 12,
+            'sold_out_positions_count': 11,
+            'net_sentiment': 'positive',
+          },
+        ],
+        'updated_at': '2026-08-15T16:00:00Z',
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    if (lowerId.contains('gme')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'GME',
+          'results': [
+            {
+              'manager_name': 'RC Ventures LLC',
+              'fund_name': 'RC Ventures',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 36840000,
+              'share_change': 500000,
+              'percent_change': 1.37,
+              'value': 828900000.0,
+              'portfolio_percent': 85.4,
+              'source_url':
+                  'https://www.sec.gov/edgar/data/1822844/sample-13f.xml',
+            },
+            {
+              'manager_name': 'Citadel Advisors LLC',
+              'fund_name': 'Citadel Multi-Strategy',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'New Position',
+              'shares_held': 1250000,
+              'share_change': 1250000,
+              'percent_change': 100.0,
+              'value': 28125000.0,
+              'portfolio_percent': 0.12,
+            },
+            {
+              'manager_name': 'Susquehanna International Group',
+              'fund_name': 'SIG Investment Fund',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 840000,
+              'share_change': -320000,
+              'percent_change': -27.59,
+              'value': 18900000.0,
+              'portfolio_percent': 0.08,
+            },
+            {
+              'manager_name': 'Point72 Asset Management',
+              'fund_name': 'Point72 Associates',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 950000,
+              'share_change': 420000,
+              'percent_change': 79.25,
+              'value': 21375000.0,
+              'portfolio_percent': 0.15,
+            },
+          ]
+        }
+      };
+    } else if (lowerId.contains('tsla')) {
+      return {
+        'status': 'SUCCESS',
+        'data': {
+          'instrument_id': instrumentId,
+          'symbol': 'TSLA',
+          'results': [
+            {
+              'manager_name': 'ARK Investment Management LLC',
+              'fund_name': 'ARK Innovation ETF',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 4850000,
+              'share_change': -1100000,
+              'percent_change': -18.49,
+              'value': 1115500000.0,
+              'portfolio_percent': 9.8,
+            },
+            {
+              'manager_name': 'Tiger Global Management LLC',
+              'fund_name': 'Tiger Global LP',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Sold Out',
+              'shares_held': 0,
+              'share_change': -1850000,
+              'percent_change': -100.0,
+              'value': 0.0,
+              'portfolio_percent': 0.0,
+            },
+            {
+              'manager_name': 'Renaissance Technologies LLC',
+              'fund_name': 'Jim Simons RIEF',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Reduction',
+              'shares_held': 2400000,
+              'share_change': -950000,
+              'percent_change': -28.36,
+              'value': 552000000.0,
+              'portfolio_percent': 0.62,
+            },
+            {
+              'manager_name': 'Millennium Management LLC',
+              'fund_name': 'Millennium Partners',
+              'quarter': 'Q2 2026',
+              'report_date': '2026-06-30',
+              'transaction_type': 'Addition',
+              'shares_held': 3100000,
+              'share_change': 650000,
+              'percent_change': 26.53,
+              'value': 713000000.0,
+              'portfolio_percent': 0.85,
+            },
+          ]
+        }
+      };
+    }
+
+    // Default (AAPL / general equity)
+    return {
+      'status': 'SUCCESS',
+      'data': {
+        'instrument_id': instrumentId,
+        'symbol': 'AAPL',
+        'results': [
+          {
+            'manager_name': 'Berkshire Hathaway Inc.',
+            'fund_name': 'Warren Buffett Portfolio',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Hold',
+            'shares_held': 400000000,
+            'share_change': 0,
+            'percent_change': 0.0,
+            'value': 90000000000.0,
+            'portfolio_percent': 28.5,
+            'source_url':
+                'https://www.sec.gov/edgar/data/1067983/sample-13f.xml',
+          },
+          {
+            'manager_name': 'Bridgewater Associates LP',
+            'fund_name': 'Pure Alpha Fund',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Addition',
+            'shares_held': 8500000,
+            'share_change': 1800000,
+            'percent_change': 26.87,
+            'value': 1912500000.0,
+            'portfolio_percent': 2.1,
+          },
+          {
+            'manager_name': 'Coatue Management LLC',
+            'fund_name': 'Coatue Qualified Partners',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Addition',
+            'shares_held': 6200000,
+            'share_change': 950000,
+            'percent_change': 18.1,
+            'value': 1395000000.0,
+            'portfolio_percent': 3.4,
+          },
+          {
+            'manager_name': 'D. E. Shaw & Co., Inc.',
+            'fund_name': 'D. E. Shaw Valence',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'Reduction',
+            'shares_held': 4100000,
+            'share_change': -620000,
+            'percent_change': -13.14,
+            'value': 922500000.0,
+            'portfolio_percent': 1.05,
+          },
+          {
+            'manager_name': 'Two Sigma Investments, LP',
+            'fund_name': 'Two Sigma Horizon',
+            'quarter': 'Q2 2026',
+            'report_date': '2026-06-30',
+            'transaction_type': 'New Position',
+            'shares_held': 1500000,
+            'share_change': 1500000,
+            'percent_change': 100.0,
+            'value': 337500000.0,
+            'portfolio_percent': 0.45,
+          },
+        ]
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return {
+      'results': [
+        {
+          'id': '94ee72a4-5b0b-4164-9f02-7e119a1e68c0',
+          'display_name': 'Daily price jumps',
+          'name': 'Daily price jumps',
+          'display_description':
+              'Stocks with the biggest price increases today',
+          'description': 'Stocks with the biggest price increases today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': '1d_price_change',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 50,
+          'sample_symbols': ['NVDA', 'TSLA', 'PLTR', 'AMD', 'COIN'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-jumps/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '1d_price_change',
+            'price',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '834ca4dc-7d82-4cfc-b95b-ccd9d85db5c0',
+          'display_name': 'Highest dividend yield',
+          'name': 'Highest dividend yield',
+          'display_description': 'Stocks with dividend yield above 5%',
+          'description': 'Stocks with dividend yield above 5%',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'dividend_yield',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 42,
+          'sample_symbols': ['JNJ', 'PG', 'KO', 'ABBV', 'XOM', 'MO'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-dividend-yield/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'dividend_yield',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '3490aa54-5b17-48bd-aa8a-557dd554b7d8',
+          'display_name': 'Highest implied volatility',
+          'name': 'Highest implied volatility',
+          'display_description':
+              'Stocks that are likely to have large price swings',
+          'description': 'Stocks that are likely to have large price swings',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'implied_volatility',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 30,
+          'sample_symbols': ['TSLA', 'MSTR', 'GME', 'SMCI', 'MARA'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-iv/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'implied_volatility',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '52f76924-2a06-4f00-8d7c-e01d314ca809',
+          'display_name': 'Highest options volume',
+          'name': 'Highest options volume',
+          'display_description':
+              'Stocks with the most traded options contracts',
+          'description': 'Stocks with the most traded options contracts',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'options_volume',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 40,
+          'sample_symbols': ['SPY', 'QQQ', 'NVDA', 'TSLA', 'AAPL', 'AMD'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/high-options-volume/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'options_volume',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '944e4729-6663-420d-8656-064201d0ef5a',
+          'display_name': 'Analyst picks',
+          'name': 'Analyst picks',
+          'display_description':
+              'Stocks with "buy" rating from third-party analysts',
+          'description': 'Stocks with "buy" rating from third-party analysts',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 35,
+          'sample_symbols': ['MSFT', 'NVDA', 'AMZN', 'V', 'LLY'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/analyst-picks/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'analyst_ratings.rating',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'cfab3ede-ab3b-44f2-bc90-b1f110e97e7f',
+          'display_name': 'New 52-week highs',
+          'name': 'New 52-week highs',
+          'display_description': 'Stocks that broke their 52-week high today',
+          'description': 'Stocks that broke their 52-week high today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 25,
+          'sample_symbols': ['NVDA', 'META', 'LLY', 'COST', 'AVGO'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-highs/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '52_week_high_price',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '472db015-1046-4ce1-a837-0b8c865b7243',
+          'display_name': 'Daily price dips',
+          'name': 'Daily price dips',
+          'display_description':
+              'Stocks with the biggest price decreases today',
+          'description': 'Stocks with the biggest price decreases today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': '1d_price_change',
+          'sort_direction': 'ASC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 50,
+          'sample_symbols': ['INTC', 'BABA', 'DIS', 'NKE', 'PYPL'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/daily-price-dips/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '1d_price_change',
+            'price',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '68bd6448-c5d8-428e-b778-bbc9e9093d49',
+          'display_name': 'Upcoming earnings',
+          'name': 'Upcoming earnings',
+          'display_description':
+              'Companies reporting earnings in the next 2 weeks',
+          'description': 'Companies reporting earnings in the next 2 weeks',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'upcoming_earnings',
+          'sort_direction': 'ASC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 32,
+          'sample_symbols': ['AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/upcoming-earnings/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'upcoming_earnings',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'a3bbcbbe-0a74-40fb-b91b-3cc0dc8a7dca',
+          'display_name': 'New 52-week lows',
+          'name': 'New 52-week lows',
+          'display_description':
+              'Stocks that fell below their 52-week low today',
+          'description': 'Stocks that fell below their 52-week low today',
+          'hide_from_search': null,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 18,
+          'sample_symbols': ['WBA', 'BA', 'PFE', 'SNOW', 'LULU'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/52-week-lows/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            '52_week_low_price',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': '6cdf2ee6-4e81-4b5d-b146-f4ec90bd6319',
+          'display_name': 'Custom screener',
+          'name': 'Custom screener',
+          'display_description':
+              'Choose your own filters to help you find stocks',
+          'description': 'Choose your own filters to help you find stocks',
+          'hide_from_search': true,
+          'icon_emoji': '💡',
+          'icon_url': '',
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'filters': [],
+          'is_preset': true,
+          'item_count': 0,
+          'sample_symbols': ['AAPL', 'MSFT', 'GOOGL'],
+          'asset_urls': {
+            '180x100': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/180x100/svg.svg'
+            },
+            '255x160': {
+              '1x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/1x.png',
+              '2x':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/2x.png',
+              'svg':
+                  'https://cdn.robinhood.com/app_assets/screener_illustrations/custom/255x160/svg.svg'
+            }
+          },
+          'columns': [
+            'sparkline',
+            'price',
+            '1d_price_change',
+            'todays_volume',
+            'market_cap'
+          ]
+        },
+        {
+          'id': 'mega-cap-tech',
+          'display_name': 'Mega-Cap Tech Leaders',
+          'name': 'Mega-Cap Tech Leaders',
+          'display_description':
+              'Dominant technology titans with market capitalization exceeding \$500B driving AI and cloud infrastructure.',
+          'description':
+              'Dominant technology titans with market capitalization exceeding \$500B driving AI and cloud infrastructure.',
+          'category': 'Growth',
+          'is_curated': true,
+          'is_featured': true,
+          'item_count': 12,
+          'sort_by': 'market_cap',
+          'sort_direction': 'DESC',
+          'sample_symbols': ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META'],
+          'criteria': [
+            {
+              'field': 'market_cap',
+              'operator': 'gte',
+              'min_value': 500000000000.0,
+            },
+            {
+              'field': 'sector',
+              'operator': 'eq',
+              'text_value': 'Technology',
+            },
+          ],
+        },
+        {
+          'id': 'high-short-squeeze',
+          'display_name': 'High Short Interest & Squeeze Candidates',
+          'name': 'High Short Interest & Squeeze Candidates',
+          'display_description':
+              'Equities with high short float percentage (≥15%) and elevated days to cover ripe for volatility surges.',
+          'description':
+              'Equities with high short float percentage (≥15%) and elevated days to cover ripe for volatility surges.',
+          'category': 'Short Squeeze',
+          'is_curated': true,
+          'is_featured': false,
+          'item_count': 19,
+          'sort_by': 'short_float',
+          'sort_direction': 'DESC',
+          'sample_symbols': ['GME', 'UPST', 'CVNA', 'RIVN'],
+          'criteria': [
+            {
+              'field': 'short_float',
+              'operator': 'gte',
+              'min_value': 15.0,
+            },
+            {
+              'field': 'volume',
+              'operator': 'gte',
+              'min_value': 3000000.0,
+            },
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return {
+      'results': [
+        {
+          'id': 'screener_equities_core',
+          'name': 'US Equities Core Screener',
+          'description':
+              'Primary screener filtering US equities by fundamental and technical criteria.',
+          'filter_count': 12,
+          'available_filters': [
+            'market_cap',
+            'pe_ratio',
+            'dividend_yield',
+            'price',
+            'volume',
+            'sector',
+            'industry',
+            'short_float',
+            'days_to_cover',
+            '52_week_high',
+            '52_week_low',
+            'beta',
+          ],
+        },
+        {
+          'id': 'screener_options_underlying',
+          'name': 'Options Underlyings Screener',
+          'description':
+              'Screens equities with active options chains, high open interest, and implied volatility levels.',
+          'filter_count': 8,
+          'available_filters': [
+            'implied_volatility',
+            'options_volume',
+            'put_call_ratio',
+            'gamma_exposure',
+            'market_cap',
+            'price',
+            'volume',
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return {
+      'results': [
+        {
+          'id': 'layout_options_pro',
+          'name': 'Options Pro Desk',
+          'description':
+              'Multi-panel workstation featuring Candlestick Chart, Option Chain with Greeks, Order Book, and Live Options Flow.',
+          'is_default': true,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-06-15T10:00:00Z',
+          'updated_at': '2026-08-20T14:30:00Z',
+          'widgets': [
+            {
+              'id': 'w_chart_01',
+              'widget_type': 'CHART',
+              'title': 'NVDA 5-Min Candlestick',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'NVDA',
+              'interval': '5m',
+              'settings': {
+                'indicators': ['RSI', 'VWAP', 'MACD']
+              },
+            },
+            {
+              'id': 'w_chain_02',
+              'widget_type': 'OPTION_CHAIN',
+              'title': 'NVDA Options Chain (Greeks)',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'NVDA',
+              'settings': {'display': 'calls_and_puts', 'greeks': true},
+            },
+            {
+              'id': 'w_depth_03',
+              'widget_type': 'ORDER_BOOK',
+              'title': 'Level 2 Depth of Market',
+              'col': 0,
+              'row': 2,
+              'width': 2,
+              'height': 1,
+              'symbol': 'NVDA',
+            },
+            {
+              'id': 'w_flow_04',
+              'widget_type': 'OPTIONS_FLOW',
+              'title': 'Unusual Options Flow Feed',
+              'col': 2,
+              'row': 2,
+              'width': 2,
+              'height': 1,
+              'settings': {'min_premium': 100000},
+            },
+          ],
+        },
+        {
+          'id': 'layout_multi_chart',
+          'name': 'Multi-Chart Momentum Grid',
+          'description':
+              '4-way synchronized multi-timeframe chart grid (1m, 5m, 1h, 1D) with technical momentum indicators.',
+          'is_default': false,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-07-01T12:00:00Z',
+          'updated_at': '2026-08-18T09:15:00Z',
+          'widgets': [
+            {
+              'id': 'w_chart_1m',
+              'widget_type': 'CHART',
+              'title': 'TSLA 1-Min Scalp Chart',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1m',
+            },
+            {
+              'id': 'w_chart_5m',
+              'widget_type': 'CHART',
+              'title': 'TSLA 5-Min Intraday Chart',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '5m',
+            },
+            {
+              'id': 'w_chart_1h',
+              'widget_type': 'CHART',
+              'title': 'TSLA 1-Hour Trend Chart',
+              'col': 0,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1h',
+            },
+            {
+              'id': 'w_chart_1d',
+              'widget_type': 'CHART',
+              'title': 'TSLA Daily Macro Chart',
+              'col': 2,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+              'symbol': 'TSLA',
+              'interval': '1d',
+            },
+          ],
+        },
+        {
+          'id': 'layout_day_trader',
+          'name': 'Day Trader Command Center',
+          'description':
+              'Fast execution hub with Level 2 order book, Time & Sales, Trade Ticket, and Open Positions tracker.',
+          'is_default': false,
+          'layout_type': 'LEGEND',
+          'created_at': '2026-07-10T15:20:00Z',
+          'updated_at': '2026-08-25T11:45:00Z',
+          'widgets': [
+            {
+              'id': 'w_l2_01',
+              'widget_type': 'ORDER_BOOK',
+              'title': 'Level 2 Book',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_ts_02',
+              'widget_type': 'TIME_AND_SALES',
+              'title': 'Time & Sales Tape',
+              'col': 2,
+              'row': 0,
+              'width': 1,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_ticket_03',
+              'widget_type': 'TRADE_TICKET',
+              'title': 'Quick Trade Ticket',
+              'col': 3,
+              'row': 0,
+              'width': 1,
+              'height': 2,
+              'symbol': 'AAPL',
+            },
+            {
+              'id': 'w_pos_04',
+              'widget_type': 'POSITIONS',
+              'title': 'Active Positions & Orders',
+              'col': 0,
+              'row': 2,
+              'width': 4,
+              'height': 1,
+            },
+          ],
+        },
+        {
+          'id': 'layout_fundamentals_desk',
+          'name': 'Fundamentals & Screener Station',
+          'description':
+              'Research layout combining the Stock Screener, News Catalysts, Macro Sentiment, and Watchlists.',
+          'is_default': false,
+          'layout_type': 'CUSTOM',
+          'created_at': '2026-07-22T08:00:00Z',
+          'updated_at': '2026-08-27T16:00:00Z',
+          'widgets': [
+            {
+              'id': 'w_screener_01',
+              'widget_type': 'SCREENER',
+              'title': 'Curated Stock Screener',
+              'col': 0,
+              'row': 0,
+              'width': 2,
+              'height': 2,
+            },
+            {
+              'id': 'w_news_02',
+              'widget_type': 'NEWS',
+              'title': 'Live Market News & Catalysts',
+              'col': 2,
+              'row': 0,
+              'width': 2,
+              'height': 1,
+            },
+            {
+              'id': 'w_watch_03',
+              'widget_type': 'WATCHLIST',
+              'title': 'Tech & AI Watchlist',
+              'col': 2,
+              'row': 1,
+              'width': 2,
+              'height': 1,
+            },
+          ],
+        },
+      ]
+    };
+  }
+
+  @override
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    final allLayouts = await getLegendLayouts(user);
+    final results = (allLayouts['results'] as List<dynamic>?) ?? [];
+    for (final item in results) {
+      if (item is Map<String, dynamic> && item['id'] == layoutId) {
+        return item;
+      }
+    }
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  @override
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return {
+      'account_number': '5QR12345',
+      'account_type': 'margin',
+      'buying_power': 25000.00,
+      'options_buying_power': 18500.00,
+      'crypto_buying_power': 12000.00,
+      'cash_available_for_withdrawal': 4500.00,
+      'unsettled_funds': 250.00,
+      'margin_health': {
+        'status': 'healthy',
+        'margin_buffer': 14250.75,
+        'margin_buffer_percentage': 0.42,
+        'borrowed_amount': 5000.00,
+        'margin_limit': 25000.00,
+        'maintenance_requirement': 10500.00,
+        'portfolio_equity': 24750.75,
+        'leverage_ratio': 1.20,
+        'margin_call_amount': 0.0,
+      },
+      'collateral': {
+        'total_collateral_held': 4000.00,
+        'cash_held_for_options': 2500.00,
+        'equity_held_for_options': 1500.00,
+        'crypto_held_for_orders': 0.00,
+        'pending_order_holds': 0.00,
+      },
+      'day_trade_ratio': 0.25,
+      'day_trade_buying_power': 35000.00,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    final now = DateTime.now();
+    final satisfiedDate = now.subtract(const Duration(days: 45));
+    final dueDate = satisfiedDate.add(const Duration(days: 3));
+
+    return [
+      {
+        'id': 'mc_demo_sat_1',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'type': 'maintenance',
+        'state': 'satisfied',
+        'amount': 450.00,
+        'cash_deficit': 450.00,
+        'equity_deficit': 900.00,
+        'created_at': satisfiedDate.toIso8601String(),
+        'updated_at':
+            satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'due_date': dueDate.toIso8601String(),
+        'satisfied_at':
+            satisfiedDate.add(const Duration(days: 1)).toIso8601String(),
+        'reason':
+            'Portfolio equity fell below 30% FINRA maintenance threshold.',
+        'description': 'Maintenance call satisfied via cash deposit.',
+      }
+    ];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    final now = DateTime.now();
+    final m1 = DateTime(now.year, now.month - 1, 31);
+    final m2 = DateTime(now.year, now.month - 2, 30);
+    final m3 = DateTime(now.year, now.month - 3, 31);
+    final m4 = DateTime(now.year, now.month - 4, 30);
+
+    return [
+      {
+        'id': 'mic_demo_1',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 41.25,
+        'state': 'posted',
+        'effective_date': m1.toIso8601String(),
+        'created_at': m1.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 7615.38,
+        'description': 'Margin Interest Charge - Prior Month',
+        'period_start': DateTime(now.year, now.month - 1, 1).toIso8601String(),
+        'period_end': m1.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_2',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 38.50,
+        'state': 'posted',
+        'effective_date': m2.toIso8601String(),
+        'created_at': m2.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 7107.69,
+        'description': 'Margin Interest Charge - 2 Months Ago',
+        'period_start': DateTime(now.year, now.month - 2, 1).toIso8601String(),
+        'period_end': m2.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_3',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 45.10,
+        'state': 'posted',
+        'effective_date': m3.toIso8601String(),
+        'created_at': m3.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 8326.15,
+        'description': 'Margin Interest Charge - 3 Months Ago',
+        'period_start': DateTime(now.year, now.month - 3, 1).toIso8601String(),
+        'period_end': m3.toIso8601String(),
+      },
+      {
+        'id': 'mic_demo_4',
+        'account': 'https://api.robinhood.com/accounts/5QR12345/',
+        'account_number': '5QR12345',
+        'amount': 36.80,
+        'state': 'posted',
+        'effective_date': m4.toIso8601String(),
+        'created_at': m4.toIso8601String(),
+        'interest_rate': 0.065,
+        'settled_amount_borrowed': 6793.85,
+        'description': 'Margin Interest Charge - 4 Months Ago',
+        'period_start': DateTime(now.year, now.month - 4, 1).toIso8601String(),
+        'period_end': m4.toIso8601String(),
+      },
+    ];
+  }
+
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    final isHighVol = lowerId.contains('gme') ||
+        lowerId.contains('meme') ||
+        lowerId.contains('penny') ||
+        lowerId.contains('tsla') ||
+        lowerId.contains('vol');
+
+    return {
+      'account_number': accountNumber,
+      'instrument_id': instrumentId,
+      'buying_power': isHighVol ? 17546.87 : 41505.26,
+      'short_buying_power': isHighVol ? 0.0 : 20752.63,
+      'cash_only': isHighVol,
+      'margin_rate': isHighVol ? 1.0 : 0.50,
+      'maintenance_margin_rate': isHighVol ? 0.75 : 0.30,
+      'max_shares': isHighVol ? 120.0 : 350.0,
+      'max_short_shares': isHighVol ? 0.0 : 175.0,
+      'is_marginable': !isHighVol,
+      'leverage_ratio': isHighVol ? 1.0 : 2.0,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    final lowerId = instrumentId.toLowerCase();
+    final isHighVol = lowerId.contains('gme') ||
+        lowerId.contains('meme') ||
+        lowerId.contains('penny') ||
+        lowerId.contains('tsla') ||
+        lowerId.contains('warn') ||
+        lowerId.contains('vol');
+
+    if (isHighVol) {
+      return {
+        'instrument_id': instrumentId,
+        'halted': false,
+        'trade_restricted': false,
+        'warnings': [
+          {
+            'id': 'warn_vol_1',
+            'type': 'volatility',
+            'title': 'High Volatility Warning',
+            'message':
+                'This security has experienced rapid price fluctuations and elevated trading volume. Margin requirements may be increased up to 100%.',
+            'severity': 'warning',
+            'requires_acknowledgement': false,
+          },
+          {
+            'id': 'warn_margin_1',
+            'type': 'regulatory',
+            'title': 'Elevated Maintenance Margin',
+            'message':
+                '100% initial cash requirement and 75% maintenance margin requirement are currently in effect for this symbol.',
+            'severity': 'info',
+            'requires_acknowledgement': false,
+          }
+        ],
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+    }
+
+    return {
+      'instrument_id': instrumentId,
+      'halted': false,
+      'trade_restricted': false,
+      'warnings': [],
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return {
+      'collateral': {
+        'cash': {
+          'amount': '3250.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': [
+          {
+            'quantity': '100.00000000',
+            'direction': 'debit',
+            'instrument':
+                'https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/',
+            'symbol': 'GOOG',
+          }
+        ]
+      },
+      'collateral_held_for_orders': {
+        'cash': {
+          'amount': '650.0000',
+          'direction': 'debit',
+          'infinite': false,
+        },
+        'equities': [
+          {
+            'quantity': '0E-8',
+            'direction': 'debit',
+            'instrument':
+                'https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/',
+            'symbol': 'GOOG',
+          }
+        ]
+      }
+    };
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    final isL3 = accountNumber.toLowerCase().contains('l3') ||
+        accountNumber.contains('789') ||
+        user.accounts.any((a) =>
+            a.accountNumber == accountNumber &&
+            a.optionLevel.toLowerCase().contains('3'));
+
+    if (isL3) {
+      return {
+        'should_show_options_upgrade': false,
+        'option_level': 'option_level_3',
+        'current_tier': 3,
+        'target_tier': 3,
+        'upgrade_title': 'Level 3 Options Active',
+        'upgrade_subtitle':
+            'Multi-leg spreads and complex strategies are fully enabled.',
+        'upgrade_url': null,
+        'is_eligible': true,
+        'requirements': ['Approved for advanced multi-leg strategies'],
+        'features': [
+          'Multi-leg debit & credit spreads',
+          'Iron condors & iron butterflies',
+          'Calendar & diagonal spreads',
+          'Straddles & strangles',
+        ],
+      };
+    }
+
+    return {
+      'should_show_options_upgrade': true,
+      'option_level': 'option_level_2',
+      'current_tier': 2,
+      'target_tier': 3,
+      'upgrade_title': 'Upgrade to Options Level 3',
+      'upgrade_subtitle':
+          'Unlock multi-leg strategies including Spreads, Iron Condors, and Straddles.',
+      'upgrade_url': 'https://robinhood.com/account/options/upgrade',
+      'is_eligible': true,
+      'requirements': [
+        'Margin or limited-margin account enabled',
+        'Options trading agreement acknowledged',
+        'Options risk profile suitable for multi-leg strategies',
+      ],
+      'features': [
+        'Multi-leg debit & credit spreads',
+        'Iron condors & iron butterflies',
+        'Calendar & diagonal spreads',
+        'Straddles & strangles',
+      ],
+    };
+  }
+
+  @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    final now = DateTime.now();
+    return [
+      {
+        'id': 'slp_demo_001',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date':
+            now.subtract(const Duration(days: 12)).toIso8601String(),
+        'amount': '18.45',
+        'net_amount': '18.45',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.075,
+        'net_rate': 0.0375,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 50.0,
+            'rate': 0.065,
+            'collateral_amount': 12500.0,
+            'interest_earned': 10.25,
+          },
+          {
+            'symbol': 'GME',
+            'quantity': 100.0,
+            'rate': 0.125,
+            'collateral_amount': 2600.0,
+            'interest_earned': 6.10,
+          },
+          {
+            'symbol': 'NVDA',
+            'quantity': 20.0,
+            'rate': 0.035,
+            'collateral_amount': 2500.0,
+            'interest_earned': 2.10,
+          },
+        ],
+      },
+      {
+        'id': 'slp_demo_002',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date':
+            now.subtract(const Duration(days: 42)).toIso8601String(),
+        'amount': '24.12',
+        'net_amount': '24.12',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.082,
+        'net_rate': 0.041,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 50.0,
+            'rate': 0.070,
+            'collateral_amount': 12000.0,
+            'interest_earned': 12.80,
+          },
+          {
+            'symbol': 'GME',
+            'quantity': 120.0,
+            'rate': 0.140,
+            'collateral_amount': 3000.0,
+            'interest_earned': 8.50,
+          },
+          {
+            'symbol': 'AMC',
+            'quantity': 200.0,
+            'rate': 0.110,
+            'collateral_amount': 1100.0,
+            'interest_earned': 2.82,
+          },
+        ],
+      },
+      {
+        'id': 'slp_demo_003',
+        'account_number': accountNumber ?? 'DEMO12345',
+        'payment_date':
+            now.subtract(const Duration(days: 72)).toIso8601String(),
+        'amount': '16.80',
+        'net_amount': '16.80',
+        'currency_code': 'USD',
+        'status': 'paid',
+        'description': 'Securities Lending Income - Monthly Settlement',
+        'gross_rate': 0.068,
+        'net_rate': 0.034,
+        'positions': [
+          {
+            'symbol': 'TSLA',
+            'quantity': 40.0,
+            'rate': 0.060,
+            'collateral_amount': 9800.0,
+            'interest_earned': 9.20,
+          },
+          {
+            'symbol': 'NVDA',
+            'quantity': 25.0,
+            'rate': 0.038,
+            'collateral_amount': 3100.0,
+            'interest_earned': 7.60,
+          },
+        ],
+      },
+    ];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return {
+      'enrolled': true,
+      'is_enrolled': true,
+      'eligible': true,
+      'is_eligible': true,
+      'status': 'enrolled',
+      'agreement_signed': true,
+      'agreement_signed_date': '2026-01-15T10:30:00Z',
+      'enabled_at': '2026-01-15T10:30:00Z',
+      'ineligibility_reasons': [],
+      'total_interest_earned_ytd': 142.85,
+      'total_interest_earned_all_time': 318.40,
+      'estimated_annualized_yield': 0.052,
+      'loaned_securities_count': 3,
+      'total_loaned_value': 17600.00,
+    };
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return {
+      'account_number': 'DEMO12345',
+      'is_enrolled': true,
+      'status': 'enrolled',
+      'gold_rate': 0.050,
+      'standard_rate': 0.015,
+      'boosted_rate': 0.055,
+      'rate': 0.050,
+      'fdic_insurance_limit': 2250000.0,
+      'sweep_balance': 12500.00,
+      'partner_banks': [
+        'Citibank, N.A.',
+        'Goldman Sachs Bank USA',
+        'Wells Fargo Bank, N.A.',
+        'JPMorgan Chase Bank, N.A.',
+        'Bank of Baroda',
+        'HSBC Bank USA, N.A.',
+        'First National Bank of Omaha',
+        'M&T Bank',
+      ],
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  List<Map<String, dynamic>>? _demoAchTransfersList;
+
+  List<Map<String, dynamic>> _getDefaultDemoAchTransfers(String accountNumber) {
+    final now = DateTime.now();
+    return [
+      {
+        'id': 'ach_demo_102',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'cancel':
+            'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'cancel_url':
+            'https://api.robinhood.com/ach/transfers/ach_demo_102/cancel/',
+        'direction': 'deposit',
+        'amount': '1000.00',
+        'state': 'pending',
+        'status_description':
+            'Deposit initiated from Chase Checking - Estimated arrival tomorrow',
+        'scheduled': false,
+        'expected_landing_date':
+            now.add(const Duration(days: 1)).toIso8601String().substring(0, 10),
+        'expected_landing_datetime':
+            now.add(const Duration(days: 1, hours: 9)).toIso8601String(),
+        'created_at': now.subtract(const Duration(hours: 4)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(hours: 4)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9942',
+        'rhs_state': 'pending',
+      },
+      {
+        'id': 'ach_demo_101',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'deposit',
+        'amount': '2500.00',
+        'state': 'completed',
+        'status_description': 'Deposit completed from Chase Checking',
+        'scheduled': false,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 4))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 4, hours: 2)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 6)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 4)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9941',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_103',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'withdraw',
+        'amount': '750.00',
+        'state': 'completed',
+        'status_description': 'Withdrawal completed to Ally Savings',
+        'scheduled': false,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 15))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 15)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 17)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 15)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_02',
+        'fees': '0.00',
+        'ref_id': 'REF-WTH-8812',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_104',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'deposit',
+        'amount': '5000.00',
+        'state': 'completed',
+        'status_description': 'Deposit completed from Chase Checking',
+        'scheduled': true,
+        'expected_landing_date': now
+            .subtract(const Duration(days: 35))
+            .toIso8601String()
+            .substring(0, 10),
+        'expected_landing_datetime':
+            now.subtract(const Duration(days: 35)).toIso8601String(),
+        'created_at': now.subtract(const Duration(days: 37)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 35)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_01',
+        'fees': '0.00',
+        'ref_id': 'REF-DEP-9104',
+        'rhs_state': 'completed',
+      },
+      {
+        'id': 'ach_demo_105',
+        'account': accountNumber,
+        'account_number': accountNumber,
+        'direction': 'withdraw',
+        'amount': '1200.00',
+        'state': 'cancelled',
+        'status_description': 'Withdrawal cancelled by user',
+        'scheduled': false,
+        'created_at': now.subtract(const Duration(days: 52)).toIso8601String(),
+        'updated_at': now.subtract(const Duration(days: 52)).toIso8601String(),
+        'ach_relationship': 'ach_rel_demo_02',
+        'fees': '0.00',
+        'ref_id': 'REF-WTH-7731',
+        'rhs_state': 'canceled',
+      },
+    ];
+  }
+
+  @override
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    _demoAchTransfersList ??= _getDefaultDemoAchTransfers('DEMO12345');
+    return List<dynamic>.from(_demoAchTransfersList!);
+  }
+
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    final list = await getAchTransfers(user);
+    return list.map((item) => AchTransfer.fromJson(item)).toList();
+  }
+
+  @override
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [
+      {
+        'id': 'ach_rel_demo_01',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_01/',
+        'bank_account_nickname': 'JPMorgan Chase Checking',
+        'bank_account_type': 'checking',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '021000021',
+        'bank_account_number': '****6742',
+        'state': 'approved',
+        'verified': true,
+        'default': true,
+        'is_default': true,
+        'created_at': '2025-06-10T14:20:00Z',
+        'updated_at': '2025-06-10T14:20:00Z',
+      },
+      {
+        'id': 'ach_rel_demo_02',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_02/',
+        'bank_account_nickname': 'Ally Online Savings',
+        'bank_account_type': 'savings',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '124003116',
+        'bank_account_number': '****1983',
+        'state': 'approved',
+        'verified': true,
+        'default': false,
+        'is_default': false,
+        'created_at': '2025-08-22T09:15:00Z',
+        'updated_at': '2025-08-22T09:15:00Z',
+      },
+      {
+        'id': 'ach_rel_demo_03',
+        'url': 'https://api.robinhood.com/ach/relationships/ach_rel_demo_03/',
+        'bank_account_nickname': 'Wells Fargo Premier Checking',
+        'bank_account_type': 'checking',
+        'bank_account_holder_name': 'Alex Mercer',
+        'bank_routing_number': '121000248',
+        'bank_account_number': '****4409',
+        'state': 'pending',
+        'verified': false,
+        'default': false,
+        'is_default': false,
+        'verify_micro_deposits':
+            'https://api.robinhood.com/ach/relationships/ach_rel_demo_03/micro_deposits/',
+        'created_at': '2026-09-10T18:30:00Z',
+        'updated_at': '2026-09-10T18:30:00Z',
+      },
+    ];
+  }
+
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
+    final list = await getAchRelationships(user);
+    return list.map((item) => AchRelationship.fromJson(item)).toList();
+  }
+
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    _demoAchTransfersList ??= _getDefaultDemoAchTransfers('DEMO12345');
+    final match = _demoAchTransfersList!.firstWhereOrNull(
+        (t) => t['cancel'] == cancelUrl || t['cancel_url'] == cancelUrl);
+    if (match != null) {
+      match['state'] = 'cancelled';
+      match['status_description'] = 'Transfer cancelled by user';
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    final allDocs = [
+      {
+        'id': 'doc_1099_2025',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2025 Consolidated Form 1099',
+        'date': '2026-02-15',
+        'year': 2025,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2025/download/',
+        'file_size': 458752,
+        'state': 'ready',
+        'created_at': '2026-02-15T08:00:00Z',
+        'updated_at': '2026-02-15T08:00:00Z',
+      },
+      {
+        'id': 'doc_1099_2024',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2024 Consolidated Form 1099',
+        'date': '2025-02-12',
+        'year': 2024,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2024/download/',
+        'file_size': 419430,
+        'state': 'ready',
+        'created_at': '2025-02-12T08:00:00Z',
+        'updated_at': '2025-02-12T08:00:00Z',
+      },
+      {
+        'id': 'doc_1099_2023',
+        'account_number': 'DEMO12345',
+        'type': '1099',
+        'title': '2023 Consolidated Form 1099',
+        'date': '2024-02-14',
+        'year': 2023,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_1099_2023/download/',
+        'file_size': 387072,
+        'state': 'ready',
+        'created_at': '2024-02-14T08:00:00Z',
+        'updated_at': '2024-02-14T08:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_08',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'August 2026 Account Statement',
+        'date': '2026-08-31',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_08/download/',
+        'file_size': 184320,
+        'state': 'ready',
+        'created_at': '2026-09-02T10:00:00Z',
+        'updated_at': '2026-09-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_07',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'July 2026 Account Statement',
+        'date': '2026-07-31',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_07/download/',
+        'file_size': 192512,
+        'state': 'ready',
+        'created_at': '2026-08-02T10:00:00Z',
+        'updated_at': '2026-08-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_06',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'June 2026 Account Statement',
+        'date': '2026-06-30',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_06/download/',
+        'file_size': 176128,
+        'state': 'ready',
+        'created_at': '2026-07-02T10:00:00Z',
+        'updated_at': '2026-07-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_stmt_2026_05',
+        'account_number': 'DEMO12345',
+        'type': 'account_statement',
+        'title': 'May 2026 Account Statement',
+        'date': '2026-05-31',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_stmt_2026_05/download/',
+        'file_size': 168960,
+        'state': 'ready',
+        'created_at': '2026-06-02T10:00:00Z',
+        'updated_at': '2026-06-02T10:00:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_09_08',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - NVDA Equity Buy',
+        'date': '2026-09-08',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_09_08/download/',
+        'file_size': 65536,
+        'state': 'ready',
+        'created_at': '2026-09-08T16:30:00Z',
+        'updated_at': '2026-09-08T16:30:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_09_02',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - SPY \$550 Call Buy',
+        'date': '2026-09-02',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_09_02/download/',
+        'file_size': 61440,
+        'state': 'ready',
+        'created_at': '2026-09-02T15:45:00Z',
+        'updated_at': '2026-09-02T15:45:00Z',
+      },
+      {
+        'id': 'doc_conf_2026_08_28',
+        'account_number': 'DEMO12345',
+        'type': 'trade_confirmation',
+        'title': 'Trade Confirmation - AAPL \$220 Put Sell',
+        'date': '2026-08-28',
+        'year': 2026,
+        'download_url':
+            'https://api.robinhood.com/documents/doc_conf_2026_08_28/download/',
+        'file_size': 62464,
+        'state': 'ready',
+        'created_at': '2026-08-28T14:10:00Z',
+        'updated_at': '2026-08-28T14:10:00Z',
+      },
+    ];
+
+    if (type != null && type.isNotEmpty) {
+      return allDocs.where((d) => d['type'] == type).toList();
+    }
+    return allDocs;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    final list = await getDocuments(user, type: type);
+    return list.map((item) => AccountDocument.fromJson(item)).toList();
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [
+      {
+        'id': 'adr_fee_demo_01',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_baba_01',
+        'symbol': 'BABA',
+        'amount': '4.50',
+        'rate': '0.02',
+        'quantity': '225',
+        'currency_code': 'USD',
+        'date': '2026-06-15T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'Alibaba Group ADR Annual Custody Fee',
+      },
+      {
+        'id': 'adr_fee_demo_02',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_tsm_02',
+        'symbol': 'TSM',
+        'amount': '3.00',
+        'rate': '0.015',
+        'quantity': '200',
+        'currency_code': 'USD',
+        'date': '2026-05-18T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'TSMC ADR Pass-Through Custody Fee',
+      },
+      {
+        'id': 'adr_fee_demo_03',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_bti_03',
+        'symbol': 'BTI',
+        'amount': '2.25',
+        'rate': '0.015',
+        'quantity': '150',
+        'currency_code': 'USD',
+        'date': '2026-03-24T12:00:00Z',
+        'fee_type': 'dividend_fee',
+        'description': 'British American Tobacco ADR Dividend Fee',
+      },
+      {
+        'id': 'adr_fee_demo_04',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_asml_04',
+        'symbol': 'ASML',
+        'amount': '1.80',
+        'rate': '0.02',
+        'quantity': '90',
+        'currency_code': 'USD',
+        'date': '2026-01-20T12:00:00Z',
+        'fee_type': 'custody_fee',
+        'description': 'ASML Holding ADR Semi-Annual Custody Fee',
+      },
+    ];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    final list = await getAdrFees(user);
+    return list.map((item) => AdrFee.fromJson(item)).toList();
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    final Map<String, dynamic> statusMap = {
+      'BTI': {
+        'instrument_id': instrumentId,
+        'symbol': 'BTI',
+        'country': 'GB',
+        'country_name': 'United Kingdom',
+        'withholding_rate': 0.0,
+        'treaty_rate': 0.0,
+        'status': 'exempt',
+        'description':
+            'No UK dividend withholding tax applied under US-UK Double Taxation Treaty.',
+      },
+      'ASML': {
+        'instrument_id': instrumentId,
+        'symbol': 'ASML',
+        'country': 'NL',
+        'country_name': 'Netherlands',
+        'withholding_rate': 0.15,
+        'treaty_rate': 0.15,
+        'status': 'reduced',
+        'description':
+            '15% reduced statutory rate applied under US-Netherlands Double Taxation Treaty.',
+      },
+      'BABA': {
+        'instrument_id': instrumentId,
+        'symbol': 'BABA',
+        'country': 'KY',
+        'country_name': 'Cayman Islands',
+        'withholding_rate': 0.0,
+        'treaty_rate': 0.0,
+        'status': 'exempt',
+        'description':
+            'Cayman Islands tax exempt entity; no foreign dividend withholding applies.',
+      },
+      'TSM': {
+        'instrument_id': instrumentId,
+        'symbol': 'TSM',
+        'country': 'TW',
+        'country_name': 'Taiwan',
+        'withholding_rate': 0.21,
+        'treaty_rate': 0.21,
+        'status': 'standard',
+        'description':
+            'Standard 21% Taiwan non-resident dividend withholding tax rate.',
+      },
+    };
+
+    return statusMap[instrumentId.toUpperCase()] ??
+        {
+          'instrument_id': instrumentId,
+          'symbol': instrumentId.toUpperCase(),
+          'country': 'US',
+          'country_name': 'United States',
+          'withholding_rate': 0.0,
+          'treaty_rate': 0.0,
+          'status': 'exempt',
+          'description':
+              'Domestic US equity; domestic dividend reporting applies.',
+        };
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final data = await getTaxWithholdingStatus(user, instrumentId);
+    if (data == null) return null;
+    return TaxWithholdingStatus.fromJson(data, defaultSymbol: symbol);
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    final list = [
+      {
+        'id': 'split_pay_nvda_2024',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_nvda_01',
+        'symbol': 'NVDA',
+        'action_type': 'forward_split',
+        'multiplier': '10.0',
+        'divisor': '1.0',
+        'old_shares': '15.5',
+        'new_shares': '155.0',
+        'cash_in_lieu': '14.25',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2024-06-10T13:30:00Z',
+        'payment_date': '2024-06-10T20:00:00Z',
+        'description': 'NVIDIA Corp 10-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_tsla_2022',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_tsla_02',
+        'symbol': 'TSLA',
+        'action_type': 'forward_split',
+        'multiplier': '3.0',
+        'divisor': '1.0',
+        'old_shares': '20.0',
+        'new_shares': '60.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2022-08-25T13:30:00Z',
+        'payment_date': '2022-08-25T20:00:00Z',
+        'description': 'Tesla Inc 3-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_aapl_2020',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_aapl_03',
+        'symbol': 'AAPL',
+        'action_type': 'forward_split',
+        'multiplier': '4.0',
+        'divisor': '1.0',
+        'old_shares': '25.0',
+        'new_shares': '100.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2020-08-31T13:30:00Z',
+        'payment_date': '2020-08-31T20:00:00Z',
+        'description': 'Apple Inc 4-for-1 Forward Stock Split',
+      },
+      {
+        'id': 'split_pay_bior_2024',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'inst_bior_04',
+        'symbol': 'BIOR',
+        'action_type': 'reverse_split',
+        'multiplier': '1.0',
+        'divisor': '25.0',
+        'old_shares': '55.0',
+        'new_shares': '2.0',
+        'cash_in_lieu': '18.40',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2024-01-16T14:30:00Z',
+        'payment_date': '2024-01-16T21:00:00Z',
+        'description': 'Biora Therapeutics 1-for-25 Reverse Stock Split',
+      },
+      {
+        'id': 'split_pay_amzn_2022',
+        'account_number': 'DEMO12345',
+        'instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+        'symbol': 'AMZN',
+        'action_type': 'forward_split',
+        'multiplier': '20.0',
+        'divisor': '1.0',
+        'old_shares': '5.0',
+        'new_shares': '100.0',
+        'cash_in_lieu': '0.0',
+        'currency_code': 'USD',
+        'state': 'settled',
+        'execution_date': '2022-06-06T13:30:00Z',
+        'payment_date': '2022-06-06T20:00:00Z',
+        'description': 'Amazon.com, Inc. 20-for-1 Forward Stock Split',
+        'split': {
+          'id': 'd592308d-2f8a-4066-854b-02cbb689db85',
+          'old_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'new_instrument_id': 'c0bb3aec-bd1e-471e-a4f0-ca011cbec711',
+          'effective_date': '2022-06-06',
+          'multiplier': '20.00000000000000',
+          'divisor': '1.00000000000000',
+          'direction': 'forward',
+          'updated_at': '2022-06-08T13:52:03.811354Z',
+        },
+      },
+    ];
+
+    if (instrumentId != null && instrumentId.isNotEmpty) {
+      return list.where((item) {
+        if (item['instrument_id'] == instrumentId ||
+            item['symbol'] == instrumentId.toUpperCase()) {
+          return true;
+        }
+        if (item['split'] is Map) {
+          final s = item['split'] as Map;
+          if (s['old_instrument_id'] == instrumentId ||
+              s['new_instrument_id'] == instrumentId) {
+            return true;
+          }
+        }
+        return false;
+      }).toList();
+    }
+    return list;
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    final list = await getSplitPayments(user, instrumentId: instrumentId);
+    return list.map((item) => SplitPayment.fromJson(item)).toList();
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    final payments = await getSplitPaymentsModel(user);
+    return CorporateActionSplitsSummary.fromPayments(payments);
+  }
+
+  /*
+  SHAREHOLDER ENGAGEMENT & SAY TECHNOLOGIES Q&A (DEMO DATA)
+  */
+
+  static final Map<String, Map<String, dynamic>> _demoQaData = {
+    'AAPL': {
+      'id': 'qa_event_aapl_q3_2026',
+      'title': 'Apple Inc. Q3 2026 Earnings Call & Shareholder Q&A',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'Apple Inc.',
+      'symbol': 'AAPL',
+      'instrument_id': 'inst_aapl_03',
+      'start_time': '2026-10-22T21:00:00Z',
+      'end_time': '2026-10-22T22:00:00Z',
+      'event_date': '2026-10-22T21:00:00Z',
+      'submission_deadline': '2026-10-22T16:00:00Z',
+      'voting_deadline': '2026-10-22T19:00:00Z',
+      'description':
+          'Verified Apple shareholders can submit and vote on top questions for Tim Cook and the executive leadership team ahead of the Q3 2026 earnings conference call.',
+      'banner_url':
+          'https://images.robinhood.com/say/apple_earnings_q3_2026.png',
+      'webcast_url': 'https://investor.apple.com/earnings-call',
+      'total_questions_count': 4,
+      'total_votes_count': 18450,
+      'total_shares_represented': 14850200.0,
+      'user_shares_represented': 45.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_aapl_01',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'How is Apple Intelligence driving upgrade supercycles and expanding high-margin Services revenue globally?',
+          'status': 'answered',
+          'author_display_name': 'Alex M. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 6420,
+          'shares_represented': 5420000.0,
+          'percentage_of_total_shares': 36.5,
+          'is_user_voted': true,
+          'created_at': '2026-10-15T14:20:00Z',
+          'answer': {
+            'id': 'ans_aapl_01',
+            'answer_text':
+                'We are seeing exceptional customer engagement with Apple Intelligence on iPhone and Mac. On-device intelligence alongside Private Cloud Compute provides unmatched privacy while creating substantial value across Services subscriptions.',
+            'answered_by': 'Tim Cook',
+            'answered_by_title': 'Chief Executive Officer',
+            'answered_at': '2026-10-22T21:24:00Z',
+            'video_timestamp_seconds': 1440,
+            'source_url': 'https://investor.apple.com/earnings-call',
+          },
+        },
+        {
+          'id': 'q_aapl_02',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'What is Apple\'s capital return and share repurchase outlook for FY2027 given our ongoing net-cash neutral goal?',
+          'status': 'answered',
+          'author_display_name': 'Sarah K. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 4810,
+          'shares_represented': 3910000.0,
+          'percentage_of_total_shares': 26.3,
+          'is_user_voted': false,
+          'created_at': '2026-10-16T11:05:00Z',
+          'answer': {
+            'id': 'ans_aapl_02',
+            'answer_text':
+                'Our commitment to returning cash to shareholders remains unwavering. We generated record operating cash flow and returned over \$25 billion during the quarter through repurchases and dividends.',
+            'answered_by': 'Luca Maestri',
+            'answered_by_title': 'Chief Financial Officer',
+            'answered_at': '2026-10-22T21:38:00Z',
+            'video_timestamp_seconds': 2280,
+            'source_url': 'https://investor.apple.com/earnings-call',
+          },
+        },
+        {
+          'id': 'q_aapl_03',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'Are there plans to introduce VisionOS ecosystem features tailored for enterprise productivity and spatial telepresence?',
+          'status': 'approved',
+          'author_display_name': 'David R. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 3890,
+          'shares_represented': 3120000.0,
+          'percentage_of_total_shares': 21.0,
+          'is_user_voted': false,
+          'created_at': '2026-10-17T09:15:00Z',
+        },
+        {
+          'id': 'q_aapl_04',
+          'event_id': 'qa_event_aapl_q3_2026',
+          'text':
+              'What is Apple\'s stance on developer ecosystem commission tiers following international DMA regulatory developments?',
+          'status': 'approved',
+          'author_display_name': 'Elena T. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 3330,
+          'shares_represented': 2400200.0,
+          'percentage_of_total_shares': 16.2,
+          'is_user_voted': false,
+          'created_at': '2026-10-18T18:45:00Z',
+        },
+      ],
+    },
+    'TSLA': {
+      'id': 'qa_event_tsla_q3_2026',
+      'title': 'Tesla, Inc. Q3 2026 Financial Results & Q&A Webcast',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'Tesla, Inc.',
+      'symbol': 'TSLA',
+      'instrument_id': 'inst_tsla_02',
+      'start_time': '2026-10-28T21:30:00Z',
+      'end_time': '2026-10-28T22:45:00Z',
+      'event_date': '2026-10-28T21:30:00Z',
+      'submission_deadline': '2026-10-28T17:00:00Z',
+      'voting_deadline': '2026-10-28T20:00:00Z',
+      'description':
+          'Tesla leadership addresses institutional and retail shareholder questions regarding autonomous driving, Cybercab deployment, and Megapack margins.',
+      'banner_url':
+          'https://images.robinhood.com/say/tesla_earnings_q3_2026.png',
+      'webcast_url': 'https://ir.tesla.com/earnings',
+      'total_questions_count': 3,
+      'total_votes_count': 31200,
+      'total_shares_represented': 28400000.0,
+      'user_shares_represented': 25.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_tsla_01',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'What is the regulatory timeline and city rollout schedule for unsupervised FSD Cybercab rides in 2027?',
+          'status': 'answered',
+          'author_display_name': 'Jordan P. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 14200,
+          'shares_represented': 13500000.0,
+          'percentage_of_total_shares': 47.5,
+          'is_user_voted': true,
+          'created_at': '2026-10-20T10:00:00Z',
+          'answer': {
+            'id': 'ans_tsla_01',
+            'answer_text':
+                'We anticipate commencing initial driverless commercial rides in Texas and California next year, subject to state regulatory approvals. Hardware 4 inference safety metrics now exceed human driver reliability by over tenfold.',
+            'answered_by': 'Elon Musk',
+            'answered_by_title': 'Technoking & CEO',
+            'answered_at': '2026-10-28T21:40:00Z',
+            'video_timestamp_seconds': 1200,
+            'source_url': 'https://ir.tesla.com/earnings',
+          },
+        },
+        {
+          'id': 'q_tsla_02',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'What are the annual run-rate capacity and margin projections for the Lathrop and Shanghai Megapack factories?',
+          'status': 'approved',
+          'author_display_name': 'Marcus L. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 9800,
+          'shares_represented': 8900000.0,
+          'percentage_of_total_shares': 31.3,
+          'is_user_voted': false,
+          'created_at': '2026-10-21T12:30:00Z',
+        },
+        {
+          'id': 'q_tsla_03',
+          'event_id': 'qa_event_tsla_q3_2026',
+          'text':
+              'How many Optimus units are currently performing useful tasks in factory lines, and what is the expected external release date?',
+          'status': 'approved',
+          'author_display_name': 'Claire V. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 7200,
+          'shares_represented': 6000000.0,
+          'percentage_of_total_shares': 21.2,
+          'is_user_voted': false,
+          'created_at': '2026-10-22T15:00:00Z',
+        },
+      ],
+    },
+    'NVDA': {
+      'id': 'qa_event_nvda_q3_2027',
+      'title': 'NVIDIA Corp. Q3 FY27 Financial Results Shareholder Q&A',
+      'event_type': 'earnings',
+      'status': 'active',
+      'company_name': 'NVIDIA Corporation',
+      'symbol': 'NVDA',
+      'instrument_id': 'inst_nvda_01',
+      'start_time': '2026-11-19T22:00:00Z',
+      'end_time': '2026-11-19T23:00:00Z',
+      'event_date': '2026-11-19T22:00:00Z',
+      'submission_deadline': '2026-11-19T17:00:00Z',
+      'voting_deadline': '2026-11-19T20:00:00Z',
+      'description':
+          'Shareholder questions regarding Blackwell Ultra demand ramp, data center networking, and sovereign AI computing partnerships.',
+      'banner_url':
+          'https://images.robinhood.com/say/nvidia_earnings_q3_2027.png',
+      'webcast_url': 'https://investor.nvidia.com',
+      'total_questions_count': 2,
+      'total_votes_count': 12400,
+      'total_shares_represented': 9800000.0,
+      'user_shares_represented': 20.0,
+      'is_user_verified': true,
+      'questions': [
+        {
+          'id': 'q_nvda_01',
+          'event_id': 'qa_event_nvda_q3_2027',
+          'text':
+              'How are supply chain allocations and packaging constraints evolving for next-generation architecture ramps?',
+          'status': 'answered',
+          'author_display_name': 'Brian H. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 7100,
+          'shares_represented': 5600000.0,
+          'percentage_of_total_shares': 57.1,
+          'is_user_voted': true,
+          'created_at': '2026-11-10T14:00:00Z',
+          'answer': {
+            'id': 'ans_nvda_01',
+            'answer_text':
+                'Blackwell demand is extraordinary. CoWoS packaging yields have accelerated with our foundry partners, and production shipments are scaling rapidly across cloud providers and enterprise AI customers.',
+            'answered_by': 'Jensen Huang',
+            'answered_by_title': 'President and CEO',
+            'answered_at': '2026-11-19T22:15:00Z',
+            'video_timestamp_seconds': 900,
+            'source_url': 'https://investor.nvidia.com',
+          },
+        },
+        {
+          'id': 'q_nvda_02',
+          'event_id': 'qa_event_nvda_q3_2027',
+          'text':
+              'What percentage of total Data Center revenue is now represented by Spectrum-X Ethernet and NVLink networking?',
+          'status': 'approved',
+          'author_display_name': 'Rachel W. (Verified Shareholder)',
+          'is_verified_shareholder': true,
+          'votes_count': 5300,
+          'shares_represented': 4200000.0,
+          'percentage_of_total_shares': 42.9,
+          'is_user_voted': false,
+          'created_at': '2026-11-12T16:30:00Z',
+        },
+      ],
+    },
+  };
+
+  @override
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    final upperId = instrumentId.toUpperCase();
+    // Check if matching instrumentId or symbol exists in demo data
+    for (final entry in _demoQaData.entries) {
+      final data = entry.value;
+      if (data['instrument_id'] == instrumentId ||
+          data['symbol'] == upperId ||
+          upperId.contains(entry.key)) {
+        return {
+          'events': [data]
+        };
+      }
+    }
+
+    // Default plausible Q&A event for any other stock symbol
+    String cleanSym =
+        instrumentId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+    cleanSym = cleanSym.replaceAll('INST', '');
+    final symbol = cleanSym.isNotEmpty
+        ? (cleanSym.length <= 5 ? cleanSym : cleanSym.substring(0, 4))
+        : 'STOCK';
+    return {
+      'events': [
+        {
+          'id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+          'title': '$symbol Q3 2026 Earnings Call & Shareholder Q&A',
+          'event_type': 'earnings',
+          'status': 'active',
+          'company_name': '$symbol Inc.',
+          'symbol': symbol,
+          'instrument_id': instrumentId,
+          'start_time': '2026-11-15T21:00:00Z',
+          'end_time': '2026-11-15T22:00:00Z',
+          'event_date': '2026-11-15T21:00:00Z',
+          'submission_deadline': '2026-11-15T16:00:00Z',
+          'voting_deadline': '2026-11-15T19:00:00Z',
+          'description':
+              'Verified $symbol shareholders can review management updates, vote on questions, and submit inquiries for the upcoming conference call.',
+          'banner_url': null,
+          'webcast_url': 'https://investor.$symbol.com',
+          'total_questions_count': 2,
+          'total_votes_count': 2450,
+          'total_shares_represented': 1850000.0,
+          'user_shares_represented': 10.0,
+          'is_user_verified': true,
+          'questions': [
+            {
+              'id': 'q_${symbol.toLowerCase()}_01',
+              'event_id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+              'text':
+                  'What are management\'s key growth priorities and free cash flow targets for the upcoming fiscal year?',
+              'status': 'answered',
+              'author_display_name': 'Verified Shareholder',
+              'is_verified_shareholder': true,
+              'votes_count': 1420,
+              'shares_represented': 1100000.0,
+              'percentage_of_total_shares': 59.5,
+              'is_user_voted': true,
+              'created_at': '2026-11-05T12:00:00Z',
+              'answer': {
+                'id': 'ans_${symbol.toLowerCase()}_01',
+                'answer_text':
+                    'Our focus remains on operational discipline, disciplined capital reinvestment, and expanding operating margins across core business lines.',
+                'answered_by': 'Executive Leadership',
+                'answered_by_title': 'Executive Team',
+                'answered_at': '2026-11-15T21:20:00Z',
+                'video_timestamp_seconds': 720,
+              },
+            },
+            {
+              'id': 'q_${symbol.toLowerCase()}_02',
+              'event_id': 'qa_event_${symbol.toLowerCase()}_q3_2026',
+              'text':
+                  'How is the company navigating current macro interest rate dynamics and supply chain efficiency?',
+              'status': 'approved',
+              'author_display_name': 'Verified Shareholder',
+              'is_verified_shareholder': true,
+              'votes_count': 1030,
+              'shares_represented': 750000.0,
+              'percentage_of_total_shares': 40.5,
+              'is_user_voted': false,
+              'created_at': '2026-11-06T15:30:00Z',
+            },
+          ],
+        }
+      ]
+    };
+  }
+
+  @override
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    final raw = await getShareholderQaEvents(user, symbol ?? instrumentId);
+    if (raw == null) return null;
+    return ShareholderQaSection.fromJson(raw,
+        instrumentId: instrumentId, symbol: symbol);
+  }
+
+  @override
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    final upperId = instrumentId.toUpperCase();
+    for (final event in _demoQaData.values) {
+      if (event['id'] == eventId ||
+          event['instrument_id'] == instrumentId ||
+          upperId.contains(event['symbol'] as String)) {
+        final questions = event['questions'] as List<dynamic>?;
+        if (questions != null) {
+          for (final q in questions) {
+            if (q is Map<String, dynamic> && q['id'] == questionId) {
+              final currentVoted = q['is_user_voted'] == true;
+              final userShares =
+                  (event['user_shares_represented'] as num?)?.toDouble() ??
+                      10.0;
+              final currentVotes = (q['votes_count'] as num?)?.toInt() ?? 0;
+              final currentShares =
+                  (q['shares_represented'] as num?)?.toDouble() ?? 0.0;
+
+              if (currentVoted) {
+                q['is_user_voted'] = false;
+                q['votes_count'] = currentVotes > 0 ? currentVotes - 1 : 0;
+                q['shares_represented'] = currentShares >= userShares
+                    ? currentShares - userShares
+                    : 0.0;
+              } else {
+                q['is_user_voted'] = true;
+                q['votes_count'] = currentVotes + 1;
+                q['shares_represented'] = currentShares + userShares;
+              }
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  @override
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    final newId = 'q_user_${DateTime.now().millisecondsSinceEpoch}';
+    final newQuestion = {
+      'id': newId,
+      'event_id': eventId,
+      'text': questionText,
+      'status': 'approved',
+      'author_display_name': 'You (Verified Shareholder)',
+      'is_verified_shareholder': true,
+      'votes_count': 1,
+      'shares_represented': 45.0,
+      'percentage_of_total_shares': 0.1,
+      'is_user_voted': true,
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    final upperId = instrumentId.toUpperCase();
+    for (final event in _demoQaData.values) {
+      if (event['id'] == eventId ||
+          event['instrument_id'] == instrumentId ||
+          upperId.contains(event['symbol'] as String)) {
+        final questions = event['questions'] as List<dynamic>?;
+        if (questions != null) {
+          questions.insert(0, newQuestion);
+          event['total_questions_count'] =
+              ((event['total_questions_count'] as num?)?.toInt() ??
+                      questions.length - 1) +
+                  1;
+          return ShareholderQuestion.fromJson(newQuestion);
+        }
+      }
+    }
+    return ShareholderQuestion.fromJson(newQuestion, defaultEventId: eventId);
+  }
+
+  final List<Map<String, dynamic>> _demoTokens = [
+    {
+      'id': '8302568840',
+      'oauth_application': {
+        'client_id': 'x1JVNz1jYW8Ivcs54utW8Gy1adQ4ALI3PdkpPwB3',
+        'name': 'X1',
+        'description': 'X1 Card and banking integration',
+        'icon': '',
+      },
+      'fourth_party_application': <String, dynamic>{},
+      'created': '2026-09-15T01:04:43.210557-04:00',
+      'updated': '2026-09-15T01:04:43.210566-04:00',
+      'initial_login_time': '2026-08-22T00:30:58.016847-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8300476890',
+      'oauth_application': {
+        'client_id': 'ZChWJMwkQdmTTCOyHieGIJu4I6ktHPlbhH2PhtQ5',
+        'name': 'Yodlee',
+        'description': '',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'display_name': 'Charles Schwab',
+        'logo_url':
+            'https://cdn.yodlee.com/COBLOGO/OBAggregator_generic_icon.svg',
+      },
+      'created': '2026-09-14T16:01:00.953562-04:00',
+      'updated': '2026-09-14T16:01:00.953575-04:00',
+      'initial_login_time': '2024-07-13T14:26:18.519352-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8296605716',
+      'oauth_application': {
+        'client_id': 'LtLiNmbs9owbYfWgBlC68Z2VujIPuvGoAiSYr8xW',
+        'name': 'Robinhood Trading MCP',
+        'description': 'Autonomous MCP trading agent client',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'agentic_accounts': ['970049961'],
+        'agent_id': '356edc10-b67c-478c-94a3-88c70b25962f',
+        'display_name': 'Agentic_Token_1789343517',
+      },
+      'created': '2026-09-13T19:51:57.638106-04:00',
+      'updated': '2026-09-13T19:51:57.638113-04:00',
+      'initial_login_time': '2026-09-13T19:51:57.637920-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8033186916',
+      'oauth_application': {
+        'client_id': 'LtLiNmbs9owbYfWgBlC68Z2V-cursor',
+        'name': 'Cursor',
+        'description': 'AI coding assistant agent connector',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'agentic_accounts': ['970049961'],
+        'agent_id': 'f716ac67-39cd-4d2f-ae1f-5864a07fa2b7',
+        'display_name': 'Agentic_Token_1784004268',
+      },
+      'created': '2026-07-20T22:28:11.683987-04:00',
+      'updated': '2026-07-20T22:28:11.684001-04:00',
+      'initial_login_time': '2026-07-14T00:44:29.154956-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '8281625071',
+      'oauth_application': {
+        'client_id': '3xpM1Y14nA8X3drQSSp0OWqyR52yaA77InpQvES9',
+        'name': 'Intuit Production',
+        'description': 'TurboTax and Mint tax data export',
+        'icon': '',
+      },
+      'fourth_party_application': <String, dynamic>{},
+      'created': '2026-09-10T13:11:15.682142-04:00',
+      'updated': '2026-09-10T13:11:15.682152-04:00',
+      'initial_login_time': '2026-04-02T01:02:31.783708-04:00',
+      'is_active': true,
+    },
+    {
+      'id': '6678716321',
+      'oauth_application': {
+        'client_id': 'YxZ2HM5jDqLOz7GKm5nRqQImEVRprPbsobVK3dW1',
+        'name': 'SnapTrade',
+        'description': '',
+        'icon': '',
+      },
+      'fourth_party_application': {
+        'display_name': 'Snowball Analytics',
+        'logo_url':
+            'https://snaptrade-partner-logos.s3.ca-central-1.amazonaws.com/Snowball-logo-square.png',
+      },
+      'created': '2025-10-14T01:48:37.906694-04:00',
+      'updated': '2025-10-14T01:48:37.906707-04:00',
+      'initial_login_time': '2025-09-23T22:26:18.872215-04:00',
+      'is_active': true,
+    },
+  ];
+
+  @override
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async {
+    return Future.value(_demoTokens);
+  }
+
+  @override
+  Future<List<ExternalToken>> getExternalTokensModel(BrokerageUser user) async {
+    return _demoTokens.map((t) => ExternalToken.fromJson(t)).toList();
+  }
+
+  @override
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async {
+    final idx = _demoTokens.indexWhere((t) => t['id'] == tokenId);
+    if (idx != -1) {
+      _demoTokens[idx]['is_active'] = false;
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async {
+    return Future.value([
+      {
+        'card_id': 'notif_01',
+        'category': 8,
+        'type': 'market_closure',
+        'title': 'Upcoming Market Holiday',
+        'message':
+            'U.S. stock and options markets will be closed on the upcoming federal holiday. Orders placed will queue for next market open.',
+        'call_to_action': 'View Market Hours',
+        'action': 'robinhood://web?url=https%3A%2F%2Frobinhood.com%2Fsupport',
+        'icon': 'alert',
+        'time':
+            DateTime.now().subtract(const Duration(hours: 4)).toIso8601String(),
+        'fixed': true,
+        'is_read': false,
+      },
+      {
+        'card_id': 'notif_02',
+        'category': 5,
+        'type': 'feature_announcement',
+        'title': 'IRA 3% Match Available',
+        'message':
+            'Maximize your retirement savings with Robinhood Gold. Get a 3% match on all eligible IRA contributions.',
+        'call_to_action': 'Explore Retirement',
+        'action': 'robinhood://retirement',
+        'icon': 'star',
+        'time':
+            DateTime.now().subtract(const Duration(days: 2)).toIso8601String(),
+        'fixed': false,
+        'is_read': false,
+      },
+      {
+        'card_id': 'notif_03',
+        'category': 5,
+        'type': 'screener_launch_v2',
+        'title': 'High Gamma Exposure Screener',
+        'message':
+            'Discover equities with explosive market maker pinning and gamma flips using our curated screener presets.',
+        'call_to_action': 'Open Screeners',
+        'action': 'robinhood://screeners',
+        'icon': 'lightbulb',
+        'time':
+            DateTime.now().subtract(const Duration(days: 4)).toIso8601String(),
+        'fixed': false,
+        'is_read': true,
+      },
+    ]);
+  }
+
+  @override
+  Future<List<NotificationItem>> getNotificationStackModel(
+      BrokerageUser user) async {
+    final raw = await getNotificationStack(user);
+    return raw.map((i) => NotificationItem.fromJson(i)).toList();
+  }
+
+  @override
+  Future<dynamic> getInboxThreads(BrokerageUser user) async {
+    final now = DateTime.now();
+    return Future.value([
+      {
+        'id': '1770776568893810711',
+        'pagination_id': '03459986457140144671',
+        'display_name': 'Announcements',
+        'short_display_name': '!',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#21CE99',
+        'preview_text': {
+          'text':
+              'Select single stock options like NVDA, TSLA, and AAPL now expire 3 days a week—on Mondays, Wednesdays, and Fridays.\n\nExplore current eligible* single stock symbols now.\n\n*Eligibility is subject to change.',
+        },
+        'most_recent_message': {
+          'id': '3459986457140144671',
+          'rich_text': {
+            'text':
+                'Select single stock options like NVDA, TSLA, and AAPL now expire 3 days a week—on Mondays, Wednesdays, and Fridays.\n\nExplore current eligible* single stock symbols now.\n\n*Eligibility is subject to change.',
+          },
+          'action': {
+            'display_text': 'View full list',
+            'url':
+                'robinhood://lists?owner_type=robinhood&id=9f3c8a6e-4a7e-4b0d-9f4a-6b8e2d1c7f3a',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(hours: 2)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 2)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918883',
+        'pagination_id': '03244495333606042379',
+        'display_name': 'Dogecoin',
+        'short_display_name': 'DOGE',
+        'is_read': false,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#ECC841',
+        'preview_text': {
+          'text':
+              'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042379',
+          'rich_text': {
+            'text':
+                'Your market order to sell 1,018.67 DOGE was filled for \$166.69.',
+          },
+          'action': {
+            'display_text': 'View order details',
+            'url':
+                'robinhood://orders?id=67efdad9-0e14-47e5-b794-3ebc015a50df&type=currency',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(hours: 5)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 5)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918884',
+        'display_name': 'Robinhood',
+        'short_display_name': 'R',
+        'is_read': false,
+        'is_critical': true,
+        'is_muted': false,
+        'avatar_color': '#21CE99',
+        'preview_text': {
+          'text':
+              'Your recent trade confirmations are available.\n\nHere’s how to find trade confirmations:\n1. Select Account > Reports and Statements\n2. Open Trade Confirmations to download documents.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042380',
+          'rich_text': {
+            'text':
+                'Your recent trade confirmations are available.\n\nHere’s how to find trade confirmations:\n1. Select Account > Reports and Statements\n2. Open Trade Confirmations to download documents.',
+          },
+          'action': {
+            'display_text': 'History',
+            'url': 'robinhood://orders',
+          },
+          'responses': [],
+          'created_at':
+              now.subtract(const Duration(hours: 8)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(hours: 8)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918885',
+        'display_name': 'Bitcoin',
+        'short_display_name': 'BTC',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#F49431',
+        'preview_text': {
+          'text':
+              'Your limit order to buy 0.00180285 BTC through your Individual account (...1412) was canceled because the limit price was not met.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042381',
+          'rich_text': {
+            'text':
+                'Your limit order to buy 0.00180285 BTC through your Individual account (...1412) was canceled because the limit price was not met.',
+          },
+          'action': {
+            'display_text': 'View order details',
+            'url':
+                'robinhood://orders?id=6983af38-212b-4b28-9dd0-962a325a0050&type=currency',
+          },
+          'responses': [
+            {'display_text': 'Can I see more details? 🤓', 'answer': '238700'},
+            {
+              "display_text": "Why wasn't this order filled? 🤔",
+              'answer': '239159'
+            },
+            {
+              "display_text": "I'd like to place a new order. 😎",
+              'answer': '239177'
+            },
+          ],
+          'created_at': now.subtract(const Duration(days: 1)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 1)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918886',
+        'display_name': 'Paramount Global Class B',
+        'short_display_name': 'PARA',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FEBD30',
+        'preview_text': {
+          'text':
+              'Your order to sell to close 1 contract of PARA \$10.00 Call 1/17/2025 has been filled for an average price of \$0.65.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042382',
+          'rich_text': {
+            'text':
+                'Your order to sell to close 1 contract of PARA \$10.00 Call 1/17/2025 has been filled for an average price of \$0.65.',
+          },
+          'action': {
+            'display_text': 'View Order',
+            'url':
+                'robinhood://orders?id=6769bb73-e1ba-4287-ae6a-1f5391db2a9f&type=option',
+          },
+          'responses': [
+            {
+              "display_text": "I'd like to place a new order. 😎",
+              'answer': '239170'
+            },
+            {'display_text': 'Hooray! 🙌', 'answer': '238725'},
+          ],
+          'created_at': now.subtract(const Duration(days: 2)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 2)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918887',
+        'display_name': 'Micro Russell 2000 Index Futures',
+        'short_display_name': '/M2K',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FB7137',
+        'preview_text': {
+          'text':
+              'Your order to sell 1 /M2KU26 has been filled at an average price of 3,015.1.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042383',
+          'rich_text': {
+            'text':
+                'Your order to sell 1 /M2KU26 has been filled at an average price of 3,015.1.',
+          },
+          'responses': [],
+          'created_at': now.subtract(const Duration(days: 3)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 3)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918888',
+        'display_name': 'Bank of America',
+        'short_display_name': 'BAC',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#EE3215',
+        'preview_text': {
+          'text':
+              'Your \$82.41 dividend reinvestment for BAC in your traditional IRA (•••2639) account is complete.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042384',
+          'rich_text': {
+            'text':
+                'Your \$82.41 dividend reinvestment for BAC in your traditional IRA (•••2639) account is complete.',
+          },
+          'action': {
+            'display_text': 'View order',
+            'url':
+                'robinhood://orders/?id=6a3f2ba4-8afd-4da6-a86c-d527261a8455',
+          },
+          'responses': [],
+          'created_at': now.subtract(const Duration(days: 4)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 4)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918889',
+        'display_name': 'Standard Nuclear',
+        'short_display_name': 'STDN',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#70D4FF',
+        'preview_text': {
+          'text':
+              'Standard Nuclear, Inc. (STDN) plans to go public. You can now find STDN in the IPO Access list and request shares.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042385',
+          'rich_text': {
+            'text':
+                'Standard Nuclear, Inc. (STDN) plans to go public. You can now find STDN in the IPO Access list and request shares.',
+          },
+          'action': {
+            'display_text': 'View list',
+            'url':
+                'robinhood://lists?id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&owner_type=robinhood',
+          },
+          'responses': [],
+          'created_at': now.subtract(const Duration(days: 5)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 5)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918890',
+        'display_name': 'Robinhood Support',
+        'short_display_name': 'RS',
+        'is_read': false,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#FB7137',
+        'preview_text': {
+          'text':
+              'Someone just viewed your Robinhood Cash Card number. If this wasn’t you, please secure your account immediately.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042386',
+          'rich_text': {
+            'text':
+                'Someone just viewed your Robinhood Cash Card number. If this wasn’t you, please secure your account immediately.',
+          },
+          'action': {
+            'display_text': 'Secure your account',
+            'url': 'robinhood://trusted_devices',
+          },
+          'responses': [],
+          'created_at': now.subtract(const Duration(days: 6)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 6)).toIso8601String(),
+      },
+      {
+        'id': '2144063194186918891',
+        'display_name': 'Petrobras',
+        'short_display_name': 'PBR',
+        'is_read': true,
+        'is_critical': false,
+        'is_muted': false,
+        'avatar_color': '#70D4FF',
+        'preview_text': {
+          'text':
+              'Because you owned 50 shares of PBR in your individual account on 12/27/2024, you’ve received a dividend payment.',
+        },
+        'most_recent_message': {
+          'id': '3244495333606042387',
+          'rich_text': {
+            'text':
+                'Because you owned 50 shares of PBR in your individual account on 12/27/2024, you’ve received a dividend payment.',
+          },
+          'action': {
+            'display_text': 'View Dividend',
+            'url':
+                'robinhood://dividends?id=67e4ad54-e258-431c-a33e-bd85c32e0af9',
+          },
+          'responses': [
+            {'display_text': 'Hooray! 🙌', 'answer': '238725'},
+            {'display_text': 'What is a dividend? 🤔', 'answer': '238726'},
+          ],
+          'created_at': now.subtract(const Duration(days: 7)).toIso8601String(),
+        },
+        'last_message_sent_at':
+            now.subtract(const Duration(days: 7)).toIso8601String(),
+      },
+    ]);
+  }
+
+  @override
+  Future<List<NotificationItem>> getInboxThreadsModel(
+      BrokerageUser user) async {
+    final raw = await getInboxThreads(user);
+    return (raw as List).map((i) => NotificationItem.fromJson(i)).toList();
+  }
+
+  @override
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async {
+    return Future.value({
+      'id': 'spending_demo_01',
+      'account_number': 'RHSP-4491-0812',
+      'routing_number': '021000021',
+      'status': 'active',
+      'balance': '1250.40',
+      'available_balance': '1250.40',
+      'unsettled_charges': '45.20',
+      'interest_earned': '38.65',
+      'apy': '0.0500',
+      'card_status': 'active',
+      'card_last_four': '8834',
+      'card_type': 'physical',
+      'created_at': '2023-05-10T12:00:00Z',
+    });
+  }
+
+  @override
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async {
+    final raw = await getSpendingAccount(user);
+    return SpendingAccount.fromJson(raw);
+  }
+
+  @override
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+      {String? accountNumber}) async {
+    final isTrad = accountNumber != null &&
+        (accountNumber.toUpperCase().contains('TRAD') ||
+            accountNumber.toLowerCase().contains('traditional'));
+
+    final tradResults = [
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2026,
+        'contribution_amount': '0.00',
+        'match_amount': '0.00',
+        'match_rate': '0.01',
+        'direct_contributions': '0.00',
+        'rollover_contributions': '12500.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2026-01-10T09:00:00Z',
+        'updated_at': '2026-06-01T14:30:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2025,
+        'contribution_amount': '7000.00',
+        'match_amount': '70.00',
+        'match_rate': '0.01',
+        'direct_contributions': '7000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2025-01-15T10:00:00Z',
+        'updated_at': '2025-12-28T17:00:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2024,
+        'contribution_amount': '5500.00',
+        'match_amount': '55.00',
+        'match_rate': '0.01',
+        'direct_contributions': '5500.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2024-03-01T11:00:00Z',
+        'updated_at': '2024-11-20T16:00:00Z',
+        'status': 'active',
+      },
+    ];
+
+    final rothResults = [
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2026,
+        'contribution_amount': '5500.00',
+        'match_amount': '165.00',
+        'match_rate': '0.03',
+        'direct_contributions': '5500.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2026-01-15T09:00:00Z',
+        'updated_at': '2026-08-20T14:30:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2025,
+        'contribution_amount': '7000.00',
+        'match_amount': '210.00',
+        'match_rate': '0.03',
+        'direct_contributions': '7000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2025-01-10T10:00:00Z',
+        'updated_at': '2025-12-30T17:00:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2024,
+        'contribution_amount': '6000.00',
+        'match_amount': '180.00',
+        'match_rate': '0.03',
+        'direct_contributions': '6000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2024-02-01T11:00:00Z',
+        'updated_at': '2024-12-15T16:00:00Z',
+        'status': 'active',
+      },
+    ];
+
+    if (isTrad) {
+      return Future.value({
+        'account_number': 'TRAD1234',
+        'account_id': 'ret_demo_trad_01',
+        'total_contributions': '12500.00',
+        'total_match': '125.00',
+        'results': tradResults,
+      });
+    }
+
+    if (accountNumber != null &&
+        (accountNumber.toUpperCase().contains('ROTH') ||
+            accountNumber.toLowerCase().contains('roth'))) {
+      return Future.value({
+        'account_number': 'ROTH7890',
+        'account_id': 'ret_demo_roth_01',
+        'total_contributions': '18500.00',
+        'total_match': '555.00',
+        'results': rothResults,
+      });
+    }
+
+    // Default or multi-account: return all
+    return Future.value({
+      'account_number': 'ROTH7890',
+      'account_id': 'ret_demo_acct_01',
+      'total_contributions': '31000.00',
+      'total_match': '680.00',
+      'results': [...rothResults, ...tradResults],
+    });
+  }
+
+  @override
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+      {String? accountNumber}) async {
+    final raw = await getRetirementHistory(user, accountNumber: accountNumber);
+    return RetirementHistory.fromJson(raw);
+  }
+
+  /// Provides realistic demo wash sale records representing active restriction
+  /// windows, disallowed wash sales with basis adjustments, and cleared windows.
+  List<WashSaleRecord> getDemoWashSales([DateTime? asOf]) {
+    final now = asOf ?? DateTime.now();
+    return [
+      WashSaleRecord(
+        id: 'demo_wash_sale_tsla',
+        symbol: 'TSLA',
+        name: 'Tesla, Inc.',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 12)),
+        salePrice: 215.50,
+        quantitySold: 20.0,
+        realizedLoss: -450.0,
+        windowStartDate: now.subtract(const Duration(days: 42)),
+        windowEndDate: now
+            .subtract(const Duration(days: 12))
+            .add(const Duration(days: 30)),
+        status: WashSaleStatus.activeWindow,
+      ),
+      WashSaleRecord(
+        id: 'demo_wash_sale_nvda',
+        symbol: 'NVDA',
+        name: 'NVIDIA Corporation',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 20)),
+        salePrice: 118.00,
+        quantitySold: 25.0,
+        realizedLoss: -320.0,
+        windowStartDate: now.subtract(const Duration(days: 50)),
+        windowEndDate: now
+            .subtract(const Duration(days: 20))
+            .add(const Duration(days: 30)),
+        status: WashSaleStatus.disallowed,
+        replacementDate: now.subtract(const Duration(days: 15)),
+        replacementPrice: 122.50,
+        replacementQuantity: 25.0,
+        replacementAssetType: 'stock',
+        disallowedLoss: 320.0,
+        adjustedCostBasis: (122.50 * 25.0) + 320.0,
+      ),
+      WashSaleRecord(
+        id: 'demo_wash_sale_aapl',
+        symbol: 'AAPL',
+        name: 'Apple Inc.',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 45)),
+        salePrice: 220.00,
+        quantitySold: 15.0,
+        realizedLoss: -280.0,
+        windowStartDate: now.subtract(const Duration(days: 75)),
+        windowEndDate: now.subtract(const Duration(days: 15)),
+        status: WashSaleStatus.cleared,
+      ),
+    ];
   }
 }

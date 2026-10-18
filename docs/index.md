@@ -3,7 +3,9 @@
 ## Use Cases
 - A better options UI view for Robinhood users.
 - Ability to make better trades.
-- Price target recommendations.
+- **[Price Targets](price-targets.md):** AI-driven price target recommendations with confidence scoring and rationale.
+- **[AI Devil's Advocate & Trade Thesis Stress Tester](devils-advocate.md):** Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades.
+- **[AI Trade Post-Mortem & Behavioral Journal Auto-Tagger](trade-post-mortem.md):** Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and psychological antidotes with 1-tap emotion journal tagging.
 - Enhanced portfolio management with advanced analytics.
 - Simplified trading for beginners with guided workflows.
 - Centralized view for stocks, options, and crypto assets.
@@ -13,13 +15,110 @@
 - Historical data analysis for informed decision-making.
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
+  - **[Social Discussion & Comment Threads](social-discussion-threads.md):** Granular discussions on shared trade ideas and public portfolios with author-pinned comments, community sentiment polling, comment upvoting, and moderation reporting.
 - Enhanced security and privacy for user data.
-- Customizable watchlists and alerts for market movements.
+  - **[Secure OAuth Token Storage](secure-token-storage.md):** Encrypted credential storage leveraging platform Keychain (iOS/macOS) and Android Keystore with automatic legacy migration.
+  - **Balance Visibility Toggle:** Global privacy mask for sensitive P&L and equity data, including portfolio-chart axes, annotations, tooltips, and summary values.
+- **Watchlist Management:** Comprehensive tools to create, edit, and manage custom watchlists with real-time data tracking.
+- **Synchronized Position Scroll:** Synchronized multi-column scrolling across position detail rows for equities, options, forex, and futures positions.
 - Advanced charting tools for technical analysis.
-- Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
+- **Generative Actions:** AI-driven actions and insights directly within the UI for enhanced decision making.
+- **Agentic Reasoning Mode:** Deep multi-step analysis workflow with institutional-grade GEX orchestration for signal generation.
+- **[Instrument Charting](index.md#instrument-charting):** Advanced charting capabilities on instrument details pages, including benchmark comparisons with configurable date ranges and **interactive technical overlays** (SMA, EMA, VWAP, Bollinger Bands).
+- **[Instrument Notes](instrument-notes.md):** Private, persistent trading journal per instrument with **Markdown support** and **AI-Assisted Drafting**.
+- Multi-indicator correlated trade signals (19 technical indicators: Price Movement, RSI with divergence, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) with confidence-scored pattern detection (Classic & Candlestick), weighted signal strength visualization, and sparkline previews.
 - Integration with social media for sentiment analysis.
-- Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
+- Futures position monitoring with enriched contract/product metadata, real-time Open P&L calculation, and **lazy bounded scrolling optimization** (`SliverMainAxisGroup`).
+- **[Futures Order Entry](futures.md#futures-order-entry):** Full modal order sheet supporting Market and Limit orders, live quotes with estimated notional calculations, and two-step confirmation review.
+- **Futures Auto-Trading:** Automated futures strategy execution with settings, performance tracking, activity logs, and emergency stop controls.
+- **[Custom Indicators](agentic-trading.md#custom-indicators):** Create and integrate personalized technical indicators into the trading system.
+- **[Trading Strategies](agentic-trading.md#trading-strategy-management):** Switch between pre-defined trading styles (e.g., Momentum, Mean Reversion) instantly.
+- **[Advanced Exit Strategies](agentic-trading.md#advanced-exit-strategies):** Implement Partial, Time-Based, and Market Close exits for precise trade management.
+- **[Correlation Analysis](correlation-analysis.md):** Portfolio diversification analysis with correlation matrix heatmap.
+- **[Stock Universe](agentic-trading.md#stock-universe--seeding):** Monitoring of S&P 500 and popular high-volume stocks with automated database seeding.
+- **[Event Study Analyzer](event-study.md):** Compare asset, benchmark, and abnormal returns around dated events with rolling volatility, beta, and correlation.
+- **[Alpha Factor Discovery](alpha-factor-discovery.md):** Research engine to discovering predictive alpha factors by analyzing correlation with future returns.
+- **[ML Optimization](agentic-trading.md#ml-optimization):** Benefit from Machine Learning enhanced signal accuracy.
+- **[Copy Trading Dashboard](copy-trading.md#2-copy-trading-dashboard):** Centralized hub for managing copy trading activities and history.
+- **[Approval Workflow](copy-trading.md#3-approval-workflow):** Review and approve auto-generated copy trade requests.
+- **[Inverse Copying & Exit Strategies](copy-trading.md):** Contrarian copy mode and automated risk management (TP/SL) for copied trades.
+- **[Option Chain Screener](option-strategy-builder.md#option-chain-screener):** Advanced filtering (Greeks, IV) and AI-powered contract recommendations.
+- **[Strategy Builder](option-strategy-builder.md#multi-leg-strategy-builder):** Construct complex multi-leg options strategies (Spreads, Straddles) with visual analysis.
+- **[Multi-Leg Order Entry Templates & Spread Builder](multi-leg-spread-builder.md):** 1-tap pre-configured structural order pads for Vertical Spreads, Straddles, Strangles, Iron Condors, and Calendar Spreads with real-time net debit/credit and risk/reward analytics.
+- **[Options Strategy Roll Assistant](options-strategy-roll-assistant.md):** 1-tap rolling wizard for covered calls, cash-secured puts, and spreads with real-time net credit/debit, breakeven updates, Greeks shift comparison, and multi-leg order execution.
+- **[Multi-Leg Options Defense & Roll Playbook](options-defense-and-roll-playbook.md):** Automated threat detection engine and tactical advisory playbook for tested options positions, short legs, and credit spreads with 1-tap transfer to the Roll Assistant.
+- **[Landscape Charting & Multi-Column Matrix View](landscape-chart-matrix.md):** Full-width widescreen charting mode with collapsible multi-leg order entry for tablet and mobile devices.
+- **[iOS Live Activities & Dynamic Island Widget](ios-live-activities-and-dynamic-island.md):** Real-time lock screen widget for active option positions, mark price updates, P&L status, and intraday 0DTE trailing stops during market hours.
+- **[Offline Mode & Resilient Caching](offline-mode-and-resilient-caching.md):** Persistent local cache for portfolio holdings, accounts, watchlists, quotes, and AI trade signals with reactive sync lifecycle and contextual status banners.
+- **[Beta-Weighted Portfolio Greeks Engine](beta-weighted-portfolio-greeks.md):** Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$, $\Delta_{\beta-QQQ}$, $\Delta_{\beta-DIA}$, $\Delta_{\beta-IWM}$) and aggregate Gamma, Vega, and Theta across stocks, options, crypto, futures, and forex to quantify true dollar market risk.
+- **[Advanced Order Types](advanced-order-types.md):** Execute Trailing Stop, Stop-Limit, and Time-in-Force (GTC, IOC, etc.) orders for better risk management.
+- **[Trade Signal Notifications](trade-signal-notifications.md):** Configurable push notifications for trade signals with filtering by type, symbol, and confidence. **New:** Rich notifications with charts and actionable data.
+- **[Crypto Trading](crypto-trading.md):** Dedicated interface for trading cryptocurrencies with advanced order management, modernized technical analysis card and bottom sheet modal, candlestick charts, preset tools, and adaptive volume handling.
+- **[Forex Trading](forex-trading.md):** Comprehensive currency pairs trading (EUR/USD, USD/JPY, GBP/USD, etc.) with standardized lot sizing (Micro, Mini, Standard), Stop orders, live pip calculation, and Paper/Demo trading support.
+- **[Carry Trade Optimizer](carry-trade-optimizer.md):** Interest rate differential matrix, Central Bank policy rate monitor (10 central banks), Carry-to-Risk ratio scoring, unwind risk analysis, and automated basket optimizer.
+- **[Home Widgets](home-widgets.md):** iOS Home Screen widgets for portfolio, watchlists, and trade signals.
+- **[Custom Alerts](custom-alerts.md):** Configurable price and event-based alerts for instruments and portfolio events.
+- **[Order Templates](order-templates.md):** Save and reuse order configurations for faster execution.
+- **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
+- **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views.
+- **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
+- **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
+- **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
+- **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
+- **[Unified Risk & Margin Health and Collateral Tracking](margin-health-and-collateral.md):** Real-time margin maintenance buffer tracking, true segregated buying powers (equities, options, crypto), collateral holds breakdown, and Action Center deficit warnings.
+- **[Margin Calls & Financing Costs](margin-calls-and-financing.md):** Real-time margin call deficit demands and resolution tracking (`/margin/calls/`) with monthly margin interest debit history and borrowing APR transparency (`/cash_journal/margin_interest_charges/`).
+- **[Instrument-Specific Buying Power & Trade Warnings](instrument-buying-power-and-warnings.md):** Real-time buying power per instrument (`/accounts/{account}/instrument_buying_power/{id}/`) with margin requirement tags (50% Marginable, 100% Cash Required), short-selling limits, and high-volatility/regulatory trade warnings (`/instruments/{id}/v2/warnings/`).
+- **[Options Collateral & Tier Upgrades](options-collateral-and-tier-upgrades.md):** Chain-level cash and equity collateral breakdown (`/options/chains/{id}/collateral/`) and upgrade eligibility (`/options/should_show_options_upgrade_on_sdp/`) with interactive metrics and Level 3 upgrade application.
+- **[Combo Orders (Stock + Option Packages)](combo-orders.md):** Atomic execution, monitoring, and history for multi-leg stock and option packages (Covered Calls, Collars, Married Puts, Straddles) via `/combo/orders/`.
+- **[Instrument Previous Positions & Cost Basis Lookback](instrument-cost-basis-lookback.md):** Reconstructed historical trading cycles (round trips) via FIFO tax lot matching from filled orders, with win rates, hold durations, average buy/sell prices, and realized P&L.
+- **[Stock Lending Program (SLIP) & Cash Sweeps APY Monitor](stock-lending-and-cash-sweeps.md):** Track loaned securities, earned yield payments, 102% cash collateral backing, and agreement eligibility (`/accounts/stock_loan_payments/`, `/slip/eligibility/`) alongside FDIC high-yield cash sweeps APY rate monitoring (`/accounts/sweeps/interest/`).
+- **[Banking, ACH Transfers & Linked Accounts](banking-and-transfers.md):** Monitor bank deposits, withdrawals, clearing status timelines, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
+- **[Tax Documents, Account Statements & ADR Fees](tax-documents-and-statements.md):** Download Form 1099 tax documents, monthly account statements, trade confirmations, and track ADR pass-through fees and foreign tax withholding (`/documents/`, `/corp_actions/adr_fees/`, `/tax_info/`).
+- **[Corporate Action Splits & Cash-in-Lieu Tracking](corporate-actions-and-stock-splits.md):** Comprehensive tracking of stock splits, reverse splits, adjusted cost basis, and fractional share cash-in-lieu payments with tax reporting transparency (`/corp_actions/v2/split_payments/`).
+- **[Robinhood Curated Screener Presets and Legend Service Support](screener-presets-and-legend-layouts.md):** Server-side screener presets (`/screeners/presets/`, `/screeners`) and retained desktop Robinhood Legend workspace service support (`/hippo/bw/layouts`); Legend UI is deferred.
+- **[Shareholder Say Q&A Engagement](shareholder-say-qa.md):** Verified shareholder Q&A viewing, question submission, and share-weighted voting for upcoming earnings calls and shareholder meetings via Say Technologies (`/instruments/{id}/qa/events-section/`).
+- **[Multi-Account, Retirement & Connected Agents](multi-account-and-retirement.md):** Support for Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), annual IRS contribution limits and Robinhood Gold match calculations (`/retirement/history/`), spending accounts (`/rhy/accounts/`), connected external OAuth agents (`/oauth2/list_external_tokens/`), and Midlands Notification Center (`/midlands/notifications/stack/`, `/inbox/threads/`).
 
+- **[Short Float & Live Borrow Availability](short-interest.md):** Real-time short interest (`pc_freefloat`, days to cover, shares short), borrow availability, borrow fee rates, and short squeeze risk modeling.
+- **[Retail Order Flow & Robinhood Sentiment](retail-order-flow.md):** First-party Robinhood customer order flow dynamics, net buy/sell ratios, volume trends, and historical daily sentiment tracking.
+- **[Institutional & Hedge Fund Tracking](hedge-fund-tracking.md):** Real-time hedge fund sentiment, quarterly manager holdings, and transaction history directly from Robinhood marketdata endpoints.
+- **Robinhood Market Intelligence:** The instrument view combines [short float and borrow availability](short-interest.md), [retail order flow](retail-order-flow.md), [insider activity](insider-activity.md), [institutional ownership](hedge-fund-tracking.md), [SEC EDGAR disclosures](sec-edgar-integration.md), and [Congress & Political Trading Tracker](congress-trading-tracker.md) as separate research cards so each signal retains its source and context.
+- **[Congress & Political Trading Tracker](congress-trading-tracker.md):** Real-time monitoring and smart alerts for congressional STOCK Act filings, filing lag metrics, and portfolio overlap matching across stocks and options.
+- **[RiskGuard](risk-guard.md):** Advanced risk validation for manual and automated trading, including **Dynamic Position Sizing**.
+- **[Autonomous Account Risk Circuit Breakers & Tilt Guardrails](risk-circuit-breakers.md):** User-configurable automated account protection against emotional and revenge trading with daily loss limits, portfolio drawdown tracking, margin buffer cushion, and mandatory cooling-off order lockouts.
+- **[Autonomous Agentic Risk Copilot](agentic-risk-copilot.md):** Continuous background and portfolio monitoring service evaluating overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges.
+- **[Schwab Integration](schwab-integration.md):** Schwab account linking, portfolio and order history, single-leg and multi-leg option order placement, and **Real-Time WebSocket Streamer (`wss://streamer-api.schwab.com/ws`)** for sub-second Level 1 equity/option quotes, Greeks, order/account activity notifications, live chart streaming, and futures/forex feeds.
+- **[Fidelity Integration](fidelity-integration.md):** Manual import of positions and history via CSV files.
+- **[Options Flow Analysis](options-flow-analysis.md):** Real-time monitoring of institutional option orders with 30+ smart flags, alerts, a notifications feed, and structured definition, detection-reason, and recommendation guidance.
+- **[Gamma Exposure (GEX) Analysis Pro](gamma-exposure-analysis.md):** Real-time monitoring of portfolio and symbol-level GEX, Call/Put Walls, Gamma Flip and transition levels, dealer-regime breadth and concentration, interactive strike scrubbing, Spot-Shift sensitivity, and an on-device Black-Scholes fallback engine.
+- **[Market Data Providers Research](market-data-providers-research.md):** Comparative analysis of equities, options, and futures data vendors.
+- **[Options/Futures API Endpoints](options-futures-api-endpoints.md):** Survey of broker and market data APIs for derivatives coverage.
+- **[Databento vs. Twelve Data](databento-vs-twelve-data-analysis.md):** Vendor comparison on latency, coverage, and pricing.
+- **[Twelve Data Migration](twelve-data-migration.md):** Migration plan and phased rollout strategy for market data ingestion.
+- **[Risk Heatmap](risk-heatmap.md):** Interactive treemap visualization of portfolio exposure and performance with sector/symbol grouping and smart "Others" aggregation.
+- **[Portfolio Analytics](portfolio-analytics.md):** Professional-grade dashboard with Sharpe, Sortino, Alpha, Beta, rolling volatility, rolling beta, rolling correlation, and other advanced risk/return metrics compared against major benchmarks (SPY, QQQ, DIA, IWM, and **Custom Tickers**). **New:** Custom Benchmark comparison in performance charts, **Portfolio Stress Testing**, **Aggregate Option Greeks**, and **Tail Risk & Liquidity Scoring**.
+- **[Portfolio Redesign](portfolio-redesign.md):** Progressive-disclosure information architecture for the Portfolio tab — an Overview answering "what happened / what should I do", an Action Center alert feed, and six drill-down sections.
+- **[Trade Signals Widget](agentic-trading.md#trade-signals-widget):** Dedicated home screen widget for viewing and filtering real-time trade signals. **New:** News sentiment multipliers dynamically adjust signal confidence scores.
+- **[News Intelligence](sentiment-analysis.md):** Sentiment analysis, breaking news summarization, catalyst extraction, and **Event Impact Prediction** for upcoming catalysts.
+- **[Tax Optimization & Loss Harvesting](tax-loss-harvesting.md):** Intelligent tax optimization suite featuring:
+  - **Automated Tax Loss Harvesting:** Identify and realize capital losses to offset gains with seasonality awareness and correlated replacement suggestions.
+  - **[Rolling 30-Day Wash Sale Window Tracker](tax-loss-harvesting.md#6-wash-sale-rule-warning--tracker):** Real-time monitoring across closed loss positions to alert users before triggering disallowed tax loss penalties.
+  - **[Capital Gains & Holding Period Breakdown](capital-gains-breakdown.md):** Short-term vs. long-term holding period tracking, countdown timers toward long-term tax qualification, and tax liability projections.
+  - **[Specific Tax Lot Matching (HIFO/LIFO)](tax-lot-matching.md):** Select specific tax lots or tax-minimization sorting rules (FIFO, LIFO, HIFO, Low Cost, Tax Minimizer) at order entry.
+  - **[IRS Form 8949 & Schedule D Reconciliation](form-8949-export.md):** Complete capital gains reconciliation with wash sale disallowance codes (`W`) and RFC 4180 CSV export for tax filing.
+- **[Group Watchlists](group-watchlists.md):** Collaborative instrument lists for Investor Groups.
+- **[Group Performance Analytics](portfolio-analytics.md):** Leaderboards and aggregated performance metrics for investor groups.
+- **[Investor Groups 2.0 & Collaborative Analytics](investor-groups-2.md):** Real-time group activity feed with member filtering and trade inspection, live group chat and messaging, shared analysis boards with automated risk/reward calculations and comments, and audited verified track records for group leaders.
+- **[ESG Scoring](esg-scoring.md):** Comprehensive Environmental, Social, and Governance scoring for individual instruments and portfolio-wide weighted averages to align investments with values.
+- **[AI Trading Coach](ai-trading-coach.md):** Behavioral analysis tool that assigns a **Trader Archetype** and **Discipline Score** based on execution history. Features **Coaching Personas** (Drill Sergeant, Zen Master), **Sub-score breakdowns** (Risk, Consistency), and an **Accountability Loop** with tracked challenges.
+- **[Sentiment Analysis](sentiment-analysis.md):** Retained for a future Alpha Feed focused on news, social, and community signals; its aggregate market card is currently hidden to avoid conflicting with Macro Assessment.
+- **[Whale Watch](whale-watch.md):** Track insider transactions and institutional ownership with snapshot-based accumulation ranking and explicit holdings fallback labels.
+- **[Insider Activity](insider-activity.md):** Track officer and director trading behavior with detailed Buy/Sell transaction analysis.
+- **[Institutional Ownership](institutional-ownership.md):** Monitor top institutional holders, position changes, and smart money flow sentiment.
+- **[SEC EDGAR Disclosures](sec-edgar-integration.md):** Review 13F institutional holdings, Form 4 insider buying clusters, 8-K material events, and portfolio overlap context.
+- **[Paper Trading](paper-trading.md):** Comprehensive simulation environment. **New:** AI Portfolio Analysis and interactive Allocation Charts. See also the [Architecture & Technical Design](paper-trading-architecture.md).
+- **[Macro Assessment](macro-assessment.md):** The single aggregate market-state view, combining sentiment, volatility, breadth, yields, trend, and cross-asset indicators into a consistent Risk On/Off score and detailed dashboard.
+- **[Deep Linking & Referrals](deep-linking.md):** Seamless navigation into the app from external links with a built-in referral tracking system for user growth.
 ## Investment Profile Feature
 
 This feature adds investment profile configuration to user settings, allowing users to specify their investment goals, time horizon, risk tolerance, and portfolio value. These preferences are then integrated into AI Portfolio Recommendations to provide personalized financial advice.
@@ -43,7 +142,10 @@ This feature adds investment profile configuration to user settings, allowing us
 The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
 
 ### Key Components
-- **Multi-Indicator Correlation:** Analyzes price patterns, RSI, market direction, and volume to generate high-confidence trade signals
+- **Multi-Indicator Correlation:** Analyzes 19 technical indicators (Price Movement, RSI, Market Direction, Volume, MACD, Bollinger Bands, Stochastic, ATR, OBV, VWAP, ADX, Williams %R, Ichimoku Cloud, CCI, Parabolic SAR, ROC, Chaikin Money Flow, Fibonacci Retracements, Pivot Points) to generate high-confidence trade signals
+- **Signal Strength Visualization:** Weighted signal strength scores (0-100) with filtering by minimum strength threshold
+- **Sparkline Previews:** Mini trend lines on signal cards for quick pattern context
+- **Indicator Documentation Widget:** In-app technical reference for all 19 indicators with detailed explanations of signals, configuration, and technical details
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
 - **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
 - **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours
@@ -78,6 +180,25 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - Risk parameters and portfolio integration
 - Trade signal history and results tracking
 - Optional filtering parameters: signal type, date range, symbols, limit
+- **Automated Trading:** Full auto-trade capabilities with risk controls (see [Agentic Trading](agentic-trading.md))
+  - Daily trade limits and cooldown periods
+  - Emergency stop functionality
+  - Position size and portfolio concentration limits
+  - Real-time status monitoring and trade history
+
+## Backtesting Feature
+
+The Backtesting feature allows users to validate trading strategies on historical data using the same multi-indicator system as live trading.
+
+### Key Capabilities
+- **Historical Simulation:** Test strategies against past market data to gauge potential performance.
+- **Strategy Configuration:** Configure all 15 technical indicators, risk parameters (TP/SL), and capital allocation.
+- **Comprehensive Metrics:** Analyze results with Sharpe ratio, max drawdown, profit factor, and win rates.
+- **Visual Analysis:** View trade-by-trade breakdowns and interactive equity curves.
+- **Template Management:** Save and load successful strategy configurations.
+- **Export & Share:** Export results for further analysis or sharing.
+
+For more details, see the [Backtesting Documentation](backtesting.md).
 
 ### Technical Details
 - Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
@@ -87,7 +208,53 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - Composite Firestore indexes for optimized queries
 - State synchronization between single signal and signal list
 
-For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
+For detailed technical documentation:
+- [Multi-Indicator Trading System](multi-indicator-trading.md) - Signal generation and analysis
+- [Agentic Trading](agentic-trading.md) - Autonomous trade execution and risk management
+- [Backtesting](backtesting.md) - Test strategies on historical data
+
+## Backtesting Interface
+
+The Backtesting Interface enables users to test trading strategies on historical data using the same multi-indicator system as live trading. This feature allows strategy validation, parameter optimization, and performance analysis before committing capital.
+
+### Key Features
+- **Historical Data Access:** Fetch OHLCV data for any symbol with multiple intervals (daily, hourly, 15-min)
+- **Strategy Builder:** Configure all 9 technical indicators with the same parameters as live trading
+- **Performance Metrics:** Comprehensive analysis including Sharpe ratio, max drawdown, win rate, profit factor
+- **Visual Results:** Trade-by-trade breakdown with entry/exit reasons and equity curves
+- **Template System:** Save and reuse backtest configurations
+- **Export Reports:** Save results as JSON for external analysis
+- **Result Comparison:** Compare multiple backtests side-by-side
+
+### Architecture
+- **Frontend:** Flutter UI with 3-tab interface (Run, History, Templates)
+- **Backend:** Firebase Functions for backtest execution using existing market data infrastructure
+- **Storage:** Firestore for backtest history and templates (last 50 runs per user)
+- **Integration:** Uses exact same `evaluateAllIndicators()` logic as live trading for consistency
+
+### Usage Flow
+1. Navigate to User Settings → Backtesting
+2. Configure symbol, date range, interval, and capital
+3. Enable desired indicators and set risk parameters (TP/SL/trailing stop)
+4. Run backtest to simulate historical trades
+5. Review results with key metrics and trade details
+6. Save configuration as template for future use
+7. Compare multiple backtests to optimize strategy
+
+For complete documentation, see [Backtesting](backtesting.md).
+
+## Copy Trading Feature
+
+The Copy Trading feature enables collaborative trading by allowing users to copy trades from other members of their investor groups.
+
+### Key Features
+- **Copy Trade Dashboard:** Centralized view for managing copy trade history and requests.
+- **Approval Workflow:** Review and approve/reject copy trade requests before execution.
+- **Manual & Auto Execution:** Choose between manual confirmation or automated workflows.
+- **Settings & Limits:** Configure quantity limits, amount caps, and specific target users.
+- **Audit Trail:** Comprehensive history of all copied trades for transparency.
+
+For complete documentation, see [Copy Trading](copy-trading.md).
 
 ## Futures Positions Feature
 
@@ -101,7 +268,6 @@ The Futures Positions feature enriches raw futures holdings with contract & prod
 - **Service-Oriented:** Logic contained in service layer; no secrets moved client-side.
 
 ### Limitations (Initial Version)
-- No realized or day P&L yet.
 - No margin requirement or leverage analytics.
 - No contract roll alerts or calendar spread tracking.
 - No Greeks or term structure metrics.
@@ -110,6 +276,28 @@ The Futures Positions feature enriches raw futures holdings with contract & prod
 - Margin & risk metrics (SPAN-style), realized/day P&L, roll detection, Greeks & volatility surfaces, contract seasonality analytics, VAR integration.
 
 See [Futures Positions](futures.md) for full details.
+
+## Futures Auto-Trading Feature
+
+Futures Auto-Trading extends the agentic system to futures contracts with configurable strategies, performance tracking, and safety controls.
+
+### Key Components
+- **FuturesAutoTradingProvider:** Manages configuration, auto-trade cadence, countdown timers, and activity logs.
+- **FuturesTradingSettingsWidget:** Full configuration UI with dirty-state tracking, quick saves, and emergency stop toggles.
+- **FuturesTradingPerformanceWidget:** Dedicated performance dashboard for futures trades, P&L, and win rate.
+- **Home Cards:** Agentic and Futures Auto-Trading cards surface daily trades, total P&L, and active symbols.
+- **Backend Pipeline:** `agentic-futures-trading.ts` + cron tasks to generate and execute futures signals.
+
+## [Model Context Protocol (MCP) & AI Assistant Chat](mcp-integration.md)
+
+The conversational AI coaching assistant has been upgraded with Model Context Protocol (MCP) support and automated proposal parsing for direct, secure mobile brokerage integration. Read more about the technical capabilities in [MCP Integration](mcp-integration.md).
+
+### Key Capabilities
+- **Local MCP Client:** Implemented a secure, high-performance local MCP Dart client utilizing `package:mcp_dart` in [generative_service.dart](../src/robinhood_options_mobile/lib/services/generative_service.dart). Gemini can dynamically discover, inspect, and execute real-time brokerage actions (details, accounts, positions, watchlists) as native tools.
+- **Secure OAuth Authentication Webview:** An in-app, secure OAuth2 login overlay in [mcp_oauth_webview.dart](../src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart) targeting the agent trading scopes directly.
+- **Interactive Tool Execution Visualcards:** Displays real-time API call traces (`ToolExecutionCard`) on the screen in [chat_widget.dart](../src/robinhood_options_mobile/lib/widgets/chat_widget.dart). Users can expand execution logs, pretty-print JSON arguments/responses, and control data pagination/truncation.
+- **Chat Trade Proposal Overlays:** Intercepts structured text payloads (`[TRADE_PROPOSAL]`) and renders beautifully designed Native Order checkout cards (`AgenticTradeCard`). Review margin, compute estimated cost, and execute orders natively straight from a chat block.
+- **Switchable Multi-Account Syncing:** Dynamically routes AI assistant inquiries and actions to the selected active portfolio configured under User Settings via [account_store.dart](../src/robinhood_options_mobile/lib/model/account_store.dart).
 
 ## Investor Groups Feature
 
@@ -167,7 +355,6 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 - **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
 - **Direct Portfolio Access:** Tap member in private group detail view to navigate to SharedPortfolioWidget
 - **Navigation:** Access via drawer menu under "Investor Groups"
-- **User Model:** Utilizes existing `sharedGroups` field for membership tracking
 - **Real-Time Updates:** StreamBuilder for Firestore user documents ensures live portfolio data
 
 ### Security
@@ -382,14 +569,16 @@ For implementation details, see:
   - [ ] Risk exposure and sector allocation heatmaps.
 
 - **Notifications & Alerts**
-  - [ ] Custom price alerts for stocks, options, and crypto.
+  - [x] Custom price alerts for stocks, options, and crypto.
   - [ ] Earnings and dividend notifications.
   - [ ] News alerts for portfolio holdings.
 
 - **Mobile & Usability Enhancements**
-  - [ ] Offline mode for portfolio and charts.
-  - [ ] Push notifications for trade execution and alerts.
-  - [ ] Home screen widgets for quick updates.
+  - [x] Offline mode for portfolio, watchlists, quotes, and AI trade signals with resilient caching and auto-sync.
+  - [x] iOS Live Activities & Dynamic Island Widget for real-time options tracking and 0DTE trailing stops.
+  - [x] Landscape Charting & Multi-Column Matrix View for full-screen technical analysis and multi-leg order execution.
+  - [x] Push notifications for trade execution and alerts.
+  - [x] Home screen widgets for quick updates.
 
 - **Collaboration & Sharing**
   - [x] Investor Groups with portfolio sharing
@@ -424,6 +613,11 @@ flutter test test/user_model_test.dart
   - `lib/services/generative_service.dart` - AI prompt generation and `portfolioPrompt()`
   - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
   - `functions/` - Server-side Firebase Functions and helpers
+
+## Infrastructure & CI/CD
+
+- **[Secure OAuth Token Storage](secure-token-storage.md):** Broker and MCP OAuth credentials use platform secure storage, with legacy migration, cloud-document redaction, and explicit sign-out/unlink/disconnect cleanup.
+- **[Mobile CI/CD Setup](mobile-ci-setup.md):** Guide for configuring GitHub Actions secrets for iOS and Android builds.
 
 ## Future Enhancements
 

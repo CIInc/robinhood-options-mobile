@@ -1,9 +1,9 @@
 name: robinhood_options_mobile
-description: RealizeAlpha App
+description: Professional-grade Flutter mobile app for multi-account brokerage management, featuring AI-powered trade signals, automated agentic trading, and institutional-grade options analytics.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -14,40 +14,36 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Read more about Android versioning at https://developer.android.com/studio/publish/versioning
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.17.4+59
+# https://developer.android.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+version: 0.57.6+180
 
 environment:
-#  sdk: '>=3.0.0-85.0.dev <4.0.0'
- sdk: ">=2.19.2 <3.0.0"
-#  sdk: '^3.2.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
   # Used by all Firebase services
-  firebase_core: ^3.12.1
+  firebase_core: ^4.14.0
   # Analyze usage with Firebase/Google Analytics
-  firebase_analytics: ^11.4.1
+  firebase_analytics: ^12.5.0
   # Plaid functions
-  cloud_functions: ^5.3.1
+  cloud_functions: ^6.4.0
   # Database
-  cloud_firestore: ^5.6.2
+  cloud_firestore: ^6.6.0
   # Authentication with Federated Identity Provider (Google)
-  firebase_auth: ^5.4.2
-  flutter_facebook_auth: ^7.0.1
-  flutter_signin_button: ^2.0.0
-  google_sign_in: ^6.1.0
-  google_sign_in_dartio: ^0.3.0
+  firebase_auth: ^6.6.1
+  # flutter_facebook_auth: ^7.0.1
+  google_sign_in: ^7.2.0
   # Used by Firebase auth for TOTP code.
   barcode_widget: ^2.0.4
   # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications
-  firebase_messaging: ^15.2.2  
-  # Device Info, model, etc. 
-  device_info_plus: ^11.3.3
+  firebase_messaging: ^16.4.1
+  # Device Info, model, etc.
+  device_info_plus: ^13.2.0
   # App Version
-  package_info_plus: ^8.0.2
+  package_info_plus: ^10.2.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -55,11 +51,11 @@ dependencies:
 
   oauth2: ^2.0.3
   shared_preferences: ^2.4.0
-  #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
+  path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
   provider: ^6.1.2
   intl: ^0.20.2
   decimal: ^3.2.1
-  csv: ^6.0.0
+  csv: ^8.0.0
   permission_handler: ^12.0.0+1
   # TODO: Check if used
   #open_file: ^3.2.1
@@ -70,37 +66,58 @@ dependencies:
   community_charts_flutter: ^1.0.4
   # Used by charts for SelectionMode
   community_charts_common: ^1.0.4
-#    git:
-#      url: git://github.com/google/charts.git
-#      path: charts_flutter
-  url_launcher: ^6.3.1  # flutter_echarts: ^2.3.0
+  #    git:
+  #      url: git://github.com/google/charts.git
+  #      path: charts_flutter
+  url_launcher: ^6.3.1 # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^11.0.0
+  share_plus: ^13.2.0
   uuid: ^4.5.1
-  material_color_utilities: ^0.11.1
+  # material_color_utilities is managed by the Flutter SDK/dynamic_color.
   dynamic_color: ^1.7.0
-#  scrollable_positioned_list: ^0.2.3
+  #  scrollable_positioned_list: ^0.2.3
   collection: ^1.19.0
   http: ^1.3.0
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^9.0.0
   # Schwab login integration.
-  flutter_web_auth_2: ^4.1.0
+  flutter_web_auth_2: ^5.0.3
   # uni_links: ^0.5.1
-  app_links: ^6.3.3  
-  plaid_flutter: ^4.2.0
+  app_links: ^7.0.0
+  # plaid_flutter: ^5.1.1
   # Used for StreamGroup.merge of batched approach to deal with Firestore where(in) limit of 30.
   async: ^2.11.0
-  # Used to cache user image in SliverAppBar 
+  # Used to cache user image in SliverAppBar
   cached_network_image: ^3.4.1
   # Used for AI Assistant
-  firebase_ai: ^2.0.0
+  firebase_ai: ^3.13.1
   # Deprecated by firebase_ai
   # firebase_vertexai: ^1.4.0
   flutter_markdown: ^0.7.6+2
   # Used by option chain lists
   scrollable_positioned_list: ^0.3.8
+  # SMS and Phone number hints
+  smart_auth: ^3.2.0
+  font_awesome_flutter: ^11.0.0
+  # Used to set app icon badge count (resetting it on app open).
+  app_badge_plus: ^1.2.6
+  candlesticks: ^3.0.1
+  in_app_purchase: ^3.2.3
+  firebase_remote_config: ^6.6.0
+  local_auth: ^3.0.0
+  file_picker: ^12.0.0-beta.7
+  flutter_local_notifications: ^22.0.1
+  home_widget: ^0.9.0
+  shimmer: ^3.0.0
+  crypto: ^3.0.3
+  mcp_dart: ^2.2.2
+  webview_flutter: ^4.10.0
+  firebase_app_check: ^0.4.7
+  flutter_native_splash: ^2.4.4
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
 
@@ -112,12 +129,20 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
   flutter_launcher_icons: ^0.14.3
+  fake_cloud_firestore: ^4.2.0
+  mockito: ^5.6.3
+  share_plus_platform_interface: ^7.2.0
+  # Was added by AI agent but seems unused.
+  # firebase_core_platform_interface: ^6.0.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter.
 flutter:
+  config:
+    # iOS uses CocoaPods; Flutter's SwiftPM auto-migration rewrites Podfile.lock and project.pbxproj.
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -126,8 +151,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-   - assets/images/icon.png
-   - assets/images/iconold.png
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
@@ -155,11 +179,35 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 
-flutter_icons:
-  # Generated from https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuougIL36BwS9iUi2pl2xW0bXKiL%2Bd5spXpLHS8j38sKdYuEZ5gVL6XbqeWAYR3HmBs7vY5goZR3PXBssOyoxo0HoZKxGTjzaMPprmfBu0PrTc6oX0EmUVNdav1%2BUwWqz2ZFz1ctKsTA5lYVyIKsnlJJlgllvG6Tg%2BwpU2UrOMnx1ZLe4FeX%2BqF9IhR17%2BnohdZE10SC2RP3wDBptkmA1vMy1PrjF5f0BVnZtHwQBAAA%3D
-  # Used AppIcon~ios-marketing.png
-  image_path: "icon.png" 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#002147"
+  adaptive_icon_foreground: "assets/images/icon_adaptive_foreground.png"
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/icon.png"
+    background_color: "#002147"
+    theme_color: "#002147"
+  macos:
+    generate: true
+    image_path: "assets/images/icon.png"
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#002147"
+  image: assets/images/splash_light.png
+  image_dark: assets/images/splash_dark.png
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+  web_image_mode: center
   android: true
   ios: true
-  # optionally, as transparency is not allowed on app store
-  remove_alpha_ios: true
+  web: true
+  android_12:
+    image: assets/images/splash_light.png
+    image_dark: assets/images/splash_dark.png
+    color: "#ffffff"
+    color_dark: "#002147"

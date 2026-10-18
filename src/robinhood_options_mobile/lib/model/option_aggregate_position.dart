@@ -1,9 +1,12 @@
 import 'dart:io';
 
 import 'package:csv/csv.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import 'package:robinhood_options_mobile/utils/json.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
@@ -55,26 +58,39 @@ class OptionAggregatePosition {
 
   OptionAggregatePosition.fromJson(dynamic json)
       : id = json['id'],
-        chain = json['chain'],
-        account = json['account'],
-        symbol = json['symbol'],
-        strategy = json['strategy'],
-        averageOpenPrice = double.tryParse(json['average_open_price']),
+        chain = json['chain'] ?? json['chain_id'] ?? json['chainId'] ?? '',
+        account = json['account'] ?? '',
+        symbol =
+            json['symbol'] ?? json['chain_symbol'] ?? json['chainSymbol'] ?? '',
+        strategy = json['strategy'] ?? '',
+        averageOpenPrice = parseDouble(json['average_open_price']),
         legs = OptionLeg.fromJsonArray(json['legs']),
-        quantity = double.tryParse(json['quantity']),
+        quantity = parseDouble(json['quantity']),
         intradayAverageOpenPrice =
-            double.tryParse(json['intraday_average_open_price']),
-        intradayQuantity = double.tryParse(json['intraday_quantity']),
+            parseDouble(json['intraday_average_open_price']),
+        intradayQuantity = parseDouble(json['intraday_quantity']),
         direction = json['direction'],
         intradayDirection = json['intraday_direction'],
-        tradeValueMultiplier = double.tryParse(json['trade_value_multiplier']),
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']),
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']),
-        strategyCode = json['strategy_code'];
+        tradeValueMultiplier = parseDouble(json['trade_value_multiplier']),
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : (json['created_at'] is String
+                ? DateTime.tryParse(json['created_at'])
+                : null),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : (json['updated_at'] is String
+                ? DateTime.tryParse(json['updated_at'])
+                : null),
+        strategyCode = json['strategy_code'],
+        optionInstrument =
+            (json['option_instrument'] ?? json['optionInstrument']) != null
+                ? OptionInstrument.fromJson(
+                    json['option_instrument'] ?? json['optionInstrument'])
+                : null,
+        instrumentObj = json['instrument_obj'] != null
+            ? Instrument.fromJson(json['instrument_obj'])
+            : null;
 
   /*
   {shortQuantity: 0.0, averagePrice: 3.8266, currentDayProfitLoss: -83.0, currentDayProfitLossPercentage: -22.93, longQuantity: 2.0, settledLongQuantity: 2.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0AMAT.KF40210000, symbol: AMAT  241115C00210000, description: APPLIED MATLS INC 11/15/2024 $210 Call, netChange: -0.41, type: VANILLA, putCall: CALL, underlyingSymbol: AMAT}, marketValue: 279.0, maintenanceRequirement: 0.0, averageLongPrice: 3.82, taxLotAverageLongPrice: 3.8266, longOpenProfitLoss: -486.32, previousSessionLongQuantity: 2.0, currentDayCost: 0.0}
@@ -265,7 +281,9 @@ class OptionAggregatePosition {
         'trade_value_multiplier': tradeValueMultiplier,
         'created_at': createdAt,
         'updated_at': updatedAt,
-        'strategy_code': strategyCode
+        'strategy_code': strategyCode,
+        'option_instrument': optionInstrument?.toJson(),
+        'instrument_obj': instrumentObj?.toJson(),
       };
 
   // Helpers
@@ -519,7 +537,7 @@ class OptionAggregatePosition {
       rows.add(optionPositions[i].convertToDynamic());
     }
 
-    String csv = const ListToCsvConverter().convert(rows);
+    String csv = Csv().encode(rows);
 
     // storage permission ask
     var status = await Permission.storage.status;
@@ -542,5 +560,60 @@ class OptionAggregatePosition {
     final file2 = File('/storage/emulated/0/Download/RobinhoodOptions.csv');
     await file2.writeAsString(csv);
     return file2;
+  }
+
+  static List<dynamic> positionsCsvHeaders = [
+    'Symbol',
+    'Strategy',
+    'Option Type',
+    'Strike Price',
+    'Expiration Date',
+    'Quantity',
+    'Average Open Price',
+    'Current Price',
+    'Market Value',
+    'Total Cost',
+    'Total Return (\$)',
+    'Total Return (%)',
+    'Today Return (\$)',
+    'Today Return (%)',
+    'Account',
+  ];
+
+  List<dynamic> toPositionCsvRow() {
+    final firstLeg = legs.isNotEmpty ? legs.first : null;
+    final expirationStr = firstLeg?.expirationDate != null
+        ? DateFormat('yyyy-MM-dd').format(firstLeg!.expirationDate!)
+        : '';
+    final strikeStr = firstLeg?.strikePrice?.toString() ?? '';
+    final optionType = firstLeg?.optionType ?? '';
+    final currentPrice =
+        optionInstrument?.optionMarketData?.adjustedMarkPrice ?? 0.0;
+    return [
+      symbol,
+      strategy,
+      optionType,
+      strikeStr,
+      expirationStr,
+      quantity ?? 0,
+      averageOpenPrice ?? 0,
+      currentPrice,
+      marketValue,
+      totalCost,
+      gainLoss,
+      gainLossPercent,
+      changeToday,
+      changePercentToday,
+      account,
+    ];
+  }
+
+  static String generatePositionsCsvString(
+      List<OptionAggregatePosition> positions) {
+    List<List<dynamic>> rows = [
+      positionsCsvHeaders,
+      ...positions.map((p) => p.toPositionCsvRow()),
+    ];
+    return Csv().encode(rows);
   }
 }

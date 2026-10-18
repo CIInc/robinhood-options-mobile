@@ -1,0 +1,150 @@
+# Mobile CI/CD Setup
+
+This document explains how to set up the necessary secrets for the GitHub Actions mobile build workflow (`.github/workflows/cd.yml`).
+
+## Firebase Deployment
+
+The CD workflow deploys all Firebase resources configured in
+`src/robinhood_options_mobile/firebase.json` to the `realizealpha` project after
+analysis and tests pass on `main` (including manual runs on `main`). It first
+builds the Flutter web app for Hosting, then deploys Hosting, Functions, and
+Firestore rules/indexes. Pull requests and manual runs on other branches do not
+deploy. Changes to app code, web assets, Functions, Firebase configuration,
+rules, or indexes trigger CD.
+
+Add a `FIREBASE_SERVICE_ACCOUNT_REALIZEALPHA` GitHub Actions secret containing
+the JSON key for a Google Cloud service account authorized to deploy Firebase
+resources to the `realizealpha` project.
+
+#### Required IAM Roles for the Service Account:
+Go to [Google Cloud Console IAM](https://console.cloud.google.com/iam-admin/iam?project=realizealpha) and grant the following roles to the service account used in CI:
+1. **Firebase Admin** (`roles/firebase.admin`) or **Firebase Develop Admin** (`roles/firebase.developAdmin`): Required for project lookup and rule/config deployments. *(Note: The default "Firebase Admin SDK Administrator Service Agent" role does NOT have project management or CLI deployment permissions and will result in `Error: Failed to get Firebase project realizealpha`).*
+2. **Firebase Hosting Admin** (`roles/firebasehosting.admin`): Required to deploy web hosting assets.
+3. **Cloud Functions Admin** (`roles/cloudfunctions.admin`): Required to deploy backend functions.
+4. **Service Account User** (`roles/iam.serviceAccountUser`): Required to deploy Cloud Functions runtime identity.
+5. **Cloud Build Editor** (`roles/cloudbuild.builds.editor`): Required to build function containers.
+6. **Artifact Registry Administrator** (`roles/artifactregistry.admin`): Required to manage function images.
+7. **Secret Manager Admin** (`roles/secretmanager.admin`): Required to validate and grant access to parameterized secrets (`APPLE_SHARED_SECRET`, `TWELVE_DATA_API_KEY`, etc.) used in Firebase Functions.
+8. **Cloud Scheduler Admin** (`roles/cloudscheduler.admin`): Required to create and update scheduled Cloud Functions (cron jobs).
+
+Also ensure the **Firebase Management API** (`firebase.googleapis.com`) is enabled in the project.
+
+## iOS Setup
+
+### Prerequisites
+
+1.  A valid **iOS Distribution Certificate** (.p12).
+2.  A **Distribution Provisioning Profile** (.mobileprovision) for the **Main App** that includes the **App Groups** capability (`group.com.robinhood_options_mobile`).
+3.  A **Distribution Provisioning Profile** (.mobileprovision) for the **Portfolio Widget Extension** that also includes the **App Groups** capability.
+4.  An **ExportOptions.plist** file configured for App Store or Ad-Hoc distribution.
+
+### GitHub Actions Secrets (iOS)
+
+| Secret Name | Description |
+| :--- | :--- |
+| `IOS_DISTRIBUTION_CERTIFICATE_BASE64` | Base64 encoded `.p12` distribution certificate. |
+| `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` | The password for the `.p12` certificate. |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Base64 encoded `.mobileprovision` for the Main App. |
+| `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` | Base64 encoded `.mobileprovision` for the Widget Extension. |
+| `IOS_EXPORT_OPTIONS_PLIST` | The raw content of your `ExportOptions.plist`. |
+| `APP_STORE_CONNECT_API_KEY_ID` | Key ID for the App Store Connect API key (App Manager role). |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID for the App Store Connect API key. |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY` | Contents of the `.p8` private key file for App Store Connect API. |
+| `APP_STORE_CONNECT_USERNAME` | (Optional fallback) Apple ID username for `altool`. |
+| `APP_STORE_CONNECT_PASSWORD` | (Optional fallback) App-specific password for `altool`. |
+
+When API Key secrets are configured, the CD workflow uploads the iOS IPA to TestFlight via `apple-actions/upload-testflight-build` and sets the build's Test Details ("What to Test") from the version notes in `ROADMAP.md`. If API Key secrets are absent, it falls back to `xcrun altool`.
+
+### How to encode iOS secrets
+
+Run these commands on your macOS machine:
+
+```bash
+# Main App Provisioning Profile
+base64 -i <path_to_app_profile>.mobileprovision | pbcopy
+
+# Widget Extension Provisioning Profile
+base64 -i <path_to_widget_profile>.mobileprovision | pbcopy
+
+# Distribution Certificate
+base64 -i <path_to_certificate>.p12 | pbcopy
+```
+
+### How to generate `ExportOptions.plist`
+
+The easiest way for Flutter developers to generate a valid `ExportOptions.plist` is to run a local release build:
+
+1.  Ensure your local Xcode is configured with the correct Provisioning Profiles.
+2.  Run the following command from the `src/robinhood_options_mobile` directory:
+    ```bash
+    flutter build ipa --release
+    ```
+3.  Once the build completes, find the generated file at:
+    `build/ios/ipa/ExportOptions.plist`
+4.  Copy the raw XML content of that file and paste it into the `IOS_EXPORT_OPTIONS_PLIST` GitHub Secret.
+
+---
+
+## Android Setup
+
+### Prerequisites
+
+1.  An **Upload Keystore** (.jks) file.
+2.  A `key.properties` file containing the keystore details.
+3.  A **Google Play Service Account JSON** for automated Play Store uploads.
+
+### GitHub Actions Secrets (Android)
+
+| Secret Name | Description |
+| :--- | :--- |
+| `ANDROID_KEY_PROPERTIES` | The full content of your `android/key.properties` file. |
+| `ANDROID_KEYSTORE_BASE64` | Base64 encoded `upload-keystore.jks` file. |
+| `PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON` | The raw JSON key for a Google Play service account with permission to publish releases. |
+
+When `pubspec.yaml` contains a version that does not already have a Git tag,
+the CD workflow publishes the generated App Bundle as a completed release on
+the Google Play internal track, including localized release notes (`whatsnew-en-US`)
+automatically formatted and truncated to adhere to Google Play's 500-character limit.
+A Play publication failure fails the Android build job so a GitHub release is not
+created for an unpublished Android build.
+
+### How to encode Android secrets
+
+Run this command on your machine to encode the keystore:
+
+```bash
+# Upload Keystore
+base64 -i <path_to_keystore>.jks | pbcopy
+```
+
+### `key.properties` Template
+
+Your `ANDROID_KEY_PROPERTIES` secret should follow this format:
+
+```properties
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=upload
+storeFile=upload-keystore.jks
+```
+
+---
+
+## Troubleshooting
+
+### iOS App Groups Error
+`Provisioning profile "..." doesn't include the App Groups capability.`
+
+This usually means the profile created in the Apple Developer Portal does not have the **App Groups** capability enabled. 
+1. Go to **Identifiers** in the Apple Developer Portal.
+2. Select your App ID (and Widget ID).
+3. Ensure **App Groups** is checked and the specific group (`group.com.robinhood_options_mobile`) is associated.
+4. Regenerate and download the Provisioning Profiles.
+
+### iOS Extension Signing Conflict
+`PortfolioWidgetExtension has conflicting provisioning settings... switching to manual signing in the Signing & Capabilities editor.`
+
+This happens when CI forces manual signing for the project but the extension target is still set to "Automatic". The `cd.yml` workflow now automatically handles this by patching the `pbxproj` for both the main app and the extension, provided you have set the `IOS_WIDGET_PROVISIONING_PROFILE_BASE64` secret.
+
+### Android Signing Error
+Ensure the `keyAlias` and passwords in `ANDROID_KEY_PROPERTIES` exactly match those used when creating the keystore.

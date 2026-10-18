@@ -8,12 +8,15 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/banking.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/forex_order.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/future_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
@@ -47,6 +50,16 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
+import 'package:robinhood_options_mobile/model/combo_order.dart';
+import 'package:robinhood_options_mobile/model/combo_order_store.dart';
+import 'package:robinhood_options_mobile/model/shareholder_qa_event.dart';
+import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/tax_document.dart';
+import 'package:robinhood_options_mobile/model/tax_lot.dart';
+import 'package:robinhood_options_mobile/model/retirement.dart';
+import 'package:robinhood_options_mobile/model/spending_account.dart';
+import 'package:robinhood_options_mobile/model/external_token.dart';
+import 'package:robinhood_options_mobile/model/notification_item.dart';
 
 class PlaidService implements IBrokerageService {
   @override
@@ -85,6 +98,7 @@ class PlaidService implements IBrokerageService {
     // if (responseJson['error'] != null) {
     //   throw Exception(responseJson['error']);
     // }
+    BrokerageUser? authenticatedUser;
     final client = generateClient(
         Response('', 200),
         tokenEndpoint, // .scAuthEndpoint
@@ -92,12 +106,13 @@ class PlaidService implements IBrokerageService {
         ' ',
         clientId,
         null,
-        null,
-        null);
+        null, (credentials) {
+      authenticatedUser?.updateCredentials(credentials);
+    });
     debugPrint('OAuth2 client created');
-    debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
         BrokerageSource.plaid, '', client.credentials.toJson(), client);
+    authenticatedUser = user;
     //user.save(userStore).then((value) {});
     return user;
   }
@@ -200,6 +215,11 @@ class PlaidService implements IBrokerageService {
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
+    user.ensureOAuth2Client();
+    if (user.oauth2Client == null) {
+      throw Exception(
+          'No active session or client credentials for user ${user.userName}');
+    }
     if (user.oauth2Client!.credentials.isExpired) {
       throw Exception('Authorization expired. Please log back in.');
       // user.oauth2Client = await user.oauth2Client!.refreshCredentials();
@@ -428,16 +448,13 @@ class PlaidService implements IBrokerageService {
     throw UnimplementedError();
   }
 
-    @override
+  @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     throw UnimplementedError();
-    }
-
+  }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
@@ -499,9 +516,32 @@ class PlaidService implements IBrokerageService {
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg}) {
     // TODO: implement placeOptionsOrder
     throw UnimplementedError();
+  }
+
+  @override
+  Future placeMultiLegOptionsOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc'}) {
+    // TODO: implement placeMultiLegOptionsOrder
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<TaxLot>> getEquityTaxLots(
+      BrokerageUser user, Account account, String symbol) async {
+    return [];
   }
 
   @override
@@ -511,11 +551,15 @@ class PlaidService implements IBrokerageService {
       Instrument instrument,
       String symbol,
       String side,
-      double price,
+      double? price,
       int quantity,
       {String type = 'limit',
       String trigger = 'immediate',
-      String timeInForce = 'gtc'}) {
+      double? stopPrice,
+      String timeInForce = 'gtc',
+      Map<String, dynamic>? trailingPeg,
+      String? taxLotSelectionType,
+      List<Map<String, dynamic>>? taxLots}) {
     // TODO: implement placeInstrumentOrder
     throw UnimplementedError();
   }
@@ -594,6 +638,34 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
+  Future<List<Watchlist>> getAllLists(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<void> addToList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement addToList
+  }
+
+  @override
+  Future<void> removeFromList(
+      BrokerageUser user, String listId, String instrumentId) async {
+    // TODO: implement removeFromList
+  }
+
+  @override
+  Future<void> createList(BrokerageUser user, String name,
+      {String? emoji}) async {
+    // TODO: implement createList
+  }
+
+  @override
+  Future<void> deleteList(BrokerageUser user, String listId) async {
+    // TODO: implement deleteList
+  }
+
+  @override
   Future<List> getLists(BrokerageUser user, String instrumentId) {
     // TODO: implement getLists
     throw UnimplementedError();
@@ -653,6 +725,15 @@ class PlaidService implements IBrokerageService {
   }
 
   @override
+  Future<FutureHistoricals?> getFuturesHistoricals(
+      BrokerageUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.regular,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) {
+    // TODO: implement getFuturesHistoricals
+    throw UnimplementedError();
+  }
+
+  @override
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id) {
     // TODO: implement getForexQuote
     throw UnimplementedError();
@@ -706,7 +787,8 @@ class PlaidService implements IBrokerageService {
       Instrument instrument,
       String? expirationDates,
       String? type,
-      {String? state = "active"}) {
+      {String? state = "active",
+      bool includeMarketData = false}) {
     // TODO: implement streamOptionInstruments
     throw UnimplementedError();
   }
@@ -728,7 +810,429 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
-    // TODO: implement
+    final parts = cancel.split('/').where((s) => s.isNotEmpty).toList();
+    final cancelIndex = parts.indexOf('cancel');
+    final target = cancelIndex > 0 ? parts[cancelIndex - 1] : parts.last;
+    return Future.value({
+      'status': 'not_supported',
+      'message':
+          'Order cancellation is not supported for Plaid manual accounts.',
+      'target': target,
+    });
+  }
+
+  @override
+  Future<dynamic> previewOrder(BrokerageUser user, Account account,
+      Map<String, dynamic> orderPayload) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getStrategyOptionChain(
+    BrokerageUser user,
+    String symbol, {
+    String strategy = 'SINGLE',
+    String contractType = 'ALL',
+    double? strike,
+    double? interval,
+    int? strikeCount,
+    String? range,
+    DateTime? fromDate,
+    DateTime? toDate,
+    double? volatility,
+    double? underlyingPrice,
+    double? interestRate,
+    int? daysToExpiration,
+    String? expMonth,
+    String? optionType,
+    String? entitlement,
+    bool includeUnderlyingQuote = true,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<List<ComboOrder>> getComboOrders(BrokerageUser user,
+      {String? accountNumber, int? limit}) async {
+    return [];
+  }
+
+  @override
+  Stream<List<ComboOrder>> streamComboOrders(
+      BrokerageUser user, ComboOrderStore store,
+      {DocumentReference? userDoc,
+      String? symbol,
+      String? accountNumber}) async* {
+    yield [];
+  }
+
+  @override
+  Future<dynamic> placeComboOrder(
+      BrokerageUser user,
+      Account account,
+      List<Map<String, dynamic>> legs,
+      String creditOrDebit,
+      double price,
+      int quantity,
+      {String type = 'limit',
+      String trigger = 'immediate',
+      String timeInForce = 'gtc',
+      String? openingStrategy}) async {
+    return {
+      'status': 'not_supported',
+      'message': 'Combo orders not supported for Plaid manual accounts.',
+    };
+  }
+
+  @override
+  Future<dynamic> cancelComboOrder(BrokerageUser user, String cancelUrl) async {
+    return {
+      'status': 'not_supported',
+      'message':
+          'Combo order cancellation not supported for Plaid manual accounts.',
+    };
+  }
+
+  @override
+  Future<dynamic> getRecentDayTrades(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortInterest(BrokerageUser user, String instrumentId,
+      {String? startDate}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getShortingAvailability(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getRetailSentiment(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInsiderSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInsiderTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getHedgeFundSummary(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getHedgeFundTransactions(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getScreenerPresets(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getScreeners(BrokerageUser user,
+      {bool includeFilters = false}) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayouts(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getLegendLayout(BrokerageUser user, String layoutId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getUnifiedAccount(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getMarginCalls(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<List<dynamic>> getMarginInterestCharges(BrokerageUser user) async {
+    return const [];
+  }
+
+  @override
+  Future<dynamic> getInstrumentBuyingPower(
+      BrokerageUser user, String accountNumber, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getInstrumentWarnings(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getOptionChainCollateral(
+      BrokerageUser user, String chainId, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getOptionsUpgradeStatus(
+      BrokerageUser user, String accountNumber) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getStockLoanPayments(BrokerageUser user,
+      {String? accountNumber}) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getSlipEligibility(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<dynamic> getSweepsInterest(BrokerageUser user) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getAchTransfers(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAchRelationships(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchTransfer>> getAchTransfersModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<List<AchRelationship>> getAchRelationshipsModel(
+      BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<bool> cancelAchTransfer(BrokerageUser user, String cancelUrl) async {
+    return false;
+  }
+
+  @override
+  Future<List<dynamic>> getDocuments(BrokerageUser user, {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getAdrFees(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getTaxWithholdingStatus(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<List<AccountDocument>> getAccountDocumentsModel(BrokerageUser user,
+      {String? type}) async {
+    return [];
+  }
+
+  @override
+  Future<List<AdrFee>> getAdrFeesModel(BrokerageUser user) async {
+    return [];
+  }
+
+  @override
+  Future<TaxWithholdingStatus?> getTaxWithholdingStatusModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getSplitPayments(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<List<SplitPayment>> getSplitPaymentsModel(BrokerageUser user,
+      {String? instrumentId}) async {
+    return [];
+  }
+
+  @override
+  Future<CorporateActionSplitsSummary> getCorporateActionSplitsSummary(
+      BrokerageUser user) async {
+    return const CorporateActionSplitsSummary();
+  }
+
+  @override
+  Future<List<ForexOrder>> getForexOrders(BrokerageUser user) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<dynamic> placeForexOrder(
+      BrokerageUser user,
+      String pairId,
+      String side, // 'buy' or 'sell'
+      double? price,
+      double quantity,
+      {String type = 'market', // market, limit
+      String timeInForce = 'gtc',
+      double? stopPrice}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesOrders(
+      BrokerageUser user, String account) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<dynamic> getFuturesContractBySymbol(
+      BrokerageUser user, String symbol) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesContractsBySymbols(
+      BrokerageUser user, List<String> symbols) async {
+    return [];
+  }
+
+  @override
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    return [];
+  }
+
+  @override
+  Future<double?> getFuturesQuote(BrokerageUser user, String contractId) =>
+      Future.error(UnsupportedError('Live futures quotes are not supported.'));
+
+  @override
+  Future<dynamic> placeFuturesOrder(
+    BrokerageUser user,
+    String accountId,
+    String contractId,
+    String side,
+    int quantity, {
+    String orderType = 'MARKET',
+    String orderTrigger = 'IMMEDIATE',
+    double? limitPrice,
+    double? stopPrice,
+    String timeInForce = 'GTC',
+    String positionEffect = 'OPENING',
+  }) {
+    return Future.error(
+      'Futures orders are not supported in PlaidService',
+    );
+  }
+
+  @override
+  Future<dynamic> getShareholderQaEvents(
+      BrokerageUser user, String instrumentId) async {
+    return null;
+  }
+
+  @override
+  Future<ShareholderQaSection?> getShareholderQaSectionModel(
+      BrokerageUser user, String instrumentId,
+      {String? symbol}) async {
+    return null;
+  }
+
+  @override
+  Future<bool> upvoteQuestion(BrokerageUser user, String instrumentId,
+      String eventId, String questionId) async {
+    return false;
+  }
+
+  @override
+  Future<ShareholderQuestion?> submitQuestion(BrokerageUser user,
+      String instrumentId, String eventId, String questionText) async {
+    return null;
+  }
+
+  @override
+  Future<List<dynamic>> getExternalTokens(BrokerageUser user) async => [];
+
+  @override
+  Future<List<ExternalToken>> getExternalTokensModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
+      false;
+
+  @override
+  Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
+
+  @override
+  Future<List<NotificationItem>> getNotificationStackModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<dynamic> getInboxThreads(BrokerageUser user) async => null;
+
+  @override
+  Future<List<NotificationItem>> getInboxThreadsModel(
+          BrokerageUser user) async =>
+      [];
+
+  @override
+  Future<dynamic> getSpendingAccount(BrokerageUser user) async => null;
+
+  @override
+  Future<SpendingAccount?> getSpendingAccountModel(BrokerageUser user) async =>
+      null;
+
+  @override
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+          {String? accountNumber}) async =>
+      null;
+
+  @override
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+          {String? accountNumber}) async =>
+      const RetirementHistory();
 }

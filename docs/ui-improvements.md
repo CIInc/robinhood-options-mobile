@@ -1,0 +1,138 @@
+# UI Improvements
+
+## Completed Improvements
+
+### Balance Privacy & Navigation (v0.37.0)
+- **Features**:
+  - **Balance Visibility Toggle**: Global privacy control that allows users to mask sensitive account data (Total Equity, P&L, Balances) across Home, Portfolio, and Instrument views with a single tap.
+  - **Scroll-to-Top**: Enhanced navigation across all major list views (Search, History, Trade Signals). Tapping the active tab or a dedicated button quickly returns the user to the start of long lists.
+  - **Enhanced Account Selection**: Refactored account management logic with improved selection visuals and persistent workspace-wide synchronization.
+
+### Trade Signals & Futures Auto-Trading UI (v0.34.0)
+- **Components**: `TradeSignalsWidget`, `InstrumentWidget`, `AgenticTradingCardWidget`, `FuturesAutoTradingCardWidget`, `FuturesTradingSettingsWidget`.
+- **Features**:
+  - **Sparkline Previews**: Mini trend lines on signal cards for quick context.
+  - **Weighted Strength Badges**: Signal strength rendered with weighted scoring alignment.
+  - **Home Cards**: New agentic and futures auto-trading cards showing daily trades and total P&L.
+  - **Settings UX**: Dirty-state tracking and explicit save actions in futures auto-trading settings.
+
+### Paper Trading Dashboard (v0.31.4)
+- **Component**: `PaperTradingDashboardWidget`.
+- **Features**:
+  - **AI Portfolio Analysis**: New "AI Insights" card leveraging generative AI to analyze cash, equity, P&L, and positions for performance and risk assessment.
+  - **Asset Allocation**: Interactive Pie Chart visualizing portfolio distribution between Stocks, Options, and Cash.
+  - **Enhanced UI**: Added analytics action button and improved visual hierarchy.
+
+### Chat Widget Enhancements (v0.30.1)
+- **Component**: Chat Widget (Market Assistant).
+- **Features**:
+  - **Improved Scrolling**: Enhanced behavior to maintain context while receiving new messages.
+  - **Message Handling**: Smoother message rendering and state management for a better conversational experience.
+
+### Instrument Notes & AI Drafting (v0.29.1)
+- **Component**: New `InstrumentNoteWidget` integrated into Instrument Details.
+- **Features**:
+  - **Rich Text**: Full Markdown support (Bold, Lists, Links).
+  - **Generative AI**: One-tap drafting of trading notes using backend AI services.
+  - **UX Polish**: Expandable/Collapsible long notes, quick copy-to-clipboard, and intuitive edit/delete workflows.
+
+### Navigation Bar Upgrade (v0.27.0)
+- **Component**: Updated `BottomNavigationBar` to Material 3 `NavigationBar`.
+- **Benefits**:
+  - Improved UI consistency with Material 3 design guidelines.
+  - Better responsiveness and touch targets.
+  - Enhanced visual feedback for selected items.
+
+### Ad Integration (v0.27.0)
+- **Component**: Integrated ad banners into `OptionOrderWidget`.
+- **Features**:
+  - Non-intrusive ad placement.
+  - Seamless integration with the order flow.
+
+### Watchlist Stream (v0.27.0)
+- **Component**: Added watchlist stream functionality in `SearchWidget`.
+- **Features**:
+  - Real-time updates of user watchlists.
+  - Direct display of watchlist items in the search interface.
+
+### Option Instrument Position UI (v0.27.7)
+- **Component**: Redesigned position card in `OptionInstrumentWidget`.
+- **Features**:
+  - **ITM/OTM Badges**: Clear visual indication of In-The-Money or Out-Of-The-Money status.
+  - **P&L Visibility**: Large, color-coded P&L display (Open & Day) for instant assessment.
+  - **Comprehensive Statistics**: Grid layout showing Break-Even Price, Days to Expiration, Collateral, and Greeks (Delta, Theta, Gamma, Vega, Rho, Implied Volatility).
+  - **Enhanced Layout**: Improved data density and readability using badges and organized metrics.
+
+### Visual Consistency (v0.28.1)
+- **Component**: Section Headers across the app (Crypto, Futures, Allocation, Performance, Income).
+- **Change**: Standardized typography by removing inconsistent bold styling.
+- **Benefit**: Cleaner, more unified visual language across different app modules.
+
+### Navigation Bar Upgrade (v0.21.1)
+- **Component**: Replaced `BottomNavigationBar` (Material 2) with `NavigationBar` (Material 3).
+- **Benefits**:
+  - Modern Material 3 design.
+  - Better accessibility with larger touch targets.
+  - Smoother animations.
+  - Consistent styling with the rest of the app (which uses `useMaterial3: true`).
+- **Configuration**:
+  - Labels are configured to `alwaysShow` in `main.dart` theme.
+  - Uses the app's color scheme for the indicator and icons.
+
+### Risk Heatmap Widget
+- **Component**: New interactive Treemap visualization for portfolio risk.
+- **Features**:
+  - **Treemap Layout**: Size represents equity, color represents performance.
+  - **Smart Grouping**: Automatically groups smaller positions into an "Others" category to reduce clutter.
+  - **Multi-View**: Toggle between Sector and Symbol views.
+  - **Multi-Metric**: Toggle between Daily Change and Total Return.
+  - **Drill-Down**: Tap to view detailed position lists for any sector or the "Others" group.
+
+### Portfolio Analytics Widget
+- **Component**: Comprehensive dashboard for advanced portfolio metrics.
+- **Features**:
+  - **Risk-Adjusted Returns**: Sharpe, Sortino, Treynor, Calmar, Omega, Information Ratio.
+  - **Market Comparison**: Alpha, Beta, Excess Return vs SPY/QQQ/DIA.
+  - **Risk Metrics**: Max Drawdown, Volatility, VaR (95%).
+  - **Integration**: Embeds the Risk Heatmap for visual context.
+
+### Option Instrument Position UI
+- **Component**: Redesigned Position Card in `OptionInstrumentWidget`.
+- **Features**:
+  - **Header**: Clear "Position" label with quantity, position type (e.g., "10x long"), and color-coded ITM/OTM badge.
+  - **P&L Display**: Prominent, large-format display for both Total Return and Today's Return with visual separation.
+  - **Stats Grid**: Organized 3-column layout showing Market Value, Avg Price, Total Cost, Break Even, Expiration (with red warning < 5 days), and Collateral (for short positions).
+  - **Position Greeks**: (Note: Capability added but optionally disabled) Aggregate Greeks calculation for the entire position.
+
+### UI Consistency & Performance Chart (v0.28.1)
+- **Component**: `HomeWidget` and various list views.
+- **Features**:
+  - **Performance Chart**: Reintroduced `PerformanceChartWidget` on the home screen with optimized layout and padding.
+  - **Visual Consistency**: Standardized section headers across the app (Crypto, Futures, Allocation, Performance, Income) by removing inconsistent bold styling for a cleaner look.
+
+## Future UI Improvement Ideas
+
+### Typography
+- [ ] Review font sizes and weights for consistency across all screens.
+- [ ] Consider using a custom font that aligns with the brand identity.
+
+### Color Scheme
+- [ ] Refine the Dark Mode color scheme to ensure sufficient contrast.
+- [ ] Verify that the `seedColor` generates a palette that works well for all components.
+
+### Components
+- [ ] **Cards**: Standardize card elevation and padding.
+- [ ] **Buttons**: Ensure consistent button styles (Filled, Outlined, Text) are used appropriately.
+- [ ] **Dialogs**: Update dialogs to use standard Material 3 dialogs.
+
+### Layout
+- [ ] **Padding**: Audit screens for consistent padding (e.g., 16dp standard).
+- [ ] **Lists**: Ensure list items have consistent height and spacing.
+
+### Feedback
+- [ ] **Loading States**: Replace generic circular progress indicators with skeleton loaders where appropriate.
+- [ ] **Error States**: Improve error messages with actionable steps and better visuals.
+
+### Accessibility
+- [ ] **Touch Targets**: Ensure all interactive elements have a minimum size of 48x48dp.
+- [ ] **Contrast**: Verify text contrast ratios meet WCAG guidelines.

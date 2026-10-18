@@ -1,6 +1,17 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' show auth;
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/insider_transaction.dart';
+import 'package:robinhood_options_mobile/model/institutional_ownership.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 
 // Yahoo Finance screener ID with display name
 class ScreenerId {
@@ -11,6 +22,8 @@ class ScreenerId {
 
 class YahooService {
   final http.Client httpClient = http.Client();
+  String? _crumb;
+  String? _cookie;
 
   // List of supported Yahoo Finance screener IDs (scrIds) with display names
   // Organized by category for better user experience
@@ -23,7 +36,6 @@ class YahooService {
     ScreenerId('aggressive_small_caps', 'Aggressive Small Caps'),
     ScreenerId('small_cap_gainers', 'Small Cap Gainers'),
     // ScreenerId('high_dividend_stocks', 'High Dividend Stocks'),
-
     // === Day Performance ===
     ScreenerId('day_gainers', 'Day Gainers'),
     ScreenerId('day_gainers_americas', 'Day Gainers (Americas)'),
@@ -61,7 +73,6 @@ class YahooService {
     ScreenerId('day_losers_ndx', 'Day Losers (NDX)'),
     ScreenerId('day_losers_nz', 'Day Losers (NZ)'),
     ScreenerId('day_losers_sg', 'Day Losers (SG)'),
-
     // === Sector Specific ===
     ScreenerId('biotechnology', 'Biotechnology'),
     ScreenerId('communication_equipment', 'Communication Equipment'),
@@ -71,36 +82,105 @@ class YahooService {
     ScreenerId('asset_management', 'Asset Management'),
     ScreenerId('credit_services', 'Credit Services'),
     ScreenerId('department_stores', 'Department Stores'),
-    // ScreenerId('diagnostic_substances', 'Diagnostic Substances'),
-    // ScreenerId('discount_variety_stores', 'Discount & Variety Stores'),
-    // ScreenerId('diversified_communication_services',
-    //     'Diversified Communication Services'),
-    // ScreenerId('diversified_computer_systems', 'Diversified Computer Systems'),
-    // ScreenerId('diversified_electronics', 'Diversified Electronics'),
-    // ScreenerId('diversified_investments', 'Diversified Investments'),
-    // ScreenerId('diversified_machinery', 'Diversified Machinery'),
-    // ScreenerId('diversified_utilities', 'Diversified Utilities'),
-    // ScreenerId('drug_delivery', 'Drug Delivery'),
-    // ScreenerId('drug_manufacturers_major', 'Drug Manufacturers - Major'),
-    // ScreenerId('drug_manufacturers_other', 'Drug Manufacturers - Other'),
-    // ScreenerId('drug_related_products', 'Drug Related Products'),
-    // ScreenerId('drug_stores', 'Drug Stores'),
-    // ScreenerId('drugs_generic', 'Drugs - Generic'),
-    // ScreenerId('drugs_wholesale', 'Drugs Wholesale'),
     ScreenerId('education_training_services', 'Education & Training Services'),
-    // ScreenerId('electric_utilities', 'Electric Utilities'),
-    // ScreenerId('electronic_equipment', 'Electronic Equipment'),
-    // ScreenerId('electronics_stores', 'Electronics Stores'),
-    // ScreenerId('electronics_wholesale', 'Electronics Wholesale'),
-    // ScreenerId('entertainment_diversified', 'Entertainment - Diversified'),
-    // ScreenerId('fair_value_screener', 'Fair Value Screener'),
-    // ScreenerId('farm_construction_machinery', 'Farm & Construction Machinery'),
     ScreenerId('farm_products', 'Farm Products'),
-    // ScreenerId('financial', 'Financial'),
-    // ScreenerId('food_major_diversified', 'Food - Major Diversified'),
-    // ScreenerId('food_wholesale', 'Food Wholesale'),
-    // ScreenerId('foreign_money_center_banks', 'Foreign Money Center Banks'),
-    // ScreenerId('foreign_regional_banks', 'Foreign Regional Banks'),
+    ScreenerId('gold', 'Gold'),
+    ScreenerId('grocery_stores', 'Grocery Stores'),
+    ScreenerId('high_yield_bond', 'High Yield Bond'),
+    ScreenerId(
+        'information_technology_services', 'Information Technology Services'),
+    ScreenerId('insurance_brokers', 'Insurance Brokers'),
+    ScreenerId('lodging', 'Lodging'),
+    ScreenerId('lumber_wood_production', 'Lumber & Wood Production'),
+    ScreenerId(
+        'medical_instruments_supplies', 'Medical Instruments & Supplies'),
+    ScreenerId('mega_cap_hc', 'Mega Cap HC'),
+    ScreenerId('metal_fabrication', 'Metal Fabrication'),
+    ScreenerId('most_actives_americas', 'Most Actives (Americas)'),
+    ScreenerId('most_actives_asia', 'Most Actives (Asia)'),
+    ScreenerId('most_actives_au', 'Most Actives (AU)'),
+    ScreenerId('most_actives_br', 'Most Actives (BR)'),
+    ScreenerId('most_actives_ca', 'Most Actives (CA)'),
+    ScreenerId('most_actives_de', 'Most Actives (DE)'),
+    ScreenerId('most_actives_dji', 'Most Actives (DJI)'),
+    ScreenerId('most_actives_es', 'Most Actives (ES)'),
+    ScreenerId('most_actives_europe', 'Most Actives (Europe)'),
+    ScreenerId('most_actives_fr', 'Most Actives (FR)'),
+    ScreenerId('most_actives_gb', 'Most Actives (GB)'),
+    ScreenerId('most_actives_hk', 'Most Actives (HK)'),
+    ScreenerId('most_actives_in', 'Most Actives (IN)'),
+    ScreenerId('most_actives_it', 'Most Actives (IT)'),
+    ScreenerId('most_actives_ndx', 'Most Actives (NDX)'),
+    ScreenerId('most_actives_nz', 'Most Actives (NZ)'),
+    ScreenerId('most_actives_sg', 'Most Actives (SG)'),
+    ScreenerId('most_watched_tickers', 'Most Watched Tickers'),
+    ScreenerId('ms_basic_materials', 'MS Basic Materials'),
+    ScreenerId('ms_communication_services', 'MS Communication Services'),
+    ScreenerId('ms_consumer_cyclical', 'MS Consumer Cyclical'),
+    ScreenerId('ms_consumer_defensive', 'MS Consumer Defensive'),
+    ScreenerId('ms_energy', 'MS Energy'),
+    ScreenerId('ms_financial_services', 'MS Financial Services'),
+    ScreenerId('ms_healthcare', 'MS Healthcare'),
+    ScreenerId('ms_industrials', 'MS Industrials'),
+    ScreenerId('ms_real_estate', 'MS Real Estate'),
+    ScreenerId('ms_technology', 'MS Technology'),
+    ScreenerId('ms_utilities', 'MS Utilities'),
+    ScreenerId('oil_gas_equipment_services', 'Oil & Gas Equipment & Services'),
+    ScreenerId('oil_gas_refining_marketing', 'Oil & Gas Refining & Marketing'),
+    ScreenerId('packaging_containers', 'Packaging & Containers'),
+    ScreenerId('paper_paper_products', 'Paper & Paper Products'),
+    ScreenerId('personal_services', 'Personal Services'),
+    ScreenerId(
+        'pollution_treatment_controls', 'Pollution Treatment & Controls'),
+    ScreenerId('portfolio_anchors', 'Portfolio Anchors'),
+    ScreenerId('railroads', 'Railroads'),
+    ScreenerId('real_estate_development', 'Real Estate Development'),
+    ScreenerId('recreational_vehicles', 'Recreational Vehicles'),
+    ScreenerId('reit_diversified', 'REIT - Diversified'),
+    ScreenerId('reit_healthcare_facilities', 'REIT - Healthcare Facilities'),
+    ScreenerId('reit_hotel_motel', 'REIT - Hotel & Motel'),
+    ScreenerId('reit_industrial', 'REIT - Industrial'),
+    ScreenerId('reit_office', 'REIT - Office'),
+    ScreenerId('reit_residential', 'REIT - Residential'),
+    ScreenerId('reit_retail', 'REIT - Retail'),
+    ScreenerId('rental_leasing_services', 'Rental & Leasing Services'),
+    ScreenerId('residential_construction', 'Residential Construction'),
+    ScreenerId('resorts_casinos', 'Resorts & Casinos'),
+    ScreenerId('restaurants', 'Restaurants'),
+    ScreenerId('scientific_technical_instruments',
+        'Scientific & Technical Instruments'),
+    ScreenerId(
+        'security_protection_services', 'Security & Protection Services'),
+    ScreenerId('semiconductor_equipment_materials',
+        'Semiconductor Equipment & Materials'),
+    ScreenerId('silver', 'Silver'),
+    ScreenerId('solid_large_growth_funds', 'Solid Large Growth Funds'),
+    ScreenerId('solid_midcap_growth_funds', 'Solid Midcap Growth Funds'),
+    ScreenerId('specialty_chemicals', 'Specialty Chemicals'),
+    ScreenerId('top_energy_us', 'Top Energy (US)'),
+    ScreenerId('top_etfs_us', 'Top ETFs (US)'),
+    ScreenerId('top_mutual_funds', 'Top Mutual Funds'),
+    ScreenerId('top_mutual_funds_au', 'Top Mutual Funds (AU)'),
+    ScreenerId('top_mutual_funds_br', 'Top Mutual Funds (BR)'),
+    ScreenerId('top_mutual_funds_ca', 'Top Mutual Funds (CA)'),
+    ScreenerId('top_mutual_funds_de', 'Top Mutual Funds (DE)'),
+    ScreenerId('top_mutual_funds_es', 'Top Mutual Funds (ES)'),
+    ScreenerId('top_mutual_funds_fr', 'Top Mutual Funds (FR)'),
+    ScreenerId('top_mutual_funds_gb', 'Top Mutual Funds (GB)'),
+    ScreenerId('top_mutual_funds_hk', 'Top Mutual Funds (HK)'),
+    ScreenerId('top_mutual_funds_in', 'Top Mutual Funds (IN)'),
+    ScreenerId('top_mutual_funds_it', 'Top Mutual Funds (IT)'),
+    ScreenerId('top_mutual_funds_nz', 'Top Mutual Funds (NZ)'),
+    ScreenerId('top_mutual_funds_sg', 'Top Mutual Funds (SG)'),
+    ScreenerId('top_mutual_funds_us', 'Top Mutual Funds (US)'),
+    ScreenerId(
+        'top_options_implied_volatality', 'Top Options - Implied Volatility'),
+    ScreenerId('top_options_open_interest', 'Top Options - Open Interest'),
+    ScreenerId('trucking', 'Trucking'),
+    ScreenerId('waste_management', 'Waste Management'),
+  ];
+
+  /*
     // ScreenerId('foreign_utilities', 'Foreign Utilities'),
     // ScreenerId('gaming_activities', 'Gaming Activities'),
     // ScreenerId('gas_utilities', 'Gas Utilities'),
@@ -326,6 +406,8 @@ class YahooService {
     // ScreenerId('water_utilities', 'Water Utilities'),
     // ScreenerId('wireless_communications', 'Wireless Communications'),
   ];
+
+  */
 
   /*
 {
@@ -662,9 +744,117 @@ class YahooService {
       String range = "ytd", // 1y
       String interval = "1d"}) async {
     var url =
-        "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
-    var entryJson = await getJson(url);
-    return entryJson;
+        "https://query2.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
+    final cacheKey = 'marketIndexHistoricals_${symbol}_${range}_$interval';
+    try {
+      final entryJson = await getCachedJson(
+        url,
+        cacheKey: cacheKey,
+        ttl: const Duration(hours: 4),
+      );
+      final chart = entryJson is Map ? entryJson['chart'] : null;
+      final result = chart is Map ? chart['result'] : null;
+      final hasData = result is List &&
+          result.isNotEmpty &&
+          result.first is Map &&
+          result.first['timestamp'] is List &&
+          (result.first['timestamp'] as List).isNotEmpty;
+      debugPrint(
+          'Yahoo benchmark $symbol $range/$interval: ${hasData ? "received ${(result.first["timestamp"] as List).length} points" : "empty or invalid response"}');
+      return entryJson;
+    } catch (error, stackTrace) {
+      debugPrint('Yahoo benchmark $symbol $range/$interval failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<dynamic> getESGScores(String symbol) async {
+    var url =
+        "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=esgScores";
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'esgScores_$symbol', ttl: const Duration(days: 30));
+    return responseJson;
+  }
+
+  Future<dynamic> getAssetProfile(String symbol) async {
+    var url =
+        "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=assetProfile";
+    var responseJson = await getCachedJson(url,
+        cacheKey: 'assetProfile_$symbol', ttl: const Duration(days: 30));
+    return responseJson;
+  }
+
+  Future<dynamic> getOptionChain(String symbol, {int? date}) async {
+    var url =
+        "https://query2.finance.yahoo.com/v7/finance/options/${Uri.encodeFull(symbol)}?formatted=true&lang=en-US&region=US&corsDomain=finance.yahoo.com";
+    if (date != null) {
+      url += "&date=$date";
+    }
+    var responseJson = await getJson(url);
+
+    if (responseJson['optionChain'] == null ||
+        responseJson['optionChain']['result'] == null ||
+        (responseJson['optionChain']['result'] as List).isEmpty) {
+      return {};
+    }
+
+    var result = responseJson['optionChain']['result'][0];
+
+    // return responseJson;
+    return {
+      'expirationDates': (result['expirationDates'] as List?)
+              ?.map((ts) =>
+                  DateTime.fromMillisecondsSinceEpoch((ts as int) * 1000))
+              .toList() ??
+          [],
+      'hasMiniOptions': result['hasMiniOptions'],
+      'quote': result['quote'],
+      'options': (result['options'] as List?)?.map((opt) {
+            var optMap = Map<String, dynamic>.from(opt);
+
+            Map<String, dynamic> cleanContract(Map<String, dynamic> contract) {
+              var cleaned = <String, dynamic>{};
+              contract.forEach((key, value) {
+                if (value is Map && value.containsKey('raw')) {
+                  cleaned[key] = value['raw'];
+                } else {
+                  cleaned[key] = value;
+                }
+              });
+
+              if (cleaned['expiration'] is int) {
+                cleaned['expiration'] = DateTime.fromMillisecondsSinceEpoch(
+                    cleaned['expiration'] * 1000);
+              }
+              if (cleaned['lastTradeDate'] is int) {
+                cleaned['lastTradeDate'] = DateTime.fromMillisecondsSinceEpoch(
+                    cleaned['lastTradeDate'] * 1000);
+              }
+              return cleaned;
+            }
+
+            if (optMap['calls'] != null) {
+              optMap['calls'] = (optMap['calls'] as List)
+                  .map((c) => cleanContract(Map<String, dynamic>.from(c)))
+                  .toList();
+            }
+            if (optMap['puts'] != null) {
+              optMap['puts'] = (optMap['puts'] as List)
+                  .map((p) => cleanContract(Map<String, dynamic>.from(p)))
+                  .toList();
+            }
+            if (optMap['expirationDate'] != null) {
+              optMap['expirationDate'] = DateTime.fromMillisecondsSinceEpoch(
+                  optMap['expirationDate'] * 1000);
+            }
+            return optMap;
+          }).toList() ??
+          [],
+      'strikes': result['strikes'] ?? [],
+      'underlyingSymbol': result['underlyingSymbol'],
+      'lastUpdated': DateTime.now().millisecondsSinceEpoch,
+    };
   }
 
   /// Fetch stock screener results from Yahoo Finance predefined screeners
@@ -706,7 +896,7 @@ class YahooService {
     bool betaFeatureFlag = true,
   }) async {
     final url = Uri.parse(
-        'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved'
+        'https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved'
         '?count=$count'
         '&formatted=$formatted'
         '&scrIds=$scrIds'
@@ -721,15 +911,910 @@ class YahooService {
     return responseJson;
   }
 
+  Future<dynamic> getCachedJson(String url,
+      {required String cacheKey,
+      Duration ttl = const Duration(days: 7)}) async {
+    final docRef =
+        FirebaseFirestore.instance.collection('yahoo_data').doc(cacheKey);
+
+    try {
+      final docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        if (data != null &&
+            data.containsKey('lastUpdated') &&
+            data['lastUpdated'] != null) {
+          final lastUpdated = (data['lastUpdated'] as Timestamp).toDate();
+          if (DateTime.now().difference(lastUpdated) < ttl &&
+              data['data'] != null) {
+            debugPrint('Yahoo cache hit: $cacheKey');
+            return data['data'];
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error reading cache for $cacheKey: $e");
+    }
+
+    try {
+      final responseJson = await getJson(url);
+      if (responseJson != null) {
+        await _writeCache(docRef, cacheKey, responseJson);
+      }
+      return responseJson;
+    } catch (e) {
+      if (e.toString().contains('Failed to load data: 401')) {
+        // Invalidate crumb and retry once
+        _crumb = null;
+        debugPrint("Retrying after invalidating crumb for $cacheKey");
+        final responseJson = await getJson(url);
+        await _writeCache(docRef, cacheKey, responseJson,
+            suffix: 'after retry');
+        return responseJson;
+      } else if (e.toString().contains('Failed to load data: 404')) {
+        // Return empty data for 404 errors
+        debugPrint("Received 404 for $cacheKey, returning empty data.");
+        await _writeCache(docRef, cacheKey, {}, suffix: 'after 404');
+        return {};
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _writeCache(DocumentReference<Map<String, dynamic>> docRef,
+      String cacheKey, dynamic responseJson,
+      {String? suffix}) async {
+    try {
+      await docRef.set({
+        'data': responseJson,
+        'lastUpdated': Timestamp.now(),
+      });
+      debugPrint(
+          'Yahoo cache written: yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'}');
+    } catch (error, stackTrace) {
+      debugPrint(
+          'Error writing Yahoo cache yahoo_data/$cacheKey${suffix == null ? '' : ' ($suffix)'} as ${auth.currentUser?.uid ?? 'unauthenticated'}: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  /// Yahoo Finance doesn't send CORS headers, so browsers can't call it
+  /// directly. On web, requests go through this Cloud Function, which
+  /// forwards them server-side (including Yahoo's cookie/crumb session).
+  static const String _corsProxyBase =
+      'https://us-central1-realizealpha.cloudfunctions.net/yahooProxy';
+
+  Future<dynamic> _getJsonViaProxy(String url) async {
+    final proxied = '$_corsProxyBase?url=${Uri.encodeComponent(url)}';
+    Stopwatch stopwatch = Stopwatch()..start();
+
+    // The proxy requires a signed-in Firebase user (anonymous is fine) so
+    // third parties can't burn the market-data API credits behind it.
+    if (auth.currentUser == null) {
+      try {
+        await auth.signInAnonymously();
+      } catch (e) {
+        debugPrint('Could not establish a session for the proxy: $e');
+      }
+    }
+    final idToken = await auth.currentUser?.getIdToken();
+
+    final response = await httpClient.get(Uri.parse(proxied), headers: {
+      if (idToken != null) 'Authorization': 'Bearer $idToken',
+    });
+    debugPrint(
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms (proxy) $url");
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    debugPrint("Yahoo proxy error: ${response.statusCode} ${response.body}");
+    throw Exception("Failed to load data: ${response.statusCode}");
+  }
+
   Future<dynamic> getJson(String url) async {
+    if (kIsWeb) {
+      return _getJsonViaProxy(url);
+    }
+
+    String requestUrl = url;
+    if (_crumb == null) {
+      await _fetchCrumb();
+    }
+
+    if (_crumb != null) {
+      if (requestUrl.contains('?')) {
+        if (!requestUrl.contains('crumb=')) {
+          requestUrl += '&crumb=$_crumb';
+        }
+      } else {
+        requestUrl += '?crumb=$_crumb';
+      }
+    }
+
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
-    String responseStr = await httpClient.read(Uri.parse(url));
+    // String responseStr = await httpClient.read(Uri.parse(url));
+    var uri = Uri.parse(requestUrl);
+    var headers = {
+      'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+      'Accept': '*/*',
+      'Referer': 'https://finance.yahoo.com/',
+      'Origin': 'https://finance.yahoo.com',
+    };
+    if (_cookie != null) {
+      headers['Cookie'] = _cookie!;
+    }
+
+    var response = await httpClient.get(uri, headers: headers);
+
+    // Retry once if unauthorized
+    if (response.statusCode == 401) {
+      debugPrint("Yahoo API 401, clearing session and retrying...");
+      _crumb = null;
+      _cookie = null;
+      await _fetchCrumb();
+
+      // Re-prepare request with potential new session
+      var retryHeaders = {
+        'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Referer': 'https://finance.yahoo.com/',
+        'Origin': 'https://finance.yahoo.com',
+      };
+      if (_cookie != null) {
+        retryHeaders['Cookie'] = _cookie!;
+      }
+
+      var retryUrl = url; // Use original URL
+      if (_crumb != null) {
+        if (retryUrl.contains('?')) {
+          if (!retryUrl.contains('crumb=')) {
+            retryUrl += '&crumb=$_crumb';
+          }
+        } else {
+          retryUrl += '?crumb=$_crumb';
+        }
+      }
+
+      response =
+          await httpClient.get(Uri.parse(retryUrl), headers: retryHeaders);
+    }
+
     debugPrint(
-        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
-    dynamic responseJson = jsonDecode(responseStr);
-    return responseJson;
+        "${(response.body.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $requestUrl");
+
+    if (response.statusCode == 200) {
+      dynamic responseJson = jsonDecode(response.body);
+      return responseJson;
+    } else {
+      debugPrint("Yahoo API Error: ${response.statusCode} ${response.body}");
+      throw Exception("Failed to load data: ${response.statusCode}");
+    }
+  }
+
+  Future<void> _fetchCrumb() async {
+    // Browsers can't set the Cookie/User-Agent headers this flow needs and
+    // the endpoints are CORS-blocked; web requests use the proxy instead.
+    if (kIsWeb) return;
+    try {
+      // 1. Get Cookie from fc.yahoo.com
+      final response1 = await httpClient.get(
+        Uri.parse('https://fc.yahoo.com'),
+        headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+          'Accept':
+              'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        },
+      );
+
+      _updateCookie(response1);
+
+      // Fallback to finance.yahoo.com if no cookie
+      if (_cookie == null) {
+        debugPrint("No cookie from fc.yahoo.com, trying finance.yahoo.com...");
+        final responseHome = await httpClient.get(
+          Uri.parse('https://finance.yahoo.com'),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+            'Accept':
+                'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          },
+        );
+        _updateCookie(responseHome);
+      }
+
+      if (_cookie != null) {
+        // 2. Get Crumb
+        final response2 = await httpClient.get(
+          Uri.parse('https://query2.finance.yahoo.com/v1/test/getcrumb'),
+          headers: {
+            'Cookie': _cookie!,
+            'User-Agent':
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
+          },
+        );
+
+        if (response2.statusCode == 200) {
+          _crumb = response2.body;
+          debugPrint('Yahoo Crumb fetched: $_crumb');
+        } else {
+          debugPrint('Failed to fetch Yahoo crumb: ${response2.statusCode}');
+          _crumb = null;
+        }
+      } else {
+        debugPrint('Failed to obtain Yahoo cookie');
+      }
+    } catch (e) {
+      debugPrint('Error fetching Yahoo crumb: $e');
+    }
+  }
+
+  void _updateCookie(http.Response response) {
+    String? rawCookie = response.headers['set-cookie'];
+    if (rawCookie != null) {
+      // Extract only the key=value pairs, ignoring attributes like Path, Domain, etc.
+      // and join them with semicolons for the Cookie header.
+      _cookie =
+          rawCookie.split(',').map((c) => c.split(';').first.trim()).join('; ');
+      debugPrint('Yahoo Cookie updated');
+    }
+  }
+
+  /// Fetch institutional ownership for a given symbol
+  Future<InstitutionalOwnership?> getInstitutionalOwnership(
+      String symbol) async {
+    try {
+      final url =
+          "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=institutionOwnership,majorHoldersBreakdown";
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'institutionalOwnership_$symbol',
+          ttl: const Duration(days: 7));
+
+      if (jsonResponse['quoteSummary'] != null &&
+          jsonResponse['quoteSummary']['result'] != null) {
+        final result = (jsonResponse['quoteSummary']['result'] as List);
+        if (result.isNotEmpty) {
+          final data = result[0];
+          final holdersList = data['institutionOwnership']?['ownershipList'];
+          final breakdown = data['majorHoldersBreakdown'];
+
+          double? percentageHeld;
+          double? floatPercentageHeld;
+          double? insidersPercentageHeld;
+          int? institutionCount;
+
+          if (breakdown != null) {
+            if (breakdown['institutionsPercentHeld'] != null) {
+              percentageHeld =
+                  (breakdown['institutionsPercentHeld']['raw'] as num?)
+                      ?.toDouble();
+            }
+            if (breakdown['institutionsFloatPercentHeld'] != null) {
+              floatPercentageHeld =
+                  (breakdown['institutionsFloatPercentHeld']['raw'] as num?)
+                      ?.toDouble();
+            }
+            if (breakdown['insidersPercentHeld'] != null) {
+              insidersPercentageHeld =
+                  (breakdown['insidersPercentHeld']['raw'] as num?)?.toDouble();
+            }
+            if (breakdown['institutionsCount'] != null) {
+              institutionCount =
+                  (breakdown['institutionsCount']['raw'] as num?)?.toInt();
+            }
+          }
+
+          List<InstitutionalHolder> topHolders = [];
+          if (holdersList != null) {
+            topHolders = (holdersList as List).map((h) {
+              return InstitutionalHolder(
+                name: h['organization'] ?? 'Unknown',
+                sharesHeld: (h['position']?['raw'] as num?)?.toDouble() ?? 0,
+                change: null, // Change not provided in this module
+                percentageChange: (h['pctHeld']?['raw'] as num?)?.toDouble(),
+                dateReported: h['reportDate']?['fmt'] != null
+                    ? DateTime.tryParse(h['reportDate']['fmt'])
+                    : (h['reportDate']?['raw'] != null
+                        ? DateTime.fromMillisecondsSinceEpoch(
+                            h['reportDate']['raw'] * 1000)
+                        : null),
+              );
+            }).toList();
+          }
+
+          return InstitutionalOwnership(
+            symbol: symbol,
+            percentageHeld: percentageHeld,
+            floatPercentageHeld: floatPercentageHeld,
+            insidersPercentageHeld: insidersPercentageHeld,
+            institutionCount: institutionCount,
+            topHolders: topHolders,
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching institutional ownership: $e');
+    }
+    return null;
+  }
+
+  /// Fetch insider transactions for a given symbol
+  Future<List<InsiderTransaction>> getInsiderTransactions(String symbol) async {
+    try {
+      final url =
+          "https://query2.finance.yahoo.com/v10/finance/quoteSummary/${Uri.encodeFull(symbol)}?modules=insiderTransactions";
+      final jsonResponse = await getCachedJson(url,
+          cacheKey: 'insiderTransactions_$symbol',
+          ttl: const Duration(days: 1));
+
+      if (jsonResponse['quoteSummary'] != null &&
+          jsonResponse['quoteSummary']['result'] != null) {
+        final result = jsonResponse['quoteSummary']['result'];
+        if ((result as List).isNotEmpty) {
+          final insiderTransactions =
+              result[0]['insiderTransactions']['transactions'];
+          if (insiderTransactions != null) {
+            return (insiderTransactions as List)
+                .map((e) => InsiderTransaction.fromJson(e))
+                .toList();
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching insider transactions: $e');
+    }
+    return [];
+  }
+
+  /// Fetch quote for a given symbol
+  Future<Quote> getQuote(String symbol) async {
+    // https://query2.finance.yahoo.com/v7/finance/quote?symbols=AAPL
+    var url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbol';
+    var json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null &&
+        (json['quoteResponse']['result'] as List).isNotEmpty) {
+      var result = json['quoteResponse']['result'][0];
+      // Map Yahoo result to Quote
+      return Quote(
+          symbol: result['symbol'],
+          askPrice: (result['ask'] as num?)?.toDouble(),
+          askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+          bidPrice: (result['bid'] as num?)?.toDouble(),
+          bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+          lastTradePrice: (result['regularMarketPrice'] as num?)?.toDouble() ??
+              (result['regularMarketPrice'] as num?)?.toDouble() ??
+              0.0,
+          previousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
+          adjustedPreviousClose:
+              (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                  (result['regularMarketPrice'] as num?)?.toDouble() ??
+                  0.0,
+          previousCloseDate: null,
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'yahoo',
+          updatedAt: DateTime.now(),
+          instrument: 'https://api.robinhood.com/instruments/$symbol/', // Dummy
+          instrumentId: symbol // Dummy
+          );
+    }
+    throw Exception('Quote not found for $symbol');
+  }
+
+  /// Fetch quotes for multiple symbols using Yahoo Finance
+  Future<List<Quote>> getQuotesByIds(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      return results.map((result) {
+        final symbol = result['symbol'];
+        return Quote(
+            symbol: symbol,
+            askPrice: (result['ask'] as num?)?.toDouble() ?? 0.0,
+            askSize: (result['askSize'] as num?)?.toInt() ?? 0,
+            bidPrice: (result['bid'] as num?)?.toDouble() ?? 0.0,
+            bidSize: (result['bidSize'] as num?)?.toInt() ?? 0,
+            lastTradePrice:
+                (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            previousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            adjustedPreviousClose:
+                (result['regularMarketPreviousClose'] as num?)?.toDouble() ??
+                    (result['regularMarketPrice'] as num?)?.toDouble() ??
+                    0.0,
+            previousCloseDate: null,
+            tradingHalted: false,
+            hasTraded: true,
+            lastTradePriceSource: 'yahoo',
+            updatedAt: DateTime.now(),
+            instrument:
+                'https://api.robinhood.com/instruments/$symbol/', // Dummy
+            instrumentId: symbol // Dummy
+            );
+      }).toList();
+    }
+    return [];
+  }
+
+  /// Convert Yahoo Quote result to Robinhood-style Instrument
+  Future<List<Instrument>> getInstruments(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      return results.map((result) {
+        final symbol = result['symbol'];
+        return Instrument(
+          id: symbol,
+          url: 'https://api.robinhood.com/instruments/$symbol/',
+          quote: 'https://api.robinhood.com/quotes/$symbol/',
+          fundamentals: 'https://api.robinhood.com/fundamentals/$symbol/',
+          splits: 'https://api.robinhood.com/instruments/$symbol/splits/',
+          state: 'active',
+          market: 'https://api.robinhood.com/markets/XNAS/', // dummy
+          simpleName: result['shortName'] ?? result['longName'],
+          name: result['longName'] ?? result['shortName'] ?? symbol,
+          tradeable: true,
+          tradability: 'tradable',
+          symbol: symbol,
+          bloombergUnique: '',
+          marginInitialRatio: 0.5,
+          maintenanceRatio: 0.25,
+          country: result['region'] ?? 'US',
+          dayTradeRatio: 0.25,
+          listDate: null,
+          minTickSize: null,
+          type: (result['quoteType'] == 'ETF' ||
+                  result['quoteType'] == 'MUTUALFUND')
+              ? 'etp'
+              : 'stock',
+          tradeableChainId: null,
+          rhsTradability: 'tradable',
+          fractionalTradability: 'tradable',
+          defaultCollarFraction: 0.05,
+          ipoAccessStatus: null,
+          ipoAccessCobDeadline: null,
+          ipoAllocatedPrice: null,
+          ipoCustomersReceived: null,
+          ipoCustomersRequested: null,
+          ipoDate: null,
+          ipoS1Url: null,
+          ipoRoadshowUrl: null,
+          isSpac: false,
+          isTest: false,
+          ipoAccessSupportsDsp: false,
+          dateCreated: DateTime.now(),
+        );
+      }).toList();
+    }
+    return [];
+  }
+
+  /// Convert Yahoo Quote result to Robinhood-style Fundamentals
+  Future<List<Fundamentals>> getFundamentals(List<String> symbols) async {
+    if (symbols.isEmpty) return [];
+    final symbolsStr = symbols.join(',');
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbolsStr';
+    final json = await getJson(url);
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      final results = json['quoteResponse']['result'] as List;
+      final assetProfiles = <String, Map<String, dynamic>>{};
+      await Future.wait(results.map((result) async {
+        final symbol = result['symbol']?.toString();
+        if (symbol == null || symbol.isEmpty) return;
+        try {
+          final response = await getAssetProfile(symbol);
+          final profileResults = response['quoteSummary']?['result'] as List?;
+          final profile = profileResults?.isNotEmpty == true
+              ? profileResults!.first['assetProfile']
+              : null;
+          if (profile is Map) {
+            assetProfiles[symbol] = Map<String, dynamic>.from(profile);
+          }
+        } catch (e) {
+          debugPrint('Could not load Yahoo asset profile for $symbol: $e');
+        }
+      }));
+
+      return results.map((result) {
+        final symbol = result['symbol'];
+        final profile = assetProfiles[symbol];
+        final quoteType = result['quoteType']?.toString().toUpperCase();
+        final isFund = quoteType == 'ETF' || quoteType == 'MUTUALFUND';
+        final sector = profile?['sector']?.toString().trim();
+        final industry = profile?['industry']?.toString().trim();
+        return Fundamentals(
+          open: (result['regularMarketOpen'] as num?)?.toDouble(),
+          high: (result['regularMarketDayHigh'] as num?)?.toDouble(),
+          low: (result['regularMarketDayLow'] as num?)?.toDouble(),
+          volume: (result['regularMarketVolume'] as num?)?.toDouble(),
+          averageVolume:
+              (result['averageDailyVolume3Month'] as num?)?.toDouble(),
+          high52Weeks: (result['fiftyTwoWeekHigh'] as num?)?.toDouble(),
+          low52Weeks: (result['fiftyTwoWeekLow'] as num?)?.toDouble(),
+          marketCap: (result['marketCap'] as num?)?.toDouble(),
+          dividendYield:
+              (result['trailingAnnualDividendYield'] as num?)?.toDouble(),
+          peRatio: (result['trailingPE'] as num?)?.toDouble(),
+          sharesOutstanding: (result['sharesOutstanding'] as num?)?.toDouble(),
+          description: profile?['longBusinessSummary']?.toString() ??
+              result['longName'] ??
+              '',
+          instrument: 'https://api.robinhood.com/instruments/$symbol/',
+          ceo: (profile?['companyOfficers'] as List?)?.isNotEmpty == true
+              ? profile!['companyOfficers'][0]['name']?.toString() ?? ''
+              : '',
+          headquartersCity: profile?['city']?.toString() ?? '',
+          headquartersState: profile?['state']?.toString() ?? '',
+          sector: sector?.isNotEmpty == true
+              ? sector!
+              : isFund
+                  ? 'Fund / ETF'
+                  : 'Unclassified',
+          industry: industry?.isNotEmpty == true
+              ? industry!
+              : isFund
+                  ? result['longName']?.toString() ?? 'Exchange-Traded Fund'
+                  : 'Unclassified',
+          numEmployees: (profile?['fullTimeEmployees'] as num?)?.toInt(),
+        );
+      }).toList();
+    }
+    return [];
+  }
+
+  /// Fetch chart data for a given symbol
+  Future<Map<String, dynamic>?> getChartData(
+      String symbol, String range, String interval) async {
+    // Yahoo Finance uses hyphens for share classes (e.g. BRK.B -> BRK-B)
+    final normalizedSymbol = Uri.decodeComponent(symbol);
+    final querySymbol = normalizedSymbol.replaceAll('.', '-');
+    final encodedSymbol = Uri.encodeComponent(querySymbol);
+
+    final url =
+        'https://query2.finance.yahoo.com/v8/finance/chart/$encodedSymbol?range=$range&interval=$interval';
+    final json = await getJson(url);
+
+    if (json['chart'] != null &&
+        json['chart']['result'] != null &&
+        (json['chart']['result'] as List).isNotEmpty) {
+      return json['chart']['result'][0] as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  /// Fetch historicals for a given symbol
+  Future<List<InstrumentHistorical>> getHistoricals(
+      String symbol, String range, String interval) async {
+    // https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=1d&interval=5m
+    final res = await getChartData(symbol, range, interval);
+    List<InstrumentHistorical> candles = [];
+    if (res != null) {
+      var timestamp = res['timestamp'] as List<dynamic>?;
+      var indicators = res['indicators'];
+      var quote = indicators['quote'][0];
+
+      if (timestamp != null) {
+        for (int i = 0; i < timestamp.length; i++) {
+          if (quote['open'][i] == null) continue;
+          candles.add(InstrumentHistorical(
+              DateTime.fromMillisecondsSinceEpoch(timestamp[i] * 1000),
+              (quote['open'][i] as num?)?.toDouble(),
+              (quote['close'][i] as num?)?.toDouble(),
+              (quote['high'][i] as num?)?.toDouble(),
+              (quote['low'][i] as num?)?.toDouble(),
+              (quote['volume'][i] as num?)?.toInt() ?? 0,
+              'reg',
+              false));
+        }
+      }
+    }
+    return candles;
+  }
+
+  /// Search for symbols using Yahoo Finance Search
+  Future<List<Map<String, dynamic>>> search(String query) async {
+    try {
+      final url =
+          "https://query2.finance.yahoo.com/v1/finance/search?q=${Uri.encodeComponent(query)}";
+      dynamic data;
+      if (kIsWeb) {
+        data = await _getJsonViaProxy(url);
+      } else {
+        final response = await httpClient.get(Uri.parse(url), headers: {
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        });
+        if (response.statusCode != 200) {
+          return [];
+        }
+        data = jsonDecode(response.body);
+      }
+      final List quotes = data['quotes'] ?? [];
+      return quotes.map((q) {
+        return {
+          "symbol": q['symbol'],
+          "name": q['longname'] ?? q['shortname'],
+          "simple_name": q['shortname'],
+          "description": q['longname'],
+          "assetType": q['typeDisp'],
+          "exchange": q['exchDisp'],
+          "type": q['quoteType'],
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('Error searching Yahoo Finance: $e');
+    }
+    return [];
+  }
+
+  /// Fetch movers (gainers/losers) using Yahoo Finance
+  Future<List<Map<String, dynamic>>> getMovers(
+      {String direction = 'up'}) async {
+    final screenerId = direction == 'up' ? 'day_gainers' : 'day_losers';
+    try {
+      final response = await getStockScreener(scrIds: screenerId, count: 20);
+      final results = response['finance']?['result']?[0]?['records'] ?? [];
+      return (results as List).map((q) {
+        double? price;
+        if (q['regularMarketPrice'] is Map) {
+          price = (q['regularMarketPrice']['raw'] as num?)?.toDouble();
+        } else {
+          price = (q['regularMarketPrice'] as num?)?.toDouble();
+        }
+
+        double? changePercent;
+        if (q['regularMarketChangePercent'] is Map) {
+          changePercent =
+              (q['regularMarketChangePercent']['raw'] as num?)?.toDouble();
+        } else {
+          changePercent = (q['regularMarketChangePercent'] as num?)?.toDouble();
+        }
+
+        return {
+          "symbol": q['ticker'],
+          "name": q['companyName'] ?? q['ticker'] ?? 'Unknown',
+          "price": price ?? 0.0,
+          "changePercent": changePercent ?? 0.0,
+          "description": q['companyName'] ?? q['ticker'] ?? '',
+        };
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching movers from Yahoo: $e');
+    }
+    return [];
+  }
+
+  /// Converts any currency pair string or ID into a Yahoo Finance forex symbol.
+  /// e.g. "EUR/USD" -> "EURUSD=X", "forex_eurusd" -> "EURUSD=X", "USDJPY" -> "USDJPY=X".
+  static String toForexYahooSymbol(String symbolOrPairId) {
+    var s = symbolOrPairId.trim().toUpperCase();
+    if (s.startsWith('FOREX_')) {
+      s = s.substring(6);
+    }
+    s = s.replaceAll('/', '').replaceAll('-', '').replaceAll('_', '');
+    if (s.endsWith('=X')) {
+      return s;
+    }
+    if (s.length == 6) {
+      return '$s=X';
+    }
+    return symbolOrPairId;
+  }
+
+  /// Fetches a live or delayed ForexQuote from Yahoo Finance.
+  Future<ForexQuote> getForexQuote(String symbolOrPairId) async {
+    final yahooSymbol = toForexYahooSymbol(symbolOrPairId);
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$yahooSymbol';
+    final json = await getJson(url);
+
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null &&
+        (json['quoteResponse']['result'] as List).isNotEmpty) {
+      final res = json['quoteResponse']['result'][0];
+      final markPrice = (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+      final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
+          (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
+          markPrice;
+      final highPrice =
+          (res['regularMarketDayHigh'] as num?)?.toDouble() ?? markPrice;
+      final lowPrice =
+          (res['regularMarketDayLow'] as num?)?.toDouble() ?? markPrice;
+      final bidPrice = (res['bid'] as num?)?.toDouble() ?? markPrice;
+      final askPrice = (res['ask'] as num?)?.toDouble() ?? markPrice;
+      final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
+      final time = res['regularMarketTime'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              ((res['regularMarketTime'] as num).toInt()) * 1000)
+          : DateTime.now();
+
+      final cleanSymbol = yahooSymbol.endsWith('=X')
+          ? yahooSymbol.substring(0, yahooSymbol.length - 2)
+          : yahooSymbol;
+
+      return ForexQuote(
+        askPrice,
+        bidPrice,
+        markPrice,
+        highPrice,
+        lowPrice,
+        openPrice,
+        cleanSymbol,
+        symbolOrPairId,
+        volume,
+        time,
+      );
+    }
+    throw Exception('Forex quote not found for $symbolOrPairId');
+  }
+
+  /// Fetches multiple live or delayed ForexQuotes from Yahoo Finance in a batch.
+  Future<List<ForexQuote>> getForexQuotesByIds(
+      List<String> symbolsOrPairIds) async {
+    if (symbolsOrPairIds.isEmpty) return [];
+    final yahooMap = <String, String>{};
+    for (final s in symbolsOrPairIds) {
+      yahooMap[toForexYahooSymbol(s)] = s;
+    }
+    final yahooSymbolsStr = yahooMap.keys.join(',');
+    final url =
+        'https://query2.finance.yahoo.com/v7/finance/quote?symbols=$yahooSymbolsStr';
+    final json = await getJson(url);
+
+    final quotes = <ForexQuote>[];
+    if (json['quoteResponse'] != null &&
+        json['quoteResponse']['result'] != null) {
+      for (final res in json['quoteResponse']['result']) {
+        final sym = (res['symbol'] as String?)?.toUpperCase() ?? '';
+        final origId = yahooMap[sym] ?? sym;
+        final markPrice =
+            (res['regularMarketPrice'] as num?)?.toDouble() ?? 0.0;
+        final openPrice = (res['regularMarketOpen'] as num?)?.toDouble() ??
+            (res['regularMarketPreviousClose'] as num?)?.toDouble() ??
+            markPrice;
+        final highPrice =
+            (res['regularMarketDayHigh'] as num?)?.toDouble() ?? markPrice;
+        final lowPrice =
+            (res['regularMarketDayLow'] as num?)?.toDouble() ?? markPrice;
+        final bidPrice = (res['bid'] as num?)?.toDouble() ?? markPrice;
+        final askPrice = (res['ask'] as num?)?.toDouble() ?? markPrice;
+        final volume = (res['regularMarketVolume'] as num?)?.toDouble() ?? 0.0;
+        final time = res['regularMarketTime'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                ((res['regularMarketTime'] as num).toInt()) * 1000)
+            : DateTime.now();
+
+        final cleanSymbol =
+            sym.endsWith('=X') ? sym.substring(0, sym.length - 2) : sym;
+
+        quotes.add(ForexQuote(
+          askPrice,
+          bidPrice,
+          markPrice,
+          highPrice,
+          lowPrice,
+          openPrice,
+          cleanSymbol,
+          origId,
+          volume,
+          time,
+        ));
+      }
+    }
+    return quotes;
+  }
+
+  /// Fetches live or delayed candlestick historicals for Forex pairs from Yahoo Finance.
+  Future<ForexHistoricals> getForexHistoricals(String symbolOrPairId,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    final yahooSymbol = toForexYahooSymbol(symbolOrPairId);
+    final bounds = convertChartBoundsFilter(chartBoundsFilter);
+    final span = convertChartSpanFilter(chartDateSpanFilter);
+
+    // Map span to Yahoo parameters
+    String range = '1d';
+    String interval = '5m';
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.hour:
+        range = '1d';
+        interval = '2m';
+        break;
+      case ChartDateSpan.day:
+        range = '1d';
+        interval = '5m';
+        break;
+      case ChartDateSpan.week:
+        range = '5d';
+        interval = '15m';
+        break;
+      case ChartDateSpan.month:
+        range = '1mo';
+        interval = '1h';
+        break;
+      case ChartDateSpan.month_3:
+      case ChartDateSpan.rolling_60:
+      case ChartDateSpan.rolling_90:
+        range = '3mo';
+        interval = '1d';
+        break;
+      case ChartDateSpan.year:
+      case ChartDateSpan.ytd:
+        range = '1y';
+        interval = '1d';
+        break;
+      case ChartDateSpan.year_2:
+        range = '2y';
+        interval = '1wk';
+        break;
+      case ChartDateSpan.year_3:
+      case ChartDateSpan.year_5:
+      case ChartDateSpan.all:
+        range = '5y';
+        interval = '1wk';
+        break;
+      default:
+        range = '1d';
+        interval = '5m';
+        break;
+    }
+
+    final candles = await getHistoricals(yahooSymbol, range, interval);
+
+    double? prevClose;
+    double? openPrice;
+    DateTime? prevCloseTime;
+    DateTime? openTime;
+
+    if (candles.isNotEmpty) {
+      openPrice = candles.first.openPrice;
+      openTime = candles.first.beginsAt;
+      prevClose = candles.last.closePrice;
+      prevCloseTime = candles.last.beginsAt;
+    }
+
+    final cleanSymbol = yahooSymbol.endsWith('=X')
+        ? yahooSymbol.substring(0, yahooSymbol.length - 2)
+        : yahooSymbol;
+
+    return ForexHistoricals(
+      bounds,
+      interval,
+      span,
+      cleanSymbol,
+      symbolOrPairId,
+      prevClose,
+      prevCloseTime,
+      openPrice,
+      openTime,
+      candles,
+    );
   }
 }
 

@@ -1,0 +1,363 @@
+# Portfolio Analytics
+
+The Portfolio Analytics dashboard provides a comprehensive suite of advanced financial metrics to help you understand the risk and return characteristics of your portfolio. It goes beyond simple gain/loss numbers to give you professional-grade insights.
+
+## Interactive Documentation & Help System
+
+### In-App Help Menu
+Access comprehensive documentation directly within the app through the **Help** menu (top-right corner):
+
+- **Quick Guide**: Step-by-step introduction to using portfolio analytics
+  - Getting started with benchmark selection
+  - Reading and interpreting metrics
+  - Understanding key thresholds
+  - Taking action based on insights
+
+- **All Definitions**: Complete reference of every metric, organized by category:
+  - **Interactive Cards**: Tap metrics with "Tips" badge for detailed examples
+  - Risk-Adjusted Returns (Sharpe, Sortino, Treynor, etc.)
+  - Market Comparison (Alpha, Beta, Correlation)
+  - Risk Metrics (Max Drawdown, Volatility, VaR)
+  - Advanced Edge Metrics (Kelly Criterion, Tail Ratio)
+  - Daily Return Stats (Win Rate, Profit Factor)
+
+- **Benchmark Guide**: Visual guide explaining when to use each benchmark:
+  - SPY (S&P 500) - Large-cap growth
+  - QQQ (Nasdaq 100) - Tech/growth focused
+  - DIA (Dow Jones) - Blue-chip, dividend portfolios
+  - IWM (Russell 2000) - Small-cap investing
+  - **Active Indicator**: Shows which benchmark is currently selected
+
+- **Health Score Info**: Detailed breakdown of how your portfolio health score is calculated
+
+### Deep Metric Insights
+Selected metrics feature enhanced detail views accessible by tapping on cards with the "Tips" badge:
+
+- **Real-World Examples**: Concrete scenarios illustrating what metric values mean
+  - "A Sharpe of 2.5 means you earn 2.5% excess return for every 1% of risk taken"
+  - "Alpha of 5% means you outperformed the benchmark by 5% annually"
+
+- **Performance Thresholds**: Visual color-coded indicators showing:
+  - 🟢 Excellent performance levels
+  - 🟠 Acceptable performance levels
+  - 🔴 Areas needing improvement
+
+- **Pro Tips**: Actionable advice for improving each metric:
+  - "Diversification and position sizing can improve your Sharpe ratio"
+  - "Use stop-losses and position sizing to limit maximum drawdown"
+  - "High win rate with low payoff ratio can still be profitable"
+
+### Interactive Tooltips
+Every metric features enhanced tooltips with:
+- **Bold metric name** for quick identification
+- **Detailed definition** explaining what it measures
+- **Visual formatting** with proper spacing and readability
+- **Extended display time** (8 seconds) for comfortable reading
+- **Rich text styling** with multiple font weights and sizes
+
+### Contextual Help
+Throughout the interface:
+- **Browse by Category**: Organized sections for easy navigation
+- Tap any metric to see its definition
+- Long-press for extended tooltip display
+- Visual indicators (green/red) show good vs. concerning values
+- Smart insights provide actionable recommendations
+
+## Privacy Controls
+
+### Balance Visibility Toggle
+Starting in **v0.37.0**, RealizeAlpha includes a global **Balance Visibility Toggle**. This feature allows you to mask sensitive financial information throughout the Analytics dashboard, including:
+- Total Equity and P&L charts.
+- Portfolio Health Score details when showing absolute values.
+- Individual position sizes and valuations.
+- Portfolio chart axes, range annotations, selected-point tooltips, and change values.
+
+The toggle can be found in the **User Settings** menu and on the portfolio chart. It is reflected immediately across all views. The active chart period remains visible through labels such as `1D CHANGE`, `1M CHANGE`, or `ALL CHANGE`, while monetary values are replaced with masking characters when balances are hidden.
+
+## Key Features
+
+### 1. Benchmark Comparison
+- **Selectable Benchmarks**: Compare your portfolio against major market indices and **Custom Benchmarks**:
+  - **Standard Indices**: SPY, QQQ, DIA, IWM.
+  - **Custom Tickers**: Add any stock or crypto symbol (e.g., BTC-USD, AAPL, NVDA) to see how your portfolio stacks up against specific assets.
+- **Intuitive Interface**: Use the horizontal chip selector to quickly toggle between benchmarks or add new ones.
+- **Dynamic Calculation**: All metrics are recalculated in real-time based on the selected benchmark and your portfolio's historical performance.
+
+### 2. Performance Overview Card
+Located at the top of the dashboard, this card provides an immediate snapshot of your portfolio's performance relative to the market:
+- **Total Return**: Your portfolio's absolute return for the selected period.
+- **Benchmark Return**: The return of the selected benchmark (e.g., SPY, IWM).
+- **Alpha**: The difference between your return and the benchmark's return. A positive value indicates outperformance.
+- **Tracking Error**: A measure of how closely your portfolio follows the benchmark.
+- **Visual Comparison**: Side-by-side metrics allow for instant assessment of your standing against the market.
+
+### 3. Smart Insights & Health Score
+The dashboard automatically analyzes your metrics to provide plain-English insights and a **Portfolio Health Score** (0-100) with academic-style letter grades:
+
+#### Health Score Grading System
+- **A+ (90-100)**: Outstanding - Exceptional performance across all metrics
+- **A (85-89)**: Excellent - Strong risk-adjusted returns and management
+- **A- (80-84)**: Excellent - Very good performance with room for optimization
+- **B+ (75-79)**: Very Good - Solid strategy with consistent execution
+- **B (70-74)**: Very Good - Above-average performance
+- **B- (65-69)**: Very Good - Acceptable performance overall
+- **C+ (60-64)**: Good - Reasonable strategy with areas to improve
+- **C (55-59)**: Good - Basic competence, focus on risk management
+- **C- (50-54)**: Fair - Borderline performance, needs attention
+- **D+ (45-49)**: Below Average - Significant areas for improvement
+- **D (40-44)**: Below Average - Poor execution or strategy issues
+- **D- (35-39)**: Below Average - Critical issues requiring review
+- **F (<35)**: Poor/Critical - Immediate action required
+
+### 4. Risk-Adjusted Returns
+Evaluate how much return you are generating for every unit of risk taken:
+- **Sharpe Ratio**: Excess return per unit of total risk (volatility).
+- **Sortino Ratio**: Focuses on downside risk; better for asymmetric strategies.
+- **Treynor Ratio**: Excess return per unit of systematic risk (Beta).
+- **Information Ratio**: Measures consistent outperformance vs. benchmark.
+- **Calmar Ratio**: Annual return divided by Max Drawdown; return efficiency vs. worst case.
+- **Omega Ratio**: Probability-weighted ratio of gains vs. losses.
+
+### 5. Market Comparison
+Understand how your portfolio behaves relative to the broader market:
+- **Beta**: Sensitivity to market moves (>1.0 is more volatile, <1.0 is defensive).
+- **Correlation**: How closely you track the market (diversification indicator).
+- **Alpha**: True outperformance beyond what Beta predicts (active management skill).
+- **Excess Return**: Simple difference between portfolio and benchmark return.
+
+### 6. Risk Metrics
+Deep dive into your portfolio's exposure:
+- **Max Drawdown**: Largest peak-to-trough decline (historical stress test).
+- **Volatility**: Annualized standard deviation of returns.
+- **VaR (95%)**: Value at Risk - Maximum expected daily loss with 95% confidence.
+- **CVaR (95%)**: Conditional VaR (Expected Shortfall) - Average loss when VaR is breached.
+- **Correlation Matrix**: Interactive tool to view correlation coefficients between all assets in your portfolio.
+
+### 7. Advanced Edge Metrics
+Professional-grade metrics for strategy refinement:
+- **Kelly Criterion**: Optimal position sizing for long-term growth.
+- **Ulcer Index**: Measures depth and duration of drawdowns (emotional stress).
+- **Tail Ratio**: Ratio of upside deviation to downside deviation (skewness).
+
+### 8. Daily Return Statistics
+Analysis of your daily trading performance:
+- **Profit Factor**: Gross Profits / Gross Losses (>1.5 is strong).
+- **Win Rate**: Percentage of profitable days.
+- **Payoff Ratio**: Average Win / Average Loss size.
+- **Expectancy**: Average dollar value per trade/day.
+- **Streaks**: Max consecutive winning and losing days.
+
+### 9. Risk Heatmap
+A visual representation of your portfolio's risk distribution. It maps positions based on their day's performance or other risk factors, allowing you to instantly spot outliers and concentration risks.
+
+### 10. Portfolio Stress Testing
+Integrated via `PortfolioStressTestCard` in the Risk section, this feature allows investors to simulate portfolio value impact across six macro stress scenarios:
+- **Market Crash (-20%)**: Standard systemic market shock.
+- **Interest Rate Spike (+150bps)**: Fixed income and valuation contraction shock.
+- **Tech Selloff (-15%)**: Growth and technology sector correction.
+- **Inflation Shock (+200bps)**: Macro inflationary pressure scenario.
+- **Recession**: Macro economic slowdown simulation.
+- **Volatility Spike (+50%)**: Sudden expansion in implied market volatility.
+
+### 11. Aggregate Option Greeks
+Integrated via `PortfolioGreeksCard`, this tool aggregates Greek sensitivities across all active option positions in all linked accounts:
+- **Delta**: Net directional share exposure ($ equivalent directional risk).
+- **Gamma**: Rate of Delta change per $1 move in underlying assets.
+- **Theta**: Daily portfolio time decay ($ loss/gain per day).
+- **Vega**: Portfolio sensitivity per 1% change in implied volatility.
+- **Rho**: Portfolio sensitivity per 1% change in interest rates.
+
+### 12. Tail Risk & Liquidity Scoring
+Integrated via `TailRiskCard`, this component evaluates extreme downside risk and execution liquidity:
+- **Value at Risk (VaR 95% & 99%)**: Maximum expected daily loss at 95% and 99% confidence levels.
+- **Expected Shortfall (Conditional VaR / CVaR)**: Average expected loss in tail-risk events exceeding VaR.
+- **Cornish-Fisher VaR**: Non-normal VaR adjustment incorporating portfolio return skewness and kurtosis.
+- **Skewness & Kurtosis**: Measures return distribution asymmetry and fat-tail event probabilities.
+- **Liquidity Score & Time-to-Liquidate**: Weighted portfolio liquidity metric estimating days required to exit positions without adverse market impact.
+
+### Rolling Statistics
+
+Rolling Statistics tracks how portfolio risk changes over time relative to the selected benchmark. The dashboard requires enough aligned trading sessions for the selected period and displays:
+
+- **Rolling volatility:** Annualized standard deviation of portfolio returns.
+- **Rolling beta:** Sensitivity to the selected benchmark over each rolling sample.
+- **Rolling correlation:** How closely portfolio returns move with the selected benchmark.
+
+The latest values appear alongside time-series charts. The selected benchmark can be one of the standard indices or a custom ticker supported by Portfolio Analytics.
+
+### 13. Tax Optimization
+Smart, seasonality-aware tax loss harvesting suggestions:
+- **Smart Visibility**: Shows opportunities based on urgency (e.g., highly visible in Q4).
+- **Estimated Loss**: Potential realized loss available for harvesting.
+- **Offset Analysis**: How losses can offset realized gains.
+
+### 14. ESG Analysis
+Environmental, Social, and Governance scoring for your portfolio:
+- **Weighted Average**: Portfolio-level scores based on position size.
+- **Breakdown**: Individual scores for Environmental, Social, and Governance factors.
+- **Details**: Drill-down view into specific asset ratings.
+
+
+#### Score Calculation
+The health score starts at a base of **50** and adjusts based on five key dimensions:
+1. **Risk-Adjusted Returns** (Max +35/-15) - Sharpe, Sortino, Treynor, Omega ratios
+2. **Market Performance** (Max +20/-15) - Alpha and Information Ratio vs. benchmark
+3. **Risk Management** (Max +20/-40) - Drawdown, volatility, VaR/CVaR, correlation, Beta
+4. **Efficiency & Consistency** (Max +30/-15) - Profit Factor, Win Rate, Calmar, Payoff Ratio
+5. **Advanced Risk & Edge** (Max +15/-15) - Kelly Criterion, Ulcer Index, Tail Ratio
+
+#### Smart Insights
+The dashboard provides **contextual, actionable recommendations**:
+- **Performance Insights**: Highlights if you are outperforming or underperforming the benchmark with specific alpha values
+- **Risk Assessment**: Warns about high drawdowns (categorized as moderate/high/severe/catastrophic) with specific guidance
+- **Volatility Comparison**: Tells you if your portfolio is more or less volatile than the market (e.g., "50%+ more volatile than market")
+- **Strategy Feedback**: Specific recommendations based on metrics (e.g., "Cut losses faster" for low profit factor, "Add defensive stocks" for high Beta)
+- **Edge Quantification**: Shows mathematical edge (Kelly Criterion), stress levels (Ulcer Index), and return skew (Tail Ratio)
+
+### 4. Risk-Adjusted Return Metrics
+These metrics help you evaluate if the returns you are generating are worth the risk you are taking.
+
+- **Sharpe Ratio**: The gold standard for risk-adjusted return. Measures excess return per unit of total risk (volatility).
+  - *Goal*: > 1.0 (Good), > 1.5 (Very Good), > 2.0 (Excellent), > 2.5 (Outstanding).
+- **Sortino Ratio**: Similar to Sharpe, but only penalizes *downside* volatility. This is often more relevant for investors who don't mind upside volatility (big gains).
+  - *Goal*: > 0.75 (Good), > 1.5 (Very Good), > 2.5 (Exceptional).
+- **Treynor Ratio**: Measures excess return per unit of *systematic* risk (Beta). Useful for well-diversified portfolios.
+- **Information Ratio**: Measures your ability to generate excess returns relative to the benchmark, adjusted for the consistency of those excess returns (Tracking Error).
+- **Calmar Ratio**: Annualized return divided by Maximum Drawdown. A great measure of return relative to your worst-case scenario.
+- **Omega Ratio**: The probability-weighted ratio of gains vs. losses for a threshold return target. A value > 1 indicates more expected gains than losses.
+
+### 5. Market Comparison Metrics
+Understand how your portfolio moves in relation to the broader market.
+
+- **Beta**: Measures volatility relative to the market.
+  - *1.0*: Moves in lockstep with the market.
+  - *> 1.0*: More volatile (aggressive).
+  - *< 1.0*: Less volatile (defensive).
+- **Alpha**: The excess return generated *beyond* what would be expected given the portfolio's Beta. Positive Alpha indicates true outperformance.
+  - *Goal*: > 0% (Positive), > 2% (Good), > 5% (Very Good), > 10% (Excellent).
+- **Excess Return**: The simple difference between your portfolio's return and the benchmark's return.
+- **Correlation**: Measures how closely your portfolio moves with the benchmark.
+  - *1.0*: Perfect positive correlation.
+  - *0.0*: No correlation.
+  - *-1.0*: Perfect negative correlation (moves opposite).
+
+### 6. Risk Metrics
+Quantify the potential downside.
+
+- **Max Drawdown**: The largest percentage drop from a peak to a trough. This tells you the "pain" you would have felt during the worst period.
+  - *Goal*: < 5% (Exceptional), < 10% (Excellent), < 15% (Good), > 30% (Severe penalty).
+- **Volatility**: The annualized standard deviation of returns. A higher number means wider price swings.
+- **VaR (95%)**: Value at Risk. The maximum loss expected over a single day with 95% confidence.
+  - *Example*: A VaR of -2% means there is only a 5% chance you will lose more than 2% in a day.
+- **CVaR (95%)**: Conditional Value at Risk (Expected Shortfall). The average loss expected *given* that the loss is greater than the VaR threshold. This captures the "tail risk" better than VaR.
+
+### 7. Advanced Edge Metrics
+Sophisticated metrics to evaluate the statistical edge of your trading strategy.
+
+- **Kelly Criterion**: The optimal position size percentage based on your win rate and payoff ratio to maximize long-term wealth growth. A positive value indicates a mathematical edge.
+  - *Goal*: > 0% (Positive edge), > 8% (Strong edge), > 15% (Very strong edge).
+- **Ulcer Index**: Measures the depth and duration of drawdowns . Unlike standard deviation, it only penalizes downside volatility. Lower is better (e.g., < 0.05 or 5% is low stress).
+- **Tail Ratio**: The ratio of the 95th percentile return to the 5th percentile loss. A value > 1 indicates that your big wins are larger than your big losses (positive skew).
+  - *Goal*: > 0.9 (Positive), > 1.0 (Good), > 1.3 (Strong positive skew).
+  - *Avoid*: < 0.9 indicates negative skew where losses hurt more than wins help.
+
+### 8. Daily Return Stats
+Granular statistics based on your daily P&L.
+
+- **Profit Factor**: Gross Profit divided by Gross Loss. A value > 1.0 means you are profitable.
+  - *Goal*: > 1.2 (Good), > 1.5 (Very Good), > 2.0 (Excellent), > 3.0 (Exceptional).
+- **Win Rate**: The percentage of days with a positive return.
+  - *Goal*: > 50% (Above average), > 55% (Consistent), > 65% (Very consistent).
+- **Payoff Ratio**: Average Win divided by Average Loss. Measures the size of your wins relative to your losses.
+- **Expectancy**: The average amount you can expect to win (or lose) per day/trade.
+- **Streaks**: Tracks your longest consecutive winning and losing streaks.
+
+### 9. ESG Scoring
+Evaluate the sustainability of your portfolio.
+
+- **Total ESG Score**: A weighted average of the Environmental, Social, and Governance scores of your holdings.
+- **Breakdown**: View individual scores for:
+  - **Environmental**: Resource use, emissions, innovation.
+  - **Social**: Workforce, human rights, community.
+  - **Governance**: Management, shareholders, CSR strategy.
+
+### 10. Integrated Risk Heatmap
+The dashboard includes the **[Risk Heatmap](risk-heatmap.md)**, allowing you to visually correlate these high-level metrics with your specific position exposures.
+
+### 11. Tax Optimization
+- **[Tax Loss Harvesting](tax-loss-harvesting.md)**: An integrated tool that identifies opportunities to realize losses to offset gains. It features seasonality awareness (highlighting urgency near year-end) and smart visibility to keep your dashboard focused.
+
+### 12. Correlation Matrix
+A powerful tool to visualize how your assets move in relation to each other.
+- **Interactive Heatmap**: See the Pearson correlation coefficient between any two assets in a grid.
+  - **+1.0 (Red)**: Assets move together (High Correlation). Diversification benefit is low.
+  - **0.0 (White)**: Assets are uncorrelated. Good for diversification.
+  - **-1.0 (Blue)**: Assets move in opposite directions (Inverse Correlation). Excellent for hedging.
+- **Benchmark Comparisons**: Filter to include major indices like **SPY**, **QQQ**, **TLT** (Bonds), and **GLD** (Gold) to see how your portfolio holdings react to broader market moves.
+- **Custom Filtering**: Select up to 15 specific assets to analyze tailored sub-sets of your portfolio.
+- **Data Integrity**: Detail views show the exact number of overlapping trading days used to calculate the correlation, ensuring statistical relevance.
+
+## Using the Help System
+
+### Quick Start
+1. **Open Portfolio Analytics** from the main navigation
+2. **Tap the Help icon** (question mark) in the top-right corner
+3. **Choose "Quick Guide"** for a comprehensive introduction
+4. **Review key thresholds** to understand what makes a good vs. bad metric
+
+### Learning Path
+- **Beginners**: Start with Quick Guide → Benchmark Guide → Health Score Info
+- **Intermediate**: Focus on All Definitions and explore each category
+- **Advanced**: Use tooltips for quick reference while analyzing specific metrics
+
+### Tips for Best Results
+- **Select the right benchmark**: Match your portfolio's investment style
+  - Growth/Tech → QQQ
+  - Balanced/Large-cap → SPY
+  - Conservative/Dividend → DIA
+  - Small-cap → IWM
+- **Monitor Health Score**: Aim for 60+ (Good) or 80+ (Excellent)
+- **Review Smart Insights**: Color-coded by priority (red = urgent, orange = moderate, green = positive)
+- **Use tooltips liberally**: Each metric has detailed explanations accessible with a tap
+- **Check definitions by category**: Organized into logical groups for easier learning
+
+## Metric Categories Explained
+
+### Risk-Adjusted Returns
+Evaluate if your returns justify the risks taken. Higher is generally better.
+
+### Market Comparison  
+Understand how your portfolio performs relative to the broader market.
+
+### Risk Metrics
+Quantify potential downside and volatility exposure.
+
+### Advanced Edge Metrics
+Sophisticated indicators of your strategy's statistical advantage.
+
+### Daily Return Stats
+Granular performance metrics based on day-to-day portfolio changes.
+
+## Group Performance Analytics
+
+> **New in v0.31.7**
+
+Investor Groups now feature dedicated performance analytics to foster competition and collaboration:
+
+- **Leaderboards**: Ranked view of group members based on Total Return.
+- **Aggregated Metrics**: View the group's combined performance, total equity, and P&L.
+- **Member Insights**: Drill down into individual member performance within the group context.
+- **Top Performers**: Highlighted cards for the day's best performing members.
+
+## Definitions Guide
+Access the complete, categorized glossary by tapping the Help icon and selecting "All Definitions". Each definition includes:
+- What the metric measures
+- How to interpret it
+- Good vs. bad threshold values
+- Practical implications for your portfolio
+
+## Data Export
+
+You can export your complete portfolio analytics data to a CSV file for further analysis in Excel or other tools.
+- Tap the **Export icon** in the top-right corner of the dashboard.
+- The CSV includes all calculated metrics, benchmark comparisons, and historical return data.
