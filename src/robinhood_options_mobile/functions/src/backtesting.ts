@@ -119,8 +119,10 @@ export function aggregateEquityCurves(
       timeSet.add(p.timestamp);
     }
   }
+  // Optimization: ISO 8601 string timestamps sort in chronological order
+  // lexicographically, avoiding allocating Date objects for sorting.
   const sortedTimes = Array.from(timeSet).sort(
-    (a, b) => new Date(a).getTime() - new Date(b).getTime()
+    (a, b) => (a < b ? -1 : a > b ? 1 : 0)
   );
 
   // Track current/last known equity state per symbol to avoid searching
@@ -533,12 +535,17 @@ async function runBacktestSimulation(params: BacktestParams) {
   const timestamps = symbolData.timestamps || [];
   const { closes } = symbolData;
 
-  // Find start and end indices
+  // Optimization: Use primitive numeric comparison on timestamp
+  // milliseconds instead of allocating Date objects for every bar
+  // in findIndex.
+  const startMs = startDate.getTime();
+  const endMs = endDate.getTime();
+
   const startIndex = timestamps.findIndex(
-    (t: number) => new Date(t * 1000) >= startDate
+    (t: number) => t * 1000 >= startMs
   );
   const endIndex = timestamps.findIndex(
-    (t: number) => new Date(t * 1000) > endDate
+    (t: number) => t * 1000 > endMs
   );
 
   if (startIndex === -1) {
@@ -562,14 +569,16 @@ async function runBacktestSimulation(params: BacktestParams) {
 
   // Iterate through historical data
   for (let i = startIndex; i < finalIndex; i++) {
-    const timestamp = new Date(timestamps[i] * 1000);
+    const timestampMs = timestamps[i] * 1000;
+    const timestamp = new Date(timestampMs);
+    const isoTimestamp = timestamp.toISOString();
     const close = closes[i];
 
     // Buy & Hold Calculation
     const bhChangePercent = (close - initialPrice) / initialPrice;
     const bhEquity = initialCapital * (1 + bhChangePercent);
     buyAndHoldEquityCurve.push({
-      timestamp: timestamp.toISOString(),
+      timestamp: isoTimestamp,
       equity: bhEquity,
     });
 
@@ -619,7 +628,7 @@ async function runBacktestSimulation(params: BacktestParams) {
               capital += exitValue;
 
               trades.push({
-                timestamp: timestamp.toISOString(),
+                timestamp: isoTimestamp,
                 action: "SELL",
                 symbol,
                 price: exitPrice,
@@ -725,7 +734,7 @@ async function runBacktestSimulation(params: BacktestParams) {
         capital += exitValue;
 
         trades.push({
-          timestamp: timestamp.toISOString(),
+          timestamp: isoTimestamp,
           action: "SELL",
           symbol,
           price: exitPrice,
@@ -830,7 +839,7 @@ async function runBacktestSimulation(params: BacktestParams) {
           highestPriceInPosition = entryPrice;
 
           trades.push({
-            timestamp: timestamp.toISOString(),
+            timestamp: isoTimestamp,
             action: "BUY",
             symbol,
             price: entryPrice,
@@ -850,7 +859,7 @@ async function runBacktestSimulation(params: BacktestParams) {
       close * position.quantity : 0;
     const equity = capital + positionValue;
     equityCurve.push({
-      timestamp: timestamp.toISOString(),
+      timestamp: isoTimestamp,
       equity,
     });
   }
