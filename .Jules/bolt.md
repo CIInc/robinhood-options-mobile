@@ -37,3 +37,7 @@
 ## 2026-04-02 - Propagating Index Boundaries to Indicator Evaluators Eliminates Backtest Slicing
 **Learning:** In backtesting simulation loops (`runBacktestSimulation`), slicing 7 price/volume/market arrays on every bar step (`opens.slice(...)`, `highs.slice(...)`, `closes.slice(...)`, `volumes.slice(...)`, `marketData.closes.slice(...)`, etc.) generated 35,000+ transient array allocations per 5,000-bar backtest.
 **Action:** Propagate optional `endIndex` and `marketEndIndex` parameters through `evaluateAllIndicators` and all 20 individual indicator evaluation functions, passing full dataset references and index boundaries to evaluate indicators in-place without array allocations per bar.
+
+## 2026-04-02 - Zero-Allocation Timestamp Comparison and Sorting in Backtesting
+**Learning:** In `runBacktestSimulation` and `aggregateEquityCurves`, evaluating `new Date(t * 1000) >= startDate` in `.findIndex()` and `new Date(a).getTime() - new Date(b).getTime()` in `.sort()` allocated thousands of transient `Date` objects and forced ISO 8601 string parsing overhead during backtests.
+**Action:** Compare millisecond unix timestamps directly (`t * 1000 >= startMs`) in search predicates, and leverage lexicographical string sorting (`a < b ? -1 : a > b ? 1 : 0`) for ISO 8601 timestamps to avoid object instantiation.
