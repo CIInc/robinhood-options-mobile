@@ -1,4 +1,8 @@
-import { normalizeScreenerRecord } from "../src/screener-universe";
+import { HttpsError } from "firebase-functions/v2/https";
+import {
+  normalizeScreenerRecord,
+  seedScreenerUniverseCall,
+} from "../src/screener-universe";
 
 describe("normalizeScreenerRecord", () => {
   it("maps Twelve Data fields to screener fields", () => {
@@ -49,6 +53,54 @@ describe("normalizeScreenerRecord", () => {
       exchange: "",
       sector: "",
       industry: "",
+    });
+  });
+});
+
+describe("seedScreenerUniverseCall Security Checks", () => {
+  it("rejects unauthenticated caller", async () => {
+    const unauthenticatedRequest = {
+      auth: null,
+      data: {},
+    };
+
+    const callFn = () =>
+      (seedScreenerUniverseCall as any).run(unauthenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  it("rejects non-admin caller", async () => {
+    const nonAdminRequest = {
+      auth: { uid: "user123", token: { role: "user" } },
+      data: {},
+    };
+
+    const callFn = () =>
+      (seedScreenerUniverseCall as any).run(nonAdminRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+  });
+
+  it("allows admin caller (fails at API key check)", async () => {
+    const adminRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {},
+    };
+
+    const callFn = () =>
+      (seedScreenerUniverseCall as any).run(adminRequest);
+
+    // If TWELVE_DATA_API_KEY is not set in test environment,
+    // it throws failed-precondition, which confirms authorization passed!
+    await expect(callFn()).rejects.toMatchObject({
+      code: "failed-precondition",
     });
   });
 });

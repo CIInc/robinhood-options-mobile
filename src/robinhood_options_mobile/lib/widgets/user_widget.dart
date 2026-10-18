@@ -1809,10 +1809,20 @@ class _UserWidgetState extends State<UserWidget> {
                                         },
                                         user: user,
                                         onTap: () async {
-                                          final currentAccount =
+                                          final accountStore =
                                               Provider.of<AccountStore>(context,
-                                                      listen: false)
-                                                  .selectedAccount;
+                                                      listen: false);
+                                          var currentAccount =
+                                              accountStore.selectedAccount;
+                                          if (currentAccount == null ||
+                                              !currentAccount.isRetirement) {
+                                            final iraAccount = accountStore.items
+                                                .where((a) => a.isRetirement)
+                                                .firstOrNull;
+                                            if (iraAccount != null) {
+                                              currentAccount = iraAccount;
+                                            }
+                                          }
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(

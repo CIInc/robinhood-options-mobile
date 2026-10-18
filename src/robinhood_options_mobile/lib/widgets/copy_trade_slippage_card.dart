@@ -376,46 +376,54 @@ class CopyTradeSlippageCard extends StatelessWidget {
     final neutralFlex = (summary.neutralTradesCount * 1000 ~/ total);
     final unfavorableFlex = (summary.unfavorableTradesCount * 1000 ~/ total);
 
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: SizedBox(
-            height: 10,
-            child: Row(
-              children: [
-                if (favorableFlex > 0)
-                  Expanded(
-                    flex: favorableFlex,
-                    child: Container(color: Colors.green),
-                  ),
-                if (neutralFlex > 0)
-                  Expanded(
-                    flex: neutralFlex,
-                    child: Container(color: Colors.blue),
-                  ),
-                if (unfavorableFlex > 0)
-                  Expanded(
-                    flex: unfavorableFlex,
-                    child: Container(color: Colors.orange),
-                  ),
-              ],
+    final semanticLabel =
+        'Fill quality breakdown: ${summary.favorableTradesCount} favorable, ${summary.neutralTradesCount} exact, ${summary.unfavorableTradesCount} unfavorable';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  if (favorableFlex > 0)
+                    Expanded(
+                      flex: favorableFlex,
+                      child: Container(color: Colors.green),
+                    ),
+                  if (neutralFlex > 0)
+                    Expanded(
+                      flex: neutralFlex,
+                      child: Container(color: Colors.blue),
+                    ),
+                  if (unfavorableFlex > 0)
+                    Expanded(
+                      flex: unfavorableFlex,
+                      child: Container(color: Colors.orange),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildLegendItem(
-                'Favorable: ${summary.favorableTradesCount}', Colors.green),
-            _buildLegendItem(
-                'Exact: ${summary.neutralTradesCount}', Colors.blue),
-            _buildLegendItem('Unfavorable: ${summary.unfavorableTradesCount}',
-                Colors.orange),
-          ],
-        ),
-      ],
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildLegendItem(
+                  'Favorable: ${summary.favorableTradesCount}', Colors.green),
+              _buildLegendItem(
+                  'Exact: ${summary.neutralTradesCount}', Colors.blue),
+              _buildLegendItem('Unfavorable: ${summary.unfavorableTradesCount}',
+                  Colors.orange),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

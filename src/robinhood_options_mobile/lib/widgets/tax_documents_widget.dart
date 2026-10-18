@@ -158,6 +158,7 @@ class _TaxDocumentsWidgetState extends State<TaxDocumentsWidget>
       SnackBar(
         content: Text('Downloading ${doc.title}...'),
         duration: const Duration(seconds: 2),
+        persist: false,
         action: SnackBarAction(
           label: 'View',
           textColor: Colors.tealAccent,

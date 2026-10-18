@@ -141,7 +141,11 @@ class FirestoreService {
       {Function? onError}) async {
     user.dateUpdated = DateTime.now();
     try {
-      await documentReference.update(user.toJson());
+      // Trading configs are saved by their providers; a stale in-memory User must not overwrite them.
+      final fields = user.toJson()
+        ..remove('agenticTradingConfig')
+        ..remove('futuresTradingConfig');
+      await documentReference.update(fields);
     } on FirebaseException catch (e) {
       if (onError != null) {
         onError(e);

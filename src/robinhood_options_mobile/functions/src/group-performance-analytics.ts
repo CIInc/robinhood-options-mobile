@@ -15,8 +15,10 @@ type Trade = {
 
 const dateValue = (value: unknown): Date | null => {
   if (value instanceof Timestamp) return value.toDate();
-  if (value instanceof Date) return value;
-  if (typeof value === "string") {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "string" || typeof value === "number") {
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
@@ -157,7 +159,8 @@ async function getMemberMetrics(memberId: string, startDate: Date | null,
 }
 
 export const getGroupPerformanceAnalytics = onCall(async (request) => {
-  if (!request.auth) {
+  // SECURITY: Require authentication and valid user ID
+  if (!request.auth || !request.auth.uid) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
   const groupId = request.data?.groupId;
@@ -177,10 +180,8 @@ export const getGroupPerformanceAnalytics = onCall(async (request) => {
       "permission-denied", "You must be a member of this group");
   }
 
-  const startDate = request.data.startDate ?
-    new Date(request.data.startDate) : null;
-  const endDate = request.data.endDate ?
-    new Date(request.data.endDate) : new Date();
+  const startDate = dateValue(request.data?.startDate);
+  const endDate = dateValue(request.data?.endDate) ?? new Date();
   const memberMetrics = await Promise.all(
     members.map((memberId) => getMemberMetrics(memberId, startDate, endDate)));
   const traded = memberMetrics.filter((member) =>

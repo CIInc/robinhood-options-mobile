@@ -274,6 +274,7 @@ class _NotificationCenterWidgetState extends State<NotificationCenterWidget> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Selected: "${response.displayText}"'),
+        persist: false,
         action: SnackBarAction(
           label: 'Details',
           onPressed: () => _showDetailDialog(item),

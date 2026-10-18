@@ -137,12 +137,18 @@ class AuthUtil {
     if (!kIsWeb && !isIntegrationTest) {
       // You may set the permission requests to "provisional" which allows the user to choose what type
       // of notifications they would like to receive once the user receives a notification.
-      final settings = await FirebaseMessaging.instance.requestPermission(
-          alert: true, badge: true, sound: true, carPlay: true
-          // provisional: true
-          );
+      // Throws on unsigned/debug desktop builds; user setup must still complete.
+      NotificationSettings? settings;
+      try {
+        settings = await FirebaseMessaging.instance.requestPermission(
+            alert: true, badge: true, sound: true, carPlay: true
+            // provisional: true
+            );
+      } catch (e) {
+        debugPrint('Notification permission request failed: $e');
+      }
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      if (settings?.authorizationStatus == AuthorizationStatus.authorized) {
         await FirebaseMessaging.instance
             .setForegroundNotificationPresentationOptions(
           alert: true, // Required to display a heads up notification

@@ -43,18 +43,19 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** October 6, 2026 · **Current app version:** 0.55.1 (released October 6, 2026)
+**Last reviewed:** October 15, 2026 · **Current app version:** 0.57.6 (release preparation)
 
 ### Quick Stats
-- **Completed checklist items:** 403
+- **Completed checklist items:** 411
 - **Planned checklist items:** 68
-- **GitHub issues:** 121 total — 33 open and 88 closed (as of October 6, 2026)
-- **Planning focus:** Keep reliability and test coverage ahead of feature breadth, then prioritize brokerage expansion and execution improvements; measure the adoption and moderation quality of the newly delivered social and copy-trading tools.
+- **GitHub issues:** 122 total — 35 open and 87 closed (as of October 15, 2026)
+- **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
-- ✅ **Recently Completed (v0.55.0-v0.55.1):** Autonomous Agentic Risk Copilot ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), Multi-Leg Spread Builder & Order Entry Templates ([docs](docs/multi-leg-spread-builder.md)), AI Trade Post-Mortem & Behavioral Journal Auto-Tagger ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), In-App Behavioral Tilt & Overtrading Safeguards ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)), Action Center Context-First Deep-Linking ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Guest Paper Account Migration ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)), $O(1)$ Space Scalar Indicator Computations ([#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)), Screen Reader Semantics ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)), and Backend Callable Security Hardening ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)). See the release timeline for issue links and details.
-- **Next proposed milestone:** **v0.56.0 (target: Q1 2027; tentative)** — Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)), SEC EDGAR Filing Expansion (Phase 2) ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)), Alert Customization & Delivery Channels ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Streamlined AI Conviction Engine ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), and Streaming Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
-- **Later candidates (v0.57.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
+- ✅ **Recently Completed (v0.55.0-v0.57.6):** Auto-Trade Settings Persistence & Signal Re-Evaluation ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)), Auto-Trade Reliability & Paper Ledger Repair ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), Autonomous Agentic Risk Copilot ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), Multi-Leg Spread Builder & Order Entry Templates ([docs](docs/multi-leg-spread-builder.md)), AI Trade Post-Mortem & Behavioral Journal Auto-Tagger ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), In-App Behavioral Tilt & Overtrading Safeguards ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)), Action Center Context-First Deep-Linking ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Guest Paper Account Migration ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)), $O(1)$ Space Scalar Indicator Computations ([#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)), Screen Reader Semantics ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)), and Backend Callable Security Hardening ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)). See the release timeline for issue links and details.
+- ✅ **v0.57.6 Release Preparation:** Auto-trade signals generated while the market is closed are no longer lost, and turning Require Approval off clears queued approvals ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)); the signals-first MVP scope and admin-only beta rollout remain tracked as planned work ([#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- **Next proposed milestone:** **v0.58.0 (target: Q1 2027; tentative)** — SEC EDGAR Filing Expansion (Phase 2) ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)), Alert Customization & Delivery Channels ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Streamlined AI Conviction Engine ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), and Streaming Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
+- **Later candidates (v0.59.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
 - **Longer-term exploration:** Biometric health tracking, paid strategy marketplace royalties, desktop workflows, zero-knowledge proofs, wearable clients, and spatial interfaces remain exploratory until scoped and validated.
 
 ## Release Versions & Timeline
@@ -473,15 +474,53 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Backend Security & Callable Authentication Hardening:** Enforced mandatory `request.auth` verification on news intelligence and market data quotes callable endpoints (`market-data.ts`, `news-intelligence.ts`) ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)).
 - ✅ **Market Data Provider Research & Strategy Recommendations:** Added comprehensive market data provider evaluations and Intrinio recommendation research in `docs/market-data-research/`.
 
-### v0.56.0 (Target: Q1 2027)
-**Retirement Planning, SEC EDGAR Expansion & Streamlined AI Conviction**
-- **Retirement Planning & Gold Match Maximizer:** Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization ([Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)).
+### v0.56.0 ✅ (Released October 12, 2026)
+**Retirement Planning, Auto-Trade Reliability & Paper Ledger Repair**
+- ✅ **Retirement Planning & Gold Match Maximizer:** Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization ([docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)).
+- ✅ **Auto-Trade Reliability & Paper Ledger Repair:** Indicator-based signal matching, exit oversell protection, no stacked entries for held symbols, ordered upsert-based trade saves, push throttling, and admin-only paper ledger repair callables ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [PR #235](https://github.com/CIInc/robinhood-options-mobile/pull/235)).
+
+### v0.57.0 ✅ (Released October 13, 2026)
+**Auto-Trade Settings Persistence & Signal Re-Evaluation**
+- ✅ **Auto-Trade Settings Persistence:** Entry/exit toggles, Take Profit, Stop Loss, and the signal interval now stay saved across rebuilds and screen reopenings by syncing the in-memory `User` object and loading the stored config once per user ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+- ✅ **Signal Re-Evaluation & Activity Log Clarity:** Rejected signals are re-evaluated when entry rules change, rejection reasons are summarized in the Activity Log, failed settings saves are reported, and startup no longer logs false `userDocRef is null` warnings.
+
+### v0.57.1 ✅ (Released October 13, 2026)
+**User Profile Saves No Longer Overwrite Trading Settings**
+- ✅ **Trading Config Overwrite Fix:** `FirestoreService.updateUser` no longer writes `agenticTradingConfig` or `futuresTradingConfig`, so stale in-memory user objects can't revert saved auto-trade settings, Take Profit, or the signal interval ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+
+### v0.57.2 ✅ (Released October 13, 2026)
+**Subscription Restore Reliability & Signals-First MVP Planning**
+- **Paywall Restore Reliability:** The paywall observes the user document and dismisses after the verified subscription becomes active; a regression test covers the Firestore entitlement update (`test/paywall_widget_test.dart`).
+- **Signals-First MVP Scope:** The planned public feature boundary and admin-only beta rollout are tracked separately and remain open ([#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+
+### v0.57.3 ✅ (Released October 14, 2026)
+**Auto-Trade Card Stats & Settings Persistence Fixes**
+- **Status Card Trade Counts & P&L:** The Today tile counts trades saved in today's history (buys and exits), and exits record dollar `profitLoss` (backfilled for older records), so Performance is no longer always $0 ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+- **Settings Stay Saved When Reopened:** The settings screen prefers the provider's loaded config over a stale `User` object, and the navigation shell reloads configs only on first load, account change, or first user document ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+
+### v0.57.4 ✅ (Released October 14, 2026)
+**Restore Purchases Reports What Happened**
+- **Restore Feedback:** `SubscriptionService.restorePurchases` waits for the store and the server receipt check and returns a `RestoreResult`; the paywall shows it instead of silently staying open ([docs](docs/multi-indicator-trading.md)).
+
+### v0.57.5 ✅ (Released October 14, 2026)
+**Auto-Trade Orders & Positions Refresh Without Restarting**
+- **History Orders Refresh:** The History tab refetches its order streams when the auto-trader executes an order (and once more for late fills), so market-close exits no longer require a force-kill to appear ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+- **Positions Refresh:** After a cycle that executes real orders, the stock positions list is reloaded and sold-out positions are pruned ([docs](docs/multi-indicator-trading.md)).
+- **Receipt Rejection Logging:** `verifySubscription` logs why an Apple receipt is rejected so Restore Purchases failures can be diagnosed.
+
+### v0.57.6 (Release Preparation, October 15, 2026)
+**Auto-Trade Signals No Longer Lost While the Market Is Closed**
+- **Signals Evaluated Before Marked Processed:** Cycles blocked by market hours, the daily limit or the cooldown no longer consume their signals, so overnight signals are evaluated at the open; Require Approval is part of the rules that re-evaluate signals ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
+- **Approval Queue Cleared:** Turning Require Approval off discards orders already waiting for approval ([docs](docs/multi-indicator-trading.md)).
+
+### v0.58.0 (Target: Q1 2027)
+**SEC EDGAR Expansion, Alerts & Streamlined AI Conviction**
 - **SEC EDGAR Filing Expansion (Phase 2):** 10-K/10-Q financial statements parsing, real-time insider filing alerts, and 8-K material catalyst notifications ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
 - **Alert Customization & Multi-Channel Delivery:** Custom sounds, priority notification channels, and granular per-signal alert triggers for price, GEX, and options flow ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
 - **Unified AI Conviction & Factor Alignment:** Lightweight synthesis combining Gemini 3.1 Flash-Lite reasoning with quantitative factor scores and Devil's Advocate stress tests (streamlined from speculative multi-LLM consensus) ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Performance, Memory & Stream Throttling:** Viewport-aware streaming subscriptions, memory optimization, and background stream pausing for mobile battery efficiency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 
-### v0.57.0+ (Target: Q2 2027+)
+### v0.59.0+ (Target: Q2 2027+)
 **Smart Order Routing, Cross-Broker Optimizers & Developer APIs**
 - **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.57.0+).
 - **Local OpenAPI & Quant Webhook Gateway:** Local WebSocket and REST API server embedded in the app allowing quant traders to stream market data, Greeks, and signals to Python/Node.js scripts.
@@ -673,6 +712,13 @@ Mapping features to specific versions helps users anticipate releases and unders
     - [x] **Advanced GEX Orchestrator** (v0.37.0): AI-aligned regime filtering for signals
 - [x] **Trade Signals Widget**:
     - [x] Dedicated home screen widget for viewing and filtering real-time signals
+- [x] **Auto-Trade Reliability & Paper Ledger Repair** (v0.56.0, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [PR #235](https://github.com/CIInc/robinhood-options-mobile/pull/235)): Indicator-based signal matching, exit oversell protection, no stacked entries for held symbols, ordered upsert-based trade saves, push throttling, and admin-only paper ledger repair callables
+- [x] **Auto-Trade Settings Persistence & Signal Re-Evaluation** (v0.57.0, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): Settings and interval stay saved across rebuilds, rejected signals are re-evaluated when entry rules change, and the Activity Log summarizes rejection reasons and failed saves
+- [x] **Subscription Restore Paywall Dismissal** (v0.57.2): Paywall closes when the server-verified subscription becomes active in Firestore; covered by `test/paywall_widget_test.dart`
+- [x] **Auto-Trade Card Stats & Settings Persistence** (v0.57.3, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): Today and Performance tiles show real trade counts and P&L, and settings such as Cooldown Period and Daily Trade Limit stay saved when reopened; covered by `test/agentic_trading_settings_persistence_test.dart`
+- [x] **Restore Purchases Feedback** (v0.57.4, [docs](docs/multi-indicator-trading.md)): Restore reports restored, nothing to restore, signed out, or rejected instead of silently leaving the paywall open; covered by `test/subscription_restore_result_test.dart`
+- [x] **Auto-Trade Orders & Positions Refresh** (v0.57.5, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): History orders and the stock positions list update after the auto-trader executes orders, including market-close exits, without restarting the app; covered by `test/history_past_positions_test.dart` and `test/agentic_trading_provider_test.dart`
+- [x] **Auto-Trade Signals Kept While Market Is Closed** (v0.57.6, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): Blocked cycles no longer consume signals, and turning Require Approval off re-evaluates signals and clears queued approvals; covered by `test/agentic_trading_provider_test.dart`
 
 ### Quantitative Research
 - [x] **Alpha Factor Discovery** ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
@@ -855,10 +901,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 This sequence is the planning order; version dates below are tentative, not release commitments. GitHub issue labels establish urgency, while unchecked roadmap items remain candidates until their acceptance criteria and dependencies are clear.
 
-1. **Retirement Planning & Growth (v0.56.0):** Advance Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)) to capture high-value Robinhood IRA growth.
-2. **Fundamental Research & Streaming Efficiency (v0.56.0):** Expand SEC EDGAR disclosures ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)) with 10-K/10-Q parsing and Form 4 insider clusters. Continue mobile streaming optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)) with viewport-based subscriptions and battery-conscious WebSocket throttling.
-3. **Unified AI Conviction & Factor Alignment (v0.56.0):** Streamline conviction scoring combining Gemini 3.1 Flash-Lite, quantitative factor engines, and Devil's Advocate stress tests ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
-4. **Pragmatic Scope Control & Demotion of Speculative Items:** Deprecate high-friction, low-ROI features from near-term milestones. HealthKit biometrics and paid strategy marketplace royalties are demoted to exploratory horizons to avoid false-positive alert fatigue, health data privacy complications, and complex billing/regulatory compliance. Multi-LLM consensus is streamlined into a lightweight conviction score using existing models.
+1. **Signals-First MVP Scope & Admin-Only Beta Rollout:** Define the public launch surface, gate advanced or underdeveloped features to admins, and validate release-readiness criteria ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+2. **Retirement Planning & Growth (v0.56.0):** Advance Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)) to capture high-value Robinhood IRA growth.
+3. **Fundamental Research & Streaming Efficiency (v0.58.0):** Expand SEC EDGAR disclosures ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)) with 10-K/10-Q parsing and Form 4 insider clusters. Continue mobile streaming optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)) with viewport-based subscriptions and battery-conscious WebSocket throttling.
+4. **Unified AI Conviction & Factor Alignment (v0.58.0):** Streamline conviction scoring combining Gemini 3.1 Flash-Lite, quantitative factor engines, and Devil's Advocate stress tests ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
+5. **Pragmatic Scope Control & Demotion of Speculative Items:** Deprecate high-friction, low-ROI features from near-term milestones. HealthKit biometrics and paid strategy marketplace royalties are demoted to exploratory horizons to avoid false-positive alert fatigue, health data privacy complications, and complex billing/regulatory compliance. Multi-LLM consensus is streamlined into a lightweight conviction score using existing models.
 
 
 ### Portfolio & Analysis
@@ -899,7 +946,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Corporate Action Split Adjustments** (v0.45.0): Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
 - [x] **Shareholder Say Q&A Engagement** (v0.45.0): Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
 - [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
-- [ ] **Retirement Planning & Gold Match Maximizer** (v0.56.0, [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)): Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization - **Small** (1-2 weeks)
+- [x] **Retirement Planning & Gold Match Maximizer** (v0.56.0, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)): Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization - **Small** (1-2 weeks)
 - [x] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [x] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)) - **Medium** (2-3 weeks)
@@ -946,7 +993,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Congress Trading Tracker**: Automatic monitoring of congressional stock disclosures with alerts (v0.53.0) - **Medium** (3-4 weeks)
 - [ ] **Institutional Flow Tracker**: Track 13F filings and large institutional position changes - **Large** (4-5 weeks)
 - [ ] **AI-Powered Research Reports**: Auto-generate comprehensive research reports for holdings - **Large** (5-6 weeks)
-- [ ] **Unified AI Conviction & Factor Alignment** (v0.56.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Streamlined synthesis combining Gemini 3.1 Flash-Lite, local factor engines, and Devil's Advocate stress tests to generate high-conviction trade ratings - **Medium** (2-3 weeks)
+- [ ] **Unified AI Conviction & Factor Alignment** (v0.58.0, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Streamlined synthesis combining Gemini 3.1 Flash-Lite, local factor engines, and Devil's Advocate stress tests to generate high-conviction trade ratings - **Medium** (2-3 weeks)
 - [x] **AI Devil's Advocate & Trade Thesis Stress Tester** (v0.54.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades - **Medium** (3-4 weeks)
 - [x] **Autonomous Agentic Risk Copilot** (v0.55.1, [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Continuous background monitor assessing overnight gap risk, earnings hazard warnings for open positions, and suggested delta hedges - **Medium** (3-4 weeks)
 - [x] **AI Trade Post-Mortem & Behavioral Journal Auto-Tagger** (v0.55.1, [docs](docs/trade-post-mortem.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)): Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and tactical lessons - **Medium** (2-3 weeks)
@@ -1050,6 +1097,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 **Revenue Impact:** Medium (enables growth, prevents churn)
 
 #### App Experience
+- [ ] **Signals-First MVP Scope & Admin-Only Beta Rollout** ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)): Define the public launch surface around portfolio overview, instrument search, trade signals, and paper trading; simplify navigation; gate advanced or underdeveloped feature bundles to admins; validate automated-trading safeguards and phased App Store readiness
 - [ ] **Smart Watch App & Wearables**: Apple Watch and Wear OS companion apps with glanceable portfolio P&L, price alerts, and watchlists (v0.57.0+) - **Medium** (2-3 weeks)
 - [x] **iOS Live Activities & Dynamic Island Widget** (v0.50.0, [#160](https://github.com/CIInc/robinhood-options-mobile/issues/160)): Real-time lock screen position tracking, P&L status, and 0DTE trailing stop alerts - **Small** (1-2 weeks)
 - [x] **Offline Mode & Resilient Caching** (v0.50.0, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)): Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync - **Medium** (2-3 weeks)
