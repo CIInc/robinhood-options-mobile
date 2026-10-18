@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
@@ -292,6 +295,49 @@ void main() {
       }
     });
 
+    test(
+        'systematic autoTrade accepts a HOLD signal when the enabled indicator is BUY',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.systematic;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        enabledIndicators: {'macd': true},
+      );
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'AAPL',
+              'signal': 'HOLD',
+              'currentPrice': 150.0,
+              'multiIndicatorResult': {
+                'signalStrength': 55,
+                'indicators': {
+                  'macd': {'signal': 'BUY'},
+                },
+              },
+            },
+          ],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+
+        final processedSignals =
+            result['processedSignals'] as List<Map<String, dynamic>>;
+        expect(processedSignals.single['processedStatus'], 'Accepted');
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
     test('strict entry accepts a custom-only strategy when all rules are green',
         () async {
       provider.loadConfigFromUser(null);
@@ -346,6 +392,129 @@ void main() {
       } finally {
         MarketHours.testTime = null;
       }
+    });
+
+    test('autoTrade does not queue a BUY for a held or repeated symbol',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.requireApproval = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+
+      Map<String, dynamic> signal(String symbol, String interval) => {
+            'symbol': symbol,
+            'interval': interval,
+            'currentPrice': 100.0,
+          };
+
+      try {
+        await provider.autoTrade(
+          tradeSignals: [
+            signal('HELD', '1d'),
+            signal('NEW', '15m'),
+            signal('NEW', '1h'),
+          ],
+          tradeSignalsProvider: ApprovingTradeSignalsProvider(),
+          portfolioState: {
+            'buyingPower': 10000.0,
+            'HELD': {'quantity': 5, 'price': 100.0},
+          },
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+
+      expect(provider.pendingOrders.map((o) => o['symbol']), ['NEW']);
+    });
+
+    test('rejectOrder resolves a stale order by firestoreId before symbol',
+        () async {
+      provider.pendingOrders.addAll([
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'first'},
+        {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'},
+      ]);
+
+      await provider.rejectOrder(
+          {'symbol': 'AAPL', 'action': 'BUY', 'firestoreId': 'second'});
+
+      expect(provider.pendingOrders.map((o) => o['firestoreId']), ['first']);
+    });
+
+    test('approveOrder drops a BUY for a symbol that is now held', () async {
+      provider.pendingOrders.add({
+        'symbol': 'AAPL',
+        'action': 'BUY',
+        'quantity': 3,
+        'price': 100.0,
+      });
+
+      final approved = await provider.approveOrder(
+        provider.pendingOrders.first,
+        brokerageUser: null,
+        account: null,
+        brokerageService: null,
+        heldQuantity: 5,
+      );
+
+      expect(approved, isFalse);
+      expect(provider.pendingOrders, isEmpty);
+    });
+
+    test('autoTrade clears pending BUYs for symbols already held', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+      provider.pendingOrders.addAll([
+        {'symbol': 'HELD', 'action': 'BUY'},
+        {'symbol': 'NEW', 'action': 'BUY'},
+      ]);
+
+      try {
+        await provider.autoTrade(
+          tradeSignals: [],
+          tradeSignalsProvider: null,
+          portfolioState: {
+            'HELD': {'quantity': 5, 'price': 100.0},
+          },
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+
+      expect(provider.pendingOrders.map((o) => o['symbol']), ['NEW']);
+    });
+
+    test('saving tracked trades upserts by stable id and drops untracked docs',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final collection = userRef.collection('automated_buy_trades');
+      await collection.doc('legacy-random-id').set({'symbol': 'OLD'});
+
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 3,
+        'initialQuantity': 3,
+        'entryPrice': 100.0,
+        'timestamp': '2026-10-12T14:00:00.000',
+      };
+      provider.automatedBuyTrades.add(trade);
+
+      await provider.saveAutomatedBuyTrades(userRef);
+      await provider.saveAutomatedBuyTrades(userRef);
+
+      final ids = (await collection.get()).docs.map((d) => d.id).toList();
+      expect(ids, [AgenticTradingProvider.automatedTradeDocId(trade)]);
     });
 
     test('autoTrade logs a rejected trade proposal once', () async {
@@ -707,6 +876,212 @@ void main() {
       // After reset (would be called internally)
       // dailyTradeCount should be 0
       // dailyLossAmount should be 0
+    });
+  });
+
+  group('Trade history summary helpers', () {
+    test('countTradesOn counts buys and exits from the given local day', () {
+      final day = DateTime(2026, 10, 14, 15);
+      final history = [
+        {'timestamp': DateTime(2026, 10, 14, 9, 45).toIso8601String()},
+        {'timestamp': DateTime(2026, 10, 14, 14).toIso8601String()},
+        {'timestamp': DateTime(2026, 10, 13, 15).toIso8601String()},
+        {'timestamp': null},
+      ];
+
+      expect(AgenticTradingProvider.countTradesOn(history, day), equals(2));
+      expect(AgenticTradingProvider.countTradesOn([], day), equals(0));
+    });
+
+    test('withDerivedProfitLoss backfills dollar P&L on legacy exits', () {
+      final exit = AgenticTradingProvider.withDerivedProfitLoss({
+        'action': 'SELL',
+        'entryPrice': 100.0,
+        'exitPrice': 95.5,
+        'quantity': 4,
+      });
+
+      expect(exit['profitLoss'], closeTo(-18.0, 1e-9));
+    });
+
+    test('withDerivedProfitLoss keeps recorded P&L and skips buys', () {
+      final recorded = {'profitLoss': 7.5, 'entryPrice': 1, 'exitPrice': 9};
+      expect(
+          AgenticTradingProvider.withDerivedProfitLoss(recorded)['profitLoss'],
+          equals(7.5));
+
+      final buy = AgenticTradingProvider.withDerivedProfitLoss(
+          {'action': 'BUY', 'price': 10.0, 'quantity': 2});
+      expect(buy.containsKey('profitLoss'), isFalse);
+    });
+  });
+
+  group('Signals blocked before evaluation', () {
+    Map<String, dynamic> signal(String symbol, int timestamp) =>
+        {'symbol': symbol, 'timestamp': timestamp};
+
+    late AgenticTradingProvider provider;
+    setUp(() => provider = AgenticTradingProvider(
+          analytics: FakeFirebaseAnalytics(),
+        ));
+    tearDown(() => provider.dispose());
+
+    test('a blocked cycle leaves its signals eligible for the next cycle', () {
+      provider.rememberProcessedSignals(
+          [signal('CTRA', 1)], {'blocked': true, 'tradesExecuted': 0});
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
+    });
+
+    test('an evaluated cycle consumes its signals', () {
+      provider
+          .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isTrue);
+    });
+
+    test('autoTrade flags a market-closed cycle as blocked', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      // Saturday, so the market is closed.
+      MarketHours.testTime = DateTime.utc(2023, 10, 28, 15, 0);
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('Market is closed'));
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('turning Require Approval off re-evaluates queued signals', () {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(),
+        requireApproval: true,
+      ));
+      provider
+          .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});
+      expect(provider.hasProcessedSignal('CTRA', 1), isTrue);
+
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(),
+        requireApproval: false,
+      ));
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
+    });
+  });
+
+  group('Turning Require Approval off', () {
+    late AgenticTradingProvider provider;
+    late FakeFirebaseFirestore firestore;
+    late DocumentReference<Map<String, dynamic>> userRef;
+
+    AgenticTradingConfig config({required bool requireApproval}) =>
+        AgenticTradingConfig(
+          strategyConfig: TradeStrategyConfig(),
+          requireApproval: requireApproval,
+        );
+
+    setUp(() async {
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
+      firestore = FakeFirebaseFirestore();
+      userRef = firestore.collection('user').doc('u1');
+      await userRef.set({'name': 'Test'});
+      await userRef
+          .collection('pending_orders')
+          .add({'symbol': 'CTRA', 'action': 'BUY', 'quantity': 5});
+      provider.pendingOrders.add({'symbol': 'CTRA', 'action': 'BUY'});
+    });
+    tearDown(() => provider.dispose());
+
+    test('clears queued approvals locally and in Firestore', () async {
+      provider.loadConfigFromUser(config(requireApproval: true));
+
+      await provider.updateConfig(config(requireApproval: false), userRef);
+
+      expect(provider.pendingOrders, isEmpty);
+      expect((await userRef.collection('pending_orders').get()).docs, isEmpty);
+    });
+
+    test('keeps queued approvals while it stays on', () async {
+      provider.loadConfigFromUser(config(requireApproval: true));
+
+      await provider.updateConfig(config(requireApproval: true), userRef);
+
+      expect(provider.pendingOrders, hasLength(1));
+      expect((await userRef.collection('pending_orders').get()).docs,
+          hasLength(1));
+    });
+
+    test('keeps queued approvals when it was already off', () async {
+      provider.loadConfigFromUser(config(requireApproval: false));
+
+      await provider.updateConfig(config(requireApproval: false), userRef);
+
+      expect(provider.pendingOrders, hasLength(1));
+    });
+  });
+
+  group('syncPositions', () {
+    InstrumentPosition position(String account, String instrumentId,
+            {String quantity = '1.0000'}) =>
+        InstrumentPosition.fromJson({
+          'url': 'https://api.robinhood.com/positions/$account/$instrumentId/',
+          'instrument': 'https://api.robinhood.com/instruments/$instrumentId/',
+          'account': 'https://api.robinhood.com/accounts/$account/',
+          'account_number': account,
+          'quantity': quantity,
+          'average_buy_price': '10.0000',
+          'avg_cost_affected': false,
+        });
+
+    test('removes sold-out positions and keeps and updates the rest', () {
+      final store = InstrumentPositionStore()
+        ..add(position('A1', 'sold'))
+        ..add(position('A1', 'held', quantity: '1.0000'));
+
+      AgenticTradingProvider.syncPositions(
+          store, [position('A1', 'held', quantity: '5.0000')], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['held']);
+      expect(store.items.single.quantity, 5.0);
+    });
+
+    test('removes everything for an account when nothing is returned', () {
+      final store = InstrumentPositionStore()..add(position('A1', 'sold'));
+
+      AgenticTradingProvider.syncPositions(store, [], {'A1'});
+
+      expect(store.items, isEmpty);
+    });
+
+    test('leaves positions from other accounts untouched', () {
+      final store = InstrumentPositionStore()
+        ..add(position('A1', 'sold'))
+        ..add(position('B2', 'other'));
+
+      AgenticTradingProvider.syncPositions(store, [], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['other']);
+    });
+
+    test('adds newly opened positions', () {
+      final store = InstrumentPositionStore();
+
+      AgenticTradingProvider.syncPositions(
+          store, [position('A1', 'new')], {'A1'});
+
+      expect(store.items.map((p) => p.instrumentId), ['new']);
     });
   });
 }

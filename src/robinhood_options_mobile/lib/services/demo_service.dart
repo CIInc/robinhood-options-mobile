@@ -261,6 +261,30 @@ class DemoService implements IBrokerageService {
                 'unsettled_debit': '0.0000',
                 'crypto_buying_power': '0.0000',
                 'day_trades_protection': true,
+              },
+              <String, dynamic>{
+                'url': 'https://api.robinhood.com/accounts/TRAD1234/',
+                'portfolio_cash': '12500.0000',
+                'can_downgrade_to_cash': null,
+                'user': 'api.robinhood.com/user/',
+                'account_number': 'TRAD1234',
+                'type': 'cash',
+                'brokerage_account_type': 'ira_traditional',
+                'created_at': '2023-03-15T10:00:00.000000Z',
+                'updated_at': '2026-09-10T00:00:00.000000Z',
+                'deactivated': false,
+                'deposit_halted': false,
+                'withdrawal_halted': false,
+                'only_position_closing_trades': false,
+                'buying_power': '12500.0000',
+                'cash_available_for_withdrawal': '0.0000',
+                'cash': '12500.0000',
+                'cash_held_for_orders': '0.0000',
+                'uncleared_deposits': '0.0000',
+                'unsettled_funds': '0.0000',
+                'unsettled_debit': '0.0000',
+                'crypto_buying_power': '0.0000',
+                'day_trades_protection': true,
               }
             ]);
     List<Account> accounts = [];
@@ -6156,66 +6180,150 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<dynamic> getRetirementHistory(BrokerageUser user) async {
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+      {String? accountNumber}) async {
+    final isTrad = accountNumber != null &&
+        (accountNumber.toUpperCase().contains('TRAD') ||
+            accountNumber.toLowerCase().contains('traditional'));
+
+    final tradResults = [
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2026,
+        'contribution_amount': '0.00',
+        'match_amount': '0.00',
+        'match_rate': '0.01',
+        'direct_contributions': '0.00',
+        'rollover_contributions': '12500.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2026-01-10T09:00:00Z',
+        'updated_at': '2026-06-01T14:30:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2025,
+        'contribution_amount': '7000.00',
+        'match_amount': '70.00',
+        'match_rate': '0.01',
+        'direct_contributions': '7000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2025-01-15T10:00:00Z',
+        'updated_at': '2025-12-28T17:00:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'TRAD1234',
+        'account_type': 'ira_traditional',
+        'year': 2024,
+        'contribution_amount': '5500.00',
+        'match_amount': '55.00',
+        'match_rate': '0.01',
+        'direct_contributions': '5500.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2024-03-01T11:00:00Z',
+        'updated_at': '2024-11-20T16:00:00Z',
+        'status': 'active',
+      },
+    ];
+
+    final rothResults = [
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2026,
+        'contribution_amount': '5500.00',
+        'match_amount': '165.00',
+        'match_rate': '0.03',
+        'direct_contributions': '5500.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2026-01-15T09:00:00Z',
+        'updated_at': '2026-08-20T14:30:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2025,
+        'contribution_amount': '7000.00',
+        'match_amount': '210.00',
+        'match_rate': '0.03',
+        'direct_contributions': '7000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2025-01-10T10:00:00Z',
+        'updated_at': '2025-12-30T17:00:00Z',
+        'status': 'active',
+      },
+      {
+        'account_number': 'ROTH7890',
+        'account_type': 'ira_roth',
+        'year': 2024,
+        'contribution_amount': '6000.00',
+        'match_amount': '180.00',
+        'match_rate': '0.03',
+        'direct_contributions': '6000.00',
+        'rollover_contributions': '0.00',
+        'conversions': '0.00',
+        'limit': '7000.00',
+        'catch_up_limit': '8000.00',
+        'created_at': '2024-02-01T11:00:00Z',
+        'updated_at': '2024-12-15T16:00:00Z',
+        'status': 'active',
+      },
+    ];
+
+    if (isTrad) {
+      return Future.value({
+        'account_number': 'TRAD1234',
+        'account_id': 'ret_demo_trad_01',
+        'total_contributions': '12500.00',
+        'total_match': '125.00',
+        'results': tradResults,
+      });
+    }
+
+    if (accountNumber != null &&
+        (accountNumber.toUpperCase().contains('ROTH') ||
+            accountNumber.toLowerCase().contains('roth'))) {
+      return Future.value({
+        'account_number': 'ROTH7890',
+        'account_id': 'ret_demo_roth_01',
+        'total_contributions': '18500.00',
+        'total_match': '555.00',
+        'results': rothResults,
+      });
+    }
+
+    // Default or multi-account: return all
     return Future.value({
       'account_number': 'ROTH7890',
       'account_id': 'ret_demo_acct_01',
-      'total_contributions': '18500.00',
-      'total_match': '555.00',
-      'results': [
-        {
-          'year': 2026,
-          'account_type': 'ira_roth',
-          'contribution_amount': '5500.00',
-          'match_amount': '165.00',
-          'match_rate': '0.03',
-          'direct_contributions': '5500.00',
-          'rollover_contributions': '0.00',
-          'conversions': '0.00',
-          'limit': '7000.00',
-          'catch_up_limit': '8000.00',
-          'created_at': '2026-01-15T09:00:00Z',
-          'updated_at': '2026-08-20T14:30:00Z',
-          'status': 'active',
-        },
-        {
-          'year': 2025,
-          'account_type': 'ira_roth',
-          'contribution_amount': '7000.00',
-          'match_amount': '210.00',
-          'match_rate': '0.03',
-          'direct_contributions': '7000.00',
-          'rollover_contributions': '0.00',
-          'conversions': '0.00',
-          'limit': '7000.00',
-          'catch_up_limit': '8000.00',
-          'created_at': '2025-01-10T10:00:00Z',
-          'updated_at': '2025-12-30T17:00:00Z',
-          'status': 'active',
-        },
-        {
-          'year': 2024,
-          'account_type': 'ira_roth',
-          'contribution_amount': '6000.00',
-          'match_amount': '180.00',
-          'match_rate': '0.03',
-          'direct_contributions': '6000.00',
-          'rollover_contributions': '0.00',
-          'conversions': '0.00',
-          'limit': '7000.00',
-          'catch_up_limit': '8000.00',
-          'created_at': '2024-02-01T11:00:00Z',
-          'updated_at': '2024-12-15T16:00:00Z',
-          'status': 'active',
-        },
-      ],
+      'total_contributions': '31000.00',
+      'total_match': '680.00',
+      'results': [...rothResults, ...tradResults],
     });
   }
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(
-      BrokerageUser user) async {
-    final raw = await getRetirementHistory(user);
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+      {String? accountNumber}) async {
+    final raw = await getRetirementHistory(user, accountNumber: accountNumber);
     return RetirementHistory.fromJson(raw);
   }
 

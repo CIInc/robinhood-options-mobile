@@ -1137,6 +1137,46 @@ The system now supports **Custom Indicators**, allowing users to extend the anal
 - **Weighting:** Custom indicators can be assigned weights to influence the Signal Strength score.
 - **Flexibility:** Enables the implementation of proprietary or niche trading strategies.
 
+## Auto-Trade Safeguards (v0.56.0)
+
+- **Signal matching:** Stored signals are scored with the default indicators, so when only some indicators are enabled the provider queries by the enabled indicators and filters by age and symbol on the client. HOLD overall signals are accepted when every enabled indicator is BUY; SELL is rejected. The cycle logs how many signals were fetched and warns when the query reaches its 200-document cap.
+- **Entries:** A BUY is skipped when the symbol is already held or was already proposed in the same cycle. Pending BUYs for held symbols are cleared each cycle and re-checked when you approve.
+- **Exits:** The exit monitor does not run concurrently and never sells more shares than the position holds; tracked lots with no shares left are dropped. Exit notifications are batched per symbol, with one summary push for large batches.
+- **Persistence:** Tracked trades in `automated_buy_trades` are saved in order with stable document ids, so a save is an upsert followed by deletion of untracked documents.
+- **Push limits:** Trade-signal pushes use a 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes per user; throttled signals are still saved in the in-app feed, and a push that reaches no device releases its cooldown.
+- **Paper ledger repair (admin only):** `repairPaperLedger` removes net-short stock positions and reverses their credited cash (refusing negative cash unless `allowNegativeCash` is set), and `voidPaperPhantomFills` archives short-related fills to `paper_orders_voided`. Both require the `admin` claim, default to dry run, need explicit user ids to apply, and write audit records under `paper_repairs`.
+
+## Settings Persistence & Signal Re-Evaluation (v0.57.0)
+
+- **Saved settings stay saved:** Entry and exit toggles, Take Profit, Stop Loss, and the 15 Min / 1 Hour / 1 Day interval are written to the `agenticTradingConfig` field on your Firestore user document and also to the in-memory `User` object. The settings screen keeps the `User` object in sync with every provider config change, and the navigation shell loads the stored config once per user instance, so a rebuild or reopening of the screen no longer reverts your edits.
+- **Rule changes re-evaluate signals:** The auto-trader remembers which signals it has already processed so it does not re-propose them every cycle. That memory is cleared whenever the active indicators, require-all-green, minimum signal strength, interval, symbol filter, custom indicators, or trading mode change, so signals rejected under the old rules are evaluated again.
+- **Activity Log diagnostics:** A cycle that accepts no signals logs its top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is logged instead of failing silently. Pressing **Clear** in the Activity Log also forgets processed signals.
+- **Profile saves don't touch trading configs (v0.57.1):** `FirestoreService.updateUser` omits `agenticTradingConfig` and `futuresTradingConfig`, so a stale in-memory user object saved by another feature (brokerage sync, notification settings, risk circuit breakers) can no longer revert your saved auto-trade settings. The configs are written only by `AgenticTradingProvider.updateConfig` and the futures provider.
+- **Reopening settings keeps your edits (v0.57.3):** Other screens open the settings with a possibly stale `User` object. Once the provider has a loaded config (`AgenticTradingProvider.hasLoadedConfig`), the settings screen builds its fields from the provider instead, and the navigation shell reloads configs only on first load, when the signed-in account changes, or when the user document first appears. Cooldown Period, Daily Trade Limit and every other setting stay saved when you leave and return.
+- **Status card counts (v0.57.3):** The **Today** tile counts trades saved in today's history, including exits, so it survives app restarts; it is separate from the daily-limit counter used by the status badge. The **Performance** tile sums each exit's dollar `profitLoss`, which exits now record and which is backfilled from entry and exit prices for older records.
+- **Validation:** A number field autosaves only while every visible field passes validation (for example, Cooldown Period and Daily Trade Limit must be at least 1); an invalid field blocks saving until corrected.
+- **History and positions refresh (v0.57.5):** Orders the auto-trader places in the background, including market-close exits, now appear in the History tab's **Stocks & ETFs** list without restarting the app: it refetches when an order executes and once more 15 seconds later for late fills. After a cycle that executes real orders, the stock positions list is also reloaded and sold-out positions are removed. Paper trading updates its own positions and is unaffected.
+- **Signals survive closed-market cycles (v0.57.6):** The auto-trader marks a signal as processed only after a cycle actually evaluated it. A cycle blocked by market hours, the daily trade limit or the cooldown leaves its signals eligible for the next cycle, so signals generated overnight are evaluated when the market opens instead of being dropped as duplicates. Turning **Require Approval** off also forgets processed signals so that signals queued for approval are evaluated again.
+- **Approval queue (v0.57.6):** Turning **Require Approval** off discards orders already waiting for approval, in the app and in Firestore (`pending_orders`); orders queued while it was on are not executed retroactively. The next cycle re-proposes qualified signals and executes them directly.
+- **Auto-trading needs the app open:** Cycles run on an in-app timer, and the server never places orders, so nothing trades while the app is closed or suspended in the background. Only one copy of the app should be signed in and running per account, because each copy keeps its own in-memory settings.
+
+## Pro Subscription & Restoring Purchases (v0.57.4)
+
+Trade-signal notifications and strategy settings are Pro features gated by `PaywallWidget`. **Restore Purchases** sends the App Store receipt to the `verifySubscription` callable, which verifies it with Apple or Google and writes `subscriptionStatus: active` to your user document; the paywall listens to that document and closes once it is active.
+
+`SubscriptionService.restorePurchases()` waits for that check (up to 20 seconds) and returns a `RestoreResult`, which the paywall shows:
+
+| Status | Message |
+| --- | --- |
+| `restored` | Subscription restored. |
+| `nothingToRestore` | No purchases found to restore for this Apple ID. |
+| `signedOut` | Sign in to restore your subscription. |
+| `failed` | Why verification failed, for example "This Apple ID has no active subscription to restore." |
+
+Restore only succeeds for an Apple ID that has bought the subscription. A simulator or device without a purchase reports `nothingToRestore`; test a real restore with a sandbox or TestFlight build.
+
+If the server rejects a receipt, `verifySubscription` logs the reason (Apple's status code, the product IDs found in the receipt, or the expiry time; never the receipt or shared secret). Read it with `firebase functions:log --only verifysubscription`.
+
 ## Support
 
 For questions or issues:

@@ -531,7 +531,7 @@ async function runBacktestSimulation(params: BacktestParams) {
 
   // Get timestamps and prices
   const timestamps = symbolData.timestamps || [];
-  const { opens, highs, lows, closes, volumes } = symbolData;
+  const { closes } = symbolData;
 
   // Find start and end indices
   const startIndex = timestamps.findIndex(
@@ -555,11 +555,7 @@ async function runBacktestSimulation(params: BacktestParams) {
     totalBars: finalIndex - startIndex,
   });
 
-  // Optimization: Pre-calculate active keys and define max history window
-  // to prevent O(N^2) complexity where N is history length.
-  // 500 bars is sufficient for even the slowest indicators
-  // (SMA 200, Ichimoku 80).
-  const MAX_LOOKBACK = 500;
+  // Optimization: Pre-calculate active keys
   const activeIndicatorKeys = Object.keys(enabledIndicators).filter(
     (key) => enabledIndicators[key] === true
   );
@@ -577,28 +573,10 @@ async function runBacktestSimulation(params: BacktestParams) {
       equity: bhEquity,
     });
 
-    // Get data up to current point (Optimized with sliding window)
-    const windowStart = Math.max(0, i + 1 - MAX_LOOKBACK);
-
-    const histSymbolData = {
-      opens: opens.slice(windowStart, i + 1),
-      highs: highs.slice(windowStart, i + 1),
-      lows: lows.slice(windowStart, i + 1),
-      closes: closes.slice(windowStart, i + 1),
-      volumes: volumes.slice(windowStart, i + 1),
-    };
-
-    const histMarketData = {
-      closes: marketData.closes.slice(windowStart, i + 1),
-      volumes: marketData.volumes ?
-        marketData.volumes.slice(windowStart, i + 1) :
-        undefined,
-    };
-
-    // Evaluate indicators at this point in time
+    // Evaluate indicators at this point in time without array slicing
     const multiIndicatorResult = technicalIndicators.evaluateAllIndicators(
-      histSymbolData,
-      histMarketData,
+      symbolData,
+      marketData,
       {
         rsiPeriod,
         marketFastPeriod: smaPeriodFast,
@@ -606,7 +584,10 @@ async function runBacktestSimulation(params: BacktestParams) {
         customIndicators: customIndicators ||
           (config?.customIndicators as CustomIndicatorConfig[]),
         enabledIndicators: activeIndicatorKeys, // Optimization: only active
-      }
+      },
+      undefined,
+      i + 1,
+      Math.min(i + 1, marketData.closes.length)
     );
 
     // Check if we have an open position

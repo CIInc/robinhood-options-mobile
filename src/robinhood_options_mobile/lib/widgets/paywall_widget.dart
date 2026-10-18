@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -26,26 +28,36 @@ class PaywallWidget extends StatefulWidget {
 class _PaywallWidgetState extends State<PaywallWidget> {
   final SubscriptionService _subscriptionService = SubscriptionService();
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription<DocumentSnapshot<User>>? _userSubscription;
   List<ProductDetails> _products = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _successNotified = false;
 
   @override
   void initState() {
     super.initState();
     _loadProducts();
+    _userSubscription = widget.userDocRef.snapshots().listen(
+          (snapshot) => _checkStatus(snapshot.data()),
+          onError: (Object error) =>
+              debugPrint('Error listening for subscription status: $error'),
+        );
     // Re-verify subscription status on init
     _checkStatus();
   }
 
   @override
   void dispose() {
+    _userSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _checkStatus() {
-    if (_subscriptionService.isSubscriptionActive(widget.user)) {
+  void _checkStatus([User? user]) {
+    if (!_successNotified &&
+        _subscriptionService.isSubscriptionActive(user ?? widget.user)) {
+      _successNotified = true;
       widget.onSuccess();
     }
   }
@@ -96,14 +108,12 @@ class _PaywallWidgetState extends State<PaywallWidget> {
   Future<void> _restorePurchases() async {
     setState(() => _isLoading = true);
     try {
-      await _subscriptionService.restorePurchases();
-      // Wait a moment for listeners to fire
-      await Future.delayed(const Duration(seconds: 2));
+      final result = await _subscriptionService.restorePurchases();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Purchases restored. Checking status...')),
-        );
+        // A verified restore dismisses the paywall through the user document listener.
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(result.message)));
       }
     } catch (e) {
       if (mounted) {

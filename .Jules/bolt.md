@@ -33,3 +33,7 @@
 ## 2026-04-01 - Scalar Bollinger Bands Evaluation without Full-Series Array Allocations
 **Learning:** `evaluateBollingerBands` allocated full-series arrays (`computeBollingerBandsArray` and `computeKeltnerChannelsArray`) on every single evaluation call in `evaluateAllIndicators`. In backtesting loops and automated trading cycles over 500+ bars, this generated thousands of transient array objects for every candle evaluated, taking ~65.2 µs/op.
 **Action:** Replace `computeBollingerBandsArray` and `computeKeltnerChannelsArray` in `evaluateBollingerBands` with scalar helpers `computeBollingerBands` and `computeKeltnerChannels`, evaluating trailing bandwidth squeeze using index-bounded scalar calls. This speeds up `evaluateBollingerBands` by ~8.6x (from 65.2 µs/op down to 7.6 µs/op) and eliminates full-series array allocations per bar.
+
+## 2026-04-02 - Propagating Index Boundaries to Indicator Evaluators Eliminates Backtest Slicing
+**Learning:** In backtesting simulation loops (`runBacktestSimulation`), slicing 7 price/volume/market arrays on every bar step (`opens.slice(...)`, `highs.slice(...)`, `closes.slice(...)`, `volumes.slice(...)`, `marketData.closes.slice(...)`, etc.) generated 35,000+ transient array allocations per 5,000-bar backtest.
+**Action:** Propagate optional `endIndex` and `marketEndIndex` parameters through `evaluateAllIndicators` and all 20 individual indicator evaluation functions, passing full dataset references and index boundaries to evaluate indicators in-place without array allocations per bar.

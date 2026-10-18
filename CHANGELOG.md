@@ -2,6 +2,106 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.57.6] - 2026-10-15
+**Auto-Trade Signals No Longer Lost While the Market Is Closed ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Signals Are Evaluated Before They Are Marked Processed (`AgenticTradingProvider.runAutoTradeCycle`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Every fetched signal was marked processed before `autoTrade` checked its conditions. A cycle blocked by market hours, the daily limit or the cooldown therefore consumed the signals without evaluating them. Signals generated outside market hours were then filtered as duplicates when the market opened, so no automatic trades were placed.
+  - **Fix**: `autoTrade` flags such a cycle with `blocked: true` and `rememberProcessedSignals` marks signals only for cycles that evaluated them. Blocked cycles leave their signals eligible for the next cycle.
+  - **Require Approval Re-Evaluates Signals**: Require Approval is now part of the rules signature that clears the processed-signal memory, so signals queued for approval are evaluated again when it is turned off.
+- **Turning Require Approval Off Clears Queued Approvals (`AgenticTradingProvider.updateConfig`, [docs](docs/multi-indicator-trading.md)):** Orders already waiting in `pending_orders` are discarded, in memory and in Firestore, when the setting changes from on to off. Previously they stayed on the approval screen. Leaving the setting on, or off, clears nothing.
+- **Known Limitation**: Auto-trading runs on a client timer, so cycles only run while the app is open in the foreground. A second running copy of the app on the same account keeps its own in-memory settings and can queue approvals from the old setting.
+- **Automated Test Coverage**: Added tests in `test/agentic_trading_provider_test.dart` for blocked cycles keeping their signals, `autoTrade` flagging a market-closed cycle, Require Approval re-evaluating signals, and clearing queued approvals only on the on-to-off change.
+
+## [0.57.5] - 2026-10-14
+**Auto-Trade Orders & Positions Refresh Without Restarting ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **History Orders Refresh After Auto-Trades (`AgenticTradingProvider`, `HistoryPage`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: The History tab builds its order streams once and keeps them alive, resetting only on pull-to-refresh or an account change, so orders the auto-trader placed in the background (for example market-close exits) did not appear until the app was force-killed.
+  - **Fix**: `AgenticTradingProvider.executedOrderCount` increments for every executed entry, approved order, and exit. The History tab listens to it and resets its order streams, then refetches once more 15 seconds later to catch late fills. Unrelated provider notifications do not refetch.
+- **Stock Positions Refresh After Auto-Trade Exits (`AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md)):** After a cycle that executes real (non-paper) orders, the shared `InstrumentPositionStore` is reloaded through a scratch store and sold-out positions are pruned (`syncPositions`), limited to the current brokerage user's accounts. `getStockPositionStore` only adds or updates, so sold positions previously stayed listed until a full reload.
+- **Receipt Rejection Logging (`verifySubscription`, [docs](docs/multi-indicator-trading.md)):** `verifyAppleReceipt` now logs why it rejects a receipt (Apple status code, the product IDs in the receipt, or the expiry time), without logging the receipt or shared secret, so a rejected Restore Purchases can be diagnosed. Takes effect when Functions are deployed.
+- **Automated Test Coverage**: Added History refetch tests in `test/history_past_positions_test.dart` and `syncPositions` tests in `test/agentic_trading_provider_test.dart`.
+
+## [0.57.4] - 2026-10-14
+**Restore Purchases Reports What Happened ([docs](docs/multi-indicator-trading.md))**
+
+- **Restore Purchases Gives Clear Feedback (`SubscriptionService.restorePurchases`, `PaywallWidget`, [docs](docs/multi-indicator-trading.md)):**
+  - **Root Cause**: Restore only asked the App Store to restore and then showed "Checking restored subscription...". When the Apple ID had nothing to restore, or the server rejected the receipt, the outcome went only to the debug log, so the paywall just stayed on screen.
+  - **Fix**: `restorePurchases()` now waits for the store and the server receipt check and returns a `RestoreResult` (`restored`, `nothingToRestore`, `signedOut`, `failed`). The paywall shows that message, for example "This Apple ID has no active subscription to restore." A verified restore still dismisses the paywall through the user document listener. The wait times out after 20 seconds.
+  - **Automated Test Coverage**: Added `test/subscription_restore_result_test.dart` for the three restore outcomes.
+- **Known Limitation**: Restore cannot succeed on a device or simulator whose Apple ID has no purchase; verifying a real restore needs a sandbox or TestFlight build.
+
+## [0.57.3] - 2026-10-14
+**Auto-Trade Card Stats & Settings Persistence Fixes ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Status Card Shows Real Trade Counts and P&L (`AgenticTradingProvider`, `AgenticTradingSettingsWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of "0 trades"**: The Today tile read an in-memory counter that reset on every app launch and ignored exits, while Last Run read the saved history.
+  - **Fix**: Today now counts the trades saved in today's history (buys and exits) via `AgenticTradingProvider.countTradesOn`. The daily trade limit counter and the status badge are unchanged.
+  - **Root Cause of "+$0.00" Performance**: Exit records saved only prices and a percent, but the card and the performance screen sum a dollar `profitLoss`, so every P&L figure was zero.
+  - **Fix**: Exits now record `profitLoss`, and older saved exits are backfilled from their entry and exit prices when history loads (`withDerivedProfitLoss`).
+- **Auto-Trade Settings No Longer Revert When Reopened (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause**: Entry points pass different, sometimes stale `User` objects. Opening settings from one built the fields from it and overwrote the provider's newer config, so values such as Cooldown Period and Daily Trade Limit snapped back. The navigation shell also reloaded the config on every Firestore user snapshot.
+  - **Fix**: Once the provider has a loaded config (`hasLoadedConfig`), the settings screen uses it instead of the `User` object. The shell reloads only on first load, when the signed-in account changes, or when the user document first appears.
+  - **Automated Test Coverage**: Added `test/agentic_trading_settings_persistence_test.dart` (edit, save, reopen with a stale user) and helper tests in `test/agentic_trading_provider_test.dart`.
+- **Known Limitation**: A number field saves only when every visible field is valid; an invalid field blocks autosave silently.
+
+## [0.57.2] - 2026-10-13
+**Subscription Restore Reliability & Signals-First MVP Planning**
+
+- **Paywall Dismissal After Subscription Restore:** The paywall now listens for the server-verified active entitlement on the user's Firestore document and dismisses once it arrives, instead of relying on a fixed delay. Added a regression test for the entitlement update (`test/paywall_widget_test.dart`).
+- **Signals-First MVP Scope:** Added the high-priority admin-only beta and release-readiness plan to the roadmap ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- **iOS Build Stability:** Disabled Flutter's Swift Package Manager auto-migration in `pubspec.yaml` (`enable-swift-package-manager: false`) so iOS builds keep the project's CocoaPods setup instead of rewriting `Podfile.lock` and `project.pbxproj`; refreshed the plugin checksums in `Podfile.lock`.
+
+## [0.57.1] - 2026-10-13
+**User Profile Saves No Longer Overwrite Trading Settings ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **User Profile Saves No Longer Overwrite Trading Settings (`FirestoreService.updateUser`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Root Cause of Reverting Settings**: `updateUser` wrote the entire `User` object, including `agenticTradingConfig` and `futuresTradingConfig`, to the user document. Any code path holding an older `User` instance (brokerage sync, risk circuit breakers, notification settings, investment profile, DRIP, sign-in) silently replaced the saved auto-trade config, reverting toggles, Take Profit, and the signal interval.
+  - **Fix**: `updateUser` no longer writes the two trading configs; they are saved only by their own settings paths (`AgenticTradingProvider.updateConfig` and the futures equivalent).
+  - **Automated Test Coverage**: Added `test/firestore_service_update_user_test.dart`, which saves a config directly, then calls `updateUser` with a stale user and verifies the saved Take Profit and interval survive.
+
+## [0.57.0] - 2026-10-13
+**Auto-Trade Settings Persistence & Signal Re-Evaluation ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
+
+- **Auto-Trade Settings Persistence & Signal Re-Evaluation (`AgenticTradingSettingsWidget`, `NavigationStatefulWidget`, `AgenticTradingProvider`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Settings No Longer Revert**: Entry and exit toggles, Take Profit, Stop Loss, and other auto-trade settings were saved to Firestore but not to the in-memory `User` object, so the next rebuild or reopening of the settings screen reloaded the old values. The settings screen now keeps the `User` object in sync with every config change, and the navigation shell loads the stored config once per user instead of on every rebuild.
+  - **Interval Selector Saves**: The 15 Min / 1 Hour / 1 Day selector now writes its choice to the auto-trade config; previously the shared save rebuilt the config from the old interval.
+  - **Rejected Signals Are Re-Evaluated**: Signals that were rejected under old entry rules are no longer skipped as duplicates after you change the active indicators, require-all-green, minimum strength, interval, symbol filter, custom indicators, or trading mode.
+  - **Clearer Activity Log**: When a cycle accepts no signals it logs the top rejection reasons (for example `176× volume is HOLD`), and a failed settings save is reported instead of being silent.
+  - **Startup Warnings Removed**: The first build pass no longer logs false `userDocRef is null` warnings for pending orders, trade history, and tracked trades; those load once the user document exists.
+
+## [0.56.0] - 2026-10-12
+**Retirement Planning & Gold Match Maximizer, Auto-Trade Reliability & Paper Ledger Repair ([docs](docs/multi-account-and-retirement.md), [docs](docs/multi-indicator-trading.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139), [#234](https://github.com/CIInc/robinhood-options-mobile/issues/234), [#235](https://github.com/CIInc/robinhood-options-mobile/pull/235))**
+
+- **Auto-Trade Reliability, Notification Throttling & Paper Ledger Repair (`AgenticTradingProvider`, `trade-signal-notifications.ts`, `paper-ledger-repair.ts`, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)):**
+  - **Signal Matching Fix**: Auto-trading now matches stored signals by the user's enabled indicators (stored signals are scored with default indicators), accepts HOLD overall signals when every enabled indicator is BUY, and logs the number of signals fetched plus a warning when the query hits its 200-document cap.
+  - **Exit Oversell Protection**: The exit monitor is re-entrancy guarded and caps sells to the shares actually held, preventing duplicate tracked lots from selling one position repeatedly and opening phantom paper shorts.
+  - **No Stacked Entries**: BUY proposals are skipped for symbols already held or already proposed in the same cycle; stale pending BUYs for held symbols are cleared each cycle and re-checked on approve.
+  - **Ordered, Upsert-Based Trade Saves**: Tracked automated buy trades are written in order using stable document ids (sets before deletes), removing the delete-then-add duplication; pending orders are resolved by Firestore id.
+  - **Approve Flow**: Approve and Reject show progress, results and a plain-language description of the order, and no longer hang on slow Firestore acknowledgements.
+  - **Notification Throttling**: Exit notifications are batched per symbol with a single summary push for large batches ("Auto-Trade Summary" counts exits); trade-signal pushes have a per-user 60-minute cooldown per symbol, interval and action and a cap of 5 pushes per 15 minutes (extra signals are still saved in-app); a push that reaches no device releases its cooldown; iOS no longer shows a duplicate in-app toast for foreground pushes.
+  - **Paper Ledger Repair (Admin)**: Added admin-only callables `repairPaperLedger` (removes net-short stock positions and reverses their credited cash, with a negative-cash guard) and `voidPaperPhantomFills` (archives short-related fills to `paper_orders_voided`). Both default to dry run, require explicit user ids to apply, and write audit records.
+  - **UI & Platform Fixes**: Position bar charts now show negative values; action SnackBars auto-dismiss (`persist: false`); macOS builds start without AdMob/HomeWidget or notification-permission failures and include the network entitlement.
+  - **Automated Test Coverage**: Added provider tests for HOLD acceptance, re-buy guard, pending-order cleanup, id resolution and upsert saves, plus functions tests for the repair and void planners.
+
+- **Retirement Planning & Gold Match Maximizer (`RetirementProjectionCalculator`, `RetirementProjectionCard`, `retirement_projection.dart`, `retirement_widget.dart`, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)):**
+  - **Interactive IRA Compounding Engine**: Year-by-year compounding simulation engine (`RetirementProjectionCalculator`) modeling customizable annual contributions ($1,000–$8,000), retirement horizons (5–40 years), expected annual returns (4%–12%), and starting balances.
+  - **Robinhood Gold 3% Match Optimizer**: Dedicated ROI calculator demonstrating instant Year 1 net cash bonus (after subtracting the $50 annual Gold fee), annual contribution threshold required to break even ($1,666.67/yr), lifetime compounded wealth generated strictly by the 3% match bonus, and the 5-year match retention rule.
+  - **Tax-Advantaged Growth vs. Taxable Drag**: Quantitative comparison analyzing tax-sheltered compounding (Roth tax-free growth and Traditional tax deferral) against taxable brokerage accounts subject to annual dividend/turnover tax drag (~1.5%/yr), providing estimated lifetime tax savings.
+  - **Interactive Mobile UI & Milestone Forecast**: Stacked 3-segment progress bar (Principal, Compounded Growth, Match Wealth), quick-choice preset chips for contributions, horizons, returns, and match tiers, expandable tax comparison card, and 5-year milestone forecast table embedded directly within `RetirementWidget`.
+  - **Traditional IRA Contribution Tracking & Rollover Transparency**:
+    - Resolved `$0.00` contribution display on Traditional IRAs by integrating modern Robinhood PaymentHub endpoints (`/paymenthub/unified_transfers/` and `/paymenthub/unified_transfers/{id}/contribution/`) alongside ACATS rollover endpoints (`/acats/`) and match incentives (`/retirement/match/`).
+    - Synthesized individual IRA transfer records (`RetirementTransaction`) from PaymentHub SDUI stacked data rows, extracting contribution type ("New IRA Contribution"), tax year (2026), match percentage (3%), and match amounts ($30.00 and $60.00), populating the full $3,000.00 contribution and $90.00 Gold match.
+    - Added "Transfers & Contributions" transaction breakdown list in `RetirementWidget` displaying individual contribution transfer dates, amounts, and match percentages.
+    - Fixed endpoint query string issue in `RobinhoodService.getRetirementHistory`: removed erroneous `?account_number=` query parameter which caused misrouting on the user-scoped Bonfire endpoint.
+    - Updated navigation and account context routing in `UserWidget` and `RetirementWidget`: automatically selects the user's retirement/IRA account (`741902639`) rather than defaulting to taxable individual accounts (`5QR24141`), with an IRA account switcher dropdown when multiple retirement accounts exist.
+    - Distinctly separated annual IRS contribution room ($3,000 contributed, $4,000 limit remaining for current tax year) from settled rollover assets ($25,334.93 rolled over from Merrill Lynch in 2025).
+    - Fixed "Total Account Value" displaying cash buying power instead of total account value (TAV): resolved total account balance using portfolio equity, account total value, or settled rollover transfers, while adding a distinct "Cash / Buying Power" secondary row when cash differs from total portfolio equity.
+    - Fixed squished header card title by placing status badges in a responsive `Wrap` layout underneath the title and account number.
+    - Added interactive tax year selector chips allowing users to seamlessly review prior years (2025, 2024) and current tax year progress, with direct tap-to-switch interactions on history list tiles.
+  - **Automated Test Coverage**: Added comprehensive test suite in `test/retirement_projection_test.dart` and `test/retirement_test.dart` validating multi-year compounding formulas, match calculations, Gold fee break-even analysis, Traditional IRA direct and rollover contribution parsing, PaymentHub SDUI contribution parsing, ACATS rollover handling, multi-account history filtering, and widget rendering.
+
 ## [0.55.1] - 2026-10-06
 **Autonomous Risk Copilot, Multi-Leg Spread Builder, AI Trade Post-Mortem & Behavioral Tilt Safeguards ([docs](docs/agentic-risk-copilot.md), [docs](docs/multi-leg-spread-builder.md), [docs](docs/trade-post-mortem.md), [docs](docs/risk-circuit-breakers.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115), [#118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#142](https://github.com/CIInc/robinhood-options-mobile/issues/142), [#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#198](https://github.com/CIInc/robinhood-options-mobile/pull/198), [#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202))**
 

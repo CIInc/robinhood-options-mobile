@@ -6,9 +6,18 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
+enum RestoreStatus { restored, nothingToRestore, signedOut, failed }
+
+class RestoreResult {
+  const RestoreResult(this.status, this.message);
+  final RestoreStatus status;
+  final String message;
+}
+
 class SubscriptionService {
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
+  Completer<RestoreResult>? _restoreInProgress;
 
   // Products IDs - these should be configured in App Connect / Play Console
   static const String monthlySubscriptionId = 'trade_signals_monthly';
@@ -51,6 +60,8 @@ class SubscriptionService {
   Future<void> _listenToPurchaseUpdated(
       List<PurchaseDetails> purchaseDetailsList) async {
     debugPrint('_listenToPurchaseUpdated: $purchaseDetailsList');
+    var verified = 0;
+    String? lastError;
     for (var purchaseDetails in purchaseDetailsList) {
       debugPrint('Processing purchase: ${purchaseDetails.productID} '
           'status: ${purchaseDetails.status} '
@@ -61,10 +72,16 @@ class SubscriptionService {
       } else {
         if (purchaseDetails.status == PurchaseStatus.error) {
           debugPrint('Purchase error: ${purchaseDetails.error}');
+          lastError = 'The App Store reported an error. Please try again.';
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
           debugPrint('Purchase success/restored, starting verification...');
-          await _verifyAndDeliverProduct(purchaseDetails);
+          final error = await _verifyAndDeliverProduct(purchaseDetails);
+          if (error == null) {
+            verified++;
+          } else {
+            lastError = error;
+          }
         }
         if (purchaseDetails.pendingCompletePurchase) {
           debugPrint('Completing purchase for ${purchaseDetails.productID}');
@@ -72,16 +89,22 @@ class SubscriptionService {
         }
       }
     }
+    final restore = _restoreInProgress;
+    if (restore != null && !restore.isCompleted) {
+      restore.complete(restoreResultFor(verified: verified, error: lastError));
+    }
   }
 
-  Future<void> _verifyAndDeliverProduct(PurchaseDetails purchaseDetails) async {
+  /// Returns null once the receipt is verified, otherwise a message for the user.
+  Future<String?> _verifyAndDeliverProduct(
+      PurchaseDetails purchaseDetails) async {
     debugPrint('_verifyAndDeliverProduct for ${purchaseDetails.productID}');
 
     // Get current user UID
     final currentUser = auth.FirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       debugPrint('Purchase success but no user logged in. Cannot deliver.');
-      return;
+      return 'Sign in to restore your subscription.';
     }
     debugPrint('Current User UID: ${currentUser.uid}');
 
@@ -100,9 +123,33 @@ class SubscriptionService {
             purchaseDetails.verificationData.serverVerificationData,
       });
       debugPrint('Subscription receipt submitted for verification.');
+      return null;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('Subscription verification failed: ${e.code} ${e.message}');
+      return switch (e.code) {
+        'permission-denied' =>
+          'This Apple ID has no active subscription to restore.',
+        'unauthenticated' => 'Sign in to restore your subscription.',
+        'failed-precondition' =>
+          'Restoring is unavailable right now. Please try again later.',
+        _ => 'Could not verify your purchase. Please try again.',
+      };
     } catch (e) {
       debugPrint('Subscription verification failed: $e');
+      return 'Could not verify your purchase. Please try again.';
     }
+  }
+
+  /// Summarizes a restore batch: [verified] receipts accepted, last [error] seen.
+  static RestoreResult restoreResultFor(
+      {required int verified, String? error}) {
+    if (verified > 0) {
+      return const RestoreResult(
+          RestoreStatus.restored, 'Subscription restored.');
+    }
+    if (error != null) return RestoreResult(RestoreStatus.failed, error);
+    return const RestoreResult(RestoreStatus.nothingToRestore,
+        'No purchases found to restore for this Apple ID.');
   }
 
   Future<void> buySubscription(ProductDetails product) async {
@@ -133,8 +180,27 @@ class SubscriptionService {
     return response.productDetails;
   }
 
-  Future<void> restorePurchases() async {
-    await _iap.restorePurchases();
+  /// Asks the store to restore purchases and waits for the receipt check.
+  Future<RestoreResult> restorePurchases(
+      {Duration timeout = const Duration(seconds: 20)}) async {
+    if (auth.FirebaseAuth.instance.currentUser == null) {
+      return const RestoreResult(
+          RestoreStatus.signedOut, 'Sign in to restore your subscription.');
+    }
+    final completer = Completer<RestoreResult>();
+    _restoreInProgress = completer;
+    try {
+      await _iap.restorePurchases();
+      // Nothing arrives on the stream when the Apple ID has no purchases.
+      return await completer.future
+          .timeout(timeout, onTimeout: () => restoreResultFor(verified: 0));
+    } catch (e) {
+      debugPrint('SubscriptionService: restorePurchases failed: $e');
+      return const RestoreResult(RestoreStatus.failed,
+          'Could not reach the App Store. Please try again.');
+    } finally {
+      _restoreInProgress = null;
+    }
   }
 
   // Trial Logic

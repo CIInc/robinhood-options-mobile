@@ -288,8 +288,12 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       final bool startsAtZero =
           widget.brokerageUser.displayValue == DisplayValue.marketValue ||
               widget.brokerageUser.displayValue == DisplayValue.totalCost;
-      final double minVal = startsAtZero ? 0.0 : extents.min - primaryPad;
-      extents = charts.NumericExtents(minVal, extents.max + primaryPad);
+      // Value-based bars anchor at zero but must still fit negative values (shorts).
+      final double lowest = extents.min - primaryPad;
+      final double highest = extents.max + primaryPad;
+      final double minVal = startsAtZero ? (lowest < 0 ? lowest : 0.0) : lowest;
+      final double maxVal = startsAtZero && highest < 0 ? 0.0 : highest;
+      extents = charts.NumericExtents(minVal, maxVal);
     }
 
     var primaryMeasureAxis = widget.brokerageUser.displayValue ==

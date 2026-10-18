@@ -3796,10 +3796,12 @@ https://api.schwabapi.com/marketdata/v1/instruments?symbol=Google&projection=sea
       null;
 
   @override
-  Future<dynamic> getRetirementHistory(BrokerageUser user) async => null;
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+          {String? accountNumber}) async =>
+      null;
 
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(
-          BrokerageUser user) async =>
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+          {String? accountNumber}) async =>
       const RetirementHistory();
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -5640,18 +5641,204 @@ WATCHLIST
   /// Fetches annual IRA contribution history, matches, and limits
   /// https://bonfire.robinhood.com/retirement/history/
   @override
-  Future<dynamic> getRetirementHistory(BrokerageUser user) async {
+  Future<dynamic> getRetirementHistory(BrokerageUser user,
+      {String? accountNumber}) async {
+    // Bonfire retirement history is a user-level endpoint; omit querystring
+    // to avoid misrouting or unexpected 404/empty responses.
     var url = "$robinHoodBonfireEndpoint/retirement/history/";
     return await getJson(user, url);
   }
 
-  /// Fetches typed RetirementHistory model
+  /// Fetches Robinhood IRA match rate (e.g. 1% or 3% with Gold)
+  /// https://bonfire.robinhood.com/retirement/match/
+  Future<dynamic> getRetirementMatch(BrokerageUser user,
+      {String? accountNumber}) async {
+    var url = "$robinHoodBonfireEndpoint/retirement/match/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches incoming ACATS account transfers (including IRA rollovers)
+  /// https://bonfire.robinhood.com/acats/
+  Future<dynamic> getAcatsTransfers(BrokerageUser user,
+      {String? accountNumber}) async {
+    var url = "$robinHoodBonfireEndpoint/acats/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches unified payment transfers from PaymentHub
+  /// https://bonfire.robinhood.com/paymenthub/unified_transfers/
+  Future<dynamic> getUnifiedTransfers(BrokerageUser user) async {
+    var url = "$robinHoodBonfireEndpoint/paymenthub/unified_transfers/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches SDUI contribution breakdown metadata for a specific payment transfer
+  /// https://bonfire.robinhood.com/paymenthub/unified_transfers/{id}/contribution/
+  Future<dynamic> getUnifiedTransferContribution(
+      BrokerageUser user, String transferId) async {
+    var url =
+        "$robinHoodBonfireEndpoint/paymenthub/unified_transfers/$transferId/contribution/";
+    return await getJson(user, url);
+  }
+
+  /// Fetches typed RetirementHistory model combining annual direct contributions,
+  /// Robinhood match rate, ACATS rollovers, and PaymentHub unified transfers.
   @override
-  Future<RetirementHistory> getRetirementHistoryModel(
-      BrokerageUser user) async {
+  Future<RetirementHistory> getRetirementHistoryModel(BrokerageUser user,
+      {String? accountNumber}) async {
     try {
-      final raw = await getRetirementHistory(user);
-      return RetirementHistory.fromJson(raw);
+      final Account? targetAccount = user.accounts.firstWhereOrNull((a) =>
+          a.accountNumber == accountNumber ||
+          (accountNumber == null && a.isRetirement));
+
+      final effectiveAccountNumber =
+          accountNumber ?? targetAccount?.accountNumber;
+
+      // 1. Fetch direct contributions
+      dynamic raw;
+      try {
+        raw = await getRetirementHistory(user,
+            accountNumber: effectiveAccountNumber);
+      } catch (e) {
+        debugPrint('Error fetching raw retirement history: $e');
+      }
+
+      // 2. Fetch match rate
+      dynamic matchData;
+      try {
+        matchData =
+            await getRetirementMatch(user, accountNumber: effectiveAccountNumber);
+      } catch (e) {
+        debugPrint('Error fetching retirement match: $e');
+      }
+
+      // 3. Fetch ACATS transfers (for IRA rollovers)
+      dynamic acatsData;
+      try {
+        acatsData =
+            await getAcatsTransfers(user, accountNumber: effectiveAccountNumber);
+      } catch (e) {
+        debugPrint('Error fetching ACATS transfers for retirement: $e');
+      }
+
+      // 4. Fetch unified payment transfers (PaymentHub direct IRA contributions)
+      final List<Map<String, dynamic>> iraTransfers = [];
+      try {
+        final pTransfersRaw = await getUnifiedTransfers(user);
+        final List<dynamic> pTransfers = (pTransfersRaw is Map &&
+                pTransfersRaw['results'] is List)
+            ? pTransfersRaw['results'] as List
+            : (pTransfersRaw is List ? pTransfersRaw : const []);
+
+        for (final t in pTransfers) {
+          if (t is! Map) continue;
+          final origId = t['originating_account_id']?.toString();
+          final recId = t['receiving_account_id']?.toString();
+          final destId = t['details'] is Map
+              ? t['details']['dest_account_id']?.toString()
+              : null;
+          final origType =
+              t['originating_account_type']?.toString().toLowerCase() ?? '';
+          final destType = t['details'] is Map
+              ? t['details']['dest_account_type']?.toString().toLowerCase() ?? ''
+              : '';
+
+          final matchesAccount = (effectiveAccountNumber != null &&
+                  (origId == effectiveAccountNumber ||
+                      recId == effectiveAccountNumber ||
+                      destId == effectiveAccountNumber)) ||
+              (effectiveAccountNumber == null &&
+                  (origType.contains('ira') || destType.contains('ira')));
+
+          final state = (t['state'] ?? '').toString().toLowerCase();
+          if (matchesAccount && (state == 'completed' || state == 'settled')) {
+            final transferCopy = Map<String, dynamic>.from(t);
+            final transferId = t['id']?.toString();
+            if (transferId != null && transferId.isNotEmpty) {
+              try {
+                final contribJson =
+                    await getUnifiedTransferContribution(user, transferId);
+                if (contribJson is Map) {
+                  transferCopy['contribution_details'] = contribJson;
+                }
+              } catch (e) {
+                debugPrint(
+                    'Error fetching contribution details for transfer $transferId: $e');
+              }
+            }
+            iraTransfers.add(transferCopy);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error fetching unified transfers for retirement: $e');
+      }
+
+      // 5. Fetch total account value (TAV) / equity for the retirement account
+      double? tav = targetAccount?.totalValue;
+      if (effectiveAccountNumber != null) {
+        // Probe 1: /portfolios/$effectiveAccountNumber/
+        try {
+          final pUrl = "$endpoint/portfolios/$effectiveAccountNumber/";
+          final pJson = await getJson(user, pUrl);
+          debugPrint('PROBE /portfolios/$effectiveAccountNumber/: $pJson');
+          if (pJson is Map) {
+            tav = parseDouble(pJson['equity'] ??
+                pJson['extended_hours_equity'] ??
+                pJson['total_value'] ??
+                pJson['market_value']);
+          }
+        } catch (e) {
+          debugPrint('Error probing /portfolios/$effectiveAccountNumber/: $e');
+        }
+
+        // Probe 2: /portfolio/account/$effectiveAccountNumber/live
+        if (tav == null) {
+          try {
+            final liveJson = await getLivePortfolio(user, effectiveAccountNumber);
+            debugPrint('PROBE live portfolio: $liveJson');
+            if (liveJson is Map) {
+              tav = parseDouble(liveJson['equity'] ??
+                  liveJson['total_equity'] ??
+                  liveJson['market_value'] ??
+                  liveJson['amount']);
+            }
+          } catch (e) {
+            debugPrint('Error probing live portfolio: $e');
+          }
+        }
+
+        // Probe 3: /phoenix/accounts/unified
+        if (tav == null) {
+          try {
+            final unifiedJson = await getUnifiedAccount(user);
+            debugPrint('PROBE unified: $unifiedJson');
+          } catch (e) {
+            debugPrint('Error probing unified: $e');
+          }
+        }
+      }
+
+      final combined = <String, dynamic>{
+        if (effectiveAccountNumber != null)
+          'account_number': effectiveAccountNumber,
+        'account_type':
+            targetAccount?.brokerageAccountType ?? 'ira_traditional',
+        if (tav != null)
+          'total_value': tav
+        else if (targetAccount?.totalValue != null)
+          'total_value': targetAccount!.totalValue
+        else if (targetAccount?.portfolioCash != null)
+          'total_value': targetAccount!.portfolioCash,
+        'results': (raw is Map ? raw['results'] : raw) ?? [],
+        if (matchData is Map && matchData['match_rate'] != null)
+          'match_rate': matchData['match_rate'],
+        if (acatsData is Map && acatsData['results'] != null)
+          'acats': acatsData['results'],
+        if (iraTransfers.isNotEmpty)
+          'unified_transfers': iraTransfers,
+      };
+
+      return RetirementHistory.fromJson(combined);
     } catch (e) {
       debugPrint('Error fetching retirement history model: $e');
       return const RetirementHistory();

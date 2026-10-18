@@ -134,6 +134,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       FlutterLocalNotificationsPlugin();
   BrokerageUser? _lastUser;
   String? _lastAuthUserUid;
+  bool _tradingConfigsLoaded = false;
+  bool _tradingConfigsFromUser = false;
+  String? _tradingConfigUid;
 
   IBrokerageService _getService(BrokerageUser user) {
     return user.source == BrokerageSource.robinhood
@@ -216,12 +219,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   Future<void> setupInteractedMessage() async {
     // Request permission for notifications
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+    try {
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+    } catch (e) {
+      // Throws on unsigned/debug desktop builds; the rest of the setup must still run.
+      debugPrint('Notification permission request failed: $e');
+    }
 
     // Request permissions for local notifications on Android 13+
     if (Platform.isAndroid) {
@@ -238,7 +246,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     const InitializationSettings initializationSettings =
         InitializationSettings(
             android: initializationSettingsAndroid,
-            iOS: initializationSettingsDarwin);
+            iOS: initializationSettingsDarwin,
+            macOS: initializationSettingsDarwin);
     await flutterLocalNotificationsPlugin.initialize(
         settings: initializationSettings,
         onDidReceiveNotificationResponse:
@@ -268,34 +277,41 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     // Listen for messages while app is in the foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      // iOS already shows a system banner while foregrounded (see auth.dart).
+      if (!kIsWeb && Platform.isIOS) return;
       if (message.notification != null) {
         if (message.data['imageUrl'] != null ||
             message.notification?.android?.imageUrl != null) {
           _showRichNotification(message);
         } else {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (message.notification!.title != null)
-                      Text(message.notification!.title!,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
-                    if (message.notification!.body != null)
-                      Text(message.notification!.body!,
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ],
+            // Replace rather than queue, so a burst of pushes shows only the latest toast.
+            ScaffoldMessenger.of(context)
+              ..clearSnackBars()
+              ..showSnackBar(
+                SnackBar(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (message.notification!.title != null)
+                        Text(message.notification!.title!,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.bold)),
+                      if (message.notification!.body != null)
+                        Text(message.notification!.body!,
+                            maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 4),
+                  persist: false,
+                  action: SnackBarAction(
+                    label: 'View',
+                    onPressed: () => _handleMessage(message),
+                  ),
                 ),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 4),
-                action: SnackBarAction(
-                  label: 'View',
-                  onPressed: () => _handleMessage(message),
-                ),
-              ),
-            );
+              );
           }
         }
       }
@@ -809,14 +825,27 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             final agenticProvider =
                 Provider.of<AgenticTradingProvider>(context, listen: false);
-            agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+            // Settings edits save through the providers and every user snapshot is
+            // a new object, so reload only on first load or when the account changes.
+            final reloadConfigs = !_tradingConfigsLoaded ||
+                _tradingConfigUid != auth.currentUser?.uid ||
+                (!_tradingConfigsFromUser && user != null);
+            _tradingConfigsLoaded = true;
+            _tradingConfigsFromUser = user != null;
+            _tradingConfigUid = auth.currentUser?.uid;
+            if (reloadConfigs) {
+              agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+            }
 
-            // Load automated buy trades from Firestore
-            agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
-            // Load auto-trade history from Firestore
-            agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-            // Load pending orders from Firestore
-            agenticProvider.loadPendingOrdersFromFirestore(userDoc);
+            // The first build pass runs before the user document reference exists.
+            if (userDoc != null) {
+              // Load automated buy trades from Firestore
+              agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
+              // Load auto-trade history from Firestore
+              agenticProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+              // Load pending orders from Firestore
+              agenticProvider.loadPendingOrdersFromFirestore(userDoc);
+            }
 
             // Start auto-trade timer via provider (prevents duplicate starts)
             if (service != null) {
@@ -829,9 +858,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             final futuresProvider =
                 Provider.of<FuturesAutoTradingProvider>(context, listen: false);
-            futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
-            futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
-            futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+            if (reloadConfigs) {
+              futuresProvider.loadConfigFromUser(user?.futuresTradingConfig);
+            }
+            if (userDoc != null) {
+              futuresProvider.loadAutoTradeHistoryFromFirestore(userDoc);
+              futuresProvider.loadPendingOrdersFromFirestore(userDoc);
+            }
 
             if (service != null) {
               futuresProvider.startAutoTradeTimer(
@@ -1292,8 +1325,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                         final user = BrokerageUser(
                             BrokerageSource.demo, "Demo Account", null, null);
                         userStore.addOrUpdate(user);
-                        userStore.setCurrentUserIndex(
-                            userStore.items.indexOf(user));
+                        userStore
+                            .setCurrentUserIndex(userStore.items.indexOf(user));
                         await userStore.save();
                       },
                     ),
