@@ -5,16 +5,34 @@ const mockUserDoc = jest.fn<any>();
 const mockOrderQuery = jest.fn<any>();
 
 jest.mock("firebase-admin/firestore", () => {
+  /** Mock Firestore timestamp implementation. */
   class Timestamp {
     _seconds: number;
     _nanoseconds: number;
+
+    /**
+     * Creates a timestamp from seconds and nanoseconds.
+     * @param {number} seconds Whole seconds since the Unix epoch.
+     * @param {number} nanoseconds Additional nanoseconds.
+     */
     constructor(seconds: number, nanoseconds: number) {
       this._seconds = seconds;
       this._nanoseconds = nanoseconds;
     }
+
+    /**
+     * Converts this timestamp to a Date.
+     * @return {Date} The corresponding date.
+     */
     toDate() {
       return new Date(this._seconds * 1000);
     }
+
+    /**
+     * Creates a timestamp from a Date.
+     * @param {Date} date The date to convert.
+     * @return {Timestamp} The corresponding timestamp.
+     */
     static fromDate(date: Date) {
       return new Timestamp(Math.floor(date.getTime() / 1000), 0);
     }
@@ -60,6 +78,12 @@ jest.mock("firebase-functions/v2/https", () => ({
   onCall: (fn: any) => fn,
   HttpsError: class HttpsError extends Error {
     code: string;
+
+    /**
+     * Creates a callable error with a code and message.
+     * @param {string} code The callable error code.
+     * @param {string} message The error message.
+     */
     constructor(code: string, message: string) {
       super(message);
       this.code = code;
@@ -67,7 +91,9 @@ jest.mock("firebase-functions/v2/https", () => ({
   },
 }));
 
-import { getGroupPerformanceAnalytics } from "../src/group-performance-analytics";
+import {
+  getGroupPerformanceAnalytics,
+} from "../src/group-performance-analytics";
 
 describe("group-performance-analytics tests", () => {
   beforeEach(() => {
@@ -129,7 +155,7 @@ describe("group-performance-analytics tests", () => {
     });
   });
 
-  test("calculates analytics successfully with valid/invalid dates", async () => {
+  test("calculates analytics with valid/invalid dates", async () => {
     mockGroupDoc.mockResolvedValueOnce({
       exists: true,
       data: () => ({
