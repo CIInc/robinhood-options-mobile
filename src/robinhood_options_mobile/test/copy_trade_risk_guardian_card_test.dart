@@ -36,6 +36,24 @@ void main() {
       expect(find.text('75 bps (0.75%)'), findsOneWidget);
       expect(find.text('Enabled'), findsOneWidget);
       expect(find.text('CIRCUIT TRIPPED'), findsNothing);
+
+      // Verify Semantics container summary label
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.container == true &&
+            widget.excludeSemantics == true &&
+            widget.properties.label?.startsWith('Risk Guardian status:') ==
+                true,
+      );
+      expect(semanticsFinder, findsOneWidget);
+      final semanticsWidget = tester.widget<Semantics>(semanticsFinder);
+      expect(semanticsWidget.properties.label,
+          contains('Risk Guardian status: Protecting Follower Capital'));
+      expect(
+          semanticsWidget.properties.label, contains('Max Allocation: \$1000'));
+      expect(semanticsWidget.properties.label,
+          contains('Max Slippage: 75 bps (0.75%)'));
     });
 
     testWidgets('renders tripped state with alert banner and reset button',

@@ -92,7 +92,8 @@ class AgenticRiskCopilotCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         )),
                     const SizedBox(height: 1),
-                    Text('Overnight gap, earnings hazards & delta hedge monitor',
+                    Text(
+                        'Overnight gap, earnings hazards & delta hedge monitor',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         )),
@@ -100,8 +101,7 @@ class AgenticRiskCopilotCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: severityColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),

@@ -2198,8 +2198,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   },
                   disabledReasons: {
                     if (isPaper)
-                      PortfolioSection.taxes:
-                          'Not applicable to paper trading',
+                      PortfolioSection.taxes: 'Not applicable to paper trading',
                   },
                   onSectionTap: (section) => PortfolioNavigator.openSection(
                       context, section, _sectionContext(account)),
@@ -2432,8 +2431,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   (double?, double?) _calcDayPnL(Account? targetAccount) {
-    final portfolioStore =
-        Provider.of<PortfolioStore>(context, listen: false);
+    final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
     final portfolio = portfolioStore.items.firstWhereOrNull(
       (p) =>
           targetAccount != null &&

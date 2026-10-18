@@ -606,7 +606,9 @@ void main() {
       expect(restored.priceKey, 'AAPL');
     });
 
-    test('getStockOrders returns both working pending orders and filled history', () async {
+    test(
+        'getStockOrders returns both working pending orders and filled history',
+        () async {
       final closedStore = PaperTradingStore(
           firestore: _UnusedFirestore(), isMarketOpen: () => false);
 
@@ -631,7 +633,9 @@ void main() {
       expect(closedStore.getStockOrders(symbol: 'TSLA'), isEmpty);
     });
 
-    test('getOptionOrders returns both working pending orders and filled history', () async {
+    test(
+        'getOptionOrders returns both working pending orders and filled history',
+        () async {
       final closedStore = PaperTradingStore(
           firestore: _UnusedFirestore(), isMarketOpen: () => false);
 

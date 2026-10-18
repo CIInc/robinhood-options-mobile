@@ -252,9 +252,13 @@ void main() {
   });
 
   group('RiskCopilotService Engine Tests', () {
-    test('Balanced low-risk portfolio produces normal severity and high safety score', () {
-      final stock1 = _makeStockPosition(symbol: 'JNJ', quantity: 20.0, price: 150.0);
-      final stock2 = _makeStockPosition(symbol: 'KO', quantity: 30.0, price: 60.0);
+    test(
+        'Balanced low-risk portfolio produces normal severity and high safety score',
+        () {
+      final stock1 =
+          _makeStockPosition(symbol: 'JNJ', quantity: 20.0, price: 150.0);
+      final stock2 =
+          _makeStockPosition(symbol: 'KO', quantity: 30.0, price: 60.0);
 
       final report = RiskCopilotService.evaluateRiskReport(
         instrumentPositions: [stock1, stock2],
@@ -271,8 +275,11 @@ void main() {
       expect(report.hasElevatedRisk, false);
     });
 
-    test('Leveraged ETF holding triggers gap risk assessment with high severity', () {
-      final tqqq = _makeStockPosition(symbol: 'TQQQ', quantity: 200.0, price: 65.0);
+    test(
+        'Leveraged ETF holding triggers gap risk assessment with high severity',
+        () {
+      final tqqq =
+          _makeStockPosition(symbol: 'TQQQ', quantity: 200.0, price: 65.0);
 
       final report = RiskCopilotService.evaluateRiskReport(
         instrumentPositions: [tqqq],
@@ -313,10 +320,13 @@ void main() {
       final tslaGap = report.gapRisks.firstWhere((g) => g.symbol == 'TSLA');
       expect(tslaGap.hasShortOptionRisk, true);
       expect(tslaGap.severity, RiskCopilotSeverity.critical);
-      expect(tslaGap.warningMessage, contains('short options face severe tail risk'));
+      expect(tslaGap.warningMessage,
+          contains('short options face severe tail risk'));
     });
 
-    test('Imminent earnings event within 2 days on long options flags critical IV crush hazard', () {
+    test(
+        'Imminent earnings event within 2 days on long options flags critical IV crush hazard',
+        () {
       final now = DateTime(2026, 10, 6);
       final callPos = _makeOptionPosition(
         symbol: 'NVDA',
@@ -343,7 +353,8 @@ void main() {
       );
 
       expect(report.earningsHazards, isNotEmpty);
-      final nvdaHazard = report.earningsHazards.firstWhere((h) => h.symbol == 'NVDA');
+      final nvdaHazard =
+          report.earningsHazards.firstWhere((h) => h.symbol == 'NVDA');
       expect(nvdaHazard.daysUntilEarnings, 1);
       expect(nvdaHazard.hazardType, EarningsHazardType.ivCrush);
       expect(nvdaHazard.severity, RiskCopilotSeverity.critical);
@@ -351,8 +362,11 @@ void main() {
       expect(report.hasImminentEarnings, true);
     });
 
-    test('Directional delta imbalance generates concrete share and option hedge suggestions', () {
-      final largeStock = _makeStockPosition(symbol: 'MSFT', quantity: 150.0, price: 420.0);
+    test(
+        'Directional delta imbalance generates concrete share and option hedge suggestions',
+        () {
+      final largeStock =
+          _makeStockPosition(symbol: 'MSFT', quantity: 150.0, price: 420.0);
 
       final report = RiskCopilotService.evaluateRiskReport(
         instrumentPositions: [largeStock],
@@ -362,16 +376,22 @@ void main() {
       );
 
       expect(report.deltaHedges, isNotEmpty);
-      final msftHedge = report.deltaHedges.firstWhere((d) => d.symbol == 'MSFT');
+      final msftHedge =
+          report.deltaHedges.firstWhere((d) => d.symbol == 'MSFT');
       expect(msftHedge.netDelta, closeTo(150.0, 1.0));
-      expect(msftHedge.suggestedSharesHedge, lessThan(0.0)); // Should suggest selling shares to hedge
-      expect(msftHedge.suggestedOptionHedge, contains('Put')); // Should suggest buying puts to hedge long delta
+      expect(msftHedge.suggestedSharesHedge,
+          lessThan(0.0)); // Should suggest selling shares to hedge
+      expect(msftHedge.suggestedOptionHedge,
+          contains('Put')); // Should suggest buying puts to hedge long delta
       expect(msftHedge.dollarDeltaPerOnePercent, greaterThan(0.0));
     });
 
-    test('Compiles prioritized mitigation action checklist with correct routing targets', () {
+    test(
+        'Compiles prioritized mitigation action checklist with correct routing targets',
+        () {
       final now = DateTime(2026, 10, 6);
-      final stock = _makeStockPosition(symbol: 'TSLA', quantity: 200.0, price: 250.0);
+      final stock =
+          _makeStockPosition(symbol: 'TSLA', quantity: 200.0, price: 250.0);
       final earningsEvent = EarningsCalendarEvent(
         symbol: 'TSLA',
         date: now.add(const Duration(days: 2)),
@@ -393,7 +413,9 @@ void main() {
   });
 
   group('PortfolioAlertService Risk Copilot Alerts Tests', () {
-    test('Surfaces Action Center alerts with riskCopilot target on elevated hazards', () {
+    test(
+        'Surfaces Action Center alerts with riskCopilot target on elevated hazards',
+        () {
       final now = DateTime(2026, 10, 6);
       final report = RiskCopilotReport(
         generatedAt: now,
@@ -444,12 +466,19 @@ void main() {
           .toList();
 
       expect(copilotAlerts, isNotEmpty);
-      expect(copilotAlerts.any((a) => a.symbol == 'TSLA' && a.id.contains('gap')), true);
-      expect(copilotAlerts.any((a) => a.symbol == 'AAPL' && a.id.contains('earnings')), true);
+      expect(
+          copilotAlerts.any((a) => a.symbol == 'TSLA' && a.id.contains('gap')),
+          true);
+      expect(
+          copilotAlerts
+              .any((a) => a.symbol == 'AAPL' && a.id.contains('earnings')),
+          true);
       expect(copilotAlerts.first.category, 'Risk Copilot');
     });
 
-    test('Suppresses copilot alerts when portfolio is completely normal and protected', () {
+    test(
+        'Suppresses copilot alerts when portfolio is completely normal and protected',
+        () {
       final now = DateTime(2026, 10, 6);
       final report = RiskCopilotReport(
         generatedAt: now,

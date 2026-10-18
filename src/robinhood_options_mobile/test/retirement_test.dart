@@ -178,14 +178,17 @@ void main() {
 
       expect(history.accountNumber, 'TRAD1234');
       expect(history.contributions, isNotEmpty);
-      final c2026 = history.contributionForYear(2026, accountType: 'ira_traditional');
+      final c2026 =
+          history.contributionForYear(2026, accountType: 'ira_traditional');
       expect(c2026, isNotNull);
       expect(c2026!.isTraditional, isTrue);
       expect(c2026.contributionAmount, 0.0);
       expect(c2026.rolloverContributions, 12500.0);
     });
 
-    test('parses Traditional IRA with direct contributions fallback when contribution_amount is 0', () {
+    test(
+        'parses Traditional IRA with direct contributions fallback when contribution_amount is 0',
+        () {
       final json = {
         'year': 2026,
         'brokerage_account_type': 'ira_traditional',
@@ -203,7 +206,9 @@ void main() {
       expect(contrib.directContributions, 6500.0);
     });
 
-    test('parses Traditional IRA with rollover contributions and distinguishes from annual limit', () {
+    test(
+        'parses Traditional IRA with rollover contributions and distinguishes from annual limit',
+        () {
       final json = {
         'year': 2026,
         'account_type': 'ira_traditional',
@@ -222,7 +227,9 @@ void main() {
       expect(contrib.isMaxedOut, isFalse);
     });
 
-    test('filters multi-account history by accountType and accountNumber correctly', () {
+    test(
+        'filters multi-account history by accountType and accountNumber correctly',
+        () {
       final json = {
         'results': [
           {
@@ -257,12 +264,26 @@ void main() {
       expect(rothContrib.isRoth, isTrue);
     });
 
-    test('sums contributions across multiple years when top-level total is missing', () {
+    test(
+        'sums contributions across multiple years when top-level total is missing',
+        () {
       final json = {
         'results': [
-          {'year': 2026, 'contribution_amount': '3000.00', 'match_amount': '90.00'},
-          {'year': 2025, 'contribution_amount': '7000.00', 'match_amount': '210.00'},
-          {'year': 2024, 'contribution_amount': '6500.00', 'match_amount': '195.00'},
+          {
+            'year': 2026,
+            'contribution_amount': '3000.00',
+            'match_amount': '90.00'
+          },
+          {
+            'year': 2025,
+            'contribution_amount': '7000.00',
+            'match_amount': '210.00'
+          },
+          {
+            'year': 2024,
+            'contribution_amount': '6500.00',
+            'match_amount': '195.00'
+          },
         ],
       };
 
@@ -271,7 +292,9 @@ void main() {
       expect(history.totalMatch, 495.0);
     });
 
-    test('parses ACATS incoming settled transfer into rollover contributions and sets sourceDescription', () {
+    test(
+        'parses ACATS incoming settled transfer into rollover contributions and sets sourceDescription',
+        () {
       final json = {
         'account_number': '741902639',
         'account_type': 'ira_traditional',
@@ -310,7 +333,9 @@ void main() {
   });
 
   group('RetirementWidget Widget Tests', () {
-    testWidgets('renders Traditional IRA with balance, year selector, and rollover details', (tester) async {
+    testWidgets(
+        'renders Traditional IRA with balance, year selector, and rollover details',
+        (tester) async {
       final service = DemoService();
       final user = BrokerageUser(
         BrokerageSource.demo,
@@ -355,7 +380,9 @@ void main() {
       expect(find.text('Rollovers & Transfers: '), findsOneWidget);
     });
 
-    testWidgets('displays Total Account Value distinctly from Cash / Buying Power when different', (tester) async {
+    testWidgets(
+        'displays Total Account Value distinctly from Cash / Buying Power when different',
+        (tester) async {
       final service = DemoService();
       final user = BrokerageUser(
         BrokerageSource.demo,
@@ -393,7 +420,9 @@ void main() {
       expect(find.text('\$450.21'), findsOneWidget);
     });
 
-    testWidgets('renders Transfers & Contributions when retirement history includes unified transfers', (tester) async {
+    testWidgets(
+        'renders Transfers & Contributions when retirement history includes unified transfers',
+        (tester) async {
       final user = BrokerageUser(
         BrokerageSource.demo,
         'demo_user',
@@ -498,7 +527,8 @@ void main() {
   });
 
   group('RetirementTransaction & Unified Transfers Model Tests', () {
-    test('parses SDUI contribution rows from paymenthub contribution endpoint', () {
+    test('parses SDUI contribution rows from paymenthub contribution endpoint',
+        () {
       final sduiJson = {
         'id': '57d18679-7ed7-4bd5-a61e-7cdb46a7ac7b',
         'amount': '1000.00',
@@ -546,7 +576,8 @@ void main() {
       expect(tx.formattedMatchAmount, '\$30.00');
     });
 
-    test('falls back to details.enoki_amount when contribution_details absent', () {
+    test('falls back to details.enoki_amount when contribution_details absent',
+        () {
       final transferJson = {
         'id': '5c5a298e-eee1-43a8-8bef-bf74c1fd83c7',
         'amount': '2000.00',

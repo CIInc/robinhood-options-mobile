@@ -139,7 +139,8 @@ class PortfolioAlertService {
         account?.accountNumber == 'paper_account' ||
         (account?.url.contains('paper') ?? false);
     if (!isPaper) {
-      alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
+      alerts
+          .addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
     }
     alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
     alerts.addAll(_cashAlerts(account, totalEquity));
@@ -1849,7 +1850,11 @@ class PortfolioAlertService {
             symbol: sym,
             category: 'Activity',
             actionLabel: 'View $sym',
-            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
+            payload: {
+              'symbol': sym,
+              'instrument': pos.instrumentObj,
+              'position': pos
+            },
           );
         }
         // Confluence: High-volume breakout
@@ -1867,7 +1872,11 @@ class PortfolioAlertService {
             symbol: sym,
             category: 'Activity',
             actionLabel: 'View $sym',
-            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
+            payload: {
+              'symbol': sym,
+              'instrument': pos.instrumentObj,
+              'position': pos
+            },
           );
         }
         // Extreme Unusual Volume (standalone volume multiple >= 2.5x without heavy directional move)
@@ -1885,7 +1894,11 @@ class PortfolioAlertService {
             symbol: sym,
             category: 'Activity',
             actionLabel: 'View $sym',
-            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
+            payload: {
+              'symbol': sym,
+              'instrument': pos.instrumentObj,
+              'position': pos
+            },
           );
         }
       }
@@ -1906,7 +1919,11 @@ class PortfolioAlertService {
             symbol: sym,
             category: 'Activity',
             actionLabel: 'View $sym',
-            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
+            payload: {
+              'symbol': sym,
+              'instrument': pos.instrumentObj,
+              'position': pos
+            },
           );
         } else if (gainLossPct >= 0.06) {
           candidate = PortfolioAlert(
@@ -1922,7 +1939,11 @@ class PortfolioAlertService {
             symbol: sym,
             category: 'Activity',
             actionLabel: 'View $sym',
-            payload: {'symbol': sym, 'instrument': pos.instrumentObj, 'position': pos},
+            payload: {
+              'symbol': sym,
+              'instrument': pos.instrumentObj,
+              'position': pos
+            },
           );
         }
       }
@@ -2507,7 +2528,8 @@ class PortfolioAlertService {
                 : PortfolioAlertSeverity.warning,
             icon: Icons.shield_outlined,
             title: '${gap.symbol} Overnight Gap Hazard',
-            detail: '${gap.warningMessage} Suggestion: ${gap.mitigationAction}.',
+            detail:
+                '${gap.warningMessage} Suggestion: ${gap.mitigationAction}.',
             metric: '-\$${gap.potentialDollarLoss.toStringAsFixed(0)}',
             target: PortfolioAlertTarget.riskCopilot,
             symbol: gap.symbol,
@@ -2552,8 +2574,10 @@ class PortfolioAlertService {
             id: 'risk_copilot_delta_${dh.symbol}',
             severity: PortfolioAlertSeverity.critical,
             icon: Icons.tune_rounded,
-            title: '${dh.symbol} Severe Delta Exposure ($deltaSign${dh.netDelta.toStringAsFixed(1)} Δ)',
-            detail: '${dh.hedgeRationale}. Recommended: ${dh.suggestedOptionHedge}.',
+            title:
+                '${dh.symbol} Severe Delta Exposure ($deltaSign${dh.netDelta.toStringAsFixed(1)} Δ)',
+            detail:
+                '${dh.hedgeRationale}. Recommended: ${dh.suggestedOptionHedge}.',
             metric: '$deltaSign${dh.netDelta.toStringAsFixed(1)} Δ',
             target: PortfolioAlertTarget.riskCopilot,
             symbol: dh.symbol,
@@ -2566,7 +2590,8 @@ class PortfolioAlertService {
     }
 
     // 4. Fallback overall critical alert
-    if (report.overallSeverity == RiskCopilotSeverity.critical && alerts.isEmpty) {
+    if (report.overallSeverity == RiskCopilotSeverity.critical &&
+        alerts.isEmpty) {
       alerts.add(
         PortfolioAlert(
           id: 'risk_copilot_critical_overview',

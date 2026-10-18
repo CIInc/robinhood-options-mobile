@@ -20,7 +20,8 @@ void main() {
   });
 
   group('Deploy Cash Navigation', () {
-    test('PortfolioAlertService generates search target for high cash alert', () {
+    test('PortfolioAlertService generates search target for high cash alert',
+        () {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: const [],
         optionPositions: const [],
@@ -33,7 +34,9 @@ void main() {
       expect(cashAlert.target, PortfolioAlertTarget.search);
     });
 
-    testWidgets('PortfolioNavigator.openAlert with onTabChanged switches to Search tab (index 2)', (tester) async {
+    testWidgets(
+        'PortfolioNavigator.openAlert with onTabChanged switches to Search tab (index 2)',
+        (tester) async {
       int? switchedTabIndex;
 
       final sectionContext = PortfolioSectionContext(
@@ -88,7 +91,9 @@ void main() {
       expect(switchedTabIndex, 2);
     });
 
-    testWidgets('PortfolioNavigator.openAlert with TabNavigation switches to Search tab (index 2)', (tester) async {
+    testWidgets(
+        'PortfolioNavigator.openAlert with TabNavigation switches to Search tab (index 2)',
+        (tester) async {
       int? switchedTabIndex;
 
       final sectionContext = PortfolioSectionContext(

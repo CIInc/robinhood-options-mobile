@@ -94,7 +94,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => FuturesTradingSettingsWidget(
+                              builder: (context) =>
+                                  FuturesTradingSettingsWidget(
                                 user: user!,
                                 userDocRef: userDocRef!,
                                 service: service,
@@ -125,8 +126,7 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                                 : (isEnabled
                                     ? Icons.sensors
                                     : Icons.sensors_off),
-                            color:
-                                disabled ? colorScheme.outline : statusColor,
+                            color: disabled ? colorScheme.outline : statusColor,
                             size: 24,
                           ),
                         ),
@@ -214,9 +214,8 @@ class FuturesAutoTradingCardWidget extends StatelessWidget {
                                 'Total P&L',
                                 '\$${totalPnl.toStringAsFixed(2)}',
                                 Icons.insights,
-                                color: totalPnl >= 0
-                                    ? Colors.green
-                                    : Colors.red,
+                                color:
+                                    totalPnl >= 0 ? Colors.green : Colors.red,
                               ),
                               _buildStat(
                                 context,

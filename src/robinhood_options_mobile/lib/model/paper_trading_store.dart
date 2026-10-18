@@ -339,7 +339,8 @@ class PaperTradingStore extends ChangeNotifier {
     final pending = _pendingOrders
         .where((o) =>
             o.assetType == 'option' &&
-            (symbol == null || o.symbol.toUpperCase() == symbol.toUpperCase()) &&
+            (symbol == null ||
+                o.symbol.toUpperCase() == symbol.toUpperCase()) &&
             (chainId == null ||
                 o.symbol == chainId ||
                 o.instrumentJson['chain_id']?.toString() == chainId))
@@ -349,7 +350,8 @@ class PaperTradingStore extends ChangeNotifier {
         .where((h) =>
             h['type']?.toString().toUpperCase() == 'OPTION' &&
             (symbol == null ||
-                h['symbol']?.toString().toUpperCase() == symbol.toUpperCase()) &&
+                h['symbol']?.toString().toUpperCase() ==
+                    symbol.toUpperCase()) &&
             (chainId == null ||
                 h['symbol'] == chainId ||
                 h['chain_id']?.toString() == chainId ||

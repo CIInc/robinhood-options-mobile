@@ -17,13 +17,15 @@ void main() {
             'severity': 'Low',
             'description': 'Sold before full price extension target.',
             'evidence': 'Sold at +12% when technical target was +20%.',
-            'mitigation': 'Use trailing stops instead of discretionary market exits.',
+            'mitigation':
+                'Use trailing stops instead of discretionary market exits.',
           }
         ],
         'execution_flaws': [
           {
             'title': 'Slippage on Entry',
-            'description': 'Market order executed 0.4% above limit expectation.',
+            'description':
+                'Market order executed 0.4% above limit expectation.',
             'severity': 'Low',
           }
         ],
@@ -32,7 +34,8 @@ void main() {
           'Always use limit orders on entry.',
         ],
         'auto_tags': ['#GoodWin', '#DisciplinedExit', '#TSLA'],
-        'coach_summary': 'Excellent trade discipline with minor premature profit taking flaw.',
+        'coach_summary':
+            'Excellent trade discipline with minor premature profit taking flaw.',
         'analyzed_at': '2026-10-06T15:30:00.000Z',
       };
 
