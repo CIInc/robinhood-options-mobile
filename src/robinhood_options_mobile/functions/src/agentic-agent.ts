@@ -118,22 +118,22 @@ ${gexSummary}
 ${portfolioSummary}
 
 ### 📐 THE 11 RULES OF GEX OPTIONS TRADING
-1. Total Call GEX exceeds absolute value of Total Put GEX.
-2. Underlier Spot price is above Center of Put Mass (COTMP).
-3. Largest positive GEX target strike (+GEX / T1 Target) is above stock Spot.
-4. Positive transition (pTrans) sits above negative transition (nTrans).
-5. Stock Spot price sits above pTrans (entry trigger rule).
-6. Total Open Interest (OI) exceeds 10,000 contracts for structural depth.
-7. 30-day option IV30 is below historical 90-day realized volatility (HV90).
-8. Open Interest depth at the +GEX target strike exceeds all other strikes.
-9. Dealer net gamma positioning at the current Spot is net positive.
-10. Underlier's 10-day realized volatility (RV10) is compressed (<= 35%).
-11. Reward/Risk ratio ( (+GEX - Spot) / (Spot - pTrans) ) >= 2.0.
+1. Total Call GEX is Positive (> 0): Broad dealer gamma positioning is positive, confirming a supportive market microstructure.
+2. Call GEX > Absolute Put GEX: Bullish upside-hedging flow exceeds bearish downside-hedging flow.
+3. Spot Price > COTMP: Underlier Spot resides above Center of Put Mass (downside hedging firewall).
+4. Target +GEX Strike > Spot: Primary +GEX upside target (T1 Target) sits above Spot, defining a viable upside trajectory.
+5. pTrans > nTrans: Positive Transition boundary sits above Negative Transition floor.
+6. Spot Price > pTrans: Entry trigger condition. Safe watchdowns allow pending triggers near this boundary.
+7. Total Open Interest > 10,000: Confirms option chain depth and liquidity to avoid wide bid/ask spreads.
+8. Implied Volatility (IV30) < Realized Volatility (HV90): Option pricing is structurally undervalued relative to historical movement, indicating favorable premium entry.
+9. OI Depth at Target Strike: Open Interest at targeted +GEX strike is maximal relative to nearby option strikes.
+10. Net Spot Gamma is Positive: Dealer positioning at the underlier's closest-to-the-money strike is net positive.
+11. 10-day Realized Volatility <= 35%: Confirms volatility compression on the underlier, laying groundwork for clean breakouts.
 
-Analyze the data provided. Decide if we should BUY, SELL, or HOLD.
-- CONFIRMED: All filters pass, and spot is above pTrans.
-- PENDING: All filters pass, but spot is inside watchdog buffer.
-- BLOCKED: One or more filters failed. No action permitted.
+### 🎯 SETUP QUALIFICATION & STATUS CRITERIA
+- CONFIRMED (BUY): All 11 rules pass, Reward-to-Risk ratio ( (+GEX - Spot) / (Spot - pTrans) ) >= 2.0, and spot is above pTrans.
+- PENDING (HOLD): All filters pass, but spot is inside watchdog buffer near pTrans.
+- BLOCKED (HOLD / SELL): One or more filters or risk gates failed. No buy entry permitted.
 
 Provide your decision in a strict JSON format:
 {
@@ -141,7 +141,22 @@ Provide your decision in a strict JSON format:
   "reason": "Clear explanation of the decision",
   "confidence": 0-100,
   "quantity": number,
-  "status": "approved" | "rejected"
+  "status": "approved" | "rejected",
+  "qualification": "CONFIRMED" | "PENDING" | "BLOCKED",
+  "rewardRiskRatio": number | null,
+  "ruleEvaluation": {
+    "rule1_call_gex_positive": boolean,
+    "rule2_call_exceeds_put": boolean,
+    "rule3_spot_above_cotmp": boolean,
+    "rule4_target_above_spot": boolean,
+    "rule5_ptrans_above_ntrans": boolean,
+    "rule6_spot_above_ptrans": boolean,
+    "rule7_oi_above_10k": boolean,
+    "rule8_iv_below_rv": boolean,
+    "rule9_oi_depth_target": boolean,
+    "rule10_net_spot_gamma_positive": boolean,
+    "rule11_rv10_compressed": boolean
+  }
 }
 
 Ensure the "status" is "approved" only if you want to execute a 
@@ -176,7 +191,7 @@ Output ONLY the JSON.
         contents: fullPrompt,
         config: {
           responseMimeType: "application/json",
-          maxOutputTokens: 250,
+          maxOutputTokens: 600,
           temperature: 0.1,
         },
       });
@@ -192,7 +207,7 @@ Output ONLY the JSON.
           contents: fullPrompt,
           config: {
             responseMimeType: "application/json",
-            maxOutputTokens: 250,
+            maxOutputTokens: 600,
             temperature: 0.1,
           },
         });

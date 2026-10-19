@@ -58,6 +58,17 @@ class TradeStrategyConfig {
   final bool gexExitEnabled;
   final double gexExitThreshold;
 
+  // 5-Tier GEX Sequential Stop Queue
+  final bool enableGexStructuralStops; // Stop 1: Spot < nTrans
+  final bool enableTrailingPeakStop; // Stop 2: Drawdown from peak gain
+  final double trailingPeakStopPercent; // default: 20.0% giveback of max gain
+  final bool enableTimeThetaStop; // Stop 3: DTE < minDteStopDays or stalled sessions
+  final int minDteStopDays; // default: 14 days
+  final int stalledSessionsStopLimit; // default: 10 sessions
+  final bool enableMacroRegimeStop; // Stop 4: Bearish / Defensive macro regime
+  final bool enableCatastrophicStop; // Stop 5: Hard catastrophic stop
+  final double catastrophicStopPercent; // default: 50.0%
+
   // Added copyWith method to support usage in AgenticTradingConfig
   TradeStrategyConfig copyWith({
     DateTime? startDate,
@@ -109,6 +120,15 @@ class TradeStrategyConfig {
     double? signalStrengthExitThreshold,
     bool? gexExitEnabled,
     double? gexExitThreshold,
+    bool? enableGexStructuralStops,
+    bool? enableTrailingPeakStop,
+    double? trailingPeakStopPercent,
+    bool? enableTimeThetaStop,
+    int? minDteStopDays,
+    int? stalledSessionsStopLimit,
+    bool? enableMacroRegimeStop,
+    bool? enableCatastrophicStop,
+    double? catastrophicStopPercent,
   }) {
     return TradeStrategyConfig(
       startDate: startDate ?? this.startDate,
@@ -172,6 +192,22 @@ class TradeStrategyConfig {
           signalStrengthExitThreshold ?? this.signalStrengthExitThreshold,
       gexExitEnabled: gexExitEnabled ?? this.gexExitEnabled,
       gexExitThreshold: gexExitThreshold ?? this.gexExitThreshold,
+      enableGexStructuralStops:
+          enableGexStructuralStops ?? this.enableGexStructuralStops,
+      enableTrailingPeakStop:
+          enableTrailingPeakStop ?? this.enableTrailingPeakStop,
+      trailingPeakStopPercent:
+          trailingPeakStopPercent ?? this.trailingPeakStopPercent,
+      enableTimeThetaStop: enableTimeThetaStop ?? this.enableTimeThetaStop,
+      minDteStopDays: minDteStopDays ?? this.minDteStopDays,
+      stalledSessionsStopLimit:
+          stalledSessionsStopLimit ?? this.stalledSessionsStopLimit,
+      enableMacroRegimeStop:
+          enableMacroRegimeStop ?? this.enableMacroRegimeStop,
+      enableCatastrophicStop:
+          enableCatastrophicStop ?? this.enableCatastrophicStop,
+      catastrophicStopPercent:
+          catastrophicStopPercent ?? this.catastrophicStopPercent,
     );
   }
 
@@ -225,6 +261,15 @@ class TradeStrategyConfig {
     this.signalStrengthExitThreshold = 40.0,
     this.gexExitEnabled = false,
     this.gexExitThreshold = 0.0,
+    this.enableGexStructuralStops = true,
+    this.enableTrailingPeakStop = true,
+    this.trailingPeakStopPercent = 20.0,
+    this.enableTimeThetaStop = true,
+    this.minDteStopDays = 14,
+    this.stalledSessionsStopLimit = 10,
+    this.enableMacroRegimeStop = true,
+    this.enableCatastrophicStop = true,
+    this.catastrophicStopPercent = 50.0,
   })  : enabledIndicators = {
           // Default indicator settings need to be off for safety,
           //some strategies don't explicitly enable indicators
@@ -301,6 +346,15 @@ class TradeStrategyConfig {
         'signalStrengthExitThreshold': signalStrengthExitThreshold,
         'gexExitEnabled': gexExitEnabled,
         'gexExitThreshold': gexExitThreshold,
+        'enableGexStructuralStops': enableGexStructuralStops,
+        'enableTrailingPeakStop': enableTrailingPeakStop,
+        'trailingPeakStopPercent': trailingPeakStopPercent,
+        'enableTimeThetaStop': enableTimeThetaStop,
+        'minDteStopDays': minDteStopDays,
+        'stalledSessionsStopLimit': stalledSessionsStopLimit,
+        'enableMacroRegimeStop': enableMacroRegimeStop,
+        'enableCatastrophicStop': enableCatastrophicStop,
+        'catastrophicStopPercent': catastrophicStopPercent,
       };
 
   factory TradeStrategyConfig.fromJson(Map<String, dynamic> json) =>
@@ -386,6 +440,19 @@ class TradeStrategyConfig {
             (json['signalStrengthExitThreshold'] as num?)?.toDouble() ?? 40.0,
         gexExitEnabled: json['gexExitEnabled'] as bool? ?? false,
         gexExitThreshold: (json['gexExitThreshold'] as num?)?.toDouble() ?? 0.0,
+        enableGexStructuralStops:
+            json['enableGexStructuralStops'] as bool? ?? true,
+        enableTrailingPeakStop: json['enableTrailingPeakStop'] as bool? ?? true,
+        trailingPeakStopPercent:
+            (json['trailingPeakStopPercent'] as num?)?.toDouble() ?? 20.0,
+        enableTimeThetaStop: json['enableTimeThetaStop'] as bool? ?? true,
+        minDteStopDays: json['minDteStopDays'] as int? ?? 14,
+        stalledSessionsStopLimit:
+            json['stalledSessionsStopLimit'] as int? ?? 10,
+        enableMacroRegimeStop: json['enableMacroRegimeStop'] as bool? ?? true,
+        enableCatastrophicStop: json['enableCatastrophicStop'] as bool? ?? true,
+        catastrophicStopPercent:
+            (json['catastrophicStopPercent'] as num?)?.toDouble() ?? 50.0,
       );
 
   Map<String, String> getDifferences(TradeStrategyConfig other) {
@@ -479,6 +546,24 @@ class TradeStrategyConfig {
     check('Drawdown Protection', other.enableDrawdownProtection,
         enableDrawdownProtection);
     check('Max Drawdown', other.maxDrawdown, maxDrawdown);
+
+    // 5-Tier GEX Sequential Stop Queue
+    check('GEX Structural Stops', other.enableGexStructuralStops,
+        enableGexStructuralStops);
+    check('Trailing Peak Stop', other.enableTrailingPeakStop,
+        enableTrailingPeakStop);
+    check('Trailing Peak %', other.trailingPeakStopPercent,
+        trailingPeakStopPercent);
+    check('Time/Theta Stop', other.enableTimeThetaStop, enableTimeThetaStop);
+    check('Min DTE Days', other.minDteStopDays, minDteStopDays);
+    check('Stalled Sessions Limit', other.stalledSessionsStopLimit,
+        stalledSessionsStopLimit);
+    check('Macro Regime Stop', other.enableMacroRegimeStop,
+        enableMacroRegimeStop);
+    check('Catastrophic Stop', other.enableCatastrophicStop,
+        enableCatastrophicStop);
+    check('Catastrophic Stop %', other.catastrophicStopPercent,
+        catastrophicStopPercent);
 
     return diffs;
   }

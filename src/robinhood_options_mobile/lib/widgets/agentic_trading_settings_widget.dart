@@ -77,6 +77,10 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _smaSlowController;
   late TextEditingController _marketIndexController;
   late TextEditingController _trailingStopPercentController;
+  late TextEditingController _trailingPeakStopPercentController;
+  late TextEditingController _minDteStopDaysController;
+  late TextEditingController _stalledSessionsStopLimitController;
+  late TextEditingController _catastrophicStopPercentController;
   late TextEditingController _riskOffSizeReductionController;
   // late bool _enableDynamicPositionSizing;
   // late Map<String, bool> _enabledIndicators;
@@ -177,6 +181,14 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.stopLossPercent.toString() ?? '5.0');
     _trailingStopPercentController = TextEditingController(
         text: strategy?.trailingStopPercent.toString() ?? '3.0');
+    _trailingPeakStopPercentController = TextEditingController(
+        text: strategy?.trailingPeakStopPercent.toString() ?? '15.0');
+    _minDteStopDaysController = TextEditingController(
+        text: strategy?.minDteStopDays.toString() ?? '7');
+    _stalledSessionsStopLimitController = TextEditingController(
+        text: strategy?.stalledSessionsStopLimit.toString() ?? '3');
+    _catastrophicStopPercentController = TextEditingController(
+        text: strategy?.catastrophicStopPercent.toString() ?? '30.0');
 
     double maxSectorExposure = strategy?.maxSectorExposure ?? 0.2;
     double sectorPercent = maxSectorExposure * 100;
@@ -263,6 +275,10 @@ class _AgenticTradingSettingsWidgetState
     _takeProfitPercentController.dispose();
     _stopLossPercentController.dispose();
     _trailingStopPercentController.dispose();
+    _trailingPeakStopPercentController.dispose();
+    _minDteStopDaysController.dispose();
+    _stalledSessionsStopLimitController.dispose();
+    _catastrophicStopPercentController.dispose();
     _maxSectorExposureController.dispose();
     _maxCorrelationController.dispose();
     _minVolatilityController.dispose();
@@ -619,6 +635,18 @@ class _AgenticTradingSettingsWidgetState
       gexExitEnabled: strategySource.gexExitEnabled,
       gexExitThreshold:
           (double.tryParse(_gexExitThresholdController.text) ?? 0.0) * 1e6,
+      enableGexStructuralStops: strategySource.enableGexStructuralStops,
+      enableTrailingPeakStop: strategySource.enableTrailingPeakStop,
+      trailingPeakStopPercent:
+          double.tryParse(_trailingPeakStopPercentController.text) ?? 15.0,
+      enableTimeThetaStop: strategySource.enableTimeThetaStop,
+      minDteStopDays: int.tryParse(_minDteStopDaysController.text) ?? 7,
+      stalledSessionsStopLimit:
+          int.tryParse(_stalledSessionsStopLimitController.text) ?? 3,
+      enableMacroRegimeStop: strategySource.enableMacroRegimeStop,
+      enableCatastrophicStop: strategySource.enableCatastrophicStop,
+      catastrophicStopPercent:
+          double.tryParse(_catastrophicStopPercentController.text) ?? 30.0,
     );
 
     return AgenticTradingConfig(
@@ -2851,6 +2879,38 @@ class _AgenticTradingSettingsWidgetState
                               fontSize: 16,
                             ),
                           ),
+                          if (proposal?['qualification'] != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: (proposal!['qualification'] ==
+                                            'CONFIRMED'
+                                        ? Colors.green
+                                        : (proposal['qualification'] ==
+                                                'BLOCKED'
+                                            ? Colors.red
+                                            : Colors.amber))
+                                    .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                proposal['qualification'].toString(),
+                                style: TextStyle(
+                                  color: proposal['qualification'] ==
+                                          'CONFIRMED'
+                                      ? Colors.green
+                                      : (proposal['qualification'] ==
+                                              'BLOCKED'
+                                          ? Colors.red
+                                          : Colors.amber),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       Text(
@@ -2865,9 +2925,33 @@ class _AgenticTradingSettingsWidgetState
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '$quantity shares @ \$${price.toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 14),
+                      Row(
+                        children: [
+                          Text(
+                            '$quantity shares @ \$${price.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          if (proposal?['rewardRiskRatio'] != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primary
+                                    .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'R:R ${(proposal!['rewardRiskRatio'] as num).toStringAsFixed(1)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       if (confidence != null)
                         Container(
@@ -3887,6 +3971,61 @@ class _AgenticTradingSettingsWidgetState
                 baseConfig: agenticTradingProvider.config.copyWith(
                     strategyConfig: agenticTradingProvider.config.strategyConfig
                         .copyWith(exitStages: stages)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          enableGexStructuralStops: agenticTradingProvider
+              .config.strategyConfig.enableGexStructuralStops,
+          enableTrailingPeakStop: agenticTradingProvider
+              .config.strategyConfig.enableTrailingPeakStop,
+          trailingPeakStopPercentController: _trailingPeakStopPercentController,
+          enableTimeThetaStop: agenticTradingProvider
+              .config.strategyConfig.enableTimeThetaStop,
+          minDteStopDaysController: _minDteStopDaysController,
+          stalledSessionsStopLimitController:
+              _stalledSessionsStopLimitController,
+          enableMacroRegimeStop: agenticTradingProvider
+              .config.strategyConfig.enableMacroRegimeStop,
+          enableCatastrophicStop: agenticTradingProvider
+              .config.strategyConfig.enableCatastrophicStop,
+          catastrophicStopPercentController: _catastrophicStopPercentController,
+          onGexStructuralStopsChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableGexStructuralStops: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onTrailingPeakStopChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableTrailingPeakStop: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onTimeThetaStopChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableTimeThetaStop: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onMacroRegimeStopChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableMacroRegimeStop: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onCatastrophicStopChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(enableCatastrophicStop: val)));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onSettingsChanged: _saveSettings,

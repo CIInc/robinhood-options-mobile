@@ -20,6 +20,17 @@ class ExitStrategiesWidget extends StatefulWidget {
   final bool gexExitEnabled;
   final List<ExitStage> exitStages;
 
+  // 5-Tier Sequential Exit Stop Priority Queue
+  final bool enableGexStructuralStops;
+  final bool enableTrailingPeakStop;
+  final TextEditingController? trailingPeakStopPercentController;
+  final bool enableTimeThetaStop;
+  final TextEditingController? minDteStopDaysController;
+  final TextEditingController? stalledSessionsStopLimitController;
+  final bool enableMacroRegimeStop;
+  final bool enableCatastrophicStop;
+  final TextEditingController? catastrophicStopPercentController;
+
   final ValueChanged<bool> onTrailingStopChanged;
   final ValueChanged<bool> onTimeBasedExitChanged;
   final ValueChanged<bool> onMarketCloseExitChanged;
@@ -29,6 +40,12 @@ class ExitStrategiesWidget extends StatefulWidget {
   final ValueChanged<bool> onGexExitChanged;
   final ValueChanged<List<ExitStage>> onExitStagesChanged;
   final VoidCallback? onSettingsChanged;
+
+  final ValueChanged<bool>? onGexStructuralStopsChanged;
+  final ValueChanged<bool>? onTrailingPeakStopChanged;
+  final ValueChanged<bool>? onTimeThetaStopChanged;
+  final ValueChanged<bool>? onMacroRegimeStopChanged;
+  final ValueChanged<bool>? onCatastrophicStopChanged;
 
   const ExitStrategiesWidget({
     super.key,
@@ -48,6 +65,15 @@ class ExitStrategiesWidget extends StatefulWidget {
     required this.signalStrengthExitEnabled,
     required this.gexExitEnabled,
     required this.exitStages,
+    this.enableGexStructuralStops = true,
+    this.enableTrailingPeakStop = true,
+    this.trailingPeakStopPercentController,
+    this.enableTimeThetaStop = true,
+    this.minDteStopDaysController,
+    this.stalledSessionsStopLimitController,
+    this.enableMacroRegimeStop = true,
+    this.enableCatastrophicStop = true,
+    this.catastrophicStopPercentController,
     required this.onTrailingStopChanged,
     required this.onTimeBasedExitChanged,
     required this.onMarketCloseExitChanged,
@@ -57,6 +83,11 @@ class ExitStrategiesWidget extends StatefulWidget {
     required this.onGexExitChanged,
     required this.onExitStagesChanged,
     this.onSettingsChanged,
+    this.onGexStructuralStopsChanged,
+    this.onTrailingPeakStopChanged,
+    this.onTimeThetaStopChanged,
+    this.onMacroRegimeStopChanged,
+    this.onCatastrophicStopChanged,
   });
 
   @override
@@ -143,33 +174,147 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             ),
           ],
         ),
+        // 5-Tier Sequential Exit Stop Priority Queue Section
         const SizedBox(height: 16),
-        _buildSubsectionTitle(context, 'Advanced Exits'),
+        _buildSubsectionTitle(
+            context, '5-Tier Sequential Exit Stop Priority Queue'),
         const SizedBox(height: 12),
 
+        // Stop 1: GEX Structural Stop (replaces legacy aggregate dollar GEX exit)
         _buildStrategyCard(
           context,
-          'Trailing Stop',
-          'Dynamically adjust stop price',
-          widget.trailingStopEnabled,
-          widget.onTrailingStopChanged,
-          icon: Icons.show_chart_rounded,
+          'Stop 1: GEX Structural Stop',
+          'Exit when spot breaches Net GEX Flip or COTMP level',
+          widget.enableGexStructuralStops,
+          (val) {
+            widget.onGexStructuralStopsChanged?.call(val);
+            widget.onGexExitChanged(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.alt_route_rounded,
+        ),
+        const SizedBox(height: 12),
+
+        // Stop 2: Trailing Peak Drawdown Stop (replaces legacy generic trailing stop)
+        _buildStrategyCard(
+          context,
+          'Stop 2: Trailing Peak Drawdown',
+          'Exit if position retraces from peak unrealized profit',
+          widget.enableTrailingPeakStop,
+          (val) {
+            widget.onTrailingPeakStopChanged?.call(val);
+            widget.onTrailingStopChanged(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.waterfall_chart_rounded,
           extraContent: _buildTextField(
             context,
-            widget.trailingStopController,
-            'Trailing Distance',
+            widget.trailingPeakStopPercentController ??
+                widget.trailingStopController,
+            'Trailing Peak Drawdown',
             suffixText: '%',
-            helperText: 'Distance from peak price',
-            prefixIcon: Icons.space_bar_rounded,
+            helperText: 'Max drawdown from peak gain before stopping out',
+            prefixIcon: Icons.trending_down_rounded,
             onChanged: (_) => _notifySettingsChanged(),
           ),
         ),
         const SizedBox(height: 12),
 
+        // Stop 3: Time & Theta Decay Stop (multi-day swing & DTE gate)
         _buildStrategyCard(
           context,
-          'Time-Based Exit',
-          'Close trade after a fixed duration',
+          'Stop 3: Time & Theta Decay Stop',
+          'Exit low-DTE or stalled positions before severe theta decay',
+          widget.enableTimeThetaStop,
+          (val) {
+            widget.onTimeThetaStopChanged?.call(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.hourglass_bottom_rounded,
+          extraContent: (widget.minDteStopDaysController != null ||
+                  widget.stalledSessionsStopLimitController != null)
+              ? Row(
+                  children: [
+                    if (widget.minDteStopDaysController != null)
+                      Expanded(
+                        child: _buildTextField(
+                          context,
+                          widget.minDteStopDaysController!,
+                          'Min DTE Cutoff',
+                          suffixText: 'days',
+                          helperText: 'Exit when DTE < limit',
+                          prefixIcon: Icons.calendar_today_rounded,
+                          onChanged: (_) => _notifySettingsChanged(),
+                        ),
+                      ),
+                    if (widget.minDteStopDaysController != null &&
+                        widget.stalledSessionsStopLimitController != null)
+                      const SizedBox(width: 12),
+                    if (widget.stalledSessionsStopLimitController != null)
+                      Expanded(
+                        child: _buildTextField(
+                          context,
+                          widget.stalledSessionsStopLimitController!,
+                          'Stalled Sessions Limit',
+                          suffixText: 'sessions',
+                          helperText: 'Exit if flat N days',
+                          prefixIcon: Icons.pause_circle_outline_rounded,
+                          onChanged: (_) => _notifySettingsChanged(),
+                        ),
+                      ),
+                  ],
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+
+        // Stop 4: Macro Regime Stop
+        _buildStrategyCard(
+          context,
+          'Stop 4: Macro Regime Stop',
+          'Immediate halt when market flips Short Gamma or volatility spikes',
+          widget.enableMacroRegimeStop,
+          (val) {
+            widget.onMacroRegimeStopChanged?.call(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.public_off_rounded,
+        ),
+        const SizedBox(height: 12),
+
+        // Stop 5: Catastrophic Stop
+        _buildStrategyCard(
+          context,
+          'Stop 5: Catastrophic Loss Cutoff',
+          'Absolute safety floor to prevent total capital impairment',
+          widget.enableCatastrophicStop,
+          (val) {
+            widget.onCatastrophicStopChanged?.call(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.shield_outlined,
+          extraContent: widget.catastrophicStopPercentController != null
+              ? _buildTextField(
+                  context,
+                  widget.catastrophicStopPercentController!,
+                  'Catastrophic Loss Floor',
+                  suffixText: '%',
+                  helperText: 'Hard cutoff below entry cost',
+                  prefixIcon: Icons.warning_amber_rounded,
+                  onChanged: (_) => _notifySettingsChanged(),
+                )
+              : null,
+        ),
+
+        // Intraday & Technical Exits Section
+        const SizedBox(height: 16),
+        _buildSubsectionTitle(context, 'Intraday & Technical Exits'),
+        const SizedBox(height: 12),
+
+        _buildStrategyCard(
+          context,
+          'Intraday Scalp Timer',
+          'Close intraday scalps after a fixed holding duration',
           widget.timeBasedExitEnabled,
           widget.onTimeBasedExitChanged,
           icon: Icons.timer_outlined,
@@ -187,7 +332,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Market Close Exit',
-          'Close positions before market close',
+          'Close intraday positions before regular market close',
           widget.marketCloseExitEnabled,
           widget.onMarketCloseExitChanged,
           icon: Icons.schedule_rounded,
@@ -205,8 +350,8 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
 
         _buildStrategyCard(
           context,
-          'RSI Exit',
-          'Exit when asset becomes overbought',
+          'RSI Overbought Exit',
+          'Exit when technical momentum becomes overbought',
           widget.rsiExitEnabled,
           widget.onRsiExitChanged,
           icon: Icons.speed_rounded,
@@ -223,8 +368,8 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
 
         _buildStrategyCard(
           context,
-          'Signal Strength Exit',
-          'Exit if signal strength drops',
+          'Signal Strength Degradation Exit',
+          'Exit if multi-indicator signal score drops below threshold',
           widget.signalStrengthExitEnabled,
           widget.onSignalStrengthExitChanged,
           icon: Icons.signal_cellular_alt_rounded,
@@ -234,25 +379,6 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
             'Min Signal Score',
             helperText: 'Exit if score drops below this',
             prefixIcon: Icons.low_priority_rounded,
-            onChanged: (_) => _notifySettingsChanged(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        _buildStrategyCard(
-          context,
-          'GEX Exit',
-          'Exit when Gamma Exposure turns negative',
-          widget.gexExitEnabled,
-          widget.onGexExitChanged,
-          icon: Icons.adjust_rounded,
-          extraContent: _buildTextField(
-            context,
-            widget.gexExitThresholdController,
-            'GEX Threshold',
-            suffixText: 'M',
-            helperText: 'Exit if Net GEX drops below this (\$M)',
-            prefixIcon: Icons.money_off_rounded,
             onChanged: (_) => _notifySettingsChanged(),
           ),
         ),

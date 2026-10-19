@@ -2345,7 +2345,9 @@ class AgenticTradingProvider with ChangeNotifier {
       // Pre-fetch signals for all relevant symbols in parallel to avoid sequential waits
       final technicalExitEnabled = _config.strategyConfig.rsiExitEnabled ||
           _config.strategyConfig.signalStrengthExitEnabled ||
-          _config.strategyConfig.gexExitEnabled;
+          _config.strategyConfig.gexExitEnabled ||
+          _config.strategyConfig.enableGexStructuralStops ||
+          _config.strategyConfig.enableMacroRegimeStop;
       final Map<String, Map<String, dynamic>> fetchedSignals = {};
 
       if (technicalExitEnabled && _automatedBuyTrades.isNotEmpty) {
@@ -2438,70 +2440,188 @@ class AgenticTradingProvider with ChangeNotifier {
           int quantityToSell = buyQuantity;
           int? stageIndexToMark;
 
-          if (enablePartialExits && exitStages.isNotEmpty) {
-            // Check stages
-            for (int i = 0; i < exitStages.length; i++) {
-              if (executedStages.contains(i)) continue;
+          final signalData = fetchedSignals[symbol];
+          final gexData = signalData?['gammaExposureResult'] as Map<String, dynamic>? ??
+              signalData?['gexData'] as Map<String, dynamic>?;
+          final nTrans = (gexData?['nTrans'] as num?)?.toDouble();
+          final plusGex = (gexData?['plusGex'] as num?)?.toDouble();
+          final macroData = signalData?['macroAssessment'] as Map<String, dynamic>?;
+          final macroStatus = macroData?['status'] as String?;
 
-              final stage = exitStages[i];
-              if (profitLossPercent >= stage.profitTargetPercent) {
+          // Track highest price and profit percentage for trailing stops
+          final prevHighestPrice =
+              (buyTrade['highestPrice'] as num?)?.toDouble() ?? entryPrice;
+          final newHighestPrice =
+              currentPrice > prevHighestPrice ? currentPrice : prevHighestPrice;
+          if (newHighestPrice != prevHighestPrice) {
+            buyTrade['highestPrice'] = newHighestPrice;
+            _log('🔼 $symbol new highest price since entry: $newHighestPrice');
+          }
+
+          final prevHighestProfit =
+              (buyTrade['highestProfitPercent'] as num?)?.toDouble() ??
+                  profitLossPercent;
+          final newHighestProfit = profitLossPercent > prevHighestProfit
+              ? profitLossPercent
+              : prevHighestProfit;
+          if (newHighestProfit != prevHighestProfit) {
+            buyTrade['highestProfitPercent'] = newHighestProfit;
+          }
+
+          // =========================================================================
+          // 🛡️ 5-TIER SEQUENTIAL EXIT STOP PRIORITY QUEUE (GEX Orchestrator Parity)
+          // Defensive and protective halts take absolute precedence over profit targets
+          // =========================================================================
+
+          // --- STOP 1: Structural Stop (Close below nTrans / Secondary Support) ---
+          if (!shouldExit &&
+              _config.strategyConfig.enableGexStructuralStops &&
+              nTrans != null &&
+              currentPrice < nTrans) {
+            shouldExit = true;
+            exitReason =
+                'Stop 1: Structural Stop (Spot \$$currentPrice < nTrans \$$nTrans)';
+            quantityToSell = buyQuantity;
+            _log('🚨 $symbol triggered Stop 1 Structural Stop: $exitReason');
+          }
+
+          // --- STOP 2: Trailing Volatility / Peak Profit Drawdown Stop ---
+          if (!shouldExit && _config.strategyConfig.enableTrailingPeakStop) {
+            final trailPeakPercent =
+                _config.strategyConfig.trailingPeakStopPercent;
+            if (newHighestProfit >= 5.0) {
+              final giveback = newHighestProfit - profitLossPercent;
+              if (giveback >= trailPeakPercent) {
                 shouldExit = true;
                 exitReason =
-                    'Partial Take Profit ${i + 1} (${stage.profitTargetPercent}%)';
-
-                // Calculate quantity
-                int stageQty =
-                    (initialQuantity! * stage.quantityPercent).round();
-                if (stageQty < 1) stageQty = 1;
-                if (stageQty > buyQuantity) stageQty = buyQuantity;
-
-                quantityToSell = stageQty;
-                stageIndexToMark = i;
-                break; // Execute one stage at a time
+                    'Stop 2: Trailing Peak Drawdown ($trailPeakPercent% giveback from peak +${newHighestProfit.toStringAsFixed(1)}%)';
+                quantityToSell = buyQuantity;
+                _log('📉 $symbol triggered Stop 2 Trailing Peak Stop: $exitReason');
               }
-            }
-
-            // If no stage hit, check stop loss (full exit)
-            if (!shouldExit && profitLossPercent <= -stopLossPercent) {
-              shouldExit = true;
-              exitReason = 'Stop Loss ($stopLossPercent%)';
-              quantityToSell = buyQuantity;
-            }
-          } else {
-            // Check take profit
-            if (profitLossPercent >= takeProfitPercent) {
-              shouldExit = true;
-              exitReason = 'Take Profit ($takeProfitPercent%)';
-              _log(
-                  '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
-            }
-            // Check stop loss
-            else if (profitLossPercent <= -stopLossPercent) {
-              shouldExit = true;
-              exitReason = 'Stop Loss ($stopLossPercent%)';
-              _log(
-                  '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
             }
           }
 
-          // Trailing Stop Loss: exit if price drops by trailingStopPercent
+          // Also check standard trailing stop price if configured
           if (!shouldExit && _config.strategyConfig.trailingStopEnabled) {
             final trailPercent = _config.strategyConfig.trailingStopPercent;
-            final prevHighest =
-                (buyTrade['highestPrice'] as num?)?.toDouble() ?? entryPrice;
-            final newHighest =
-                currentPrice > prevHighest ? currentPrice : prevHighest;
-            if (newHighest != prevHighest) {
-              buyTrade['highestPrice'] = newHighest;
-              _log('🔼 $symbol new highest price since entry: $newHighest');
-            }
-            final trailStopPrice = newHighest * (1 - trailPercent / 100.0);
+            final trailStopPrice = newHighestPrice * (1 - trailPercent / 100.0);
             if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
               shouldExit = true;
               exitReason = 'Trailing Stop ($trailPercent%)';
-              quantityToSell = buyQuantity; // Sell remaining
-              _log(
-                  '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
+              quantityToSell = buyQuantity;
+              _log('🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighestPrice)');
+            }
+          }
+
+          // --- STOP 3: Time Stop / Theta Gate ---
+          if (!shouldExit && _config.strategyConfig.enableTimeThetaStop) {
+            final tradeTimestamp = buyTrade['timestamp'] as String?;
+            if (tradeTimestamp != null) {
+              final tradeTime = DateTime.tryParse(tradeTimestamp);
+              if (tradeTime != null) {
+                final daysOpen = DateTime.now().difference(tradeTime).inDays;
+                if (daysOpen >=
+                        _config.strategyConfig.stalledSessionsStopLimit &&
+                    profitLossPercent.abs() < 2.0) {
+                  shouldExit = true;
+                  exitReason =
+                      'Stop 3: Momentum Stalled Stop ($daysOpen sessions with stalled progress)';
+                  quantityToSell = buyQuantity;
+                  _log('⏱️ $symbol triggered Stop 3 Stalled Stop: $exitReason');
+                }
+              }
+            }
+
+            // Check DTE expiration cutoff if position has an expiration date
+            if (!shouldExit) {
+              final expirationStr = buyTrade['expirationDate'] as String?;
+              if (expirationStr != null) {
+                final expDate = DateTime.tryParse(expirationStr);
+                if (expDate != null) {
+                  final dte = expDate.difference(DateTime.now()).inDays;
+                  if (dte <= _config.strategyConfig.minDteStopDays) {
+                    shouldExit = true;
+                    exitReason =
+                        'Stop 3: Theta Expiry Stop (DTE $dte <= ${_config.strategyConfig.minDteStopDays} days)';
+                    quantityToSell = buyQuantity;
+                    _log('⏱️ $symbol triggered Stop 3 DTE Stop: $exitReason');
+                  }
+                }
+              }
+            }
+          }
+
+          // --- STOP 4: Macro / Regime Stop (Bearish / Defensive Shift) ---
+          if (!shouldExit &&
+              _config.strategyConfig.enableMacroRegimeStop &&
+              macroStatus != null) {
+            final isBearish = macroStatus == 'DEFENSIVE' ||
+                macroStatus == 'BEARISH' ||
+                macroStatus == 'RISK_OFF';
+            if (isBearish) {
+              shouldExit = true;
+              exitReason = 'Stop 4: Macro Regime Stop ($macroStatus)';
+              quantityToSell = buyQuantity;
+              _log('🌍 $symbol triggered Stop 4 Macro Regime Stop: $exitReason');
+            }
+          }
+
+          // --- STOP 5: Catastrophic Risk Stop (Hard -50% floor) ---
+          if (!shouldExit && _config.strategyConfig.enableCatastrophicStop) {
+            final catLimit = _config.strategyConfig.catastrophicStopPercent;
+            if (profitLossPercent <= -catLimit) {
+              shouldExit = true;
+              exitReason =
+                  'Stop 5: Catastrophic Stop (${profitLossPercent.toStringAsFixed(1)}% <= -$catLimit%)';
+              quantityToSell = buyQuantity;
+              _log('🛑 $symbol triggered Stop 5 Catastrophic Stop: $exitReason');
+            }
+          }
+
+          // --- Standard Stop Loss Fallback ---
+          if (!shouldExit && profitLossPercent <= -stopLossPercent) {
+            shouldExit = true;
+            exitReason = 'Stop Loss ($stopLossPercent%)';
+            quantityToSell = buyQuantity;
+            _log('🛑 $symbol hit standard stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          }
+
+          // --- Take Profit Targets (Only reached if NO protective stop was hit) ---
+          if (!shouldExit) {
+            // Check +GEX Target (T1 Target Reach)
+            if (plusGex != null && currentPrice >= plusGex && profitLossPercent > 0) {
+              shouldExit = true;
+              exitReason = 'Target Met: +GEX Strike Reached (\$$plusGex)';
+              quantityToSell = buyQuantity;
+              _log('🎯 $symbol hit +GEX target strike: $exitReason');
+            }
+            // Check Partial Exits
+            else if (enablePartialExits && exitStages.isNotEmpty) {
+              for (int i = 0; i < exitStages.length; i++) {
+                if (executedStages.contains(i)) continue;
+
+                final stage = exitStages[i];
+                if (profitLossPercent >= stage.profitTargetPercent) {
+                  shouldExit = true;
+                  exitReason =
+                      'Partial Take Profit ${i + 1} (${stage.profitTargetPercent}%)';
+
+                  int stageQty =
+                      (initialQuantity! * stage.quantityPercent).round();
+                  if (stageQty < 1) stageQty = 1;
+                  if (stageQty > buyQuantity) stageQty = buyQuantity;
+
+                  quantityToSell = stageQty;
+                  stageIndexToMark = i;
+                  break;
+                }
+              }
+            }
+            // Check Standard Take Profit
+            else if (profitLossPercent >= takeProfitPercent) {
+              shouldExit = true;
+              exitReason = 'Take Profit ($takeProfitPercent%)';
+              _log('💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
             }
           }
 

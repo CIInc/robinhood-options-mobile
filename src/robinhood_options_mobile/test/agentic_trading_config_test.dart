@@ -255,6 +255,56 @@ void main() {
       expect(config.strategyConfig.maxPortfolioConcentration, equals(0.5));
     });
 
+    test('TradeStrategyConfig should correctly support 5-tier GEX stop queue',
+        () {
+      // Test defaults
+      final defaultConfig = TradeStrategyConfig();
+      expect(defaultConfig.enableGexStructuralStops, isTrue);
+      expect(defaultConfig.enableTrailingPeakStop, isTrue);
+      expect(defaultConfig.trailingPeakStopPercent, equals(20.0));
+      expect(defaultConfig.enableTimeThetaStop, isTrue);
+      expect(defaultConfig.minDteStopDays, equals(14));
+      expect(defaultConfig.stalledSessionsStopLimit, equals(10));
+      expect(defaultConfig.enableMacroRegimeStop, isTrue);
+      expect(defaultConfig.enableCatastrophicStop, isTrue);
+      expect(defaultConfig.catastrophicStopPercent, equals(50.0));
+
+      // Test custom config serialization and deserialization
+      final custom = TradeStrategyConfig(
+        enableGexStructuralStops: false,
+        enableTrailingPeakStop: true,
+        trailingPeakStopPercent: 15.0,
+        enableTimeThetaStop: false,
+        minDteStopDays: 21,
+        stalledSessionsStopLimit: 7,
+        enableMacroRegimeStop: false,
+        enableCatastrophicStop: true,
+        catastrophicStopPercent: 40.0,
+      );
+
+      final json = custom.toJson();
+      final roundTrip = TradeStrategyConfig.fromJson(json);
+
+      expect(roundTrip.enableGexStructuralStops, isFalse);
+      expect(roundTrip.enableTrailingPeakStop, isTrue);
+      expect(roundTrip.trailingPeakStopPercent, equals(15.0));
+      expect(roundTrip.enableTimeThetaStop, isFalse);
+      expect(roundTrip.minDteStopDays, equals(21));
+      expect(roundTrip.stalledSessionsStopLimit, equals(7));
+      expect(roundTrip.enableMacroRegimeStop, isFalse);
+      expect(roundTrip.enableCatastrophicStop, isTrue);
+      expect(roundTrip.catastrophicStopPercent, equals(40.0));
+
+      // Test copyWith
+      final modified = custom.copyWith(
+        enableGexStructuralStops: true,
+        trailingPeakStopPercent: 25.0,
+      );
+      expect(modified.enableGexStructuralStops, isTrue);
+      expect(modified.trailingPeakStopPercent, equals(25.0));
+      expect(modified.minDteStopDays, equals(21));
+    });
+
     test(
         'AgenticTradingConfig toRiskGuardConfig should produce cloud-functions valid parameters',
         () {
