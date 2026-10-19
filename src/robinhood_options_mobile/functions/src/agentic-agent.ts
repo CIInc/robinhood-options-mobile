@@ -118,22 +118,37 @@ ${gexSummary}
 ${portfolioSummary}
 
 ### 📐 THE 11 RULES OF GEX OPTIONS TRADING
-1. Total Call GEX is Positive (> 0): Broad dealer gamma positioning is positive, confirming a supportive market microstructure.
-2. Call GEX > Absolute Put GEX: Bullish upside-hedging flow exceeds bearish downside-hedging flow.
-3. Spot Price > COTMP: Underlier Spot resides above Center of Put Mass (downside hedging firewall).
-4. Target +GEX Strike > Spot: Primary +GEX upside target (T1 Target) sits above Spot, defining a viable upside trajectory.
-5. pTrans > nTrans: Positive Transition boundary sits above Negative Transition floor.
-6. Spot Price > pTrans: Entry trigger condition. Safe watchdowns allow pending triggers near this boundary.
-7. Total Open Interest > 10,000: Confirms option chain depth and liquidity to avoid wide bid/ask spreads.
-8. Implied Volatility (IV30) < Realized Volatility (HV90): Option pricing is structurally undervalued relative to historical movement, indicating favorable premium entry.
-9. OI Depth at Target Strike: Open Interest at targeted +GEX strike is maximal relative to nearby option strikes.
-10. Net Spot Gamma is Positive: Dealer positioning at the underlier's closest-to-the-money strike is net positive.
-11. 10-day Realized Volatility <= 35%: Confirms volatility compression on the underlier, laying groundwork for clean breakouts.
+1. Total Call GEX is Positive (> 0): Broad dealer gamma positioning is positive,
+   confirming a supportive market microstructure.
+2. Call GEX > Absolute Put GEX: Bullish upside-hedging flow exceeds bearish
+   downside-hedging flow.
+3. Spot Price > COTMP: Underlier Spot resides above Center of Put Mass (downside
+   hedging firewall).
+4. Target +GEX Strike > Spot: Primary +GEX upside target (T1 Target) sits above
+   Spot, defining a viable upside trajectory.
+5. pTrans > nTrans: Positive Transition boundary sits above Negative Transition
+   floor.
+6. Spot Price > pTrans: Entry trigger condition. Safe watchdowns allow pending
+   triggers near this boundary.
+7. Total Open Interest > 10,000: Confirms option chain depth and liquidity to
+   avoid wide bid/ask spreads.
+8. Implied Volatility (IV30) < Realized Volatility (HV90): Option pricing is
+   structurally undervalued relative to historical movement, indicating
+   favorable premium entry.
+9. OI Depth at Target Strike: Open Interest at targeted +GEX strike is maximal
+   relative to nearby option strikes.
+10. Net Spot Gamma is Positive: Dealer positioning at the underlier's
+    closest-to-the-money strike is net positive.
+11. 10-day Realized Volatility <= 35%: Confirms volatility compression on the
+    underlier, laying groundwork for clean breakouts.
 
 ### 🎯 SETUP QUALIFICATION & STATUS CRITERIA
-- CONFIRMED (BUY): All 11 rules pass, Reward-to-Risk ratio ( (+GEX - Spot) / (Spot - pTrans) ) >= 2.0, and spot is above pTrans.
-- PENDING (HOLD): All filters pass, but spot is inside watchdog buffer near pTrans.
-- BLOCKED (HOLD / SELL): One or more filters or risk gates failed. No buy entry permitted.
+- CONFIRMED (BUY): All 11 rules pass, Reward-to-Risk ratio
+  ( (+GEX - Spot) / (Spot - pTrans) ) >= 2.0, and spot is above pTrans.
+- PENDING (HOLD): All filters pass, but spot is inside watchdog buffer near
+  pTrans.
+- BLOCKED (HOLD / SELL): One or more filters or risk gates failed. No buy entry
+  permitted.
 
 Provide your decision in a strict JSON format:
 {

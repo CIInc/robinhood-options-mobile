@@ -77,7 +77,7 @@ describe("handleAgenticDecision", () => {
     tradeQuantity: 1,
   };
 
-  it("successfully parses CONFIRMED decision with 11-rule evaluation", async () => {
+  it("parses CONFIRMED decision with 11-rule evaluation", async () => {
     const mockDecisionJson = {
       signal: "BUY",
       reason: "All 11 GEX rules pass, Spot above pTrans, and R/R ratio is 4.0",
@@ -131,10 +131,12 @@ describe("handleAgenticDecision", () => {
     expect(callArgs.contents).toContain("3. Spot Price > COTMP");
     expect(callArgs.contents).toContain("5. pTrans > nTrans");
     expect(callArgs.contents).toContain("6. Spot Price > pTrans");
-    expect(callArgs.contents).toContain("11. 10-day Realized Volatility <= 35%");
+    expect(callArgs.contents).toContain(
+      "11. 10-day Realized Volatility <= 35%"
+    );
   });
 
-  it("correctly handles BLOCKED decision when negative gamma or filters fail", async () => {
+  it("handles BLOCKED decisions when GEX filters fail", async () => {
     const mockDecisionJson = {
       signal: "HOLD",
       reason: "Blocked: Spot is below pTrans ($150) and below COTMP ($146)",
