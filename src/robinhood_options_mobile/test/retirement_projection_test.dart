@@ -48,7 +48,8 @@ void main() {
       expect(result.totalUserContributions, 10000.0 + 25 * 7000.0); // 185,000
       expect(result.totalMatchBonusesEarned, 25 * (7000.0 * 0.03)); // 5,250
       expect(result.finalBalance, greaterThan(result.finalBalanceWithoutMatch));
-      expect(result.finalBalance, greaterThan(result.finalBalanceWithStandardMatch));
+      expect(result.finalBalance,
+          greaterThan(result.finalBalanceWithStandardMatch));
       expect(result.compoundedMatchAddedWealth, greaterThan(15000.0));
       expect(result.lifetimeTaxAdvantage, greaterThan(0));
       expect(result.userContributionShare, inInclusiveRange(0.0, 1.0));
@@ -135,10 +136,12 @@ void main() {
       );
 
       expect(find.text('Retirement Planner & Gold Maximizer'), findsOneWidget);
-      expect(find.textContaining('PROJECTED RETIREMENT BALANCE'), findsOneWidget);
+      expect(
+          find.textContaining('PROJECTED RETIREMENT BALANCE'), findsOneWidget);
       expect(find.text('Robinhood Gold 3% Match Optimizer'), findsOneWidget);
       expect(find.text('Customize Projection Parameters'), findsOneWidget);
-      expect(find.text('Tax-Advantaged Growth vs. Taxable Account'), findsOneWidget);
+      expect(find.text('Tax-Advantaged Growth vs. Taxable Account'),
+          findsOneWidget);
       expect(find.text('5-Year Forecast Milestones'), findsOneWidget);
     });
 

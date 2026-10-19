@@ -17,9 +17,30 @@ import 'package:robinhood_options_mobile/services/delta_neutral_service.dart';
 class RiskCopilotService {
   /// Known leveraged or ultra-volatile ETFs with severe gap hazard.
   static const Set<String> knownLeveragedSymbols = {
-    'TQQQ', 'SQQQ', 'SOXL', 'SOXS', 'SPXL', 'SPXS', 'UVXY', 'VXX',
-    'NVDL', 'FNGU', 'TSLL', 'NVDX', 'LABU', 'LABD', 'BOIL', 'KOLD',
-    'TECL', 'TECS', 'UPRO', 'SPXU', 'TNA', 'TZA', 'FAS', 'FAZ'
+    'TQQQ',
+    'SQQQ',
+    'SOXL',
+    'SOXS',
+    'SPXL',
+    'SPXS',
+    'UVXY',
+    'VXX',
+    'NVDL',
+    'FNGU',
+    'TSLL',
+    'NVDX',
+    'LABU',
+    'LABD',
+    'BOIL',
+    'KOLD',
+    'TECL',
+    'TECS',
+    'UPRO',
+    'SPXU',
+    'TNA',
+    'TZA',
+    'FAS',
+    'FAZ'
   };
 
   /// Evaluates multi-asset open positions and generates a comprehensive RiskCopilotReport.
@@ -34,7 +55,8 @@ class RiskCopilotService {
     DateTime? now,
   }) {
     final effectiveNow = now ?? DateTime.now();
-    final equity = totalEquity ?? _estimateTotalEquity(instrumentPositions, optionPositions);
+    final equity = totalEquity ??
+        _estimateTotalEquity(instrumentPositions, optionPositions);
 
     // 1. Evaluate Overnight Gap Risk
     final gapRisks = _evaluateGapRisks(
@@ -131,9 +153,11 @@ class RiskCopilotService {
 
     if (allSeverities.contains(RiskCopilotSeverity.critical) || score < 45.0) {
       overallSeverity = RiskCopilotSeverity.critical;
-    } else if (allSeverities.contains(RiskCopilotSeverity.high) || score < 65.0) {
+    } else if (allSeverities.contains(RiskCopilotSeverity.high) ||
+        score < 65.0) {
       overallSeverity = RiskCopilotSeverity.high;
-    } else if (allSeverities.contains(RiskCopilotSeverity.elevated) || score < 85.0) {
+    } else if (allSeverities.contains(RiskCopilotSeverity.elevated) ||
+        score < 85.0) {
       overallSeverity = RiskCopilotSeverity.elevated;
     } else {
       overallSeverity = RiskCopilotSeverity.normal;
@@ -203,7 +227,9 @@ class RiskCopilotService {
 
     for (final pos in instrumentPositions) {
       final sym = pos.instrumentObj?.symbol;
-      if (sym != null && sym.isNotEmpty && (pos.quantity ?? 0.0).abs() > 0.0001) {
+      if (sym != null &&
+          sym.isNotEmpty &&
+          (pos.quantity ?? 0.0).abs() > 0.0001) {
         activeSymbols.add(sym.toUpperCase());
       }
     }
@@ -267,7 +293,8 @@ class RiskCopilotService {
       // Base gap estimate: 3.5% * beta, adjusted for leverage
       double estimatedGapPct = 0.035 * math.max(0.6, beta);
       if (isLeveraged) {
-        estimatedGapPct = math.max(estimatedGapPct, 0.08); // Min 8% for leveraged ETFs
+        estimatedGapPct =
+            math.max(estimatedGapPct, 0.08); // Min 8% for leveraged ETFs
       }
       estimatedGapPct = math.min(estimatedGapPct, 0.20); // Cap at 20%
 
@@ -275,10 +302,11 @@ class RiskCopilotService {
       double potentialDollarLoss = totalNotional * estimatedGapPct;
       if (hasNakedShort) {
         // Naked short options have uncapped tail risk on gap
-        potentialDollarLoss += (stockPos?.instrumentObj?.quoteObj?.lastTradePrice ?? 100.0) *
-            100 *
-            estimatedGapPct *
-            1.5;
+        potentialDollarLoss +=
+            (stockPos?.instrumentObj?.quoteObj?.lastTradePrice ?? 100.0) *
+                100 *
+                estimatedGapPct *
+                1.5;
       }
 
       final double lossRatioOfEquity =
@@ -289,7 +317,9 @@ class RiskCopilotService {
       final String warning;
       final String action;
 
-      if (hasNakedShort || lossRatioOfEquity > 0.075 || (isLeveraged && totalNotional > totalEquity * 0.20)) {
+      if (hasNakedShort ||
+          lossRatioOfEquity > 0.075 ||
+          (isLeveraged && totalNotional > totalEquity * 0.20)) {
         severity = RiskCopilotSeverity.critical;
         warning = hasNakedShort
             ? 'Unhedged short options face severe tail risk on overnight gap.'
@@ -297,7 +327,9 @@ class RiskCopilotService {
         action = hasNakedShort
             ? 'Close or collar naked short options before 4:00 PM EST close'
             : 'Buy protective put or trim position size';
-      } else if (lossRatioOfEquity > 0.045 || hasShortOptions || (isLeveraged && totalNotional > totalEquity * 0.10)) {
+      } else if (lossRatioOfEquity > 0.045 ||
+          hasShortOptions ||
+          (isLeveraged && totalNotional > totalEquity * 0.10)) {
         severity = RiskCopilotSeverity.high;
         warning = isLeveraged
             ? 'Leveraged ETF holding amplifies overnight volatility and compounding drag.'
@@ -305,7 +337,8 @@ class RiskCopilotService {
         action = 'Establish collar hedge or define risk with vertical spreads';
       } else if (lossRatioOfEquity > 0.02 || beta > 1.4) {
         severity = RiskCopilotSeverity.elevated;
-        warning = 'High-beta asset (β = ${beta.toStringAsFixed(2)}) susceptible to broad market gap.';
+        warning =
+            'High-beta asset (β = ${beta.toStringAsFixed(2)}) susceptible to broad market gap.';
         action = 'Set stop-loss trigger or review position sizing';
       } else {
         severity = RiskCopilotSeverity.normal;
@@ -329,7 +362,8 @@ class RiskCopilotService {
       );
     }
 
-    assessments.sort((a, b) => b.potentialDollarLoss.compareTo(a.potentialDollarLoss));
+    assessments
+        .sort((a, b) => b.potentialDollarLoss.compareTo(a.potentialDollarLoss));
     return assessments;
   }
 
@@ -400,7 +434,8 @@ class RiskCopilotService {
 
       if (earningsDate == null) continue;
 
-      final eDay = DateTime(earningsDate.year, earningsDate.month, earningsDate.day);
+      final eDay =
+          DateTime(earningsDate.year, earningsDate.month, earningsDate.day);
       final daysUntil = eDay.difference(today).inDays;
 
       // Only alert on upcoming earnings within 7 days
@@ -462,7 +497,8 @@ class RiskCopilotService {
         if (hazardType == EarningsHazardType.ivCrush) {
           warning =
               '$symbol earnings $countdown! Long options risk severe IV crush losing 40-70% extrinsic value post-announcement.';
-          action = 'Close long contracts before announcement or roll to later cycle';
+          action =
+              'Close long contracts before announcement or roll to later cycle';
         } else {
           warning =
               '$symbol earnings $countdown! Short options face explosive gamma jump hazard outside expected move (±${(expectedMovePct * 100).toStringAsFixed(1)}%).';
@@ -475,7 +511,8 @@ class RiskCopilotService {
         action = 'Review open contracts and hedge directional exposure';
       } else {
         severity = RiskCopilotSeverity.elevated;
-        warning = 'Earnings release $countdown. Expect implied volatility expansion.';
+        warning =
+            'Earnings release $countdown. Expect implied volatility expansion.';
         action = 'Monitor IV rank leading up to earnings announcement';
       }
 
@@ -553,10 +590,15 @@ class RiskCopilotService {
         final shareHedge = precomputed.rebalanceSuggestion.primaryShareHedge;
         final optionHedge = precomputed.rebalanceSuggestion.primaryOptionHedge;
 
-        final double suggestedShares =
-            shareHedge != null ? (shareHedge.action == 'buy' ? shareHedge.quantity : -shareHedge.quantity) : -drift;
+        final double suggestedShares = shareHedge != null
+            ? (shareHedge.action == 'buy'
+                ? shareHedge.quantity
+                : -shareHedge.quantity)
+            : -drift;
         final String optText = optionHedge?.description ??
-            (drift > 0 ? 'Buy ${drift.abs().round()} Δ Put' : 'Buy ${drift.abs().round()} Δ Call');
+            (drift > 0
+                ? 'Buy ${drift.abs().round()} Δ Put'
+                : 'Buy ${drift.abs().round()} Δ Call');
 
         hedges.add(
           DeltaHedgeAssessment(
@@ -580,9 +622,10 @@ class RiskCopilotService {
       final stockPos = instrumentPositions.firstWhereOrNull(
         (p) => p.instrumentObj?.symbol.toUpperCase() == symbol,
       );
-      final double spotPrice = stockPos?.instrumentObj?.quoteObj?.lastTradePrice ??
-          stockPos?.instrumentObj?.quoteObj?.previousClose ??
-          100.0;
+      final double spotPrice =
+          stockPos?.instrumentObj?.quoteObj?.lastTradePrice ??
+              stockPos?.instrumentObj?.quoteObj?.previousClose ??
+              100.0;
       final double stockQty = stockPos?.quantity ?? 0.0;
 
       final symbolOptions = optionPositions.where((o) {
@@ -638,10 +681,15 @@ class RiskCopilotService {
       final shareHedge = analysis.rebalanceSuggestion.primaryShareHedge;
       final optionHedge = analysis.rebalanceSuggestion.primaryOptionHedge;
 
-      final double suggestedShares =
-          shareHedge != null ? (shareHedge.action == 'buy' ? shareHedge.quantity : -shareHedge.quantity) : -drift;
+      final double suggestedShares = shareHedge != null
+          ? (shareHedge.action == 'buy'
+              ? shareHedge.quantity
+              : -shareHedge.quantity)
+          : -drift;
       final String optText = optionHedge?.description ??
-          (drift > 0 ? 'Buy ${(drift / 100 * 2).ceil().abs()}x ATM Put' : 'Buy ${(drift / 100 * 2).ceil().abs()}x ATM Call');
+          (drift > 0
+              ? 'Buy ${(drift / 100 * 2).ceil().abs()}x ATM Put'
+              : 'Buy ${(drift / 100 * 2).ceil().abs()}x ATM Call');
 
       hedges.add(
         DeltaHedgeAssessment(
@@ -660,7 +708,9 @@ class RiskCopilotService {
       );
     }
 
-    hedges.sort((a, b) => b.dollarDeltaPerOnePercent.abs().compareTo(a.dollarDeltaPerOnePercent.abs()));
+    hedges.sort((a, b) => b.dollarDeltaPerOnePercent
+        .abs()
+        .compareTo(a.dollarDeltaPerOnePercent.abs()));
     return hedges;
   }
 
@@ -677,7 +727,8 @@ class RiskCopilotService {
 
     // Add high/critical earnings mitigations
     for (final eh in earningsHazards) {
-      if (eh.severity == RiskCopilotSeverity.critical || eh.severity == RiskCopilotSeverity.high) {
+      if (eh.severity == RiskCopilotSeverity.critical ||
+          eh.severity == RiskCopilotSeverity.high) {
         actions.add(
           RiskCopilotMitigationAction(
             id: 'mitigation_earnings_${eh.symbol}',
@@ -694,7 +745,8 @@ class RiskCopilotService {
 
     // Add high/critical gap risk mitigations
     for (final gap in gapRisks) {
-      if (gap.severity == RiskCopilotSeverity.critical || gap.severity == RiskCopilotSeverity.high) {
+      if (gap.severity == RiskCopilotSeverity.critical ||
+          gap.severity == RiskCopilotSeverity.high) {
         actions.add(
           RiskCopilotMitigationAction(
             id: 'mitigation_gap_${gap.symbol}',
@@ -711,14 +763,17 @@ class RiskCopilotService {
 
     // Add high/critical delta hedges
     for (final dh in deltaHedges) {
-      if (dh.severity == RiskCopilotSeverity.critical || dh.severity == RiskCopilotSeverity.high) {
+      if (dh.severity == RiskCopilotSeverity.critical ||
+          dh.severity == RiskCopilotSeverity.high) {
         final deltaSign = dh.netDelta >= 0 ? '+' : '';
         actions.add(
           RiskCopilotMitigationAction(
             id: 'mitigation_delta_${dh.symbol}',
             symbol: dh.symbol,
-            title: '${dh.symbol} Delta Imbalance ($deltaSign${dh.netDelta.toStringAsFixed(1)} Δ)',
-            description: '${dh.hedgeRationale}. Recommended: ${dh.suggestedOptionHedge}.',
+            title:
+                '${dh.symbol} Delta Imbalance ($deltaSign${dh.netDelta.toStringAsFixed(1)} Δ)',
+            description:
+                '${dh.hedgeRationale}. Recommended: ${dh.suggestedOptionHedge}.',
             severity: dh.severity,
             actionLabel: 'Hedge Delta',
             targetRoute: 'delta_neutral',

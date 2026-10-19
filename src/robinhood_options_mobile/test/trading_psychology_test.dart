@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/widgets/personalized_coaching_widget.da
 import 'firebase_mocks.dart';
 
 class FakeBrokerageService extends Fake implements IBrokerageService {}
+
 class FakeObserver extends Fake implements FirebaseAnalyticsObserver {}
 
 void main() {

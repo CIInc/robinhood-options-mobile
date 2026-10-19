@@ -417,7 +417,8 @@ void main() {
         recentCancelTimestamps: [
           now.subtract(const Duration(minutes: 1)),
           now.subtract(const Duration(minutes: 2)),
-          now.subtract(const Duration(minutes: 3)), // 3 active cancels (>= 4 - 1)
+          now.subtract(
+              const Duration(minutes: 3)), // 3 active cancels (>= 4 - 1)
         ],
       );
 
@@ -458,7 +459,8 @@ void main() {
   });
 
   group('Behavioral Tilt & Overtrading Safeguards Service Tests', () {
-    test('Rapid cancel detection trips circuit breaker upon reaching threshold', () {
+    test('Rapid cancel detection trips circuit breaker upon reaching threshold',
+        () {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -485,10 +487,12 @@ void main() {
       expect(res.triggerType, 'rapid_cancels');
       expect(res.isCoolingOff, true);
       expect(service.config.isTripped, true);
-      expect(service.config.tripReason, contains('Rapid order cancel/replace loop detected'));
+      expect(service.config.tripReason,
+          contains('Rapid order cancel/replace loop detected'));
     });
 
-    test('Stale cancellations outside time window are pruned and do not trip', () {
+    test('Stale cancellations outside time window are pruned and do not trip',
+        () {
       final now = DateTime.now();
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
@@ -498,7 +502,7 @@ void main() {
           rapidCancelWindowMinutes: 5,
           recentCancelTimestamps: [
             now.subtract(const Duration(minutes: 10)), // Stale
-            now.subtract(const Duration(minutes: 8)),  // Stale
+            now.subtract(const Duration(minutes: 8)), // Stale
           ],
         ),
       );
@@ -510,7 +514,8 @@ void main() {
       expect(service.config.isTripped, false);
     });
 
-    test('Revenge-trading sizing spike is blocked following consecutive losses', () {
+    test('Revenge-trading sizing spike is blocked following consecutive losses',
+        () {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -533,7 +538,9 @@ void main() {
       expect(evalResult.reason, contains('3.0x larger than your baseline'));
     });
 
-    test('Revenge sizing check is bypassed when trader has zero losses or tilt safeguards disabled', () {
+    test(
+        'Revenge sizing check is bypassed when trader has zero losses or tilt safeguards disabled',
+        () {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -545,11 +552,13 @@ void main() {
       );
 
       // Large order is permitted when not on a losing streak
-      final evalResult = service.evaluateOrderSize(prospectiveOrderSize: 5000.0);
+      final evalResult =
+          service.evaluateOrderSize(prospectiveOrderSize: 5000.0);
       expect(evalResult.allowed, true);
     });
 
-    test('recordTradeExecution updates rolling baseline average trade size', () {
+    test('recordTradeExecution updates rolling baseline average trade size',
+        () {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,
@@ -561,12 +570,14 @@ void main() {
       expect(service.config.baselineTradeSize, 1000.0);
       expect(service.config.currentConsecutiveLosses, 0);
 
-      service.recordTradeExecution(orderSize: 2000.0, isWin: false, pnl: -200.0);
+      service.recordTradeExecution(
+          orderSize: 2000.0, isWin: false, pnl: -200.0);
       expect(service.config.baselineTradeSize, 1500.0);
       expect(service.config.currentConsecutiveLosses, 1);
     });
 
-    test('Resetting circuit breaker clears recent cancellation timestamps', () async {
+    test('Resetting circuit breaker clears recent cancellation timestamps',
+        () async {
       final service = RiskCircuitBreakerService(
         initialConfig: RiskCircuitBreakerConfig(
           enabled: true,

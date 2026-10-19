@@ -110,8 +110,8 @@ void main() {
       );
 
       // Verify Section Title
-      expect(
-          find.text('5-Tier Sequential Exit Stop Priority Queue'), findsOneWidget);
+      expect(find.text('5-Tier Sequential Exit Stop Priority Queue'),
+          findsOneWidget);
 
       // Verify Tier 1
       expect(find.text('Stop 1: GEX Structural Stop'), findsOneWidget);

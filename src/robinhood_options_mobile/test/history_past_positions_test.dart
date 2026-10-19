@@ -258,8 +258,8 @@ void main() {
       final service = MockBrokerageService();
       final autoTrade = MockAgenticTradingProvider();
 
-      await tester.pumpWidget(
-          buildWidget(service: service, autoTrade: autoTrade));
+      await tester
+          .pumpWidget(buildWidget(service: service, autoTrade: autoTrade));
       await tester.pumpAndSettle();
       final callsBefore = service.positionOrderStreamCalls;
       expect(callsBefore, greaterThan(0));
@@ -281,8 +281,8 @@ void main() {
       final service = MockBrokerageService();
       final autoTrade = MockAgenticTradingProvider();
 
-      await tester.pumpWidget(
-          buildWidget(service: service, autoTrade: autoTrade));
+      await tester
+          .pumpWidget(buildWidget(service: service, autoTrade: autoTrade));
       await tester.pumpAndSettle();
       final callsBefore = service.positionOrderStreamCalls;
 

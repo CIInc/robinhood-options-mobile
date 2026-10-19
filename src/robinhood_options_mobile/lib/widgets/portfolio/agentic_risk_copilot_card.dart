@@ -60,143 +60,166 @@ class AgenticRiskCopilotCard extends StatelessWidget {
     final theme = Theme.of(context);
     final severityColor = report.overallSeverity.color(context);
 
-    return AnalyticsStyleCard(
-      onTap: onTap ?? () => _openCopilotDetails(context, report),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  report.overallSeverity == RiskCopilotSeverity.normal
-                      ? Icons.shield_outlined
-                      : Icons.psychology_alt_outlined,
-                  color: severityColor,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Autonomous Risk Copilot',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        )),
-                    const SizedBox(height: 1),
-                    Text('Overnight gap, earnings hazards & delta hedge monitor',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        )),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${report.overallScore.toStringAsFixed(0)}/100 · ${report.overallSeverity.label}',
-                  style: theme.textTheme.labelSmall?.copyWith(
+    final gapExposureText = report.totalOvernightGapExposure > 0
+        ? '-${_currency.format(report.totalOvernightGapExposure)}'
+        : '\$0';
+    final earningsText = '${report.earningsHazards.length} Held';
+    final netDeltaText =
+        '${report.portfolioNetDelta >= 0 ? '+' : ''}${report.portfolioNetDelta.toStringAsFixed(1)} Δ';
+    final headlineText = report.topMitigations.isNotEmpty
+        ? report.topMitigations.first.title
+        : report.statusHeadline;
+
+    final semanticLabel =
+        'Autonomous Risk Copilot. Risk Score: ${report.overallScore.toStringAsFixed(0)} out of 100, ${report.overallSeverity.label}. '
+        'Overnight Gap: $gapExposureText. '
+        'Earnings Hazard: $earningsText. '
+        'Net Delta: $netDeltaText. '
+        'Status: $headlineText.';
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: semanticLabel,
+      hint: 'Tap to open autonomous risk copilot details',
+      excludeSemantics: true,
+      child: AnalyticsStyleCard(
+        onTap: onTap ?? () => _openCopilotDetails(context, report),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: severityColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    report.overallSeverity == RiskCopilotSeverity.normal
+                        ? Icons.shield_outlined
+                        : Icons.psychology_alt_outlined,
                     color: severityColor,
-                    fontWeight: FontWeight.bold,
+                    size: 22,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // 3 Metric Pills
-          Row(
-            children: [
-              Expanded(
-                child: _buildTile(
-                  context,
-                  title: 'Overnight Gap',
-                  value: report.totalOvernightGapExposure > 0
-                      ? '-${_currency.format(report.totalOvernightGapExposure)}'
-                      : '\$0',
-                  color: report.totalOvernightGapExposure > 1000
-                      ? Colors.orange
-                      : theme.colorScheme.primary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Autonomous Risk Copilot',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          )),
+                      const SizedBox(height: 1),
+                      Text(
+                          'Overnight gap, earnings hazards & delta hedge monitor',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          )),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTile(
-                  context,
-                  title: 'Earnings Hazard',
-                  value: '${report.earningsHazards.length} Held',
-                  color: report.hasImminentEarnings
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.primary,
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: severityColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${report.overallScore.toStringAsFixed(0)}/100 · ${report.overallSeverity.label}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: severityColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildTile(
-                  context,
-                  title: 'Net Delta',
-                  value:
-                      '${report.portfolioNetDelta >= 0 ? '+' : ''}${report.portfolioNetDelta.toStringAsFixed(1)} Δ',
-                  color: report.portfolioNetDelta.abs() > 40
-                      ? Colors.orange
-                      : Colors.green,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Headline or Top Mitigation
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: severityColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: severityColor.withValues(alpha: 0.2)),
+              ],
             ),
-            child: Row(
+            const SizedBox(height: 14),
+
+            // 3 Metric Pills
+            Row(
               children: [
-                Icon(
-                  report.overallSeverity == RiskCopilotSeverity.normal
-                      ? Icons.check_circle_outline
-                      : Icons.warning_amber_rounded,
-                  size: 18,
-                  color: severityColor,
+                Expanded(
+                  child: _buildTile(
+                    context,
+                    title: 'Overnight Gap',
+                    value: report.totalOvernightGapExposure > 0
+                        ? '-${_currency.format(report.totalOvernightGapExposure)}'
+                        : '\$0',
+                    color: report.totalOvernightGapExposure > 1000
+                        ? Colors.orange
+                        : theme.colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    report.topMitigations.isNotEmpty
-                        ? report.topMitigations.first.title
-                        : report.statusHeadline,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: _buildTile(
+                    context,
+                    title: 'Earnings Hazard',
+                    value: '${report.earningsHazards.length} Held',
+                    color: report.hasImminentEarnings
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Icon(Icons.chevron_right,
-                    size: 18, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildTile(
+                    context,
+                    title: 'Net Delta',
+                    value:
+                        '${report.portfolioNetDelta >= 0 ? '+' : ''}${report.portfolioNetDelta.toStringAsFixed(1)} Δ',
+                    color: report.portfolioNetDelta.abs() > 40
+                        ? Colors.orange
+                        : Colors.green,
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+
+            // Headline or Top Mitigation
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: severityColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: severityColor.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    report.overallSeverity == RiskCopilotSeverity.normal
+                        ? Icons.check_circle_outline
+                        : Icons.warning_amber_rounded,
+                    size: 18,
+                    color: severityColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      headlineText,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right,
+                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

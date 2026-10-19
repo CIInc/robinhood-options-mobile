@@ -183,8 +183,8 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.trailingStopPercent.toString() ?? '3.0');
     _trailingPeakStopPercentController = TextEditingController(
         text: strategy?.trailingPeakStopPercent.toString() ?? '15.0');
-    _minDteStopDaysController = TextEditingController(
-        text: strategy?.minDteStopDays.toString() ?? '7');
+    _minDteStopDaysController =
+        TextEditingController(text: strategy?.minDteStopDays.toString() ?? '7');
     _stalledSessionsStopLimitController = TextEditingController(
         text: strategy?.stalledSessionsStopLimit.toString() ?? '3');
     _catastrophicStopPercentController = TextEditingController(
@@ -2885,14 +2885,14 @@ class _AgenticTradingSettingsWidgetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 1.5),
                               decoration: BoxDecoration(
-                                color: (proposal!['qualification'] ==
-                                            'CONFIRMED'
-                                        ? Colors.green
-                                        : (proposal['qualification'] ==
-                                                'BLOCKED'
-                                            ? Colors.red
-                                            : Colors.amber))
-                                    .withValues(alpha: 0.15),
+                                color:
+                                    (proposal!['qualification'] == 'CONFIRMED'
+                                            ? Colors.green
+                                            : (proposal['qualification'] ==
+                                                    'BLOCKED'
+                                                ? Colors.red
+                                                : Colors.amber))
+                                        .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -2901,8 +2901,7 @@ class _AgenticTradingSettingsWidgetState
                                   color: proposal['qualification'] ==
                                           'CONFIRMED'
                                       ? Colors.green
-                                      : (proposal['qualification'] ==
-                                              'BLOCKED'
+                                      : (proposal['qualification'] == 'BLOCKED'
                                           ? Colors.red
                                           : Colors.amber),
                                   fontWeight: FontWeight.bold,
@@ -2937,8 +2936,8 @@ class _AgenticTradingSettingsWidgetState
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 5, vertical: 1),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary
-                                    .withValues(alpha: 0.1),
+                                color:
+                                    colorScheme.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -3978,8 +3977,8 @@ class _AgenticTradingSettingsWidgetState
           enableTrailingPeakStop: agenticTradingProvider
               .config.strategyConfig.enableTrailingPeakStop,
           trailingPeakStopPercentController: _trailingPeakStopPercentController,
-          enableTimeThetaStop: agenticTradingProvider
-              .config.strategyConfig.enableTimeThetaStop,
+          enableTimeThetaStop:
+              agenticTradingProvider.config.strategyConfig.enableTimeThetaStop,
           minDteStopDaysController: _minDteStopDaysController,
           stalledSessionsStopLimitController:
               _stalledSessionsStopLimitController,

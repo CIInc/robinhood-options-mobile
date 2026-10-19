@@ -54,7 +54,8 @@ void main() {
       expect(find.text('Daily Loss Limit'), findsOneWidget);
       expect(find.text('Max Peak Drawdown Limit'), findsOneWidget);
       expect(find.text('Consecutive Loss Lockout'), findsOneWidget);
-      expect(find.text('Behavioral Tilt & Overtrading Safeguards'), findsOneWidget);
+      expect(find.text('Behavioral Tilt & Overtrading Safeguards'),
+          findsOneWidget);
       expect(find.text('Minimum Margin Buffer'), findsOneWidget);
       expect(find.text('Cooling-Off Period Duration'), findsOneWidget);
       expect(find.text('Guardrail Test Mode'), findsOneWidget);
@@ -180,7 +181,8 @@ void main() {
       await tester.pumpWidget(createWidgetUnderTest(service: service));
       await tester.pumpAndSettle();
 
-      final tiltSwitch = find.widgetWithText(SwitchListTile, 'Enable Tilt Safeguards');
+      final tiltSwitch =
+          find.widgetWithText(SwitchListTile, 'Enable Tilt Safeguards');
       await tester.ensureVisible(tiltSwitch);
       await tester.tap(tiltSwitch);
       await tester.pumpAndSettle();
@@ -228,7 +230,8 @@ void main() {
       expect(service.config.isTripped, true);
       expect(service.config.isInCoolingOff, true);
       expect(find.textContaining('Cooling Off Active'), findsOneWidget);
-      expect(find.textContaining('Rapid order cancel/replace loop detected'), findsOneWidget);
+      expect(find.textContaining('Rapid order cancel/replace loop detected'),
+          findsOneWidget);
     });
   });
 }

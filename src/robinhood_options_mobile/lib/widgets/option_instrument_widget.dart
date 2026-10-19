@@ -130,13 +130,16 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       var optionOrderStore =
           Provider.of<OptionOrderStore>(context, listen: false);
       var optionOrders = optionOrderStore.items
-          .where((element) => element.chainId == widget.optionInstrument.chainId)
+          .where(
+              (element) => element.chainId == widget.optionInstrument.chainId)
           .toList();
       if (optionOrders.isNotEmpty) {
         futureOptionOrders = Future.value(optionOrders);
       } else {
-        futureOptionOrders = widget.service.getOptionOrders(widget.brokerageUser,
-            optionOrderStore, widget.optionInstrument.chainId);
+        futureOptionOrders = widget.service.getOptionOrders(
+            widget.brokerageUser,
+            optionOrderStore,
+            widget.optionInstrument.chainId);
       }
     }
 

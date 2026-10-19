@@ -279,7 +279,8 @@ void main() {
       expect(tapped, PortfolioSection.performance);
     });
 
-    testWidgets('renders disabled sections and shows snackbar on tap without navigating',
+    testWidgets(
+        'renders disabled sections and shows snackbar on tap without navigating',
         (tester) async {
       PortfolioSection? tapped;
       await tester.pumpWidget(wrap(

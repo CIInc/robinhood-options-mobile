@@ -24,7 +24,8 @@ void main() {
       firestoreService = FirestoreService(firestore: fakeFirestore);
     });
 
-    testWidgets('renders preloaded diagnostic details, grade, biases, flaws, and lessons',
+    testWidgets(
+        'renders preloaded diagnostic details, grade, biases, flaws, and lessons',
         (tester) async {
       final analysis = TradePostMortemAnalysis(
         symbol: 'NVDA',
@@ -53,7 +54,8 @@ void main() {
           'Trail stop loss at 2R profit level.',
         ],
         autoTags: ['#DisciplinedWin', '#NVDA', '#GradeA'],
-        coachSummary: 'Master-level execution adherence. Excellent risk-reward realization.',
+        coachSummary:
+            'Master-level execution adherence. Excellent risk-reward realization.',
       );
 
       await tester.pumpWidget(
@@ -81,7 +83,9 @@ void main() {
       expect(find.text('GRADE A'), findsOneWidget);
       expect(find.text('92'), findsOneWidget);
       expect(find.text('Thesis Alignment: 88/100'), findsOneWidget);
-      expect(find.text('Master-level execution adherence. Excellent risk-reward realization.'),
+      expect(
+          find.text(
+              'Master-level execution adherence. Excellent risk-reward realization.'),
           findsOneWidget);
 
       // Verify Biases, Flaws, Lessons
@@ -90,11 +94,13 @@ void main() {
       expect(find.text('EXECUTION FLAWS & FRICTIONS'), findsOneWidget);
       expect(find.text('Minor Execution Delay'), findsOneWidget);
       expect(find.text('TACTICAL LESSONS & AUTO-TAGS'), findsOneWidget);
-      expect(find.text('Pre-set limit orders to reduce latency.'), findsOneWidget);
+      expect(
+          find.text('Pre-set limit orders to reduce latency.'), findsOneWidget);
       expect(find.text('#DisciplinedWin'), findsOneWidget);
     });
 
-    testWidgets('auto-tags and saves post-mortem to emotion journal in firestore',
+    testWidgets(
+        'auto-tags and saves post-mortem to emotion journal in firestore',
         (tester) async {
       final analysis = TradePostMortemAnalysis(
         symbol: 'AAPL',

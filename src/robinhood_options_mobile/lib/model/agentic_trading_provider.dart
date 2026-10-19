@@ -2441,11 +2441,13 @@ class AgenticTradingProvider with ChangeNotifier {
           int? stageIndexToMark;
 
           final signalData = fetchedSignals[symbol];
-          final gexData = signalData?['gammaExposureResult'] as Map<String, dynamic>? ??
-              signalData?['gexData'] as Map<String, dynamic>?;
+          final gexData =
+              signalData?['gammaExposureResult'] as Map<String, dynamic>? ??
+                  signalData?['gexData'] as Map<String, dynamic>?;
           final nTrans = (gexData?['nTrans'] as num?)?.toDouble();
           final plusGex = (gexData?['plusGex'] as num?)?.toDouble();
-          final macroData = signalData?['macroAssessment'] as Map<String, dynamic>?;
+          final macroData =
+              signalData?['macroAssessment'] as Map<String, dynamic>?;
           final macroStatus = macroData?['status'] as String?;
 
           // Track highest price and profit percentage for trailing stops
@@ -2496,7 +2498,8 @@ class AgenticTradingProvider with ChangeNotifier {
                 exitReason =
                     'Stop 2: Trailing Peak Drawdown ($trailPeakPercent% giveback from peak +${newHighestProfit.toStringAsFixed(1)}%)';
                 quantityToSell = buyQuantity;
-                _log('📉 $symbol triggered Stop 2 Trailing Peak Stop: $exitReason');
+                _log(
+                    '📉 $symbol triggered Stop 2 Trailing Peak Stop: $exitReason');
               }
             }
           }
@@ -2509,7 +2512,8 @@ class AgenticTradingProvider with ChangeNotifier {
               shouldExit = true;
               exitReason = 'Trailing Stop ($trailPercent%)';
               quantityToSell = buyQuantity;
-              _log('🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighestPrice)');
+              _log(
+                  '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighestPrice)');
             }
           }
 
@@ -2562,7 +2566,8 @@ class AgenticTradingProvider with ChangeNotifier {
               shouldExit = true;
               exitReason = 'Stop 4: Macro Regime Stop ($macroStatus)';
               quantityToSell = buyQuantity;
-              _log('🌍 $symbol triggered Stop 4 Macro Regime Stop: $exitReason');
+              _log(
+                  '🌍 $symbol triggered Stop 4 Macro Regime Stop: $exitReason');
             }
           }
 
@@ -2574,7 +2579,8 @@ class AgenticTradingProvider with ChangeNotifier {
               exitReason =
                   'Stop 5: Catastrophic Stop (${profitLossPercent.toStringAsFixed(1)}% <= -$catLimit%)';
               quantityToSell = buyQuantity;
-              _log('🛑 $symbol triggered Stop 5 Catastrophic Stop: $exitReason');
+              _log(
+                  '🛑 $symbol triggered Stop 5 Catastrophic Stop: $exitReason');
             }
           }
 
@@ -2583,13 +2589,16 @@ class AgenticTradingProvider with ChangeNotifier {
             shouldExit = true;
             exitReason = 'Stop Loss ($stopLossPercent%)';
             quantityToSell = buyQuantity;
-            _log('🛑 $symbol hit standard stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+            _log(
+                '🛑 $symbol hit standard stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
           }
 
           // --- Take Profit Targets (Only reached if NO protective stop was hit) ---
           if (!shouldExit) {
             // Check +GEX Target (T1 Target Reach)
-            if (plusGex != null && currentPrice >= plusGex && profitLossPercent > 0) {
+            if (plusGex != null &&
+                currentPrice >= plusGex &&
+                profitLossPercent > 0) {
               shouldExit = true;
               exitReason = 'Target Met: +GEX Strike Reached (\$$plusGex)';
               quantityToSell = buyQuantity;
@@ -2621,7 +2630,8 @@ class AgenticTradingProvider with ChangeNotifier {
             else if (profitLossPercent >= takeProfitPercent) {
               shouldExit = true;
               exitReason = 'Take Profit ($takeProfitPercent%)';
-              _log('💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
+              _log(
+                  '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
             }
           }
 

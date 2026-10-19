@@ -58,9 +58,8 @@ class _RetirementWidgetState extends State<RetirementWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final retirementAccounts = widget.brokerageUser.accounts
-        .where((a) => a.isRetirement)
-        .toList();
+    final retirementAccounts =
+        widget.brokerageUser.accounts.where((a) => a.isRetirement).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -79,8 +78,8 @@ class _RetirementWidgetState extends State<RetirementWidget> {
               itemBuilder: (context) => retirementAccounts
                   .map((acc) => PopupMenuItem<Account>(
                         value: acc,
-                        child: Text(
-                            '${acc.displayType} (${acc.accountNumber})'),
+                        child:
+                            Text('${acc.displayType} (${acc.accountNumber})'),
                       ))
                   .toList(),
             ),
@@ -168,8 +167,7 @@ class _RetirementWidgetState extends State<RetirementWidget> {
                 const SizedBox(height: 16),
                 _buildYearSelector(context, availableYears, activeYear),
                 const SizedBox(height: 16),
-                _buildContributionCard(
-                    context, activeContribution, activeYear),
+                _buildContributionCard(context, activeContribution, activeYear),
                 const SizedBox(height: 16),
                 _buildCatchUpToggle(context),
                 const SizedBox(height: 16),
@@ -218,11 +216,8 @@ class _RetirementWidgetState extends State<RetirementWidget> {
     );
   }
 
-  Widget _buildHeaderCard(
-      BuildContext context,
-      RetirementContribution? contrib,
-      RetirementHistory history,
-      double? totalBalance) {
+  Widget _buildHeaderCard(BuildContext context, RetirementContribution? contrib,
+      RetirementHistory history, double? totalBalance) {
     final theme = Theme.of(context);
     final isTrad = _selectedAccount?.isTraditionalIra == true ||
         (contrib?.isTraditional ?? false);
@@ -700,7 +695,8 @@ class _RetirementWidgetState extends State<RetirementWidget> {
             margin: const EdgeInsets.symmetric(vertical: 6.0),
             shape: isSelected
                 ? RoundedRectangleBorder(
-                    side: BorderSide(color: theme.colorScheme.primary, width: 2),
+                    side:
+                        BorderSide(color: theme.colorScheme.primary, width: 2),
                     borderRadius: BorderRadius.circular(12),
                   )
                 : null,

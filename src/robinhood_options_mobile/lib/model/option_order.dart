@@ -97,9 +97,8 @@ class OptionOrder {
                 : null);
 
   factory OptionOrder.fromPaperJson(dynamic json) {
-    final symbol = json['symbol']?.toString() ??
-        json['chain_symbol']?.toString() ??
-        '';
+    final symbol =
+        json['symbol']?.toString() ?? json['chain_symbol']?.toString() ?? '';
     final id = json['id']?.toString() ??
         'paper_${json['timestamp'] ?? DateTime.now().millisecondsSinceEpoch}';
     final side =
@@ -187,9 +186,8 @@ class OptionOrder {
       final exp = json['expiration_date'] != null
           ? DateTime.tryParse(json['expiration_date'].toString())
           : null;
-      final optType = json['option_type']?.toString() ??
-          json['type']?.toString() ??
-          'call';
+      final optType =
+          json['option_type']?.toString() ?? json['type']?.toString() ?? 'call';
       legs = [
         OptionLeg(
           id,
