@@ -1,3 +1,8 @@
+## 2025-03-16 - Missing Authentication & Admin Authorization on Watchlist Alerts Cron Endpoint
+**Vulnerability:** `checkWatchlistAlerts` in `watchlist-alerts-cron.ts` was an unauthenticated `onRequest` Cloud Function that allowed public HTTP callers to manually trigger watchlist alert scans, triggering external market data API calls, multi-user FCM notification dispatches, and Firestore state updates (`lastTriggered`).
+**Learning:** `onRequest` HTTP functions exposing ad-hoc cron triggers or notification dispatching must verify Firebase Auth Bearer ID tokens and admin custom claims (`role === "admin"`).
+**Prevention:** Verify `request.headers.authorization` with `getAuth().verifyIdToken(token)` and `role === "admin"` on all ad-hoc cron or administrative HTTP `onRequest` endpoints.
+
 ## 2025-03-15 - Missing Authorization and Information Disclosure on Signal Diagnostics HTTP Endpoint
 **Vulnerability:** `signalDiagnostics` in `signal-diagnostics.ts` was an unauthenticated `onRequest` Cloud Function that allowed public HTTP callers to inspect internal Firestore trade signals and chart cache data, and leaked internal stack traces/database error details on exception via `String(error)`.
 **Learning:** `onRequest` functions exposing internal technical diagnostic data must verify Firebase Auth Bearer ID tokens and admin claims (`role === "admin"`). Additionally, 500 exception handlers on HTTP Cloud Functions must sanitize error payloads to prevent sensitive database details or stack traces from reaching clients.
