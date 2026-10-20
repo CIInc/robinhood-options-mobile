@@ -23,6 +23,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
 import 'dart:collection';
 
 // Mock Firestore to avoid initialization error
@@ -277,6 +278,7 @@ void main() {
       dateCreated: DateTime.now(),
       brokerageUsers: [],
     );
+    app_main.userRole = UserRole.user;
 
     // Need screen size for layout
     tester.view.physicalSize = const Size(

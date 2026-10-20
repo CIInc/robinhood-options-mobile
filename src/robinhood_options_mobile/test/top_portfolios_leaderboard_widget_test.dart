@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/top_portfolios_leaderboard_widget.dart';
 
@@ -85,6 +86,10 @@ void main() {
     final service = DemoService();
 
     setUp(() async {
+      FeatureAccessService.instance.overrideRolloutForTesting(
+        FeatureBundle.socialCopy,
+        FeatureRolloutMode.public,
+      );
       fakeDb = FakeFirebaseFirestore();
       firestoreService = FirestoreService(firestore: fakeDb);
 
@@ -205,6 +210,10 @@ void main() {
           .collection(firestoreService.verifiedTrackRecordCollectionName)
           .doc('charlie')
           .set(charlieRecord.toJson());
+    });
+
+    tearDown(() {
+      FeatureAccessService.instance.clearOverridesForTesting();
     });
 
     Widget createWidgetUnderTest({firebase_auth.FirebaseAuth? auth}) {
