@@ -152,6 +152,11 @@ void main() {
     test(
         'recordUserTradeActivity adds activity to social_activities collection',
         () async {
+      await firestoreService.updateUserPortfolioPrivacy(
+        'user-bob',
+        const PortfolioPrivacySettings(isPublic: true),
+      );
+
       await firestoreService.recordUserTradeActivity(
         userId: 'user-bob',
         userName: 'Bob Investor',
