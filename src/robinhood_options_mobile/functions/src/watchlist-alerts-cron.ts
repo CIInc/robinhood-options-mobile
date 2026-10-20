@@ -1,8 +1,39 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
+
+/**
+ * Extracts the bearer token from the Authorization header.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {string | null} The extracted bearer token or null.
+ */
+function bearerToken(header: string | undefined): string | null {
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(\S+)$/i);
+  return match ? match[1] : null;
+}
+
+/**
+ * Checks if the request comes from an authenticated admin user.
+ * @param {string | undefined} header The Authorization header value.
+ * @return {Promise<boolean>} True if authorized as admin, false otherwise.
+ */
+async function isAuthorizedAdmin(
+  header: string | undefined
+): Promise<boolean> {
+  const token = bearerToken(header);
+  if (!token) return false;
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    return decodedToken.role === "admin";
+  } catch (e) {
+    logger.warn("checkWatchlistAlerts authorization check failed", e);
+    return false;
+  }
+}
 import { getMarketData } from "./market-data";
 
 const db = getFirestore();
@@ -397,6 +428,12 @@ export const watchlistAlertsCron = onSchedule(
  */
 export const checkWatchlistAlerts = onRequest(
   async (req, res) => {
+    if (!(await isAuthorizedAdmin(req.headers.authorization))) {
+      res.status(401).json({
+        error: "Unauthorized: Admin privileges required.",
+      });
+      return;
+    }
     try {
       const result = await runWatchlistAlertsCron();
       res.json(result);

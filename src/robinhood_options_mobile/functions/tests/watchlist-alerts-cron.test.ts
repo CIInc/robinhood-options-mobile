@@ -3,6 +3,8 @@ import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 let docCallCount = 0;
 let getAllCallCount = 0;
 
+const mockVerifyIdToken = jest.fn() as jest.Mock<any>;
+
 jest.mock("firebase-admin/firestore", () => {
   return {
     getFirestore: jest.fn(() => ({
@@ -49,18 +51,25 @@ jest.mock("firebase-admin/messaging", () => {
   };
 });
 
+jest.mock("firebase-admin/auth", () => ({
+  getAuth: () => ({
+    verifyIdToken: mockVerifyIdToken,
+  }),
+}));
+
 jest.mock("firebase-functions/v2/scheduler", () => ({
   onSchedule: jest.fn(),
 }));
 
 jest.mock("firebase-functions/v2/https", () => ({
-  onRequest: jest.fn(),
-  onCall: jest.fn(),
+  onRequest: jest.fn((handler: any) => handler),
+  onCall: jest.fn((handler: any) => handler),
 }));
 
 import {
   getUserFCMTokens,
   getUsersFCMTokens,
+  checkWatchlistAlerts,
 } from "../src/watchlist-alerts-cron";
 
 describe("Watchlist Alerts FCM Token Fetching Benchmark", () => {
@@ -109,4 +118,61 @@ describe("Watchlist Alerts FCM Token Fetching Benchmark", () => {
         `${batchCalls} db calls`
       );
     });
+});
+
+describe("checkWatchlistAlerts security tests", () => {
+  it("rejects unauthenticated requests with 401", async () => {
+    let responseStatus: number | null = null;
+    let responseJsonData: any = null;
+
+    const mockReq = { headers: {} } as any;
+    const mockRes = {
+      status: jest.fn().mockImplementation((...args: any[]) => {
+        responseStatus = args[0] as number;
+        return mockRes;
+      }),
+      json: jest.fn().mockImplementation((...args: any[]) => {
+        responseJsonData = args[0];
+        return mockRes;
+      }),
+    } as any;
+
+    await (checkWatchlistAlerts as any)(mockReq, mockRes);
+
+    expect(responseStatus).toBe(401);
+    expect(responseJsonData).toEqual({
+      error: "Unauthorized: Admin privileges required.",
+    });
+  });
+
+  it("rejects non-admin users with 401", async () => {
+    mockVerifyIdToken.mockResolvedValueOnce({
+      uid: "regularUser",
+      role: "user",
+    });
+
+    let responseStatus: number | null = null;
+    let responseJsonData: any = null;
+
+    const mockReq = {
+      headers: { authorization: "Bearer valid-user-token" },
+    } as any;
+    const mockRes = {
+      status: jest.fn().mockImplementation((...args: any[]) => {
+        responseStatus = args[0] as number;
+        return mockRes;
+      }),
+      json: jest.fn().mockImplementation((...args: any[]) => {
+        responseJsonData = args[0];
+        return mockRes;
+      }),
+    } as any;
+
+    await (checkWatchlistAlerts as any)(mockReq, mockRes);
+
+    expect(responseStatus).toBe(401);
+    expect(responseJsonData).toEqual({
+      error: "Unauthorized: Admin privileges required.",
+    });
+  });
 });
