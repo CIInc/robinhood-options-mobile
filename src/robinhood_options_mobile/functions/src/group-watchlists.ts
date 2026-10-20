@@ -161,7 +161,15 @@ export const addSymbolToWatchlist = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol } = request.data;
+    const { groupId, watchlistId, symbol } = request.data || {};
+    if (typeof groupId !== "string" || !groupId ||
+      typeof watchlistId !== "string" || !watchlistId ||
+      typeof symbol !== "string" || !symbol) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, and symbol must be non-empty strings"
+      );
+    }
     const userId = request.auth.uid;
 
     const watchlistDoc = await db
@@ -219,7 +227,15 @@ export const removeSymbolFromWatchlist = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol } = request.data;
+    const { groupId, watchlistId, symbol } = request.data || {};
+    if (typeof groupId !== "string" || !groupId ||
+      typeof watchlistId !== "string" || !watchlistId ||
+      typeof symbol !== "string" || !symbol) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, and symbol must be non-empty strings"
+      );
+    }
     const userId = request.auth.uid;
 
     const watchlistDoc = await db
@@ -285,7 +301,17 @@ export const createPriceAlert = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol, type, threshold } = request.data;
+    const { groupId, watchlistId, symbol, type, threshold } = request.data || {};
+    if (typeof groupId !== "string" || !groupId ||
+      typeof watchlistId !== "string" || !watchlistId ||
+      typeof symbol !== "string" || !symbol ||
+      typeof type !== "string" || !type ||
+      typeof threshold !== "number" || !Number.isFinite(threshold)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, symbol, type, and numeric threshold are required"
+      );
+    }
     const userId = request.auth.uid;
 
     const watchlistDoc = await db
@@ -348,7 +374,16 @@ export const deletePriceAlert = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol, alertId } = request.data;
+    const { groupId, watchlistId, symbol, alertId } = request.data || {};
+    if (typeof groupId !== "string" || !groupId ||
+      typeof watchlistId !== "string" || !watchlistId ||
+      typeof symbol !== "string" || !symbol ||
+      typeof alertId !== "string" || !alertId) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, symbol, and alertId must be non-empty strings"
+      );
+    }
     const userId = request.auth.uid;
 
     const watchlistDoc = await db
