@@ -301,7 +301,8 @@ export const createPriceAlert = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol, type, threshold } = request.data || {};
+    const { groupId, watchlistId, symbol, type, threshold } =
+      request.data || {};
     if (typeof groupId !== "string" || !groupId ||
       typeof watchlistId !== "string" || !watchlistId ||
       typeof symbol !== "string" || !symbol ||
@@ -309,7 +310,7 @@ export const createPriceAlert = onCall(
       typeof threshold !== "number" || !Number.isFinite(threshold)) {
       throw new HttpsError(
         "invalid-argument",
-        "groupId, watchlistId, symbol, type, and numeric threshold are required"
+        "groupId, watchlistId, symbol, type, and threshold are required"
       );
     }
     const userId = request.auth.uid;
@@ -381,7 +382,7 @@ export const deletePriceAlert = onCall(
       typeof alertId !== "string" || !alertId) {
       throw new HttpsError(
         "invalid-argument",
-        "groupId, watchlistId, symbol, and alertId must be non-empty strings"
+        "groupId, watchlistId, symbol, and alertId must be strings"
       );
     }
     const userId = request.auth.uid;
