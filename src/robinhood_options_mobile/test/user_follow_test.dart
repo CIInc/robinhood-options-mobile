@@ -71,7 +71,7 @@ void main() {
   group('PortfolioPrivacySettings Model Tests', () {
     test('PortfolioPrivacySettings default values', () {
       const settings = PortfolioPrivacySettings();
-      expect(settings.isPublic, isTrue);
+      expect(settings.isPublic, isFalse);
       expect(settings.showTradeAmounts, isFalse);
       expect(settings.showHoldings, isTrue);
       expect(settings.showTrades, isTrue);
