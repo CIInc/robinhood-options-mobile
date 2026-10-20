@@ -19,6 +19,9 @@ import 'package:robinhood_options_mobile/widgets/portfolio/analytics/performance
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
 import 'package:robinhood_options_mobile/services/csv_import_service.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 
 /// "How did it do?" — returns, benchmarks, and income.
 ///
@@ -55,6 +58,14 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
       builder: (context, child) {
         final metrics = controller.metrics;
 
+        UserRole? currentUserRole;
+        try {
+          currentUserRole = app_main.userRole;
+        } catch (_) {}
+
+        final isPaper = ctx.brokerageUser.source == BrokerageSource.paper ||
+            ctx.account?.accountNumber == 'paper_account';
+
         return PortfolioSectionScaffold(
           title: 'Performance',
           subtitle: 'Returns, benchmarks & monthly history',
@@ -66,11 +77,15 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
           ),
           actions: [
             BenchmarkMenuButton(controller: controller),
-            IconButton(
-              icon: const Icon(Icons.upload_file),
-              tooltip: 'Import from Fidelity CSV',
-              onPressed: () => CsvImportService.importFidelityCsv(context),
-            ),
+            if (FeatureAccessService.instance.isFeatureEnabled(
+              FeatureBundle.extendedBrokerages,
+              userRole: currentUserRole,
+            ))
+              IconButton(
+                icon: const Icon(Icons.upload_file),
+                tooltip: 'Import from Fidelity CSV',
+                onPressed: () => CsvImportService.importFidelityCsv(context),
+              ),
             Builder(builder: (context) {
               return IconButton(
                 icon: const Icon(Icons.download),
@@ -153,24 +168,25 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
             ],
           ],
           slivers: [
-            Consumer2<DividendStore, InterestStore>(
-              builder: (context, dividendStore, interestStore, child) {
-                return IncomeTransactionsWidget(
-                  ctx.brokerageUser,
-                  ctx.service,
-                  dividendStore,
-                  Provider.of<InstrumentPositionStore>(context, listen: false),
-                  Provider.of<InstrumentOrderStore>(context, listen: false),
-                  Provider.of<ChartSelectionStore>(context, listen: false),
-                  interestStore: interestStore,
-                  showChips: true,
-                  showList: true,
-                  showFooter: true,
-                  analytics: ctx.analytics,
-                  observer: ctx.observer,
-                );
-              },
-            ),
+            if (!isPaper)
+              Consumer2<DividendStore, InterestStore>(
+                builder: (context, dividendStore, interestStore, child) {
+                  return IncomeTransactionsWidget(
+                    ctx.brokerageUser,
+                    ctx.service,
+                    dividendStore,
+                    Provider.of<InstrumentPositionStore>(context, listen: false),
+                    Provider.of<InstrumentOrderStore>(context, listen: false),
+                    Provider.of<ChartSelectionStore>(context, listen: false),
+                    interestStore: interestStore,
+                    showChips: true,
+                    showList: true,
+                    showFooter: true,
+                    analytics: ctx.analytics,
+                    observer: ctx.observer,
+                  );
+                },
+              ),
           ],
         );
       },

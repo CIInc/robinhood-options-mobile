@@ -83,6 +83,34 @@ class MacroAssessment {
           : DateTime.now(),
     );
   }
+
+  MacroAssessment copyWith({
+    String? status,
+    int? score,
+    int? confidence,
+    SignalDivergence? signalDivergence,
+    MacroIndicators? indicators,
+    SectorRotation? sectorRotation,
+    AssetAllocation? assetAllocation,
+    List<MacroStrategy>? strategies,
+    String? reason,
+    String? aiAnalysis,
+    DateTime? timestamp,
+  }) {
+    return MacroAssessment(
+      status: status ?? this.status,
+      score: score ?? this.score,
+      confidence: confidence ?? this.confidence,
+      signalDivergence: signalDivergence ?? this.signalDivergence,
+      indicators: indicators ?? this.indicators,
+      sectorRotation: sectorRotation ?? this.sectorRotation,
+      assetAllocation: assetAllocation ?? this.assetAllocation,
+      strategies: strategies ?? this.strategies,
+      reason: reason ?? this.reason,
+      aiAnalysis: aiAnalysis ?? this.aiAnalysis,
+      timestamp: timestamp ?? this.timestamp,
+    );
+  }
 }
 
 class MacroStrategy {

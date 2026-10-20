@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 /// Widget for configuring copy trade settings for a member in an investor group
@@ -285,6 +287,41 @@ class _CopyTradeSettingsWidgetState extends State<CopyTradeSettingsWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Copy Trade Settings')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Feature in Preview',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Copy Trading is currently in preview. You can enable it in Beta Labs settings.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_settings == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Copy Trade Settings')),

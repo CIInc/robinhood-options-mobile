@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -220,6 +222,7 @@ void main() {
     }
 
     setUp(() {
+      app_main.userRole = UserRole.admin;
       testInstrument = makeTestInstrument(symbol: 'AAPL', price: 150.0);
       testUser = BrokerageUser(BrokerageSource.schwab, 'user_1', null, null);
       testAccount = Account(
@@ -236,6 +239,10 @@ void main() {
       mockService = _MockBrokerageService();
     });
 
+    tearDown(() {
+      app_main.userRole = UserRole.user;
+    });
+
     Widget createTestApp(Widget child) {
       final accountStore = AccountStore();
       accountStore.add(testAccount);
@@ -250,6 +257,32 @@ void main() {
         ),
       );
     }
+
+    testWidgets('shows beta lock screen when user has not opted into advancedTrading',
+        (tester) async {
+      app_main.userRole = UserRole.user;
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedTrading,
+        false,
+      );
+
+      await tester.pumpWidget(
+        createTestApp(
+          MultiLegSpreadBuilderSheet(
+            instrument: testInstrument,
+            service: mockService,
+            user: testUser,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Advanced Trading Feature'), findsOneWidget);
+      expect(
+        find.textContaining('requires Advanced Trading (Multi-Leg Spreads)'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('renders spread builder sheet with templates and metrics',
         (tester) async {

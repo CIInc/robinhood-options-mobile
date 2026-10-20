@@ -30,13 +30,17 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
   @override
   void initState() {
     super.initState();
-    // Fetch on init if not already fetched
+    // Fetch on init only if not already loaded/cached
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchAssessment();
+      final provider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      if (provider.macroAssessment == null) {
+        _fetchAssessment();
+      }
     });
   }
 
-  Future<void> _fetchAssessment() async {
+  Future<void> _fetchAssessment({bool forceRefresh = false}) async {
     if (_isLoading) return;
     HapticFeedback.lightImpact();
     setState(() {
@@ -44,7 +48,7 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
     });
     try {
       await Provider.of<AgenticTradingProvider>(context, listen: false)
-          .fetchMacroAssessment();
+          .fetchMacroAssessment(forceRefresh: forceRefresh);
     } finally {
       if (mounted) {
         setState(() {
@@ -363,7 +367,7 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   InkWell(
-                    onTap: () => _fetchAssessment(),
+                    onTap: () => _fetchAssessment(forceRefresh: true),
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.all(4.0),

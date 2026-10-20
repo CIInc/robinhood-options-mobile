@@ -27,11 +27,12 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/biometric_service.dart';
 import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
@@ -45,7 +46,6 @@ import 'package:robinhood_options_mobile/widgets/risk_circuit_breaker_settings_w
 import 'package:robinhood_options_mobile/widgets/automated_drip_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_documents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/corporate_actions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
 import 'package:robinhood_options_mobile/widgets/retirement_widget.dart';
 import 'package:robinhood_options_mobile/widgets/connected_agents_widget.dart';
 import 'package:robinhood_options_mobile/widgets/notification_center_widget.dart';
@@ -58,7 +58,6 @@ import 'package:robinhood_options_mobile/widgets/portfolio_privacy_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/user_follow_list_dialog.dart';
 
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
@@ -119,9 +118,16 @@ class _UserWidgetState extends State<UserWidget> {
           widget.userId == null ||
           widget.auth.currentUser!.uid == widget.userId);
 
+  void _onFeatureAccessChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    FeatureAccessService.instance.addListener(_onFeatureAccessChanged);
     _firestoreService = widget.firestoreService ?? FirestoreService();
     _biometricService = widget.biometricService ?? BiometricService();
     _checkBiometrics();
@@ -153,6 +159,7 @@ class _UserWidgetState extends State<UserWidget> {
 
   @override
   void dispose() {
+    FeatureAccessService.instance.removeListener(_onFeatureAccessChanged);
     super.dispose();
   }
 
@@ -1551,12 +1558,12 @@ class _UserWidgetState extends State<UserWidget> {
                                   builder: (context) {
                                     final featureCategories = <Widget?>[
                                       // -------------------------------------------------------------
-                                      // 1. TRADING & SIMULATION
+                                      // 1. TRADING & AUTOMATION
                                       // -------------------------------------------------------------
                                       _buildFeatureCategory(
                                         context,
-                                        title: 'Trading & Simulation',
-                                        icon: Icons.psychology_outlined,
+                                        title: 'Trading & Automation',
+                                        icon: Icons.auto_graph,
                                         tiles: [
                                           // Automated Trading
                                           _buildFeatureTile(
@@ -1568,6 +1575,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             requiresLogin: true,
                                             requiresUserDoc: true,
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.automatedTrading,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.schwab,
@@ -1600,6 +1610,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             requiresLogin: true,
                                             requiresUserDoc: true,
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.backtesting,
+                                            userRole: userRole,
                                             user: user,
                                             onTap: () async {
                                               Navigator.push(
@@ -1618,15 +1631,169 @@ class _UserWidgetState extends State<UserWidget> {
                                               );
                                             },
                                           ),
+                                          // Automated DRIP with Threshold
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.autorenew_outlined,
+                                            title:
+                                                'Automated DRIP with Threshold',
+                                            subtitle: Text(
+                                              user?.automatedDripConfig?.enabled ==
+                                                      true
+                                                  ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
+                                                  : 'Disabled • Reinvest dividends on price dips',
+                                            ),
+                                            requiresLogin: true,
+                                            requiresUserDoc: true,
+                                            requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
+                                            supportedSources: const {
+                                              BrokerageSource.robinhood,
+                                              BrokerageSource.schwab,
+                                              BrokerageSource.demo,
+                                            },
+                                            user: user,
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      AutomatedDripSettingsWidget(
+                                                    user: user,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                    brokerageUser:
+                                                        widget.brokerageUser,
+                                                    brokerageService:
+                                                        widget.service,
+                                                  ),
+                                                ),
+                                              );
+                                              setState(() {});
+                                            },
+                                          ),
                                         ],
                                       ),
 
                                       // -------------------------------------------------------------
-                                      // 2. SIGNALS & ALERTS
+                                      // 2. RISK & MARGIN SAFEGUARDS
                                       // -------------------------------------------------------------
                                       _buildFeatureCategory(
                                         context,
-                                        title: 'Signals & Alerts',
+                                        title: 'Risk & Margin Safeguards',
+                                        icon: Icons.security_outlined,
+                                        tiles: [
+                                          // Risk Circuit Breakers
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.shield_outlined,
+                                            title:
+                                                'Risk Circuit Breakers & Tilt Guardrails',
+                                            subtitle: Text(
+                                              user?.riskCircuitBreakerConfig
+                                                          ?.isExecutionBlocked ==
+                                                      true
+                                                  ? 'Active (Trading Suspended)'
+                                                  : user?.riskCircuitBreakerConfig
+                                                              ?.enabled ==
+                                                          true
+                                                      ? 'Guarded & Active'
+                                                      : 'Configure account safety thresholds',
+                                            ),
+                                            requiresLogin: true,
+                                            requiresUserDoc: true,
+                                            featureBundle:
+                                                FeatureBundle.riskGuardrails,
+                                            userRole: userRole,
+                                            user: user,
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      RiskCircuitBreakerSettingsWidget(
+                                                    user: user,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                  ),
+                                                ),
+                                              );
+                                              setState(() {});
+                                            },
+                                          ),
+                                          // Margin Health & Collateral
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.speed,
+                                            title: 'Margin Health & Collateral',
+                                            subtitle: const Text(
+                                                'Margin buffer, buying power & collateral holds'),
+                                            requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
+                                            supportedSources: const {
+                                              BrokerageSource.robinhood,
+                                              BrokerageSource.schwab,
+                                              BrokerageSource.demo,
+                                            },
+                                            user: user,
+                                            onTap: () async {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      MarginHealthWidget(
+                                                    brokerageUser:
+                                                        widget.brokerageUser!,
+                                                    service: widget.service!,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          // Day Trade & PDT Monitor
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.shield_outlined,
+                                            title: 'Day Trade & PDT Monitor',
+                                            subtitle: const Text(
+                                                'Rolling 5-day counter & FINRA Rule 4210 protection'),
+                                            requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
+                                            supportedSources: const {
+                                              BrokerageSource.robinhood,
+                                              BrokerageSource.schwab,
+                                              BrokerageSource.demo,
+                                            },
+                                            user: user,
+                                            onTap: () async {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      DayTradeMonitorWidget(
+                                                    brokerageUser:
+                                                        widget.brokerageUser!,
+                                                    service: widget.service!,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+
+                                      // -------------------------------------------------------------
+                                      // 3. ALERTS & NOTIFICATIONS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategory(
+                                        context,
+                                        title: 'Alerts & Notifications',
                                         icon: Icons.notifications_active_outlined,
                                         tiles: [
                                           // Trade Signal Notification Settings
@@ -1674,28 +1841,16 @@ class _UserWidgetState extends State<UserWidget> {
                                               );
                                             },
                                           ),
-                                        ],
-                                      ),
-
-                                      // -------------------------------------------------------------
-                                      // 3. RISK & MARGIN SAFEGUARDS
-                                      // -------------------------------------------------------------
-                                      _buildFeatureCategory(
-                                        context,
-                                        title: 'Risk & Margin Safeguards',
-                                        icon: Icons.security_outlined,
-                                        tiles: [
-                                          // Margin Health & Collateral
+                                          // Notification Center
                                           _buildFeatureTile(
                                             context,
-                                            icon: Icons.speed,
-                                            title: 'Margin Health & Collateral',
+                                            icon: Icons.inbox_outlined,
+                                            title: 'Notification Center',
                                             subtitle: const Text(
-                                                'Margin buffer, buying power & collateral holds'),
+                                                'Midlands announcements, market notices & inbox'),
                                             requiresBrokerage: true,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
-                                              BrokerageSource.schwab,
                                               BrokerageSource.demo,
                                             },
                                             user: user,
@@ -1704,116 +1859,13 @@ class _UserWidgetState extends State<UserWidget> {
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (context) =>
-                                                      MarginHealthWidget(
+                                                      NotificationCenterWidget(
                                                     brokerageUser:
                                                         widget.brokerageUser!,
                                                     service: widget.service!,
                                                   ),
                                                 ),
                                               );
-                                            },
-                                          ),
-                                          // Day Trade & PDT Monitor
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.shield_outlined,
-                                            title: 'Day Trade & PDT Monitor',
-                                            subtitle: const Text(
-                                                'Rolling 5-day counter & FINRA Rule 4210 protection'),
-                                            requiresBrokerage: true,
-                                            supportedSources: const {
-                                              BrokerageSource.robinhood,
-                                              BrokerageSource.schwab,
-                                              BrokerageSource.demo,
-                                            },
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      DayTradeMonitorWidget(
-                                                    brokerageUser:
-                                                        widget.brokerageUser!,
-                                                    service: widget.service!,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          // Risk Circuit Breakers
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.shield_outlined,
-                                            title:
-                                                'Risk Circuit Breakers & Tilt Guardrails',
-                                            subtitle: Text(
-                                              user?.riskCircuitBreakerConfig
-                                                          ?.isExecutionBlocked ==
-                                                      true
-                                                  ? 'Active (Trading Suspended)'
-                                                  : user?.riskCircuitBreakerConfig
-                                                              ?.enabled ==
-                                                          true
-                                                      ? 'Guarded & Active'
-                                                      : 'Configure account safety thresholds',
-                                            ),
-                                            requiresLogin: true,
-                                            requiresUserDoc: true,
-                                            user: user,
-                                            onTap: () async {
-                                              await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      RiskCircuitBreakerSettingsWidget(
-                                                    user: user,
-                                                    firestoreService:
-                                                        _firestoreService,
-                                                  ),
-                                                ),
-                                              );
-                                              setState(() {});
-                                            },
-                                          ),
-                                          // Automated DRIP with Threshold
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.autorenew_outlined,
-                                            title:
-                                                'Automated DRIP with Threshold',
-                                            subtitle: Text(
-                                              user?.automatedDripConfig?.enabled ==
-                                                      true
-                                                  ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
-                                                  : 'Disabled • Reinvest dividends on price dips',
-                                            ),
-                                            requiresLogin: true,
-                                            requiresUserDoc: true,
-                                            requiresBrokerage: true,
-                                            supportedSources: const {
-                                              BrokerageSource.robinhood,
-                                              BrokerageSource.schwab,
-                                              BrokerageSource.demo,
-                                            },
-                                            user: user,
-                                            onTap: () async {
-                                              await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      AutomatedDripSettingsWidget(
-                                                    user: user,
-                                                    firestoreService:
-                                                        _firestoreService,
-                                                    brokerageUser:
-                                                        widget.brokerageUser,
-                                                    brokerageService:
-                                                        widget.service,
-                                                  ),
-                                                ),
-                                              );
-                                              setState(() {});
                                             },
                                           ),
                                         ],
@@ -1835,6 +1887,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: const Text(
                                                 'Manage deposits, withdrawals & linked bank accounts'),
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.demo,
@@ -1863,6 +1918,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: const Text(
                                                 'Download Form 1099, monthly statements & ADR fees'),
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.demo,
@@ -1891,6 +1949,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: const Text(
                                                 'Stock split adjustments, cash-in-lieu & ratios'),
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.demo,
@@ -1919,6 +1980,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: const Text(
                                                 'Earn yield on loaned shares & FDIC cash sweeps'),
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.demo,
@@ -1946,6 +2010,9 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: const Text(
                                                 'IRA contributions, Robinhood match & IRS limits'),
                                             requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,
                                               BrokerageSource.demo,
@@ -1983,95 +2050,17 @@ class _UserWidgetState extends State<UserWidget> {
                                               );
                                             },
                                           ),
-                                          // Connected Agents & Apps
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.extension_outlined,
-                                            title: 'Connected Agents & Apps',
-                                            subtitle: const Text(
-                                                'Manage OAuth tokens, trading agents & app access'),
-                                            requiresBrokerage: true,
-                                            supportedSources: const {
-                                              BrokerageSource.robinhood,
-                                              BrokerageSource.demo,
-                                            },
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ConnectedAgentsWidget(
-                                                    brokerageUser:
-                                                        widget.brokerageUser!,
-                                                    service: widget.service!,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          // Notification Center
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.notifications_outlined,
-                                            title: 'Notification Center',
-                                            subtitle: const Text(
-                                                'Midlands announcements, market notices & inbox'),
-                                            requiresBrokerage: true,
-                                            supportedSources: const {
-                                              BrokerageSource.robinhood,
-                                              BrokerageSource.demo,
-                                            },
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      NotificationCenterWidget(
-                                                    brokerageUser:
-                                                        widget.brokerageUser!,
-                                                    service: widget.service!,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
                                         ],
                                       ),
 
                                       // -------------------------------------------------------------
-                                      // 5. PROFILE & COMMUNITY
+                                      // 5. COMMUNITY & SOCIAL
                                       // -------------------------------------------------------------
                                       _buildFeatureCategory(
                                         context,
-                                        title: 'Profile & Community',
-                                        icon: Icons.person_outline,
+                                        title: 'Community & Social',
+                                        icon: Icons.groups_outlined,
                                         tiles: [
-                                          // Investment Profile
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.assessment_outlined,
-                                            title: 'Investment Profile',
-                                            subtitle: const Text(
-                                                'Configure goals and risk tolerance for personalized recommendations'),
-                                            requiresLogin: true,
-                                            requiresUserDoc: true,
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      InvestmentProfileSettingsWidget(
-                                                    user: user!,
-                                                    firestoreService:
-                                                        _firestoreService,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
                                           // Portfolio & Social Privacy
                                           _buildFeatureTile(
                                             context,
@@ -2081,12 +2070,15 @@ class _UserWidgetState extends State<UserWidget> {
                                             subtitle: Text(
                                               user?.portfolioPrivacy
                                                           ?.isPublic ==
-                                                      false
-                                                  ? 'Private Portfolio'
-                                                  : 'Public Portfolio',
+                                                      true
+                                                  ? 'Public Portfolio'
+                                                  : 'Private Portfolio',
                                             ),
                                             requiresLogin: true,
                                             requiresUserDoc: true,
+                                            featureBundle:
+                                                FeatureBundle.socialCopy,
+                                            userRole: userRole,
                                             user: user,
                                             onTap: () async {
                                               final currentPrivacy = user
@@ -2108,33 +2100,6 @@ class _UserWidgetState extends State<UserWidget> {
                                                       updated;
                                                 });
                                               }
-                                            },
-                                          ),
-                                          // Shareholder Q&A (Say Technologies)
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.how_to_vote_outlined,
-                                            title: 'Shareholder Q&A (Say)',
-                                            subtitle: const Text(
-                                                'Participate in verified earnings calls & shareholder questions'),
-                                            requiresBrokerage: true,
-                                            supportedSources: const {
-                                              BrokerageSource.robinhood,
-                                              BrokerageSource.demo,
-                                            },
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      ShareholderQaWidget(
-                                                    brokerageUser:
-                                                        widget.brokerageUser!,
-                                                    service: widget.service!,
-                                                  ),
-                                                ),
-                                              );
                                             },
                                           ),
                                           // Share & Referrals
@@ -2185,6 +2150,99 @@ class _UserWidgetState extends State<UserWidget> {
                                                       sharePositionOrigin,
                                                 );
                                               }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+
+                                      // -------------------------------------------------------------
+                                      // 6. LABS & INTEGRATIONS
+                                      // -------------------------------------------------------------
+                                      _buildFeatureCategory(
+                                        context,
+                                        title: 'Labs & Integrations',
+                                        icon: Icons.science_outlined,
+                                        tiles: [
+                                          // Beta Labs (Experimental Features)
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.science_outlined,
+                                            title: 'Beta Labs',
+                                            subtitle: const Text(
+                                                'Opt in to experimental features & trading tools'),
+                                            user: user,
+                                            userRole: userRole,
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      BetaLabsWidget(
+                                                    userRole: userRole,
+                                                    user: user,
+                                                    userDocRef:
+                                                        userDocumentReference,
+                                                  ),
+                                                ),
+                                              );
+                                              if (mounted) setState(() {});
+                                            },
+                                          ),
+                                          // Investment Profile
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.assessment_outlined,
+                                            title: 'Investment Profile',
+                                            subtitle: const Text(
+                                                'Configure goals and risk tolerance for personalized recommendations'),
+                                            requiresLogin: true,
+                                            requiresUserDoc: true,
+                                            featureBundle:
+                                                FeatureBundle.aiResearch,
+                                            userRole: userRole,
+                                            user: user,
+                                            onTap: () async {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      InvestmentProfileSettingsWidget(
+                                                    user: user!,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          // Connected Agents & Apps
+                                          _buildFeatureTile(
+                                            context,
+                                            icon: Icons.extension_outlined,
+                                            title: 'Connected Agents & Apps',
+                                            subtitle: const Text(
+                                                'Manage OAuth tokens, trading agents & app access'),
+                                            requiresBrokerage: true,
+                                            featureBundle:
+                                                FeatureBundle.accountTools,
+                                            userRole: userRole,
+                                            supportedSources: const {
+                                              BrokerageSource.robinhood,
+                                              BrokerageSource.demo,
+                                            },
+                                            user: user,
+                                            onTap: () async {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      ConnectedAgentsWidget(
+                                                    brokerageUser:
+                                                        widget.brokerageUser!,
+                                                    service: widget.service!,
+                                                  ),
+                                                ),
+                                              );
                                             },
                                           ),
                                         ],
@@ -2764,9 +2822,18 @@ class _UserWidgetState extends State<UserWidget> {
     bool requiresBrokerage = false,
     Set<BrokerageSource>? supportedSources,
     bool hideUnsupported = true,
+    FeatureBundle? featureBundle,
+    UserRole? userRole,
     User? user,
   }) {
     final theme = Theme.of(context);
+    final isBundleAllowed = featureBundle == null ||
+        FeatureAccessService.instance
+            .isFeatureEnabled(featureBundle, userRole: userRole);
+    if (!isBundleAllowed) {
+      return null;
+    }
+
     final isLoginSatisfied = requiresUserDoc
         ? (widget.auth.currentUser != null && user != null)
         : requiresLogin
@@ -2796,6 +2863,12 @@ class _UserWidgetState extends State<UserWidget> {
     } else if (!isSourceSupported) {
       final brokerName = _brokerLabel(widget.brokerageUser!.source);
       disabledReason = 'Not supported by $brokerName';
+    } else if (featureBundle != null) {
+      final mode =
+          FeatureAccessService.instance.getRolloutMode(featureBundle);
+      if (mode == FeatureRolloutMode.betaOptIn) {
+        badgeText = 'Beta';
+      }
     }
 
     final Widget effectiveSubtitle = (!isEnabled && disabledReason != null)

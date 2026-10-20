@@ -19,12 +19,15 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics;
 
   AgenticTradingProvider({FirebaseAnalytics? analytics})
-      : _analytics = analytics ?? FirebaseAnalytics.instance;
+      : _analytics = analytics ?? FirebaseAnalytics.instance {
+    loadCachedMacroAssessment();
+  }
 
   // Constants
   static const int _tradeDelaySeconds =
@@ -110,27 +113,93 @@ class AgenticTradingProvider with ChangeNotifier {
   MacroAssessment? get previousMacroAssessment => _previousMacroAssessment;
   List<MacroAssessment> _macroHistory = [];
   List<MacroAssessment> get macroHistory => _macroHistory;
+  bool _isAiAnalysisLoading = false;
+  bool get isAiAnalysisLoading => _isAiAnalysisLoading;
 
-  Future<void> fetchMacroAssessment({bool forceRefresh = false}) async {
+  Future<void> fetchMacroAssessment({
+    bool forceRefresh = false,
+    bool includeAiAnalysis = false,
+  }) async {
     try {
       final functions = FirebaseFunctions.instance;
       final callable = functions.httpsCallable('getMacroAssessment');
-      final result = await callable.call({'forceRefresh': forceRefresh});
+      final result = await callable.call({
+        'forceRefresh': forceRefresh,
+        'includeAiAnalysis': includeAiAnalysis,
+      });
       if (result.data != null) {
         if (_macroAssessment != null) {
           _previousMacroAssessment = _macroAssessment;
         }
-        _macroAssessment =
-            MacroAssessment.fromMap(Map<String, dynamic>.from(result.data));
+        final dataMap = Map<String, dynamic>.from(result.data);
+        _macroAssessment = MacroAssessment.fromMap(dataMap);
         notifyListeners();
         _log(
             "Macro assessment updated: ${_macroAssessment?.status}${forceRefresh ? ' (Refreshed)' : ''}");
 
+        // Cache locally for instant startup display
+        _persistCachedMacroAssessment(dataMap);
+
         // Also fetch history
         await fetchMacroHistory();
+
+        // If AI analysis is not yet present, fetch it asynchronously in the background
+        if (_macroAssessment != null &&
+            (_macroAssessment!.aiAnalysis == null ||
+                _macroAssessment!.aiAnalysis!.isEmpty)) {
+          fetchMacroAiAnalysis(forceRefresh: forceRefresh);
+        }
       }
     } catch (e) {
       _log("Error fetching macro assessment: $e");
+    }
+  }
+
+  Future<void> fetchMacroAiAnalysis({bool forceRefresh = false}) async {
+    if (_isAiAnalysisLoading) return;
+    _isAiAnalysisLoading = true;
+    notifyListeners();
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('getMacroAiAnalysis');
+      final result = await callable.call({'forceRefresh': forceRefresh});
+      if (result.data != null && result.data['aiAnalysis'] != null) {
+        final aiText = result.data['aiAnalysis'] as String;
+        if (aiText.isNotEmpty && _macroAssessment != null) {
+          _macroAssessment = _macroAssessment!.copyWith(aiAnalysis: aiText);
+          notifyListeners();
+          _log("Macro AI analysis updated.");
+        }
+      }
+    } catch (e) {
+      _log("Error fetching macro AI analysis: $e");
+    } finally {
+      _isAiAnalysisLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _persistCachedMacroAssessment(Map<String, dynamic> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_macro_assessment', jsonEncode(data));
+    } catch (e) {
+      // Ignore local storage error
+    }
+  }
+
+  Future<void> loadCachedMacroAssessment() async {
+    try {
+      if (_macroAssessment != null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString('cached_macro_assessment');
+      if (cachedJson != null) {
+        final data = jsonDecode(cachedJson) as Map<String, dynamic>;
+        _macroAssessment = MacroAssessment.fromMap(data);
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore cache decode error
     }
   }
 

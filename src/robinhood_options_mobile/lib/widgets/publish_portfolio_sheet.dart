@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
 import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
 import 'package:robinhood_options_mobile/model/verified_track_record.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
@@ -37,6 +39,16 @@ class PublishPortfolioBottomSheet extends StatefulWidget {
     VoidCallback? onPublished,
     VoidCallback? onUnpublished,
   }) {
+    if (!FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.socialCopy,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Portfolio publishing is currently in preview.'),
+        ),
+      );
+      return Future.value();
+    }
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

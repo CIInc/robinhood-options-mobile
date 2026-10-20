@@ -13,12 +13,14 @@ import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 class ActionCenterWidget extends StatefulWidget {
   final List<PortfolioAlert> alerts;
   final void Function(PortfolioAlert alert) onAlertTap;
+  final void Function(String symbol)? onSymbolTap;
   final int collapsedCount;
 
   const ActionCenterWidget({
     super.key,
     required this.alerts,
     required this.onAlertTap,
+    this.onSymbolTap,
     this.collapsedCount = 3,
   });
 
@@ -304,24 +306,55 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                         runSpacing: 4,
                         children: [
                           if (alert.symbol != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: theme.colorScheme.outline
-                                      .withValues(alpha: 0.25),
-                                  width: 0.8,
+                            InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () {
+                                if (widget.onSymbolTap != null) {
+                                  widget.onSymbolTap!(alert.symbol!);
+                                } else {
+                                  widget.onAlertTap(
+                                    PortfolioAlert(
+                                      id: 'symbol-${alert.symbol}',
+                                      severity: alert.severity,
+                                      icon: Icons.show_chart,
+                                      title: alert.symbol!,
+                                      detail: '',
+                                      target: PortfolioAlertTarget.instrument,
+                                      symbol: alert.symbol,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: theme.colorScheme.outline
+                                        .withValues(alpha: 0.25),
+                                    width: 0.8,
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                alert.symbol!,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
-                                  fontSize: 10,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      alert.symbol!,
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Icon(
+                                      Icons.arrow_outward,
+                                      size: 10,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

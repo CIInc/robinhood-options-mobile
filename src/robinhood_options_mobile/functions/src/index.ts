@@ -127,6 +127,7 @@ export const toggleOptionAlert = optionsFlow.toggleOptionAlert;
 export const optionsFlowCronJob = optionsFlowCron.optionsFlowCron;
 export const verifySubscription = verifySubscriptionFunc;
 export const getMacroAssessment = macroAgent.getMacroAssessmentCall;
+export const getMacroAiAnalysis = macroAgent.getMacroAiAnalysisCall;
 export const getMacroHistory = macroAgent.getMacroHistoryCall;
 export const macroAssessmentCronJob = macroAgent.macroAssessmentCron;
 export const getQuotes = marketData.getQuotesCall;

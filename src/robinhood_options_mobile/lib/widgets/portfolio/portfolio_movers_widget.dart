@@ -10,48 +10,77 @@ class PortfolioMover {
   final String symbol;
   final double gainLoss;
   final double gainLossPercent;
+  final InstrumentPosition? position;
 
   const PortfolioMover({
     required this.symbol,
     required this.gainLoss,
     required this.gainLossPercent,
+    this.position,
   });
 }
 
 /// Today's largest contributors and detractors, side by side.
 ///
-/// This is the "largest winner / largest loser" half of the first screen. It
-/// deliberately shows only a few rows each — the full ranked list lives in the
-/// Positions section.
-class PortfolioMoversWidget extends StatelessWidget {
+/// Shows top winners and losers and supports expanding inline to reveal up to
+/// [expandedRowCount] holdings without leaving the page.
+class PortfolioMoversWidget extends StatefulWidget {
   final List<InstrumentPosition> positions;
   final VoidCallback? onTap;
+  final void Function(PortfolioMover mover)? onMoverTap;
   final int rowCount;
+  final int expandedRowCount;
+  final bool expandable;
+  final bool initiallyExpanded;
 
   const PortfolioMoversWidget({
     super.key,
     required this.positions,
     this.onTap,
+    this.onMoverTap,
     this.rowCount = 3,
+    this.expandedRowCount = 10,
+    this.expandable = true,
+    this.initiallyExpanded = false,
   });
 
   @override
+  State<PortfolioMoversWidget> createState() => _PortfolioMoversWidgetState();
+}
+
+class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
+  late bool _isExpanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ranked = _rank(positions);
+    final ranked = _rank(widget.positions);
     if (ranked.isEmpty) return const SizedBox.shrink();
 
-    final winners =
-        ranked.where((mover) => mover.gainLoss > 0).take(rowCount).toList();
-    final losers = ranked.reversed
-        .where((mover) => mover.gainLoss < 0)
-        .take(rowCount)
-        .toList();
+    final allWinners = ranked.where((mover) => mover.gainLoss > 0).toList();
+    final allLosers = ranked.reversed.where((mover) => mover.gainLoss < 0).toList();
 
-    if (winners.isEmpty && losers.isEmpty) return const SizedBox.shrink();
+    if (allWinners.isEmpty && allLosers.isEmpty) return const SizedBox.shrink();
+
+    final hasMore = allWinners.length > widget.rowCount ||
+        allLosers.length > widget.rowCount;
+    final effectiveLimit = (widget.expandable && _isExpanded)
+        ? widget.expandedRowCount
+        : widget.rowCount;
+
+    final winners = allWinners.take(effectiveLimit).toList();
+    final losers = allLosers.take(effectiveLimit).toList();
 
     final theme = Theme.of(context);
     return AnalyticsStyleCard(
-      onTap: onTap,
+      onTap: widget.expandable && widget.onTap == null
+          ? () => setState(() => _isExpanded = !_isExpanded)
+          : widget.onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -63,25 +92,67 @@ class PortfolioMoversWidget extends StatelessWidget {
                 child:
                     Text("Today's Movers", style: theme.textTheme.titleLarge),
               ),
-              if (onTap != null)
+              if (widget.expandable && hasMore)
+                IconButton(
+                  icon: Icon(
+                    _isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  tooltip: _isExpanded ? 'Show fewer' : 'Show more',
+                  onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                )
+              else if (widget.onTap != null)
                 Icon(Icons.chevron_right,
                     color: theme.colorScheme.onSurfaceVariant),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _column(context, 'Winners', winners, Colors.green),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child:
-                    _column(context, 'Losers', losers, theme.colorScheme.error),
-              ),
-            ],
+          AnimatedSize(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _column(context, 'Winners', winners, Colors.green),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _column(context, 'Losers', losers, theme.colorScheme.error),
+                ),
+              ],
+            ),
           ),
+          if (widget.expandable && hasMore) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: () => setState(() => _isExpanded = !_isExpanded),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _isExpanded
+                          ? 'Show fewer movers'
+                          : 'Show more (${allWinners.length + allLosers.length} total)',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -101,6 +172,7 @@ class PortfolioMoversWidget extends StatelessWidget {
         symbol: symbol,
         gainLoss: position.gainLossToday,
         gainLossPercent: position.gainLossPercentToday,
+        position: position,
       ));
     }
     movers.sort((a, b) => b.gainLoss.compareTo(a.gainLoss));
@@ -135,8 +207,8 @@ class PortfolioMoversWidget extends StatelessWidget {
     final currency = NumberFormat.simpleCurrency(decimalDigits: 0);
     final percent = NumberFormat.percentPattern()..maximumFractionDigits = 1;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+    final rowContent = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           Expanded(
@@ -167,5 +239,15 @@ class PortfolioMoversWidget extends StatelessWidget {
         ],
       ),
     );
+
+    if (widget.onMoverTap != null) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => widget.onMoverTap!(mover),
+        child: rowContent,
+      );
+    }
+
+    return rowContent;
   }
 }

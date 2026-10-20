@@ -34,6 +34,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/split.dart' as model;
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -77,7 +78,6 @@ import 'package:robinhood_options_mobile/model/instrument_buying_power.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_buying_power_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_historical_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shareholder_qa_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -855,9 +855,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
+  void _onFeatureAccessChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    FeatureAccessService.instance.addListener(_onFeatureAccessChanged);
 
     _selectedCategory =
         widget.scrollToTradeSignal ? 'Signals' : widget.initialCategory;
@@ -1001,6 +1008,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   void dispose() {
+    FeatureAccessService.instance.removeListener(_onFeatureAccessChanged);
     _scrollController.dispose();
     _categoryChipsScrollController.dispose();
     _stopRefreshTimer();
@@ -2333,6 +2341,62 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  double? _calculateConcentration(Instrument instrument) {
+    final symbol = instrument.symbol;
+    if (symbol.isEmpty) return null;
+
+    final isPaper = widget.brokerageUser.source == BrokerageSource.paper;
+    double symbolValue = 0.0;
+    double totalValue = 0.0;
+
+    if (isPaper) {
+      final paperStore = Provider.of<PaperTradingStore>(context, listen: false);
+      for (final p in paperStore.positions) {
+        if (p.marketValue > 0) {
+          totalValue += p.marketValue;
+          if (p.instrument == instrument.url ||
+              (p.instrumentObj?.symbol.toUpperCase() == symbol.toUpperCase())) {
+            symbolValue += p.marketValue;
+          }
+        }
+      }
+      for (final op in paperStore.optionPositions) {
+        if (op.marketValue > 0) {
+          totalValue += op.marketValue;
+          if (op.symbol.toUpperCase() == symbol.toUpperCase()) {
+            symbolValue += op.marketValue;
+          }
+        }
+      }
+    } else {
+      final stockStore =
+          Provider.of<InstrumentPositionStore>(context, listen: false);
+      final optionStore =
+          Provider.of<OptionPositionStore>(context, listen: false);
+
+      for (final p in stockStore.items) {
+        if (p.marketValue > 0) {
+          totalValue += p.marketValue;
+          if (p.instrument == instrument.url ||
+              (p.instrumentObj?.symbol.toUpperCase() == symbol.toUpperCase())) {
+            symbolValue += p.marketValue;
+          }
+        }
+      }
+      for (final op in optionStore.items) {
+        if (op.marketValue > 0) {
+          totalValue += op.marketValue;
+          if (op.symbol.toUpperCase() == symbol.toUpperCase()) {
+            symbolValue += op.marketValue;
+          }
+        }
+      }
+    }
+
+    if (totalValue <= 0 || symbolValue <= 0) return null;
+    return symbolValue / totalValue;
+  }
+
   Widget _buildPositionSliver(Instrument instrument) {
     return Consumer<InstrumentPositionStore>(
         builder: (context, stockPositionStore, child) {
@@ -2349,13 +2413,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       if (position == null) {
         return const SliverToBoxAdapter(child: SizedBox.shrink());
       }
+      final concentration = _calculateConcentration(instrument);
+      final concentrationStr = concentration != null
+          ? ' • ${(concentration * 100).toStringAsFixed(1)}% of portfolio'
+          : '';
+
       return SliverToBoxAdapter(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionHeader(
               title: "Position",
-              subtitle: '${formatNumber.format(position.quantity!)} shares',
+              subtitle:
+                  '${formatNumber.format(position.quantity!)} shares$concentrationStr',
               icon: Icons.pie_chart_outline,
               trailing: Text(
                 formatCurrency.format(position.marketValue),
@@ -2384,10 +2454,54 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
+                    if (concentration != null && concentration >= 0.20)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: (concentration >= 0.30
+                                  ? Theme.of(context).colorScheme.error
+                                  : Colors.orange)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: (concentration >= 0.30
+                                    ? Theme.of(context).colorScheme.error
+                                    : Colors.orange)
+                                .withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.pie_chart_outline,
+                              size: 16,
+                              color: concentration >= 0.30
+                                  ? Theme.of(context).colorScheme.error
+                                  : Colors.orange,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Concentration Alert: Drives ${(concentration * 100).toStringAsFixed(1)}% of total portfolio value.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: concentration >= 0.30
+                                      ? Theme.of(context).colorScheme.error
+                                      : Colors.orange,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     _buildDetailScrollRow(
                       position,
                       badgeValueFontSize,
                       badgeLabelFontSize,
+                      concentration: concentration,
                       iconSize: 27.0,
                     ),
                   ],
@@ -3042,6 +3156,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildQuickIntelligenceCardsSliver(Instrument instrument,
       {bool expandedTools = false}) {
     if (!instrument.tradeable) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    if (!FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.advancedResearch,
+      userRole: userRole,
+    )) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     return SliverToBoxAdapter(
@@ -3781,15 +3901,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.earningsObj!.isNotEmpty) ...[
         _buildEarningsWidget(instrument),
       ],
-      if (instrument.type == 'stock' || instrument.type.isEmpty) ...[
-        SliverToBoxAdapter(
-          child: ShareholderQaCard(
-            brokerageUser: widget.brokerageUser,
-            service: widget.service,
-            instrument: instrument,
-          ),
-        ),
-      ],
       if (instrument.dividendsObj != null &&
           instrument.dividendsObj!.isNotEmpty) ...[
         _buildDividendsWidget(instrument),
@@ -4129,7 +4240,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   SingleChildScrollView _buildDetailScrollRow(
       InstrumentPosition ops, double valueFontSize, double labelFontSize,
-      {double iconSize = 23.0}) {
+      {double? concentration, double iconSize = 23.0}) {
     List<Widget> tiles = [];
 
     double? totalReturn = widget.brokerageUser
@@ -4159,6 +4270,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         displayValue: DisplayValue.todayReturnPercent);
 
     tiles = [
+      if (concentration != null)
+        Padding(
+            padding: const EdgeInsets.all(summaryEgdeInset),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              PnlBadge(
+                text: '${(concentration * 100).toStringAsFixed(1)}%',
+                value: concentration >= 0.20 ? -1.0 : 0.0,
+                fontSize: valueFontSize,
+                neutral: concentration < 0.20,
+              ),
+              Text("Concentration", style: TextStyle(fontSize: labelFontSize))
+            ])),
       Padding(
           padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: [

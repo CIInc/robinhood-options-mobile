@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
@@ -37,6 +40,12 @@ class OptionsFlowCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.advancedResearch,
+      userRole: userRole,
+    )) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: outerPadding,
       child: Card(

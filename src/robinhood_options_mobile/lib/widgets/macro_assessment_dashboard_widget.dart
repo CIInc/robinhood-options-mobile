@@ -31,14 +31,25 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         ({
           MacroAssessment? assessment,
           MacroAssessment? previousAssessment,
-          List<MacroAssessment> history
+          List<MacroAssessment> history,
+          bool isAiAnalysisLoading,
         })>((provider) => (
           assessment: provider.macroAssessment,
           previousAssessment: provider.previousMacroAssessment,
           history: provider.macroHistory,
+          isAiAnalysisLoading: provider.isAiAnalysisLoading,
         ));
     final assessment = macroData.assessment;
     final indicatorDetailActions = <MacroIndicator, VoidCallback>{};
+
+    if (assessment != null &&
+        (assessment.aiAnalysis == null || assessment.aiAnalysis!.isEmpty) &&
+        !macroData.isAiAnalysisLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Provider.of<AgenticTradingProvider>(context, listen: false)
+            .fetchMacroAiAnalysis();
+      });
+    }
 
     if (assessment == null) {
       return Scaffold(
@@ -188,7 +199,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _buildAnalysisSection(context, assessment),
+            _buildAnalysisSection(context, assessment,
+                isAiAnalysisLoading: macroData.isAiAnalysisLoading),
             const SizedBox(height: 40),
           ],
         ),
@@ -358,7 +370,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
   }
 
   Widget _buildAnalysisSection(
-      BuildContext context, MacroAssessment assessment) {
+      BuildContext context, MacroAssessment assessment,
+      {bool isAiAnalysisLoading = false}) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
@@ -391,7 +404,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    "GEMINI 2.5 LITE",
+                    "GEMINI",
                     style: TextStyle(
                       color: colorScheme.primary,
                       fontSize: 8,
@@ -402,7 +415,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            if (assessment.aiAnalysis != null) ...[
+            if (assessment.aiAnalysis != null &&
+                assessment.aiAnalysis!.isNotEmpty) ...[
               MarkdownBody(
                 data: assessment.aiAnalysis!,
                 styleSheet: MarkdownStyleSheet(
@@ -414,6 +428,59 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              Text(
+                "Indicator Logic",
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+            ] else if (isAiAnalysisLoading) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      "Synthesizing macro narrative with Gemini...",
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 16),
+              Text(
+                "Indicator Logic",
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Provider.of<AgenticTradingProvider>(context, listen: false)
+                        .fetchMacroAiAnalysis();
+                  },
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text("Generate AI Analysis"),
+                ),
+              ),
+              const SizedBox(height: 12),
               const Divider(),
               const SizedBox(height: 16),
               Text(

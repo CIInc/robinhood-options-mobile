@@ -16,23 +16,25 @@ import 'package:robinhood_options_mobile/widgets/user_listtile_widget.dart';
 
 class UsersWidget extends StatefulWidget {
   final firebase_auth.FirebaseAuth auth;
+  final IBrokerageService? service;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
-  final IBrokerageService service;
+  final BrokerageUser? brokerageUser;
   final FirestoreService? firestoreService;
   final User? user;
   final DocumentReference<User>? userDocRef;
+  final bool showAppBar;
   const UsersWidget(
     this.auth,
     this.service, {
     super.key,
     required this.analytics,
     required this.observer,
-    required this.brokerageUser,
+    this.brokerageUser,
     this.firestoreService,
     this.user,
     this.userDocRef,
+    this.showAppBar = true,
   });
 
   @override
@@ -71,8 +73,8 @@ class _UsersWidgetState extends State<UsersWidget> {
         stream: widget.auth.authStateChanges(),
         builder: (context, snapshot) {
           final auth = widget.auth;
-          return Scaffold(
-            body: CustomScrollView(slivers: [
+          final scrollView = CustomScrollView(slivers: [
+            if (widget.showAppBar)
               SliverAppBar(
                   floating: true,
                   snap: true,
@@ -95,28 +97,34 @@ class _UsersWidgetState extends State<UsersWidget> {
                                     (auth.currentUser!.photoURL ??
                                         widget.user?.photoUrl)!)),
                         onProfileTap: () {
-                          showProfile(
-                              context,
-                              widget.auth,
-                              _firestoreService,
-                              widget.analytics,
-                              widget.observer,
-                              widget.brokerageUser,
-                              widget.service);
-                        },
-                      )
-                    else
-                      IconButton(
-                          icon: const Icon(Icons.account_circle_outlined),
-                          onPressed: () {
+                          if (widget.brokerageUser != null &&
+                              widget.service != null) {
                             showProfile(
                                 context,
                                 widget.auth,
                                 _firestoreService,
                                 widget.analytics,
                                 widget.observer,
-                                widget.brokerageUser,
-                                widget.service);
+                                widget.brokerageUser!,
+                                widget.service!);
+                          }
+                        },
+                      )
+                    else
+                      IconButton(
+                          icon: const Icon(Icons.account_circle_outlined),
+                          onPressed: () {
+                            if (widget.brokerageUser != null &&
+                                widget.service != null) {
+                              showProfile(
+                                  context,
+                                  widget.auth,
+                                  _firestoreService,
+                                  widget.analytics,
+                                  widget.observer,
+                                  widget.brokerageUser!,
+                                  widget.service!);
+                            }
                           }),
                   ]),
               SliverPadding(
@@ -183,7 +191,12 @@ class _UsersWidgetState extends State<UsersWidget> {
                     return showSliverList(snapshot.data!);
                   }),
               const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-            ]),
+            ]);
+          if (!widget.showAppBar) {
+            return scrollView;
+          }
+          return Scaffold(
+            body: scrollView,
           );
         });
   }

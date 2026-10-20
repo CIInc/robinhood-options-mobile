@@ -15,6 +15,7 @@ jest.mock("firebase-admin/messaging", () => ({
 
 import {
   getMacroAssessmentCall,
+  getMacroAiAnalysisCall,
   getMacroHistoryCall,
 } from "../src/macro-agent";
 
@@ -37,6 +38,31 @@ describe("Macro Agent Cloud Functions Security Checks", () => {
         data: {},
       };
       const callFn = () => (getMacroAssessmentCall as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+  });
+
+  describe("getMacroAiAnalysisCall", () => {
+    test("rejects unauthenticated requests (null auth)", async () => {
+      const unauthReq = {
+        auth: null,
+        data: { forceRefresh: true },
+      };
+      const callFn = () => (getMacroAiAnalysisCall as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects unauthenticated requests (undefined auth)", async () => {
+      const unauthReq = {
+        data: {},
+      };
+      const callFn = () => (getMacroAiAnalysisCall as any).run(unauthReq);
       await expect(callFn()).rejects.toThrow(HttpsError);
       await expect(callFn()).rejects.toMatchObject({
         code: "unauthenticated",

@@ -6,8 +6,10 @@ import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trading_dashboard_widget.dart';
 import 'package:share_plus_platform_interface/share_plus_platform_interface.dart';
 
@@ -16,12 +18,15 @@ void main() {
   late _FakeSharePlatform fakeSharePlatform;
 
   setUp(() {
+    FeatureAccessService.instance.overrideRolloutForTesting(
+        FeatureBundle.socialCopy, FeatureRolloutMode.public);
     originalSharePlatform = SharePlatform.instance;
     fakeSharePlatform = _FakeSharePlatform();
     SharePlatform.instance = fakeSharePlatform;
   });
 
   tearDown(() {
+    FeatureAccessService.instance.clearOverridesForTesting();
     SharePlatform.instance = originalSharePlatform;
   });
 

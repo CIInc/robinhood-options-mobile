@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
 import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 /// Modal bottom sheet allowing users to view and update their portfolio privacy settings.
@@ -23,6 +26,27 @@ class PortfolioPrivacyBottomSheet extends StatefulWidget {
     required PortfolioPrivacySettings currentSettings,
     required FirestoreService firestoreService,
   }) {
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = app_main.userRole;
+    } catch (_) {
+      currentUserRole = null;
+    }
+
+    if (!FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.socialCopy,
+      userRole: currentUserRole,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Portfolio & Social Privacy requires Investor Groups & Social Copy to be enabled in Beta Labs.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return Future.value(null);
+    }
+
     return showModalBottomSheet<PortfolioPrivacySettings>(
       context: context,
       isScrollControlled: true,

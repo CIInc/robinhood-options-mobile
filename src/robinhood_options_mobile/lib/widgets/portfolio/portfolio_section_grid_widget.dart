@@ -7,6 +7,9 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section.dar
 /// at a glance — the user should be able to tell whether a section needs
 /// attention without opening it.
 class PortfolioSectionGridWidget extends StatelessWidget {
+  /// The list of sections to display. Defaults to [PortfolioSection.values].
+  final List<PortfolioSection> sections;
+
   /// Summary value per section, e.g. `{PortfolioSection.risk: 'Moderate'}`.
   final Map<PortfolioSection, String> summaries;
 
@@ -24,6 +27,7 @@ class PortfolioSectionGridWidget extends StatelessWidget {
   const PortfolioSectionGridWidget({
     super.key,
     required this.onSectionTap,
+    this.sections = PortfolioSection.values,
     this.summaries = const {},
     this.flagged = const {},
     this.disabled = const {},
@@ -32,6 +36,10 @@ class PortfolioSectionGridWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (sections.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     final theme = Theme.of(context);
 
     return Padding(
@@ -61,9 +69,8 @@ class PortfolioSectionGridWidget extends StatelessWidget {
                   mainAxisSpacing: spacing,
                   mainAxisExtent: 138,
                 ),
-                itemCount: PortfolioSection.values.length,
-                itemBuilder: (context, index) =>
-                    _tile(context, PortfolioSection.values[index]),
+                itemCount: sections.length,
+                itemBuilder: (context, index) => _tile(context, sections[index]),
               );
             },
           ),

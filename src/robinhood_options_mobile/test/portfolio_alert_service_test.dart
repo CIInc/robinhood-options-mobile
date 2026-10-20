@@ -183,7 +183,10 @@ void main() {
 
       final alert = alerts.firstWhere((a) => a.id == 'concentration-NVDA');
       expect(alert.severity, PortfolioAlertSeverity.critical);
-      expect(alert.target, PortfolioAlertTarget.risk);
+      expect(
+        alert.target,
+        anyOf(PortfolioAlertTarget.instrument, PortfolioAlertTarget.rebalance),
+      );
       expect(alert.metric, '80%');
     });
   });

@@ -31,6 +31,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
@@ -56,7 +57,6 @@ import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
-//import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
@@ -539,9 +539,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   StreamSubscription<String>? _fcmTokenSubscription;
 
+  void _onFeatureAccessChanged() {
+    if (mounted) {
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      setState(() {
+        initTabs(userStore);
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    FeatureAccessService.instance.addListener(_onFeatureAccessChanged);
     setupInteractedMessage();
 
     // Listen for FCM token refresh to retry subscriptions if APNS was slow
@@ -590,6 +600,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
   @override
   void dispose() {
+    FeatureAccessService.instance.removeListener(_onFeatureAccessChanged);
     WidgetsBinding.instance.removeObserver(this);
     if (_pageController != null) {
       _pageController!.dispose();
@@ -1258,15 +1269,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         observer: widget.observer,
         generativeService: _generativeService,
       ),
-      InvestorGroupsWidget(
-        firestoreService: _firestoreService,
-        brokerageUser: userStore.currentUser,
-        service: service,
-        analytics: widget.analytics,
-        observer: widget.observer,
+      if (FeatureAccessService.instance.isFeatureEnabled(
+        FeatureBundle.investorGroups,
+        userRole: userRole,
         user: user,
-        userDocRef: userDoc,
-      ),
+      ))
+        InvestorGroupsWidget(
+          firestoreService: _firestoreService,
+          brokerageUser: userStore.currentUser,
+          service: service,
+          analytics: widget.analytics,
+          observer: widget.observer,
+          user: user,
+          userDocRef: userDoc,
+        ),
       // if (auth.currentUser != null) ...[
       //   if (userRole == UserRole.admin) ...[
       //     UsersWidget(auth,
@@ -1343,27 +1359,32 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         // backgroundColor: Colors.black.withValues(alpha: 0.05),
         height:
             56, // Default is 56 for BottomNavigationBar, 80 for NavigationBar
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
+        destinations: <NavigationDestination>[
+          const NavigationDestination(
             icon: Icon(Icons.account_balance), //home
             label: 'Portfolio',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.history),
             label: 'History',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.search),
             label: 'Search',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.insights),
             label: 'Signals', // Trade Signals
           ),
-          NavigationDestination(
-            icon: Icon(Icons.groups),
-            label: 'Investors',
-          ),
+          if (FeatureAccessService.instance.isFeatureEnabled(
+            FeatureBundle.investorGroups,
+            userRole: userRole,
+            user: user,
+          ))
+            const NavigationDestination(
+              icon: Icon(Icons.groups),
+              label: 'Investors',
+            ),
           // NavigationDestination(
           //   icon: Icon(Icons.account_circle), // manage_accounts //person
           //   label: 'Accounts',
@@ -1382,6 +1403,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       ),
       floatingActionButton: message == null &&
               _pageIndex != 4 &&
+              FeatureAccessService.instance.isFeatureEnabled(
+                FeatureBundle.aiResearch,
+                userRole: userRole,
+              ) &&
               !(_pageIndex == 3 &&
                   user != null &&
                   !SubscriptionService().isSubscriptionActive(user!))

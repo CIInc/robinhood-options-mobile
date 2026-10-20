@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
 import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
 import 'package:robinhood_options_mobile/widgets/risk_circuit_breaker_settings_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,8 +11,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUp(() async {
+    app_main.userRole = UserRole.user;
     SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    FeatureAccessService.mockInstance = FeatureAccessService(
+      prefs: prefs,
+      overrideModes: {
+        FeatureBundle.riskGuardrails: FeatureRolloutMode.public,
+      },
+    );
   });
 
   Widget createWidgetUnderTest({RiskCircuitBreakerService? service}) {
@@ -229,6 +240,29 @@ void main() {
       expect(service.config.isInCoolingOff, true);
       expect(find.textContaining('Cooling Off Active'), findsOneWidget);
       expect(find.textContaining('Rapid order cancel/replace loop detected'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Shows beta lock screen when Risk Guardrails feature is not enabled',
+        (tester) async {
+      FeatureAccessService.instance.overrideRolloutForTesting(
+        FeatureBundle.riskGuardrails,
+        FeatureRolloutMode.disabled,
+      );
+
+      final service = RiskCircuitBreakerService(
+        initialConfig: RiskCircuitBreakerConfig(enabled: true),
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest(service: service));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Risk Guardrails Beta Feature'), findsOneWidget);
+      expect(
+        find.text(
+            'Risk Circuit Breakers & Tilt Guardrails requires the feature to be enabled in Beta Labs.'),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -53,7 +53,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ### Key Highlights
 - ✅ **Recently Completed (v0.55.0-v0.57.6):** Auto-Trade Settings Persistence & Signal Re-Evaluation ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)), Auto-Trade Reliability & Paper Ledger Repair ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), Autonomous Agentic Risk Copilot ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), Multi-Leg Spread Builder & Order Entry Templates ([docs](docs/multi-leg-spread-builder.md)), AI Trade Post-Mortem & Behavioral Journal Auto-Tagger ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), In-App Behavioral Tilt & Overtrading Safeguards ([#142](https://github.com/CIInc/robinhood-options-mobile/issues/142)), Action Center Context-First Deep-Linking ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Guest Paper Account Migration ([#144](https://github.com/CIInc/robinhood-options-mobile/issues/144)), $O(1)$ Space Scalar Indicator Computations ([#197](https://github.com/CIInc/robinhood-options-mobile/pull/197), [#200](https://github.com/CIInc/robinhood-options-mobile/pull/200)), Screen Reader Semantics ([#199](https://github.com/CIInc/robinhood-options-mobile/pull/199), [#202](https://github.com/CIInc/robinhood-options-mobile/pull/202)), and Backend Callable Security Hardening ([#198](https://github.com/CIInc/robinhood-options-mobile/pull/198)). See the release timeline for issue links and details.
-- ✅ **v0.57.6 Release Preparation:** Auto-trade signals generated while the market is closed are no longer lost, and turning Require Approval off clears queued approvals ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)); the signals-first MVP scope, Remote Config feature flags, and self-serve user beta rollout remain tracked as planned work ([#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- ✅ **v0.57.6 Release Preparation:** Auto-trade signals generated while the market is closed are no longer lost, turning Require Approval off clears queued approvals ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), and the signals-first MVP scope, Remote Config feature flags, and self-serve user beta rollout are shipped ([docs](docs/feature-access-and-beta-gating.md), [#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
 - **Next proposed milestone:** **v0.58.0 (target: Q1 2027; tentative)** — SEC EDGAR Filing Expansion (Phase 2) ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)), Alert Customization & Delivery Channels ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Streamlined AI Conviction Engine ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), and Streaming Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 - **Later candidates (v0.59.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
 - **Longer-term exploration:** Biometric health tracking, paid strategy marketplace royalties, desktop workflows, zero-knowledge proofs, wearable clients, and spatial interfaces remain exploratory until scoped and validated.
@@ -343,7 +343,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Securities Lending (SLIP) & Cash Sweeps:** Fully Paid Stock Loan income tracking (`/accounts/stock_loan_payments/`), SLIP status, and high-yield cash sweeps APY & tier tracking (`/accounts/sweeps/interest/`).
 - ✅ **Banking, ACH & Cash Movement:** Monitor bank deposits, withdrawals, clearing status, and linked bank accounts (`/ach/transfers/`, `/ach/relationships/`).
 - ✅ **Corporate Action Splits & Cash-in-Lieu:** Stock split cash-in-lieu adjustments, ratio tracking, and tax basis reporting (`/corp_actions/v2/split_payments/`).
-- ✅ **Shareholder Say Q&A Engagement:** Say Technologies earnings Q&A participation (`/qa/events-section/`).
+- ❌ **Shareholder Say Q&A Engagement (Removed):** Say Technologies earnings Q&A participation (`/qa/events-section/`) removed due to upstream API deprecation and unreliability.
 - ✅ **Multi-Account & Retirement Expansion:** Full multi-account hydration including Traditional/Roth IRAs (`ira_traditional`, `ira_roth`), contribution history (`/retirement/history/`), spending accounts (`/rhy/accounts/`), and connected agent management (`/oauth2/list_external_tokens/`).
 - ✅ **Tax Documents & Statements:** Direct access and download for 1099 tax documents, monthly statements, ADR fees, and foreign tax withholding (`/documents/?type=1099`, `/corp_actions/adr_fees/`, `/tax_info/`).
 
@@ -509,9 +509,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 - **Receipt Rejection Logging:** `verifySubscription` logs why an Apple receipt is rejected so Restore Purchases failures can be diagnosed.
 
 ### v0.57.6 (Release Preparation, October 15, 2026)
-**Auto-Trade Signals No Longer Lost While the Market Is Closed**
+**Auto-Trade Signals No Longer Lost While the Market Is Closed & Signals-First MVP Rollout**
 - **Signals Evaluated Before Marked Processed:** Cycles blocked by market hours, the daily limit or the cooldown no longer consume their signals, so overnight signals are evaluated at the open; Require Approval is part of the rules that re-evaluate signals ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)).
 - **Approval Queue Cleared:** Turning Require Approval off discards orders already waiting for approval ([docs](docs/multi-indicator-trading.md)).
+- **Signals-First MVP Scope, Remote Config Feature Flags & User Beta Rollout:** Shipped 4-tier feature access resolution (Admin bypass, Remote Config kill switches, GA rollout, self-serve Beta Labs opt-in) partitioning non-core features into 7 bundles with safety disclaimers and navigation gating ([docs](docs/feature-access-and-beta-gating.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
 
 ### v0.58.0 (Target: Q1 2027)
 **SEC EDGAR Expansion, Alerts & Streamlined AI Conviction**
@@ -878,7 +879,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Corporate Action Splits**: Stock split payments, cash-in-lieu adjustments, and tax basis tracking (`/corp_actions/v2/split_payments/`)
 - [x] **Multi-Account & Retirement Expansion**: Traditional and Roth IRA account hydration with annual contribution tracking
 - [x] **Tax Documents & Account Statements**: Direct in-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`)
-- [x] **Shareholder Say Q&A Engagement**: Verified shareholder Q&A submission and voting for earnings calls (`/qa/events-section/`)
+- [x] ~~**Shareholder Say Q&A Engagement**~~: Deprecated & removed due to upstream API unreliability
 
 ### Infrastructure & Security
 - [x] **User Authentication** ([#22](https://github.com/CIInc/robinhood-options-mobile/issues/22)): Robust user authentication system
@@ -901,7 +902,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 
 This sequence is the planning order; version dates below are tentative, not release commitments. GitHub issue labels establish urgency, while unchecked roadmap items remain candidates until their acceptance criteria and dependencies are clear.
 
-1. **Signals-First MVP Scope, Remote Config Feature Flags & User Beta Rollout:** Define the public launch surface, manage feature bundles dynamically via Firebase Remote Config, enable self-serve user opt-in via Beta Labs, and validate release-readiness criteria ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+1. **Signals-First MVP Scope, Remote Config Feature Flags & User Beta Rollout (v0.57.6, Completed):** Defined the public launch surface, managed feature bundles dynamically via Firebase Remote Config, enabled self-serve user opt-in via Beta Labs, and validated release-readiness criteria ([docs](docs/feature-access-and-beta-gating.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
 2. **Retirement Planning & Growth (v0.56.0):** Advance Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)) to capture high-value Robinhood IRA growth.
 3. **Fundamental Research & Streaming Efficiency (v0.58.0):** Expand SEC EDGAR disclosures ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)) with 10-K/10-Q parsing and Form 4 insider clusters. Continue mobile streaming optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)) with viewport-based subscriptions and battery-conscious WebSocket throttling.
 4. **Unified AI Conviction & Factor Alignment (v0.58.0):** Streamline conviction scoring combining Gemini 3.1 Flash-Lite, quantitative factor engines, and Devil's Advocate stress tests ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
@@ -944,7 +945,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Banking & ACH Transfers** (v0.45.0): Monitor bank deposits, withdrawals, clearing status, and linked accounts (`/ach/transfers/`, `/ach/relationships/`) - **Small** (1-2 weeks)
 - [x] **Tax Documents & Account Statements** (v0.45.0): In-app download and review of Form 1099, monthly statements, and withholding status (`/documents/`, `/tax_info/`) - **Small** (1 week)
 - [x] **Corporate Action Split Adjustments** (v0.45.0): Stock split payments, cash-in-lieu tracking, and ratio adjustments (`/corp_actions/v2/split_payments/`) - **Small** (1 week)
-- [x] **Shareholder Say Q&A Engagement** (v0.45.0): Verified shareholder Q&A viewing and submission for upcoming earnings calls (`/qa/events-section/`) - **Small** (1-2 weeks)
+- [x] ~~**Shareholder Say Q&A Engagement**~~ (v0.45.0, removed): Deprecated & removed due to upstream API unreliability
 - [x] **Multi-Account & Retirement Expansion** (v0.45.0): Full multi-account hydration including Traditional/Roth IRAs, annual contribution limits, Robinhood Gold match tracker, spending accounts, connected external OAuth agents, and notification center - **Medium** (2 weeks)
 - [x] **Retirement Planning & Gold Match Maximizer** (v0.56.0, [docs](docs/multi-account-and-retirement.md), [Tracking: #139](https://github.com/CIInc/robinhood-options-mobile/issues/139)): Interactive projection calculator for IRA compounding, tax advantages, and Robinhood Gold IRA 3% match optimization - **Small** (1-2 weeks)
 - [x] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
@@ -1097,7 +1098,7 @@ Keep reliability, account security, and test coverage ahead of feature breadth. 
 **Revenue Impact:** Medium (enables growth, prevents churn)
 
 #### App Experience
-- [ ] **Signals-First MVP Scope, Remote Config Feature Flags & User Beta Rollout** ([Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)): Define the public launch surface around portfolio overview, instrument search, trade signals, and paper trading; simplify navigation; manage feature flags and kill switches dynamically via Firebase Remote Config; enable self-serve user opt-in for beta capabilities via Beta Labs; validate automated-trading safeguards and phased App Store readiness
+- [x] **Signals-First MVP Scope, Remote Config Feature Flags & User Beta Rollout** (v0.57.6, [docs](docs/feature-access-and-beta-gating.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)): Define the public launch surface around portfolio overview, instrument search, trade signals, and paper trading; simplify navigation; manage feature flags and kill switches dynamically via Firebase Remote Config; enable self-serve user opt-in for beta capabilities via Beta Labs; validate automated-trading safeguards and phased App Store readiness
 - [ ] **Smart Watch App & Wearables**: Apple Watch and Wear OS companion apps with glanceable portfolio P&L, price alerts, and watchlists (v0.57.0+) - **Medium** (2-3 weeks)
 - [x] **iOS Live Activities & Dynamic Island Widget** (v0.50.0, [#160](https://github.com/CIInc/robinhood-options-mobile/issues/160)): Real-time lock screen position tracking, P&L status, and 0DTE trailing stop alerts - **Small** (1-2 weeks)
 - [x] **Offline Mode & Resilient Caching** (v0.50.0, [#87](https://github.com/CIInc/robinhood-options-mobile/issues/87)): Encrypted local cache for portfolio holdings, watchlists, and recent charts with background sync - **Medium** (2-3 weeks)

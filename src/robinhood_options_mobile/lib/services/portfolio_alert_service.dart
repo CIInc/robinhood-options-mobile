@@ -22,6 +22,8 @@ import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart
 import 'package:robinhood_options_mobile/model/news_intelligence.dart';
 import 'package:robinhood_options_mobile/model/congress_trade.dart';
 import 'package:robinhood_options_mobile/model/risk_copilot_model.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/risk_copilot_service.dart';
 import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 
@@ -141,7 +143,14 @@ class PortfolioAlertService {
     if (!isPaper) {
       alerts.addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
     }
-    alerts.addAll(_concentrationAlerts(instrumentPositions, optionPositions));
+    final isAccountToolsEnabled = FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.accountTools,
+    );
+    alerts.addAll(_concentrationAlerts(
+      instrumentPositions,
+      optionPositions,
+      isAccountToolsEnabled: isAccountToolsEnabled,
+    ));
     alerts.addAll(_cashAlerts(account, totalEquity));
     alerts.addAll(_unusualActivityAlerts(
       instrumentPositions: instrumentPositions,
@@ -573,8 +582,9 @@ class PortfolioAlertService {
 
   static List<PortfolioAlert> _concentrationAlerts(
     List<InstrumentPosition> instrumentPositions,
-    List<OptionAggregatePosition> optionPositions,
-  ) {
+    List<OptionAggregatePosition> optionPositions, {
+    bool isAccountToolsEnabled = true,
+  }) {
     final weights = <String, double>{};
     for (final position in instrumentPositions) {
       final symbol = position.instrumentObj?.symbol;
@@ -596,21 +606,27 @@ class PortfolioAlertService {
     final topWeight = ranked.first.value / total;
     if (topWeight < _concentrationWarning) return const [];
 
+    final topSymbol = ranked.first.key;
     return [
       PortfolioAlert(
-        id: 'concentration-${ranked.first.key}',
+        id: 'concentration-$topSymbol',
         severity: topWeight >= _concentrationCritical
             ? PortfolioAlertSeverity.critical
             : PortfolioAlertSeverity.warning,
         icon: Icons.pie_chart_outline,
-        title: 'Concentration risk in ${ranked.first.key}',
+        title: 'Concentration risk in $topSymbol',
         detail: 'A single holding drives an outsized share of your returns.',
         metric: _percent.format(topWeight),
-        target: PortfolioAlertTarget.risk,
+        target: isAccountToolsEnabled
+            ? PortfolioAlertTarget.rebalance
+            : PortfolioAlertTarget.instrument,
         category: 'Allocation',
-        actionLabel: 'Rebalance',
-        symbol: ranked.first.key,
-        payload: ranked.first,
+        actionLabel: isAccountToolsEnabled ? 'Rebalance' : 'View $topSymbol',
+        symbol: topSymbol,
+        payload: {
+          'symbol': topSymbol,
+          'weight': topWeight,
+        },
       ),
     ];
   }
@@ -2605,5 +2621,152 @@ class PortfolioAlertService {
       default:
         return drift >= rule.value;
     }
+  }
+
+  /// Filters out alerts whose target features are disabled by feature flags or unsupported by account.
+  static List<PortfolioAlert> filterAlertsByFeatureAccess(
+    List<PortfolioAlert> alerts, {
+    UserRole? userRole,
+    bool isPaper = false,
+    FeatureAccessService? featureService,
+  }) {
+    final service = featureService ?? FeatureAccessService.instance;
+
+    final isRiskGuardrailsEnabled = service.isFeatureEnabled(
+      FeatureBundle.riskGuardrails,
+      userRole: userRole,
+    );
+    final isAdvancedResearchEnabled = service.isFeatureEnabled(
+      FeatureBundle.advancedResearch,
+      userRole: userRole,
+    );
+    final isAdvancedTradingEnabled = service.isFeatureEnabled(
+      FeatureBundle.advancedTrading,
+      userRole: userRole,
+    );
+    final isAiResearchEnabled = service.isFeatureEnabled(
+      FeatureBundle.aiResearch,
+      userRole: userRole,
+    );
+    final isAccountToolsEnabled = service.isFeatureEnabled(
+      FeatureBundle.accountTools,
+      userRole: userRole,
+    );
+    final isAutomatedTradingEnabled = service.isFeatureEnabled(
+      FeatureBundle.automatedTrading,
+      userRole: userRole,
+    );
+
+    final filtered = <PortfolioAlert>[];
+
+    for (final alert in alerts) {
+      // 1. Risk circuit breakers & tilt alerts
+      if (alert.id.startsWith('risk-circuit-breaker-') ||
+          alert.id.startsWith('risk-tilt-')) {
+        if (!isRiskGuardrailsEnabled) continue;
+      }
+
+      // Concentration risk fallback to instrument when rebalancing is disabled
+      if (alert.id.startsWith('concentration-')) {
+        if (!isAccountToolsEnabled) {
+          filtered.add(PortfolioAlert(
+            id: alert.id,
+            severity: alert.severity,
+            icon: alert.icon,
+            title: alert.title,
+            detail: alert.detail,
+            metric: alert.metric,
+            target: PortfolioAlertTarget.instrument,
+            symbol: alert.symbol,
+            category: alert.category,
+            actionLabel:
+                alert.symbol != null ? 'View ${alert.symbol}' : 'View Instrument',
+            payload: alert.payload,
+          ));
+          continue;
+        }
+      }
+
+      // 2. Filter based on alert target
+      switch (alert.target) {
+        case PortfolioAlertTarget.taxes:
+          if (isPaper || !isAccountToolsEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.rebalance:
+          if (!isAccountToolsEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.zeroDteRadar:
+        case PortfolioAlertTarget.earningsIvCrush:
+        case PortfolioAlertTarget.volatilityCone:
+        case PortfolioAlertTarget.ivSurface:
+        case PortfolioAlertTarget.congressionalTrading:
+          if (!isAdvancedResearchEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.deltaNeutral:
+          if (!isAdvancedTradingEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.riskCopilot:
+          if (!isRiskGuardrailsEnabled || !isAiResearchEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.newsIntelligence:
+        case PortfolioAlertTarget.insights:
+          if (!isAiResearchEnabled) continue;
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.strategies:
+          final hasStrategies =
+              isAutomatedTradingEnabled || isAdvancedResearchEnabled;
+          if (!hasStrategies) {
+            // If strategies is disabled but it's an options expiration alert, fallback to optionPositions
+            if (alert.category == 'Expirations' ||
+                (alert.payload != null && alert.payload!['position'] != null) ||
+                alert.id.contains('expir')) {
+              filtered.add(PortfolioAlert(
+                id: alert.id,
+                severity: alert.severity,
+                icon: alert.icon,
+                title: alert.title,
+                detail: alert.detail,
+                metric: alert.metric,
+                target: PortfolioAlertTarget.optionPositions,
+                symbol: alert.symbol,
+                category: alert.category,
+                actionLabel: 'View Options',
+                payload: alert.payload,
+              ));
+            }
+            continue;
+          }
+          filtered.add(alert);
+          break;
+
+        case PortfolioAlertTarget.positions:
+        case PortfolioAlertTarget.optionPositions:
+        case PortfolioAlertTarget.performance:
+        case PortfolioAlertTarget.risk:
+        case PortfolioAlertTarget.pdtMonitor:
+        case PortfolioAlertTarget.dripSettings:
+        case PortfolioAlertTarget.dividends:
+        case PortfolioAlertTarget.instrument:
+        case PortfolioAlertTarget.optionDefense:
+        case PortfolioAlertTarget.search:
+        case PortfolioAlertTarget.none:
+          filtered.add(alert);
+          break;
+      }
+    }
+
+    return filtered;
   }
 }

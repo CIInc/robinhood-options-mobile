@@ -19,6 +19,9 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_con
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/agentic_risk_copilot_card.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 
 /// "How much risk am I taking?" — the single home for every risk metric.
 ///
@@ -63,6 +66,29 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
             final forexStore =
                 Provider.of<ForexHoldingStore?>(context, listen: false);
 
+            UserRole? currentUserRole;
+            try {
+              currentUserRole = app_main.userRole;
+            } catch (_) {}
+
+            final featureService = FeatureAccessService.instance;
+            final isRiskGuardrailsEnabled = featureService.isFeatureEnabled(
+              FeatureBundle.riskGuardrails,
+              userRole: currentUserRole,
+            );
+            final isAiResearchEnabled = featureService.isFeatureEnabled(
+              FeatureBundle.aiResearch,
+              userRole: currentUserRole,
+            );
+            final isAdvancedResearchEnabled = featureService.isFeatureEnabled(
+              FeatureBundle.advancedResearch,
+              userRole: currentUserRole,
+            );
+            final isAdvancedTradingEnabled = featureService.isFeatureEnabled(
+              FeatureBundle.advancedTrading,
+              userRole: currentUserRole,
+            );
+
             return PortfolioSectionScaffold(
               title: 'Risk',
               subtitle: 'Score, drawdown, concentration & correlation',
@@ -90,38 +116,28 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                     height: 160,
                     child: Center(child: CircularProgressIndicator()),
                   ),
-                RiskAnalyticsCard(data: metrics),
-                RollingStatisticsDashboard(controller: controller),
+
+                // ── Tier 1: Executive Health & Posture (Always visible) ──
                 if (healthScore != null)
                   _healthCard(context, healthScore, metrics),
-                AgenticRiskCopilotCard(
-                  positions: store.items,
-                  optionPositions: optionStore.items,
-                  user: ctx.appUser,
-                  brokerageUser: ctx.brokerageUser,
-                  service: ctx.service,
-                ),
                 PortfolioRiskSummaryWidget(positions: store.items),
-                PortfolioGreeksCard(
-                  positions: optionStore.items,
-                  equityPositions: store.items,
-                  futuresPositions: futuresStore?.items,
-                  forexHoldings: forexStore?.items,
-                  benchmarkSymbol: controller.selectedBenchmark,
-                  onBenchmarkChanged: (newBenchmark) {
-                    controller.selectBenchmark(newBenchmark);
-                  },
-                ),
-                PortfolioStressTestCard(positions: store.items),
-                TailRiskCard(
-                  positions: store.items,
-                  optionPositions: optionStore.items,
-                ),
+
+                // ── Tier 2: Active Protection & Copilot (riskGuardrails + aiResearch) ──
+                if (isRiskGuardrailsEnabled && isAiResearchEnabled)
+                  AgenticRiskCopilotCard(
+                    positions: store.items,
+                    optionPositions: optionStore.items,
+                    user: ctx.appUser,
+                    brokerageUser: ctx.brokerageUser,
+                    service: ctx.service,
+                  ),
+
+                // ── Tier 3: Diversification & Position Heatmap ──
                 const AnalyticsStyleCard(
                   padding: EdgeInsets.zero,
                   child: RiskHeatmapWidget(),
                 ),
-                if (symbols.isNotEmpty)
+                if (isAdvancedResearchEnabled && symbols.isNotEmpty)
                   AnalyticsStyleCard(
                     padding: EdgeInsets.zero,
                     child: CorrelationMatrixWidget(
@@ -131,6 +147,31 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                       isEmbedded: true,
                     ),
                   ),
+
+                // ── Tier 4: Quantitative Metrics (Always visible) ──
+                RiskAnalyticsCard(data: metrics),
+                RollingStatisticsDashboard(controller: controller),
+
+                // ── Tier 5: Advanced Options Greeks & Stress Testing (Gated) ──
+                if ((isAdvancedTradingEnabled || isAdvancedResearchEnabled) &&
+                    optionStore.items.isNotEmpty)
+                  PortfolioGreeksCard(
+                    positions: optionStore.items,
+                    equityPositions: store.items,
+                    futuresPositions: futuresStore?.items,
+                    forexHoldings: forexStore?.items,
+                    benchmarkSymbol: controller.selectedBenchmark,
+                    onBenchmarkChanged: (newBenchmark) {
+                      controller.selectBenchmark(newBenchmark);
+                    },
+                  ),
+                if (isAdvancedResearchEnabled) ...[
+                  PortfolioStressTestCard(positions: store.items),
+                  TailRiskCard(
+                    positions: store.items,
+                    optionPositions: optionStore.items,
+                  ),
+                ],
               ],
             );
           },

@@ -20,15 +20,15 @@ class UserListTile extends StatelessWidget {
       this.showNavigation = true,
       required this.analytics,
       required this.observer,
-      required this.brokerageUser,
-      required this.service});
+      this.brokerageUser,
+      this.service});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser brokerageUser;
+  final BrokerageUser? brokerageUser;
   final DocumentSnapshot<User> document;
   final bool showNavigation;
-  final IBrokerageService service;
+  final IBrokerageService? service;
 
   @override
   Widget build(BuildContext context) {

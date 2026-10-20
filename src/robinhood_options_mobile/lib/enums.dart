@@ -1,5 +1,104 @@
 enum UserRole { user, admin }
 
+enum FeatureRolloutMode {
+  disabled,
+  adminOnly,
+  betaOptIn,
+  public;
+
+  static FeatureRolloutMode fromString(String? value) {
+    switch (value?.toLowerCase()) {
+      case 'disabled':
+        return FeatureRolloutMode.disabled;
+      case 'admin_only':
+      case 'adminonly':
+        return FeatureRolloutMode.adminOnly;
+      case 'beta_opt_in':
+      case 'betaoptin':
+      case 'beta':
+        return FeatureRolloutMode.betaOptIn;
+      case 'public':
+      case 'enabled':
+        return FeatureRolloutMode.public;
+      default:
+        return FeatureRolloutMode.disabled;
+    }
+  }
+}
+
+enum FeatureBundle {
+  advancedResearch,
+  aiResearch,
+  advancedTrading,
+  backtesting,
+  riskGuardrails,
+  socialCopy,
+  investorGroups,
+  accountTools,
+  extendedBrokerages,
+  automatedTrading,
+  agenticTrading,
+  macroIntelligence;
+
+  String get remoteConfigKey => switch (this) {
+        FeatureBundle.advancedResearch => 'beta_advanced_research',
+        FeatureBundle.aiResearch => 'beta_ai_research',
+        FeatureBundle.advancedTrading => 'beta_advanced_trading',
+        FeatureBundle.backtesting => 'beta_backtesting',
+        FeatureBundle.riskGuardrails => 'beta_risk_guardrails',
+        FeatureBundle.socialCopy => 'beta_social_copy',
+        FeatureBundle.investorGroups => 'beta_investor_groups',
+        FeatureBundle.accountTools => 'beta_account_tools',
+        FeatureBundle.extendedBrokerages => 'beta_extended_brokerages',
+        FeatureBundle.automatedTrading => 'beta_automated_trading',
+        FeatureBundle.agenticTrading => 'beta_agentic_trading',
+        FeatureBundle.macroIntelligence => 'beta_macro_intelligence',
+      };
+
+  String get displayName => switch (this) {
+        FeatureBundle.advancedResearch => 'Advanced Research & Flow',
+        FeatureBundle.aiResearch => 'AI Market Copilot & Assistant',
+        FeatureBundle.advancedTrading => 'Advanced Trading (Multi-Leg Spreads)',
+        FeatureBundle.backtesting => 'Strategy Backtesting',
+        FeatureBundle.riskGuardrails =>
+          'Risk Circuit Breakers & Tilt Guardrails',
+        FeatureBundle.socialCopy => 'Social Sharing & Copy Trading',
+        FeatureBundle.investorGroups => 'Investor Groups & Channels',
+        FeatureBundle.accountTools => 'Tax, Margin & Account Tools',
+        FeatureBundle.extendedBrokerages => 'Extended Brokerages',
+        FeatureBundle.automatedTrading => 'Automated & Algorithmic Orders',
+        FeatureBundle.agenticTrading => 'Autonomous Agentic Trading (AI)',
+        FeatureBundle.macroIntelligence => 'Macro Assessment & Economic Radar',
+      };
+
+  String get description => switch (this) {
+        FeatureBundle.advancedResearch =>
+          'Options flow, GEX charts, stock screeners, and SEC filings research.',
+        FeatureBundle.aiResearch =>
+          'AI market assistant chat, strategy coaching, and trade risk copilot.',
+        FeatureBundle.advancedTrading =>
+          'Multi-leg spread builder, complex option strategy templates, and combo orders.',
+        FeatureBundle.backtesting =>
+          'Historical strategy backtesting, performance analytics, and simulation.',
+        FeatureBundle.riskGuardrails =>
+          'Autonomous loss limits, peak-to-trough drawdown protection, rapid-cancel loop detection, and tilt cooling-off locks.',
+        FeatureBundle.socialCopy =>
+          'Community trade sharing, public profile showcase, and copy trading.',
+        FeatureBundle.investorGroups =>
+          'Investor group chats, community channels, and group watchlists.',
+        FeatureBundle.accountTools =>
+          'Banking, tax documents, day trade monitor, margin buffer, and tax lot optimizer.',
+        FeatureBundle.extendedBrokerages =>
+          'Connect alternative brokerage accounts (Fidelity CSV import, Plaid).',
+        FeatureBundle.automatedTrading =>
+          'Rule-based bracket orders, trailing stop triggers, and automated execution.',
+        FeatureBundle.agenticTrading =>
+          'Autonomous AI agent market reasoning and algorithmic order placement.',
+        FeatureBundle.macroIntelligence =>
+          'Macro economic regime tracking, Fed rate forecasts, and yield curve shifts.',
+      };
+}
+
 enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }

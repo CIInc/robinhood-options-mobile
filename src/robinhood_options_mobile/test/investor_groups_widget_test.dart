@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 
@@ -88,11 +89,17 @@ void main() {
     late AccountStore mockAccountStore;
 
     setUp(() {
+      FeatureAccessService.instance.overrideRolloutForTesting(
+          FeatureBundle.socialCopy, FeatureRolloutMode.public);
       fakeDb = FakeFirebaseFirestore();
       firestoreService = FirestoreService(firestore: fakeDb);
       mockAgenticProvider = MockAgenticTradingProvider();
       mockBrokerageUserStore = BrokerageUserStore([], 0);
       mockAccountStore = AccountStore();
+    });
+
+    tearDown(() {
+      FeatureAccessService.instance.clearOverridesForTesting();
     });
 
     Widget createTestWidget() {
@@ -122,7 +129,7 @@ void main() {
     }
 
     testWidgets(
-        'renders 3 primary tabs (Feed, Leaderboard, Groups) and overflow menu when logged in',
+        'renders 4 primary tabs (Feed, Leaderboard, Groups, Traders) and direct action buttons when logged in',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -136,20 +143,21 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Verify the 3 streamlined primary tabs
+      // Verify the 4 primary tabs
       expect(find.text('Feed'), findsOneWidget);
       expect(find.text('Leaderboard'), findsOneWidget);
       expect(find.text('Groups'), findsOneWidget);
+      expect(find.text('Traders'), findsOneWidget);
 
-      // Verify overflow action menu button is present in app bar
-      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+      // Verify overflow action menu button is removed from app bar
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
 
-      // Verify old top-level icon buttons are removed from app bar
-      expect(find.byTooltip('Following Activity Feed'), findsNothing);
-      expect(find.byTooltip('Copy Trading History'), findsNothing);
+      // Verify direct action button is present in app bar and Find Traders is removed from app bar
+      expect(find.byTooltip('Copy Trading History'), findsOneWidget);
+      expect(find.byTooltip('Find Traders'), findsNothing);
     });
 
-    testWidgets('hides app bar overflow menu when user is not logged in',
+    testWidgets('hides app bar direct action buttons when user is not logged in',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -161,8 +169,10 @@ void main() {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
-      // Verify overflow action menu button is NOT present in app bar
+      // Verify overflow menu and direct buttons are NOT present in app bar
       expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+      expect(find.byTooltip('Copy Trading History'), findsNothing);
+      expect(find.byTooltip('Find Traders'), findsNothing);
     });
 
     testWidgets('tapping Groups tab displays segmented filter chips',
@@ -267,6 +277,30 @@ void main() {
       await tester.tap(find.text('Publish'));
       await tester.pumpAndSettle();
       expect(find.text('Leaderboard Publication'), findsOneWidget);
+    });
+
+    testWidgets(
+        'tapping Traders tab switches to Discover Traders view',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      FakeFirebaseAuth.mockUser = MockFirebaseUser();
+      addTearDown(() {
+        FakeFirebaseAuth.mockUser = null;
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap Traders tab
+      await tester.tap(find.text('Traders'));
+      await tester.pumpAndSettle();
+
+      // Traders search bar is now visible
+      expect(find.byType(CupertinoSearchTextField), findsOneWidget);
+      expect(find.text('Search traders by name'), findsOneWidget);
     });
   });
 }

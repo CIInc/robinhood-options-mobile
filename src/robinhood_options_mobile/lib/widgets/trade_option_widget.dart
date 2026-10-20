@@ -18,6 +18,8 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.dart';
 import 'package:robinhood_options_mobile/widgets/schwab_order_preview_card.dart';
@@ -1166,71 +1168,86 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       return;
     }
 
-    final riskService =
-        widget.riskCircuitBreakerService ?? RiskCircuitBreakerService();
-    await riskService.loadConfig();
-    if (riskService.config.isExecutionBlocked) {
-      setState(() {
-        placingOrder = false;
-      });
-      if (mounted) {
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            icon:
-                const Icon(Icons.shield_outlined, color: Colors.red, size: 36),
-            title: const Text('Circuit Breaker Active'),
-            content: Text(
-              riskService.config.isInCoolingOff
-                  ? 'Trading execution is currently suspended by your Risk Circuit Breaker.\n\n${riskService.config.tripReason ?? "Mandatory cooling-off period active."}\n\nPlease take a break and reset your mindset before placing new orders.'
-                  : 'Trading execution is locked.\n\n${riskService.config.tripReason ?? "Autonomous risk circuit breaker tripped."}',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = app_main.userRole;
+    } catch (_) {
+      currentUserRole = null;
     }
 
-    // Evaluate prospective order size against tilt & revenge-trading safeguards
-    final double estPrice = double.tryParse(priceCtl.text) ??
-        widget.optionInstrument?.optionMarketData?.markPrice ??
-        0.0;
-    final double estQty = double.tryParse(quantityCtl.text) ?? 1.0;
-    final double prospectiveNotional = estPrice * estQty * 100.0;
-    final sizeEval = riskService.evaluateOrderSize(
-      prospectiveOrderSize: prospectiveNotional,
+    final isRiskGuardrailsEnabled =
+        FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.riskGuardrails,
+      userRole: currentUserRole,
     );
-    if (!sizeEval.allowed) {
-      setState(() {
-        placingOrder = false;
-      });
-      if (mounted) {
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            icon: const Icon(Icons.psychology_outlined,
-                color: Colors.orange, size: 36),
-            title: const Text('Revenge Sizing Safeguard'),
-            content: Text(
-              sizeEval.reason ??
-                  'Order blocked to prevent emotional revenge-trading sizing spikes.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+
+    if (isRiskGuardrailsEnabled) {
+      final riskService =
+          widget.riskCircuitBreakerService ?? RiskCircuitBreakerService();
+      await riskService.loadConfig();
+      if (riskService.config.isExecutionBlocked) {
+        setState(() {
+          placingOrder = false;
+        });
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon:
+                  const Icon(Icons.shield_outlined, color: Colors.red, size: 36),
+              title: const Text('Circuit Breaker Active'),
+              content: Text(
+                riskService.config.isInCoolingOff
+                    ? 'Trading execution is currently suspended by your Risk Circuit Breaker.\n\n${riskService.config.tripReason ?? "Mandatory cooling-off period active."}\n\nPlease take a break and reset your mindset before placing new orders.'
+                    : 'Trading execution is locked.\n\n${riskService.config.tripReason ?? "Autonomous risk circuit breaker tripped."}',
               ),
-            ],
-          ),
-        );
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
       }
-      return;
+
+      // Evaluate prospective order size against tilt & revenge-trading safeguards
+      final double estPrice = double.tryParse(priceCtl.text) ??
+          widget.optionInstrument?.optionMarketData?.markPrice ??
+          0.0;
+      final double estQty = double.tryParse(quantityCtl.text) ?? 1.0;
+      final double prospectiveNotional = estPrice * estQty * 100.0;
+      final sizeEval = riskService.evaluateOrderSize(
+        prospectiveOrderSize: prospectiveNotional,
+      );
+      if (!sizeEval.allowed) {
+        setState(() {
+          placingOrder = false;
+        });
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              icon: const Icon(Icons.psychology_outlined,
+                  color: Colors.orange, size: 36),
+              title: const Text('Revenge Sizing Safeguard'),
+              content: Text(
+                sizeEval.reason ??
+                    'Order blocked to prevent emotional revenge-trading sizing spikes.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
     }
 
     if (!mounted) return;

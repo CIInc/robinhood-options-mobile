@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/futures_auto_trading_card_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/options_flow_card_widget.dart';
-import 'package:robinhood_options_mobile/widgets/paper_trading_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio_gex_dashboard_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
-import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 
 /// Automation, derivatives analysis, and simulation gathered from the old
 /// portfolio scroll.
@@ -31,107 +31,78 @@ class StrategiesSectionPage extends StatelessWidget {
     final isPaper = ctx.brokerageUser.source == BrokerageSource.paper ||
         account?.accountNumber == 'paper_account';
 
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = app_main.userRole;
+    } catch (_) {}
+
+    final isAutomatedTradingEnabled = FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.automatedTrading,
+      userRole: currentUserRole,
+    );
+    final isAdvancedResearchEnabled = FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.advancedResearch,
+      userRole: currentUserRole,
+    );
+
     return PortfolioSectionScaffold(
       title: 'Strategies',
-      subtitle: 'Automation, options flow, GEX & simulation',
+      subtitle: 'Automation, options flow & GEX',
       cards: [
-        AgenticTradingCardWidget(
-          user: appUser,
-          userDocRef: userDocRef,
-          brokerageUser: ctx.brokerageUser,
-          service: ctx.service,
-          analytics: ctx.analytics,
-          outerPadding: EdgeInsets.zero,
-          disabled: isPaper,
-          disabledReason: isPaper ? 'Not applicable to paper trading' : null,
-        ),
-        FuturesAutoTradingCardWidget(
-          user: appUser,
-          userDocRef: userDocRef,
-          service: ctx.service,
-          analytics: ctx.analytics,
-          outerPadding: EdgeInsets.zero,
-          disabled: isPaper,
-          disabledReason: isPaper ? 'Not applicable to paper trading' : null,
-        ),
-        OptionsFlowCardWidget(
-          brokerageUser: ctx.brokerageUser,
-          service: ctx.service,
-          analytics: ctx.analytics,
-          observer: ctx.observer,
-          generativeService: ctx.generativeService,
-          user: appUser,
-          userDocRef: userDocRef,
-          includePortfolioSymbols: true,
-          outerPadding: EdgeInsets.zero,
-        ),
-        _entry(
-          context,
-          icon: Icons.analytics_outlined,
-          title: 'Portfolio GEX Dashboard',
-          subtitle: 'Monitor aggregate dealer gamma across your holdings',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PortfolioGexDashboardWidget(
-                brokerageUser: ctx.brokerageUser,
-                service: ctx.service,
-                user: appUser,
-                userDocRef: userDocRef,
-                analytics: ctx.analytics,
-                observer: ctx.observer,
-                generativeService: ctx.generativeService,
-              ),
-            ),
+        if (isAutomatedTradingEnabled) ...[
+          AgenticTradingCardWidget(
+            user: appUser,
+            userDocRef: userDocRef,
+            brokerageUser: ctx.brokerageUser,
+            service: ctx.service,
+            analytics: ctx.analytics,
+            outerPadding: EdgeInsets.zero,
+            disabled: isPaper,
+            disabledReason: isPaper ? 'Not applicable to paper trading' : null,
           ),
-        ),
-        if (appUser != null && userDocRef != null && account != null)
+          FuturesAutoTradingCardWidget(
+            user: appUser,
+            userDocRef: userDocRef,
+            service: ctx.service,
+            analytics: ctx.analytics,
+            outerPadding: EdgeInsets.zero,
+            disabled: isPaper,
+            disabledReason: isPaper ? 'Not applicable to paper trading' : null,
+          ),
+        ],
+        if (isAdvancedResearchEnabled) ...[
+          OptionsFlowCardWidget(
+            brokerageUser: ctx.brokerageUser,
+            service: ctx.service,
+            analytics: ctx.analytics,
+            observer: ctx.observer,
+            generativeService: ctx.generativeService,
+            user: appUser,
+            userDocRef: userDocRef,
+            includePortfolioSymbols: true,
+            outerPadding: EdgeInsets.zero,
+          ),
           _entry(
             context,
-            icon: Icons.balance,
-            title: 'Rebalance Portfolio',
-            subtitle: 'Set allocation targets and see the trades to get there',
+            icon: Icons.analytics_outlined,
+            title: 'Portfolio GEX Dashboard',
+            subtitle: 'Monitor aggregate dealer gamma across your holdings',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => RebalancingWidget(
+                builder: (context) => PortfolioGexDashboardWidget(
+                  brokerageUser: ctx.brokerageUser,
+                  service: ctx.service,
                   user: appUser,
                   userDocRef: userDocRef,
-                  account: account,
+                  analytics: ctx.analytics,
+                  observer: ctx.observer,
+                  generativeService: ctx.generativeService,
                 ),
               ),
             ),
           ),
-        _entry(
-          context,
-          icon: Icons.school_outlined,
-          title: 'Paper Trading Simulator',
-          subtitle: isPaper
-              ? 'Already active (currently in paper trading mode)'
-              : 'Practice trading with virtual money',
-          disabledReason: isPaper
-              ? 'Paper trading simulator is already active'
-              : (ctx.isAggregateMode
-                  ? 'Paper trading is not available in aggregate mode'
-                  : null),
-          // Simulated trading targets one account, so it stays disabled while
-          // the user is viewing all brokerages at once or already in paper trading.
-          onTap: (ctx.isAggregateMode || isPaper)
-              ? null
-              : () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaperTradingDashboardWidget(
-                        analytics: ctx.analytics,
-                        observer: ctx.observer,
-                        brokerageUser: ctx.brokerageUser,
-                        service: ctx.service,
-                        user: appUser,
-                        userDocRef: userDocRef,
-                      ),
-                    ),
-                  ),
-        ),
+        ],
       ],
     );
   }

@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:csv/csv.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -36,6 +38,43 @@ class _CopyTradingDashboardWidgetState
 
   @override
   Widget build(BuildContext context) {
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Copy Trading Dashboard'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Feature in Preview',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Copy Trading is currently in preview. You can enable it in Beta Labs settings.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final provider = Provider.of<CopyTradingProvider>(context);
 
     return StreamBuilder<List<CopyTradeRecord>>(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
@@ -8,6 +9,7 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
@@ -22,6 +24,16 @@ Future<void> showCopyTradeDialog({
   CopyTradeSettings? settings,
   bool skipInitialConfirmation = false,
 }) async {
+  if (!FeatureAccessService.instance
+      .isFeatureEnabled(FeatureBundle.socialCopy)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Copy trading is currently in preview.'),
+      ),
+    );
+    return;
+  }
+
   if (instrumentOrder == null && optionOrder == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('No trade to copy')),
@@ -366,6 +378,10 @@ class CopyTradeButtonWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      return const SizedBox.shrink();
+    }
     return IconButton(
       icon: const Icon(Icons.content_copy),
       tooltip: 'Copy Trade',

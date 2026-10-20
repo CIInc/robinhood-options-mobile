@@ -5,6 +5,9 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/futures_position_store.dart';
@@ -384,7 +387,17 @@ class _AllocationWidgetState extends State<AllocationWidget> {
                 ),
                 if (widget.user != null &&
                     widget.userDocRef != null &&
-                    widget.account != null)
+                    widget.account != null &&
+                    FeatureAccessService.instance.isFeatureEnabled(
+                      FeatureBundle.accountTools,
+                      userRole: () {
+                        try {
+                          return app_main.userRole;
+                        } catch (_) {
+                          return null;
+                        }
+                      }(),
+                    ))
                   FilledButton.tonalIcon(
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 12),

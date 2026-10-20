@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:robinhood_options_mobile/main.dart' as app_main;
@@ -90,6 +91,7 @@ class MockRemoteConfig extends Fake implements FirebaseRemoteConfig {
   @override
   bool getBool(String key) {
     if (key == 'show_personalized_ads') return false;
+    if (key == 'beta_self_opt_in_enabled') return true;
     return false;
   }
 }
@@ -104,6 +106,13 @@ Future<void> setupFirebaseMocks() async {
   FirebasePlatform.instance = MockFirebasePlatform();
   try {
     RemoteConfigService.mockInstance = MockRemoteConfigService();
+  } catch (_) {}
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    FeatureAccessService.mockInstance = FeatureAccessService(
+      prefs: prefs,
+      remoteConfig: RemoteConfigService.instance,
+    );
   } catch (_) {}
 
   // Initialize Firebase App

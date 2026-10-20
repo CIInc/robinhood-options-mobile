@@ -4,6 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
@@ -11,6 +12,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics_provider.dart';
 import 'package:robinhood_options_mobile/model/group_performance_analytics.dart';
 import 'package:robinhood_options_mobile/model/group_watchlist_models.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/group_watchlist_service.dart';
@@ -821,27 +823,31 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
             if (auth.currentUser != null) ...[
               const SizedBox(height: 14),
               if (isMember) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            HapticFeedback.mediumImpact();
-                            _trackEvent('copy_trade_settings_pressed');
-                            _showCopyTradeSettings(context, group);
-                          },
-                    icon: const Icon(Icons.content_copy, size: 18),
-                    label: const Text('Copy Trade Settings'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                if (FeatureAccessService.instance.isFeatureEnabled(
+                  FeatureBundle.socialCopy,
+                )) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              HapticFeedback.mediumImpact();
+                              _trackEvent('copy_trade_settings_pressed');
+                              _showCopyTradeSettings(context, group);
+                            },
+                      icon: const Icon(Icons.content_copy, size: 18),
+                      label: const Text('Copy Trade Settings'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
+                ],
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -2270,6 +2276,16 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
   }
 
   void _showCopyTradeSettings(BuildContext context, InvestorGroup group) {
+    if (!FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.socialCopy,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Copy trading is currently in preview.'),
+        ),
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(

@@ -14,7 +14,9 @@ import 'package:robinhood_options_mobile/model/risk_circuit_breaker_config.dart'
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/biometric_service.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -121,13 +123,22 @@ void main() {
         devices: [],
         brokerageUsers: [],
         dateCreated: DateTime.now(),
-        portfolioPrivacy: const PortfolioPrivacySettings(isPublic: true),
+        portfolioPrivacy: const PortfolioPrivacySettings(isPublic: false),
         riskCircuitBreakerConfig: RiskCircuitBreakerConfig(
           enabled: true,
           maxDailyLossAmount: 500,
         ),
       );
       await firestoreService.userCollection.doc(testUid).set(user);
+
+      final prefs = await SharedPreferences.getInstance();
+      FeatureAccessService.mockInstance = FeatureAccessService(
+        prefs: prefs,
+        remoteConfig: RemoteConfigService.instance,
+      );
+      for (final bundle in FeatureBundle.values) {
+        await FeatureAccessService.instance.setUserOptIn(bundle, true);
+      }
     });
 
     testWidgets(
@@ -185,14 +196,15 @@ void main() {
 
       // Verify Portfolio & Social Privacy is rendered under Features
       expect(find.text('Portfolio & Social Privacy'), findsOneWidget);
-      expect(find.text('Public Portfolio'), findsOneWidget);
+      expect(find.text('Private Portfolio'), findsOneWidget);
 
       // Following Activity Feed is available under Investors, not Settings.
       expect(find.text('Following Activity Feed'), findsNothing);
 
       // Verify they are within the Features card structure
       expect(find.text('RISK & MARGIN SAFEGUARDS'), findsOneWidget);
-      expect(find.text('PROFILE & COMMUNITY'), findsOneWidget);
+      expect(find.text('COMMUNITY & SOCIAL'), findsOneWidget);
+      expect(find.text('LABS & INTEGRATIONS'), findsOneWidget);
     });
   });
 }

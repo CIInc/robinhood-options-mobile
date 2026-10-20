@@ -1,0 +1,133 @@
+{
+  "parameters": {
+    "min_app_version": {
+      "defaultValue": {
+        "value": "0.30.1"
+      },
+      "valueType": "STRING"
+    },
+    "experiment_group": {
+      "defaultValue": {
+        "value": "default"
+      },
+      "valueType": "STRING"
+    },
+    "show_personalized_ads": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "valueType": "BOOLEAN"
+    },
+    "ai_model_name": {
+      "defaultValue": {
+        "value": "gemini-2.5-flash-lite"
+      },
+      "valueType": "STRING"
+    },
+    "beta_self_opt_in_enabled": {
+      "defaultValue": {
+        "value": "true"
+      },
+      "description": "Master switch allowing non-admin users to self-opt into beta features in Beta Labs",
+      "valueType": "BOOLEAN"
+    },
+    "beta_advanced_research": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Options flow, GEX charts, stock screeners, and SEC filings (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_ai_research": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for AI Market Copilot chat and strategy coaching (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_advanced_trading": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Multi-leg spread builder and complex option strategies (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_backtesting": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Historical strategy backtesting (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_risk_guardrails": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Autonomous risk circuit breakers and tilt guardrails (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_automated_trading": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Automated trading and algorithmic broker execution (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_social_copy": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Investor groups, community trade sharing, and copy trading (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_account_tools": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Wash sales, tax lot optimization, and account tools (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_extended_brokerages": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Alternative brokerages (Fidelity CSV import, Plaid). Does not apply to core brokers (Robinhood, Schwab, Paper) (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_investor_groups": {
+      "defaultValue": {
+        "value": "public"
+      },
+      "description": "Rollout mode for Investor Groups community discussions and 5th navigation tab (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_social_sharing": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Public trade sharing and copy trading (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_algorithmic_trading": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Automated bracket orders and trailing stops (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_agentic_trading": {
+      "defaultValue": {
+        "value": "beta_opt_in"
+      },
+      "description": "Rollout mode for Autonomous LLM agent trading decisions and execution (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    },
+    "beta_macro_intelligence": {
+      "defaultValue": {
+        "value": "public"
+      },
+      "description": "Rollout mode for Macro assessment dashboard, economic calendar, and yield curve regime shifts (disabled, adminOnly, betaOptIn, public)",
+      "valueType": "STRING"
+    }
+  }
+}

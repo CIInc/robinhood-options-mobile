@@ -66,6 +66,9 @@ class User {
   // Automated DRIP with Threshold
   AutomatedDripConfig? automatedDripConfig;
 
+  // Cloud synchronized feature flag overrides and opt-ins/opt-outs
+  Map<String, bool>? featureFlags;
+
   // Subscription fields
   String? subscriptionStatus; // 'active', 'trial', 'none', 'expired'
   DateTime? trialStartDate;
@@ -101,6 +104,7 @@ class User {
       this.followingCount = 0,
       this.riskCircuitBreakerConfig,
       this.automatedDripConfig,
+      this.featureFlags,
       this.subscriptionStatus,
       this.trialStartDate,
       this.subscriptionExpiryDate,
@@ -168,6 +172,11 @@ class User {
             followingCount: (json['followingCount'] as num?)?.toInt() ?? 0,
             riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null ? RiskCircuitBreakerConfig.fromJson(json['riskCircuitBreakerConfig'] as Map<String, dynamic>) : null,
             automatedDripConfig: json['automatedDripConfig'] != null ? AutomatedDripConfig.fromJson(json['automatedDripConfig'] as Map<String, dynamic>) : null,
+            featureFlags: json['featureFlags'] != null
+                ? (json['featureFlags'] as Map<String, dynamic>).map(
+                    (key, value) => MapEntry(key, value as bool),
+                  )
+                : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
             trialStartDate: json['trialStartDate'] != null ? (json['trialStartDate'] as Timestamp).toDate() : null,
             subscriptionExpiryDate: json['subscriptionExpiryDate'] != null ? (json['subscriptionExpiryDate'] as Timestamp).toDate() : null,
@@ -208,6 +217,7 @@ class User {
       'followingCount': followingCount,
       'riskCircuitBreakerConfig': riskCircuitBreakerConfig?.toJson(),
       'automatedDripConfig': automatedDripConfig?.toJson(),
+      'featureFlags': featureFlags,
     };
   }
 

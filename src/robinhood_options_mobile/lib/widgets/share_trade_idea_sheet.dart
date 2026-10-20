@@ -1,7 +1,9 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 
 /// Modal bottom sheet for composing and publishing a trade idea or investment thesis
@@ -27,6 +29,15 @@ class ShareTradeIdeaSheet extends StatefulWidget {
     required FirebaseAnalytics analytics,
     GroupAnalysisPost? existingPost,
   }) {
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Social sharing is currently in preview.'),
+        ),
+      );
+      return Future.value(null);
+    }
     return showModalBottomSheet<GroupAnalysisPost>(
       context: context,
       isScrollControlled: true,
@@ -140,7 +151,8 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
       if (_isEditing) {
         final updatedPost = widget.existingPost!.copyWith(
           title: _titleController.text.trim(),
-          symbol: _symbolController.text.trim().toUpperCase(),
+          symbol:
+              _symbolController.text.trim().replaceAll('\$', '').toUpperCase(),
           sentiment: _sentiment,
           thesis: _thesisController.text.trim(),
           entryTarget: _entryPrice,
@@ -166,7 +178,7 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
           Navigator.pop(context, updatedPost);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Trade idea for \$${updatedPost.symbol} updated!'),
+              content: Text('Trade idea for ${updatedPost.symbol} updated!'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -179,7 +191,8 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
           authorName: user.displayName ?? 'Trader',
           authorPhotoUrl: user.photoURL,
           title: _titleController.text.trim(),
-          symbol: _symbolController.text.trim().toUpperCase(),
+          symbol:
+              _symbolController.text.trim().replaceAll('\$', '').toUpperCase(),
           sentiment: _sentiment,
           thesis: _thesisController.text.trim(),
           entryTarget: _entryPrice,
@@ -208,7 +221,7 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  'Trade idea for \$${createdPost.symbol} published to social feed!'),
+                  'Trade idea for ${createdPost.symbol} published to social feed!'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -294,7 +307,6 @@ class _ShareTradeIdeaSheetState extends State<ShareTradeIdeaSheet> {
                 decoration: const InputDecoration(
                   labelText: 'Symbol',
                   hintText: 'e.g. NVDA',
-                  prefixText: '\$ ',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {

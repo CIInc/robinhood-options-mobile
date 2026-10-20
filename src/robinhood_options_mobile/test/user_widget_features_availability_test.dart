@@ -18,8 +18,13 @@ import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
+import 'package:robinhood_options_mobile/services/remote_config_service.dart';
+import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:robinhood_options_mobile/main.dart' as app_main;
 
 import 'firebase_mocks.dart';
 
@@ -145,6 +150,15 @@ void main() {
         ),
       );
       await firestoreService.userCollection.doc(testUid).set(user);
+
+      final prefs = await SharedPreferences.getInstance();
+      FeatureAccessService.mockInstance = FeatureAccessService(
+        prefs: prefs,
+        remoteConfig: RemoteConfigService.instance,
+      );
+      for (final bundle in FeatureBundle.values) {
+        await FeatureAccessService.instance.setUserOptIn(bundle, true);
+      }
     });
 
     Widget createTestApp({
@@ -300,7 +314,6 @@ void main() {
       expect(find.widgetWithText(ListTile, 'Retirement & IRA'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Connected Agents'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Notification Center'), findsNothing);
-      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
 
       // Banking & Documents category header is hidden since all its features are unsupported
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
@@ -351,7 +364,6 @@ void main() {
           findsNothing);
       expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
-      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
     });
 
@@ -401,7 +413,6 @@ void main() {
           findsNothing);
       expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
-      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsNothing);
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
     });
 
@@ -457,7 +468,209 @@ void main() {
       expect(find.widgetWithText(ListTile, 'Connected Agents & Apps'),
           findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Notification Center'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Shareholder Q&A (Say)'), findsOneWidget);
+    });
+
+    testWidgets('Advanced Trading features are hidden when user has not opted into beta',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Opt out of advancedTrading, backtesting and automatedTrading
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedTrading,
+        false,
+      );
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.backtesting,
+        false,
+      );
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.automatedTrading,
+        false,
+      );
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final demoUser = BrokerageUser(
+        BrokerageSource.demo,
+        'DemoUser',
+        'credentials',
+        null,
+      );
+      final demoService = DemoService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: demoUser,
+        service: demoService,
+      ));
+      await tester.pumpAndSettle();
+
+      // Automated Trading and Backtesting should NOT be displayed
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsNothing);
+
+      // Beta Labs tile should be visible under Profile & Community
+      expect(find.widgetWithText(ListTile, 'Beta Labs'), findsOneWidget);
+    });
+
+    testWidgets('Tapping Beta Labs opens BetaLabsWidget',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final demoUser = BrokerageUser(
+        BrokerageSource.demo,
+        'DemoUser',
+        'credentials',
+        null,
+      );
+      final demoService = DemoService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: demoUser,
+        service: demoService,
+      ));
+      await tester.pumpAndSettle();
+
+      final betaLabsTile = find.widgetWithText(ListTile, 'Beta Labs');
+      expect(betaLabsTile, findsOneWidget);
+
+      await tester.tap(betaLabsTile);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BetaLabsWidget), findsOneWidget);
+    });
+
+    testWidgets('Admin user sees Advanced Trading features regardless of opt-in',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      app_main.userRole = UserRole.admin;
+      addTearDown(() {
+        app_main.userRole = UserRole.user;
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Opt out of advancedTrading, backtesting and automatedTrading
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedTrading,
+        false,
+      );
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.backtesting,
+        false,
+      );
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.automatedTrading,
+        false,
+      );
+
+      // Set user role to admin in Firestore
+      final adminUser = User(
+        name: 'Admin User',
+        email: 'admin@example.com',
+        role: UserRole.admin,
+        devices: [],
+        brokerageUsers: [],
+        dateCreated: DateTime.now(),
+      );
+      await firestoreService.userCollection.doc(testUid).set(adminUser);
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final demoUser = BrokerageUser(
+        BrokerageSource.demo,
+        'DemoUser',
+        'credentials',
+        null,
+      );
+      final demoService = DemoService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: demoUser,
+        service: demoService,
+      ));
+      await tester.pumpAndSettle();
+
+      // Even with opt-in false, Admin sees Automated Trading and Backtesting
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Account tools are hidden when user has not opted into beta and dynamically appear when opted in',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 5000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      // Ensure opted out of accountTools
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.accountTools,
+        false,
+      );
+
+      final loggedInAuth = MockFirebaseAuthWithUser(mockUser);
+      final demoUser = BrokerageUser(
+        BrokerageSource.demo,
+        'DemoUser',
+        'credentials',
+        null,
+      );
+      final demoService = DemoService();
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: demoUser,
+        service: demoService,
+      ));
+      await tester.pumpAndSettle();
+
+      // Account tools tiles should NOT be displayed
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
+          findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Tax Documents & Statements'),
+          findsNothing);
+
+      // Now opt into accountTools dynamically
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.accountTools,
+        true,
+      );
+      await tester.pumpAndSettle();
+
+      // Account tools tiles should now be reactively displayed
+      expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
+          findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
+          findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Tax Documents & Statements'),
+          findsOneWidget);
     });
   });
 }
+

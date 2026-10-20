@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -1087,7 +1088,7 @@ class _FollowingActivityFeedWidgetState
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '\$${idea.symbol}',
+                      idea.symbol,
                       style: TextStyle(
                         color: theme.colorScheme.onPrimaryContainer,
                         fontWeight: FontWeight.bold,
@@ -1230,7 +1231,9 @@ class _FollowingActivityFeedWidgetState
                   ),
 
                   // 1-Tap Clone Strategy / Copy Trade button
-                  FilledButton.tonalIcon(
+                  if (FeatureAccessService.instance
+                      .isFeatureEnabled(FeatureBundle.socialCopy))
+                    FilledButton.tonalIcon(
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
@@ -1430,7 +1433,9 @@ class _FollowingActivityFeedWidgetState
                       ],
                     ],
                   ),
-                  if (widget.brokerageUser != null &&
+                  if (FeatureAccessService.instance
+                          .isFeatureEnabled(FeatureBundle.socialCopy) &&
+                      widget.brokerageUser != null &&
                       widget.service != null &&
                       activity.symbol != null) ...[
                     FilledButton.tonalIcon(
@@ -1506,6 +1511,16 @@ class _FollowingActivityFeedWidgetState
       return;
     }
 
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Copy trading is currently in preview.'),
+        ),
+      );
+      return;
+    }
+
     final side =
         idea.sentiment == GroupAnalysisSentiment.bearish ? 'sell' : 'buy';
     final userAccount = widget.brokerageUser?.accounts.isNotEmpty == true
@@ -1540,6 +1555,15 @@ class _FollowingActivityFeedWidgetState
 
   Future<void> _copyTrade(BuildContext context, GroupActivity activity) async {
     if (widget.brokerageUser == null || widget.service == null) return;
+    if (!FeatureAccessService.instance
+        .isFeatureEnabled(FeatureBundle.socialCopy)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Copy trading is currently in preview.'),
+        ),
+      );
+      return;
+    }
     final userAccount = widget.brokerageUser?.accounts.isNotEmpty == true
         ? widget.brokerageUser!.accounts.first.accountNumber
         : '';
@@ -1745,7 +1769,7 @@ class _FollowingActivityFeedWidgetState
               ListTile(
                 dense: true,
                 title: const Text('Symbol'),
-                trailing: Text('\$${idea.symbol}',
+                trailing: Text(idea.symbol,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               if (idea.entryTarget != null)
@@ -1777,18 +1801,21 @@ class _FollowingActivityFeedWidgetState
                         color: Colors.blueAccent, fontWeight: FontWeight.bold),
                   ),
                 ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.copy_rounded),
-                  label: const Text('Clone this Strategy'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _cloneStrategy(context, idea);
-                  },
+              if (FeatureAccessService.instance
+                  .isFeatureEnabled(FeatureBundle.socialCopy)) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.copy_rounded),
+                    label: const Text('Clone this Strategy'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _cloneStrategy(context, idea);
+                    },
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -1869,17 +1896,20 @@ class _FollowingActivityFeedWidgetState
               trailing: Text(activity.formattedTotal,
                   style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _copyTrade(context, activity);
-                },
-                child: const Text('Copy this Trade'),
+            if (FeatureAccessService.instance
+                .isFeatureEnabled(FeatureBundle.socialCopy)) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _copyTrade(context, activity);
+                  },
+                  child: const Text('Copy this Trade'),
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

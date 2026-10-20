@@ -47,6 +47,7 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -61,6 +62,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/portfolio_chart_widget.dart';
@@ -76,6 +78,8 @@ import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_gri
 import 'package:robinhood_options_mobile/services/portfolio_benchmark_service.dart';
 import 'package:robinhood_options_mobile/services/offline_cache_service.dart';
 import 'package:robinhood_options_mobile/services/offline_sync_service.dart';
+import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
+import 'package:robinhood_options_mobile/widgets/home/allocation_widget.dart';
 import 'package:robinhood_options_mobile/widgets/offline_status_banner.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_hero_stats_widget.dart';
@@ -2037,7 +2041,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           .where((p) => _matchesAccount(p.account, account))
                           .toList();
                       final dayPnLData = _calcDayPnL(account);
-                      final alerts = PortfolioAlertService.buildAlerts(
+                      final isPaper = widget.brokerageUser?.source ==
+                              BrokerageSource.paper ||
+                          account?.accountNumber == 'paper_account';
+                      UserRole? currentUserRole;
+                      try {
+                        currentUserRole = userRole;
+                      } catch (_) {}
+
+                      final rawAlerts = PortfolioAlertService.buildAlerts(
                         instrumentPositions: filteredStocks,
                         optionPositions: filteredOptions,
                         dividendItems:
@@ -2059,10 +2071,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             : {'excessReturn': comparison.excessReturn},
                         benchmarkSymbol: comparison?.symbol ?? 'SPY',
                       );
+                      final alerts =
+                          PortfolioAlertService.filterAlertsByFeatureAccess(
+                        rawAlerts,
+                        userRole: currentUserRole,
+                        isPaper: isPaper,
+                      );
                       return ActionCenterWidget(
                         alerts: alerts,
                         onAlertTap: (alert) => PortfolioNavigator.openAlert(
                             context, alert, _sectionContext(account)),
+                        onSymbolTap: (symbol) => PortfolioNavigator.openSymbol(
+                            context, symbol, _sectionContext(account)),
                       );
                     },
                   );
@@ -2086,11 +2106,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         .where((position) => _matchesAccount(position.account,
                             isAggregateMode ? null : selectedAccount))
                         .toList(),
-                    onTap: () => PortfolioNavigator.openSection(
-                      context,
-                      PortfolioSection.positions,
-                      _sectionContext(account),
-                    ),
+                    onMoverTap: (mover) {
+                      if (widget.brokerageUser != null &&
+                          widget.service != null &&
+                          mover.position?.instrumentObj != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(
+                              widget.brokerageUser!,
+                              widget.service!,
+                              mover.position!.instrumentObj!,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDoc,
+                              heroTag:
+                                  'logo_${mover.position!.instrumentObj!.symbol}${mover.position!.instrumentObj!.id}',
+                            ),
+                          ),
+                        );
+                      }
+                    },
                   );
                 },
               ),
@@ -2180,6 +2218,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             ),
           ],
 
+          // Portfolio Allocation: asset breakdown, sectors, and rebalancing
+          SliverToBoxAdapter(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: AllocationWidget(
+                account: account,
+                user: widget.user,
+                userDocRef: widget.userDoc,
+              ),
+            ),
+          ),
+
           // Everything else now lives behind a section rather than below the
           // fold of a single scroll.
           SliverToBoxAdapter(
@@ -2189,6 +2240,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     widget.brokerageUser?.source == BrokerageSource.paper ||
                         account?.accountNumber == 'paper_account';
                 return PortfolioSectionGridWidget(
+                  sections: _visibleSections(account),
                   summaries: _sectionSummaries(
                       context, stockStore, optionStore, account),
                   flagged: _flaggedSections(
@@ -2198,8 +2250,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   },
                   disabledReasons: {
                     if (isPaper)
-                      PortfolioSection.taxes:
-                          'Not applicable to paper trading',
+                      PortfolioSection.taxes: 'Not applicable to paper trading',
                   },
                   onSectionTap: (section) => PortfolioNavigator.openSection(
                       context, section, _sectionContext(account)),
@@ -2245,6 +2296,56 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     if (_isAggregateMode() || account == null) return true;
     return positionAccountUrl == account.accountNumber ||
         positionAccountUrl == account.url;
+  }
+
+  /// Calculates which Browse sections are available based on active feature flags and account type.
+  List<PortfolioSection> _visibleSections(Account? account) {
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = userRole;
+    } catch (_) {}
+
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
+    final sections = <PortfolioSection>[
+      PortfolioSection.performance,
+      PortfolioSection.risk,
+    ];
+
+    // Insights: Remove if AI Copilot & Research is disabled
+    if (FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.aiResearch,
+      userRole: currentUserRole,
+    )) {
+      sections.add(PortfolioSection.insights);
+    }
+
+    // Taxes: Remove if Account Tools & Tax Optimization is disabled
+    final isAccountToolsEnabled =
+        FeatureAccessService.instance.isFeatureEnabled(
+      FeatureBundle.accountTools,
+      userRole: currentUserRole,
+    );
+    if (isAccountToolsEnabled) {
+      sections.add(PortfolioSection.taxes);
+    }
+
+    // Strategies: Remove if all Strategies features (Automated Trading and Advanced Research) are disabled
+    final hasStrategies = (FeatureAccessService.instance.isFeatureEnabled(
+              FeatureBundle.automatedTrading,
+              userRole: currentUserRole,
+            ) &&
+            !isPaper) ||
+        FeatureAccessService.instance.isFeatureEnabled(
+          FeatureBundle.advancedResearch,
+          userRole: currentUserRole,
+        );
+    if (hasStrategies) {
+      sections.add(PortfolioSection.strategies);
+    }
+
+    return sections;
   }
 
   /// Bundles everything the drill-down sections need into one object.
@@ -2336,12 +2437,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         .where((p) => _matchesAccount(p.account, account))
         .toList();
 
-    final holdings = stocks.length + options.length;
-    if (holdings > 0) {
-      summaries[PortfolioSection.positions] =
-          '$holdings ${holdings == 1 ? 'holding' : 'holdings'}';
-    }
-
     final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
         account?.accountNumber == 'paper_account';
 
@@ -2378,7 +2473,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     final filteredOptions = optionStore.items
         .where((p) => _matchesAccount(p.account, account))
         .toList();
-    final alerts = PortfolioAlertService.buildAlerts(
+    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
+        account?.accountNumber == 'paper_account';
+
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = userRole;
+    } catch (_) {}
+
+    final rawAlerts = PortfolioAlertService.buildAlerts(
       instrumentPositions: filteredStocks,
       optionPositions: filteredOptions,
       dividendItems:
@@ -2386,9 +2489,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       account: account,
       totalEquity: _totalEquity(context, account: account),
     );
-
-    final isPaper = widget.brokerageUser?.source == BrokerageSource.paper ||
-        account?.accountNumber == 'paper_account';
+    final alerts = PortfolioAlertService.filterAlertsByFeatureAccess(
+      rawAlerts,
+      userRole: currentUserRole,
+      isPaper: isPaper,
+    );
 
     final flagged = <PortfolioSection>{};
     for (final alert in alerts) {
@@ -2397,7 +2502,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         case PortfolioAlertTarget.instrument:
         case PortfolioAlertTarget.positions:
         case PortfolioAlertTarget.optionPositions:
-          flagged.add(PortfolioSection.positions);
+          break;
         case PortfolioAlertTarget.dividends:
         case PortfolioAlertTarget.performance:
           flagged.add(PortfolioSection.performance);
@@ -2428,12 +2533,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           break;
       }
     }
+    final visible = _visibleSections(account);
+    flagged.removeWhere((s) => !visible.contains(s));
     return flagged;
   }
 
   (double?, double?) _calcDayPnL(Account? targetAccount) {
-    final portfolioStore =
-        Provider.of<PortfolioStore>(context, listen: false);
+    final portfolioStore = Provider.of<PortfolioStore>(context, listen: false);
     final portfolio = portfolioStore.items.firstWhereOrNull(
       (p) =>
           targetAccount != null &&

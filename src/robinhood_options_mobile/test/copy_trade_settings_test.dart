@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as app_user;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -42,12 +44,18 @@ class FakeUser extends Fake implements User {
 
 void main() {
   setUpAll(() {
+    FeatureAccessService.instance.overrideRolloutForTesting(
+        FeatureBundle.socialCopy, FeatureRolloutMode.public);
     // Initialize global auth
     try {
       app_main.auth = FakeFirebaseAuth(currentUser: FakeUser());
     } catch (e) {
       // Ignore if already initialized
     }
+  });
+
+  tearDownAll(() {
+    FeatureAccessService.instance.clearOverridesForTesting();
   });
 
   testWidgets('CopyTradeSettingsWidget renders correctly',

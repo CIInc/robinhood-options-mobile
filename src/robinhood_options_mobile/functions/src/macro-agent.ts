@@ -173,7 +173,7 @@ export interface MacroAssessment {
   };
   strategies?: MacroStrategy[];
   reason: string;
-  aiAnalysis?: string;
+  aiAnalysis?: string | null;
   timestamp: number;
 }
 
@@ -1825,6 +1825,7 @@ export const getMacroAssessmentCall = onCall({
   }
 
   const forceRefresh = request.data?.forceRefresh === true;
+  const includeAiAnalysis = request.data?.includeAiAnalysis === true;
 
   // en-CA gives YYYY-MM-DD format
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -1856,16 +1857,106 @@ export const getMacroAssessmentCall = onCall({
   }
 
   logger.info(`Generating new macro assessment for ${dateStr} ` +
-    `(forceRefresh: ${forceRefresh})`);
+    `(forceRefresh: ${forceRefresh}, ` +
+    `includeAiAnalysis: ${includeAiAnalysis})`);
   const assessment = await getMacroAssessment();
 
-  // Add AI analysis
-  assessment.aiAnalysis = await getAiMacroAnalysis(assessment);
+  // Check if AI narrative is already cached in macro_narratives for today
+  const scoreBucket = Math.floor(assessment.score / 5) * 5;
+  const cacheKey = `${dateStr}_${assessment.status}_${scoreBucket}`;
+  const cacheDocRef = db.collection("macro_narratives").doc(cacheKey);
+
+  let cachedNarrative: string | null = null;
+  try {
+    const cacheDoc = await cacheDocRef.get();
+    if (cacheDoc.exists) {
+      const cacheData = cacheDoc.data();
+      if (cacheData && cacheData.aiAnalysis && cacheData.timestamp) {
+        const cachedAt = new Date(cacheData.timestamp).getTime();
+        const now = Date.now();
+        // 2-hour cache window
+        if (now - cachedAt < 2 * 3600 * 1000) {
+          cachedNarrative = cacheData.aiAnalysis as string;
+        }
+      }
+    }
+  } catch (cacheErr) {
+    logger.warn("Failed checking macro narrative cache", cacheErr);
+  }
+
+  if (cachedNarrative) {
+    assessment.aiAnalysis = cachedNarrative;
+  } else if (includeAiAnalysis) {
+    // Synchronously generate AI narrative only if explicitly requested
+    assessment.aiAnalysis = await getAiMacroAnalysis(assessment);
+  } else {
+    assessment.aiAnalysis = null;
+  }
 
   // Persist to history
   await saveMacroAssessmentToHistory(assessment);
 
   return sanitizeNonFiniteNumbers(assessment);
+});
+
+export const getMacroAiAnalysisCall = onCall({
+  secrets: ["GEMINI_API_KEY"],
+}, async (request) => {
+  if (!request.auth || !request.auth.uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to perform macro AI analysis."
+    );
+  }
+
+  const forceRefresh = request.data?.forceRefresh === true;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const dateStr = formatter.format(new Date());
+
+  const todayDocRef = db.collection("macro_assessments").doc(dateStr);
+  const todayDoc = await todayDocRef.get();
+
+  if (todayDoc.exists && !forceRefresh) {
+    const data = todayDoc.data();
+    if (
+      data &&
+      typeof data.aiAnalysis === "string" &&
+      data.aiAnalysis.trim().length > 0
+    ) {
+      logger.info(
+        `Returning existing AI analysis from macro assessment for ${dateStr}`
+      );
+      return { aiAnalysis: data.aiAnalysis };
+    }
+  }
+
+  let assessment: MacroAssessment;
+  if (todayDoc.exists) {
+    assessment = todayDoc.data() as MacroAssessment;
+  } else if (request.data?.assessment) {
+    assessment = request.data.assessment as MacroAssessment;
+  } else {
+    assessment = await getMacroAssessment();
+  }
+
+  const aiAnalysis = await getAiMacroAnalysis(assessment);
+
+  if (todayDoc.exists) {
+    await todayDocRef.update({ aiAnalysis }).catch((err) => {
+      logger.warn(
+        `Failed to update macro assessment doc with aiAnalysis for ${dateStr}`,
+        err
+      );
+    });
+  }
+
+  return { aiAnalysis };
 });
 
 /**

@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/widgets/day_trade_monitor_widget.dart';
 import 'package:robinhood_options_mobile/widgets/delta_neutral_builder_widget.dart';
 import 'package:robinhood_options_mobile/widgets/earnings_iv_crush_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/iv_surface_3d_widget.dart';
 import 'package:robinhood_options_mobile/widgets/news_intelligence_widget.dart';
@@ -36,6 +37,8 @@ import 'package:robinhood_options_mobile/widgets/risk_copilot_widget.dart';
 import 'package:robinhood_options_mobile/model/risk_copilot_model.dart';
 import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
 import 'package:robinhood_options_mobile/widgets/volatility_cone_widget.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/widgets/zero_dte_squeeze_radar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tab_navigation.dart';
@@ -57,16 +60,72 @@ class PortfolioNavigator {
     final isPaper =
         sectionContext.brokerageUser.source == BrokerageSource.paper ||
             sectionContext.account?.accountNumber == 'paper_account';
-    if (section == PortfolioSection.taxes && isPaper) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Tax optimization does not apply to paper trading accounts.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return Future.value();
+
+    UserRole? currentUserRole;
+    try {
+      currentUserRole = app_main.userRole;
+    } catch (_) {}
+
+    if (section == PortfolioSection.taxes) {
+      if (isPaper) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Tax optimization does not apply to paper trading accounts.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return Future.value();
+      }
+      if (!FeatureAccessService.instance.isFeatureEnabled(
+        FeatureBundle.accountTools,
+        userRole: currentUserRole,
+      )) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tax optimization tools are not currently enabled.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return Future.value();
+      }
     }
+
+    if (section == PortfolioSection.insights) {
+      if (!FeatureAccessService.instance.isFeatureEnabled(
+        FeatureBundle.aiResearch,
+        userRole: currentUserRole,
+      )) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('AI Insights features are not currently enabled.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return Future.value();
+      }
+    }
+
+    if (section == PortfolioSection.strategies) {
+      final hasStrategies = FeatureAccessService.instance.isFeatureEnabled(
+            FeatureBundle.automatedTrading,
+            userRole: currentUserRole,
+          ) ||
+          FeatureAccessService.instance.isFeatureEnabled(
+            FeatureBundle.advancedResearch,
+            userRole: currentUserRole,
+          );
+      if (!hasStrategies) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Strategy features are not currently enabled.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return Future.value();
+      }
+    }
+
     return Navigator.push(
       context,
       MaterialPageRoute(
@@ -110,7 +169,7 @@ class PortfolioNavigator {
             return _openInstrument(context, sectionContext, inst);
           }
         }
-        return openSection(context, PortfolioSection.positions, sectionContext);
+        return _openInstrumentPositions(context, sectionContext);
       case PortfolioAlertTarget.positions:
         if (alert.symbol != null) {
           final inst = _findInstrument(context, alert.symbol!);
@@ -118,12 +177,28 @@ class PortfolioNavigator {
             return _openInstrument(context, sectionContext, inst);
           }
         }
-        return openSection(context, PortfolioSection.positions, sectionContext);
+        return _openInstrumentPositions(context, sectionContext);
       case PortfolioAlertTarget.optionPositions:
       case PortfolioAlertTarget.optionDefense:
         return _openOptionPositions(context, sectionContext,
             symbol: alert.symbol);
       case PortfolioAlertTarget.rebalance:
+        if (alert.id.startsWith('concentration-')) {
+          UserRole? currentUserRole;
+          try {
+            currentUserRole = app_main.userRole;
+          } catch (_) {}
+          final isToolsEnabled = FeatureAccessService.instance.isFeatureEnabled(
+            FeatureBundle.accountTools,
+            userRole: currentUserRole,
+          );
+          if (!isToolsEnabled && alert.symbol != null) {
+            final inst = _findInstrument(context, alert.symbol!);
+            if (inst != null) {
+              return _openInstrument(context, sectionContext, inst);
+            }
+          }
+        }
         return _openRebalance(context, sectionContext);
       case PortfolioAlertTarget.performance:
         if (alert.id.startsWith('dividend') || alert.category == 'Dividends') {
@@ -134,6 +209,12 @@ class PortfolioNavigator {
       case PortfolioAlertTarget.risk:
         if (alert.id.startsWith('pdt-')) {
           return _openPdtMonitor(context, sectionContext);
+        }
+        if (alert.id.startsWith('concentration-') && alert.symbol != null) {
+          final inst = _findInstrument(context, alert.symbol!);
+          if (inst != null) {
+            return _openInstrument(context, sectionContext, inst);
+          }
         }
         return openSection(context, PortfolioSection.risk, sectionContext);
       case PortfolioAlertTarget.insights:
@@ -154,6 +235,19 @@ class PortfolioNavigator {
       case PortfolioAlertTarget.none:
         return Future.value();
     }
+  }
+
+  /// Directly navigates to an instrument by ticker symbol.
+  static Future<void> openSymbol(
+    BuildContext context,
+    String symbol,
+    PortfolioSectionContext sectionContext,
+  ) {
+    final inst = _findInstrument(context, symbol);
+    if (inst != null) {
+      return _openInstrument(context, sectionContext, inst);
+    }
+    return _openSearch(context, sectionContext);
   }
 
   static Instrument? _findInstrument(BuildContext context, String symbol) {
@@ -523,6 +617,40 @@ class PortfolioNavigator {
     );
   }
 
+  static Future<void> _openInstrumentPositions(
+    BuildContext context,
+    PortfolioSectionContext sectionContext,
+  ) {
+    final account = sectionContext.account;
+    final allPositions =
+        Provider.of<InstrumentPositionStore>(context, listen: false)
+            .items
+            .where((position) =>
+                position.instrumentObj != null &&
+                (sectionContext.isAggregateMode ||
+                    account == null ||
+                    position.account == account.accountNumber ||
+                    position.account == account.url))
+            .toList();
+
+    return Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InstrumentPositionsPageWidget(
+          sectionContext.brokerageUser,
+          sectionContext.service,
+          allPositions,
+          analytics: sectionContext.analytics,
+          observer: sectionContext.observer,
+          generativeService: sectionContext.generativeService,
+          user: sectionContext.appUser,
+          userDocRef: sectionContext.userDocRef,
+          disableNavigation: sectionContext.isAggregateMode,
+        ),
+      ),
+    );
+  }
+
   static Widget _pageFor(
       PortfolioSection section, PortfolioSectionContext sectionContext) {
     switch (section) {
@@ -557,9 +685,9 @@ class PortfolioNavigator {
     final account = sectionContext.account;
 
     // Rebalancing writes allocation targets against a specific account, so fall
-    // back to the Strategies section when we do not have one.
+    // back to the Positions section when we do not have one.
     if (appUser == null || userDocRef == null || account == null) {
-      return openSection(context, PortfolioSection.strategies, sectionContext);
+      return openSection(context, PortfolioSection.positions, sectionContext);
     }
 
     return Navigator.push(

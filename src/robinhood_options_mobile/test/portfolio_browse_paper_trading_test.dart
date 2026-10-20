@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -126,11 +127,15 @@ void main() {
     });
 
     testWidgets(
-        'StrategiesSectionPage disables Paper Trading Simulator and Auto-Trading cards in paper mode',
+        'StrategiesSectionPage disables Auto-Trading cards in paper mode',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        app_main.userRole = UserRole.user;
+      });
+      app_main.userRole = UserRole.admin;
 
       final paperUser = BrokerageUser(
         BrokerageSource.paper,
@@ -182,13 +187,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Check Paper Trading Simulator
-      expect(find.text('Paper Trading Simulator'), findsOneWidget);
-      expect(
-        find.text('Already active (currently in paper trading mode)'),
-        findsOneWidget,
-      );
-
       // Check Stocks Auto-Trading
       expect(find.text('Stocks Auto-Trading'), findsOneWidget);
       // Check Futures Auto-Trading
@@ -196,7 +194,7 @@ void main() {
       // Both auto trading cards show 'Not applicable to paper trading'
       expect(find.text('Not applicable to paper trading'), findsNWidgets(2));
 
-      // 3 block icons (Stocks Auto-Trading, Futures Auto-Trading, Paper Trading Simulator)
+      // 2 block icons on Stocks and Futures Auto-Trading cards
       // Note: Stocks Auto-Trading also has Backtesting button with Icons.block when disabled
       expect(find.byIcon(Icons.block), findsWidgets);
 
@@ -219,15 +217,6 @@ void main() {
       ScaffoldMessenger.of(tester.element(find.text('Futures Auto-Trading')))
           .hideCurrentSnackBar();
       await tester.pump();
-
-      // Tap Paper Trading Simulator and verify SnackBar
-      await tester.tap(find.text('Paper Trading Simulator'));
-      await tester.pump();
-
-      expect(
-        find.text('Paper trading simulator is already active'),
-        findsOneWidget,
-      );
     });
 
     test('PortfolioAlertService skips tax alerts for paper accounts', () {

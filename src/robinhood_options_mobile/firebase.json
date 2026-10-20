@@ -3,6 +3,9 @@
     "rules": "firebase/firestore.rules",
     "indexes": "firebase/firestore.indexes.json"
   },
+  "remoteconfig": {
+    "template": "firebase/remoteconfig.template.json"
+  },
   "hosting": {
     "public": "build/web",
     "ignore": [

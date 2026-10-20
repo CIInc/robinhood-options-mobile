@@ -30,6 +30,16 @@ class RemoteConfigService {
       'ai_model_name': 'gemini-3.1-flash-lite',
       'show_personalized_ads': true,
       'experiment_group': 'default',
+      'beta_self_opt_in_enabled': true,
+      'beta_advanced_research': 'beta_opt_in',
+      'beta_ai_research': 'beta_opt_in',
+      'beta_advanced_trading': 'beta_opt_in',
+      'beta_backtesting': 'beta_opt_in',
+      'beta_risk_guardrails': 'beta_opt_in',
+      'beta_automated_trading': 'beta_opt_in',
+      'beta_social_copy': 'beta_opt_in',
+      'beta_account_tools': 'beta_opt_in',
+      'beta_extended_brokerages': 'beta_opt_in',
     });
 
     try {
@@ -44,6 +54,9 @@ class RemoteConfigService {
   bool get showPersonalizedAds =>
       _remoteConfig.getBool('show_personalized_ads');
   String get experimentGroup => _remoteConfig.getString('experiment_group');
+  bool get isBetaSelfOptInEnabled =>
+      _remoteConfig.getBool('beta_self_opt_in_enabled');
+  String getFeatureRollout(String key) => _remoteConfig.getString(key);
 
   bool isUpdateRequired(String currentVersion) {
     if (minAppVersion == '0.0.0') return false;

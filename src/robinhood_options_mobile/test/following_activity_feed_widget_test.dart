@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/group_activity.dart';
 import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/following_activity_feed_widget.dart';
 import 'package:robinhood_options_mobile/widgets/share_trade_idea_sheet.dart';
@@ -74,6 +75,8 @@ void main() {
     final service = DemoService();
 
     setUp(() async {
+      FeatureAccessService.instance.overrideRolloutForTesting(
+          FeatureBundle.socialCopy, FeatureRolloutMode.public);
       fakeDb = FakeFirebaseFirestore();
       firestoreService = FirestoreService(firestore: fakeDb);
       mockAuth = MockFirebaseAuthWithUser(mockUser);
@@ -157,6 +160,10 @@ void main() {
           .set(ideaBob.toJson());
     });
 
+    tearDown(() {
+      FeatureAccessService.instance.clearOverridesForTesting();
+    });
+
     Widget createTestWidget() {
       return MaterialApp(
         home: FollowingActivityFeedWidget(
@@ -191,7 +198,7 @@ void main() {
       // Alice's trade and idea should appear on the All tab
       expect(find.text('Bought 10 shares of AAPL'), findsOneWidget);
       expect(find.text('NVDA Q3 Breakout'), findsOneWidget);
-      expect(find.text('\$NVDA'), findsOneWidget);
+      expect(find.text('NVDA'), findsOneWidget);
       expect(find.text('BULLISH'), findsOneWidget);
       expect(find.text('Clone Strategy'), findsOneWidget);
     });
@@ -208,7 +215,7 @@ void main() {
 
       // Alice's idea should be visible
       expect(find.text('NVDA Q3 Breakout'), findsOneWidget);
-      expect(find.text('\$NVDA'), findsOneWidget);
+      expect(find.text('NVDA'), findsOneWidget);
       expect(find.text('Clone Strategy'), findsOneWidget);
 
       // Bob's idea is not followed, so it should not appear here
@@ -249,7 +256,7 @@ void main() {
       // Both Alice's and Bob's ideas should appear in Community
       expect(find.text('NVDA Q3 Breakout'), findsOneWidget);
       expect(find.text('TSLA Overbought Short Setup'), findsOneWidget);
-      expect(find.text('\$TSLA'), findsOneWidget);
+      expect(find.text('TSLA'), findsOneWidget);
       expect(find.text('BEARISH'), findsOneWidget);
     });
 
@@ -528,6 +535,26 @@ void main() {
 
       // Details bottom sheet header contains options button
       expect(find.byTooltip('Idea options'), findsWidgets);
+    });
+
+    testWidgets(
+        'hides Clone Strategy and Copy buttons when socialCopy feature is disabled',
+        (tester) async {
+      FeatureAccessService.instance.overrideRolloutForTesting(
+          FeatureBundle.socialCopy, FeatureRolloutMode.disabled);
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // On 'All' tab, clone button should not exist
+      expect(find.text('Clone Strategy'), findsNothing);
+
+      // Tap 'Trades' tab, copy button should not exist
+      await tester.tap(find.text('Trades'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bought 10 shares of AAPL'), findsOneWidget);
+      expect(find.text('Copy'), findsNothing);
     });
   });
 }

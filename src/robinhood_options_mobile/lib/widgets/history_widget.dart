@@ -1416,12 +1416,19 @@ class _HistoryPageState extends State<HistoryPage>
                                         foregroundColor: order.side == 'buy'
                                             ? Colors.green
                                             : Colors.red,
-                                        child: Text(
-                                          formatCompactNumber
-                                              .format(order.quantity!),
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4.0),
+                                          child: FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            child: Text(
+                                              formatCompactNumber
+                                                  .format(order.quantity ?? 0),
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
                                         )),
                                   ),
                                   title: Row(

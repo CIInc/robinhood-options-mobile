@@ -7,7 +7,7 @@ class PortfolioPrivacySettings {
   final bool allowFollowers;
 
   const PortfolioPrivacySettings({
-    this.isPublic = true,
+    this.isPublic = false,
     this.showTradeAmounts = false,
     this.showHoldings = true,
     this.showTrades = true,
@@ -17,7 +17,7 @@ class PortfolioPrivacySettings {
   factory PortfolioPrivacySettings.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const PortfolioPrivacySettings();
     return PortfolioPrivacySettings(
-      isPublic: json['isPublic'] as bool? ?? true,
+      isPublic: json['isPublic'] as bool? ?? false,
       showTradeAmounts: json['showTradeAmounts'] as bool? ?? false,
       showHoldings: json['showHoldings'] as bool? ?? true,
       showTrades: json['showTrades'] as bool? ?? true,

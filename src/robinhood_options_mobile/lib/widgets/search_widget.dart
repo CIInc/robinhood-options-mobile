@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -114,9 +115,16 @@ class _SearchWidgetState extends State<SearchWidget>
   @override
   bool get wantKeepAlive => true;
 
+  void _onFeatureAccessChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    FeatureAccessService.instance.addListener(_onFeatureAccessChanged);
 
     searchCtl = TextEditingController();
     widget.analytics.logScreenView(screenName: 'Search');
@@ -148,6 +156,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
   @override
   void dispose() {
+    FeatureAccessService.instance.removeListener(_onFeatureAccessChanged);
     _searchDebounce?.cancel();
     searchCtl?.dispose();
     _scrollController.dispose();
@@ -553,17 +562,22 @@ class _SearchWidgetState extends State<SearchWidget>
             //     height: 25.0,
             //   )),
             // ],
-            SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: MacroAssessmentWidget(
-                  user: widget.user,
-                  userDocRef: widget.userDocRef,
-                  brokerageUser: widget.brokerageUser,
+            if (FeatureAccessService.instance.isFeatureEnabled(
+              FeatureBundle.macroIntelligence,
+              userRole: userRole,
+              user: widget.user,
+            ))
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: MacroAssessmentWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    brokerageUser: widget.brokerageUser,
+                  ),
                 ),
               ),
-            ),
             // Keep this disabled until it becomes an Alpha Feed backed by
             // news, social, and community signals distinct from macro state.
             // SliverToBoxAdapter(
@@ -577,8 +591,12 @@ class _SearchWidgetState extends State<SearchWidget>
             //     userDocRef: widget.userDocRef,
             //   ),
             // ),
-            SliverToBoxAdapter(
-              child: OptionsFlowCardWidget(
+            if (FeatureAccessService.instance.isFeatureEnabled(
+              FeatureBundle.advancedResearch,
+              userRole: userRole,
+            )) ...[
+              SliverToBoxAdapter(
+                child: OptionsFlowCardWidget(
                 brokerageUser: widget.brokerageUser,
                 service: widget.service,
                 analytics: widget.analytics,
@@ -1082,6 +1100,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   ),
                 ),
               ),
+            ],
             // Moved to its own page
             // TradeSignalsWidget(
             //   key: _tradeSignalsKey,

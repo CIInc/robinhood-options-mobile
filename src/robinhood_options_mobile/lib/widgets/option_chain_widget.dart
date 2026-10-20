@@ -8,6 +8,9 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart' as app_main;
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
@@ -641,22 +644,26 @@ class _InstrumentOptionChainWidgetState
             onPressed: () {
               _showFilterDialog(context);
             }),
-        IconButton(
-            key: const ValueKey('spread-builder-appbar-btn'),
-            icon: const Icon(Icons.layers_outlined),
-            tooltip: 'Multi-Leg Spread Builder',
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                useSafeArea: true,
-                builder: (ctx) => MultiLegSpreadBuilderSheet(
-                  instrument: instrument,
-                  service: widget.service,
-                  user: widget.brokerageUser,
-                ),
-              );
-            }),
+        if (FeatureAccessService.instance.isFeatureEnabled(
+          FeatureBundle.advancedTrading,
+          userRole: app_main.userRole,
+        ))
+          IconButton(
+              key: const ValueKey('spread-builder-appbar-btn'),
+              icon: const Icon(Icons.layers_outlined),
+              tooltip: 'Multi-Leg Spread Builder',
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  builder: (ctx) => MultiLegSpreadBuilderSheet(
+                    instrument: instrument,
+                    service: widget.service,
+                    user: widget.brokerageUser,
+                  ),
+                );
+              }),
         IconButton(
             icon: const Icon(Icons.shield_outlined),
             tooltip: 'Options Collateral & Tiers',
