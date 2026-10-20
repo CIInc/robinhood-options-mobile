@@ -27,8 +27,7 @@ class FeatureAccessService extends ChangeNotifier {
       _instance ??= FeatureAccessService();
 
   @visibleForTesting
-  static set mockInstance(FeatureAccessService service) =>
-      _instance = service;
+  static set mockInstance(FeatureAccessService service) => _instance = service;
 
   static Future<FeatureAccessService> initialize({
     SharedPreferences? prefs,
@@ -81,7 +80,8 @@ class FeatureAccessService extends ChangeNotifier {
 
   /// Sets an override rollout mode for a bundle (testing).
   @visibleForTesting
-  void overrideRolloutForTesting(FeatureBundle bundle, FeatureRolloutMode mode) {
+  void overrideRolloutForTesting(
+      FeatureBundle bundle, FeatureRolloutMode mode) {
     _overrideModes ??= {};
     _overrideModes![bundle] = mode;
     notifyListeners();

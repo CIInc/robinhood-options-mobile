@@ -162,7 +162,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     entryPrice: widget.optionOrder.price,
                     exitPrice: instrument.quoteObj?.lastTradePrice,
                     holdingPeriod: holdingDuration,
-                    orderHistory: "Option strategy: ${widget.optionOrder.strategy}, direction: ${widget.optionOrder.direction}, strike: ${firstLeg?.strikePrice}, type: ${firstLeg?.optionType}, state: ${widget.optionOrder.state}",
+                    orderHistory:
+                        "Option strategy: ${widget.optionOrder.strategy}, direction: ${widget.optionOrder.direction}, strike: ${firstLeg?.strikePrice}, type: ${firstLeg?.optionType}, state: ${widget.optionOrder.state}",
                     userDoc: widget.userDocRef,
                     generativeService: widget.generativeService,
                   ),

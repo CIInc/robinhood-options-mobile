@@ -369,8 +369,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
     }
   }
 
-  Widget _buildAnalysisSection(
-      BuildContext context, MacroAssessment assessment,
+  Widget _buildAnalysisSection(BuildContext context, MacroAssessment assessment,
       {bool isAiAnalysisLoading = false}) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(

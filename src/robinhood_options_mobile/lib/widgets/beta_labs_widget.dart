@@ -151,7 +151,8 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
             children: [
               Card(
                 elevation: 0,
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                color:
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
@@ -197,9 +198,10 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
                                   Expanded(
                                     child: Text(
                                       'Synced with account (${widget.user?.email ?? 'active user'})',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color:
-                                            theme.colorScheme.onPrimaryContainer,
+                                      style:
+                                          theme.textTheme.labelSmall?.copyWith(
+                                        color: theme
+                                            .colorScheme.onPrimaryContainer,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -282,8 +284,8 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
                     case FeatureRolloutMode.betaOptIn:
                       statusLabel = 'Beta';
                       statusColor = theme.colorScheme.primary;
-                      canToggle =
-                          isSelfOptInAllowed || widget.userRole == UserRole.admin;
+                      canToggle = isSelfOptInAllowed ||
+                          widget.userRole == UserRole.admin;
                       break;
                   }
 

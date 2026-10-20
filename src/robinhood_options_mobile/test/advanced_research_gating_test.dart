@@ -28,7 +28,8 @@ void main() {
   });
 
   group('Advanced Research & Flow Gating Tests', () {
-    testWidgets('OptionsFlowCardWidget is hidden when user has not opted into beta',
+    testWidgets(
+        'OptionsFlowCardWidget is hidden when user has not opted into beta',
         (WidgetTester tester) async {
       await FeatureAccessService.instance.setUserOptIn(
         FeatureBundle.advancedResearch,
@@ -89,7 +90,8 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('Remote kill switch (disabled) hides OptionsFlowCardWidget even if opted in',
+    testWidgets(
+        'Remote kill switch (disabled) hides OptionsFlowCardWidget even if opted in',
         (WidgetTester tester) async {
       await FeatureAccessService.instance.setUserOptIn(
         FeatureBundle.advancedResearch,
@@ -132,7 +134,8 @@ void main() {
 
       expect(find.text('Advanced Research Feature'), findsOneWidget);
       expect(
-        find.textContaining('requires the Advanced Research & Flow beta feature'),
+        find.textContaining(
+            'requires the Advanced Research & Flow beta feature'),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.refresh), findsNothing);

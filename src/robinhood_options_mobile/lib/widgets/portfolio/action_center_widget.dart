@@ -78,9 +78,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
               a.severity == PortfolioAlertSeverity.warning)
           .toList();
     } else {
-      filteredAlerts = activeAlerts
-          .where((a) => a.category == _selectedCategory)
-          .toList();
+      filteredAlerts =
+          activeAlerts.where((a) => a.category == _selectedCategory).toList();
     }
 
     final visible = _showAll
@@ -136,8 +135,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                 ),
                 if (actionable > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -329,7 +328,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 7, vertical: 1.5),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  color:
+                                      theme.colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: theme.colorScheme.outline
@@ -342,7 +342,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
                                   children: [
                                     Text(
                                       alert.symbol!,
-                                      style: theme.textTheme.labelSmall?.copyWith(
+                                      style:
+                                          theme.textTheme.labelSmall?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.primary,
                                         fontSize: 10,
@@ -442,7 +443,8 @@ class _ActionCenterWidgetState extends State<ActionCenterWidget> {
               icon: Icon(
                 Icons.close,
                 size: 16,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

@@ -112,8 +112,8 @@ class RiskCircuitBreakerConfig {
   /// Active count of cancellations occurring within the rolling [rapidCancelWindowMinutes]
   int get activeRapidCancelCount {
     if (recentCancelTimestamps.isEmpty) return 0;
-    final cutoff = DateTime.now()
-        .subtract(Duration(minutes: rapidCancelWindowMinutes));
+    final cutoff =
+        DateTime.now().subtract(Duration(minutes: rapidCancelWindowMinutes));
     return recentCancelTimestamps.where((t) => t.isAfter(cutoff)).length;
   }
 
@@ -150,8 +150,7 @@ class RiskCircuitBreakerConfig {
                 ? (json['lastTradeDate'] as Timestamp).toDate()
                 : DateTime.tryParse(json['lastTradeDate'].toString()))
             : null,
-        enableTiltSafeguards =
-            (json['enableTiltSafeguards'] as bool?) ?? true,
+        enableTiltSafeguards = (json['enableTiltSafeguards'] as bool?) ?? true,
         maxRapidCancels = json.containsKey('maxRapidCancels')
             ? (json['maxRapidCancels'] as num?)?.toInt()
             : 4,
@@ -160,8 +159,7 @@ class RiskCircuitBreakerConfig {
         revengeSizingMultiplier = json.containsKey('revengeSizingMultiplier')
             ? (json['revengeSizingMultiplier'] as num?)?.toDouble()
             : 2.5,
-        baselineTradeSize =
-            (json['baselineTradeSize'] as num?)?.toDouble(),
+        baselineTradeSize = (json['baselineTradeSize'] as num?)?.toDouble(),
         recentCancelTimestamps = json['recentCancelTimestamps'] != null
             ? (json['recentCancelTimestamps'] as List)
                 .map((e) => e is Timestamp

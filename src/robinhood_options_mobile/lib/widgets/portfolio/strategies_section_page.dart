@@ -36,11 +36,13 @@ class StrategiesSectionPage extends StatelessWidget {
       currentUserRole = app_main.userRole;
     } catch (_) {}
 
-    final isAutomatedTradingEnabled = FeatureAccessService.instance.isFeatureEnabled(
+    final isAutomatedTradingEnabled =
+        FeatureAccessService.instance.isFeatureEnabled(
       FeatureBundle.automatedTrading,
       userRole: currentUserRole,
     );
-    final isAdvancedResearchEnabled = FeatureAccessService.instance.isFeatureEnabled(
+    final isAdvancedResearchEnabled =
+        FeatureAccessService.instance.isFeatureEnabled(
       FeatureBundle.advancedResearch,
       userRole: currentUserRole,
     );

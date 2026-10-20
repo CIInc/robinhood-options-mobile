@@ -208,7 +208,9 @@ class MultiLegOrderEntry {
         return absNetPremium * 100.0;
 
       case StrategyType.calendar:
-        return isDebit ? (absNetPremium * 1.5 * 100.0) : (absNetPremium * 100.0);
+        return isDebit
+            ? (absNetPremium * 1.5 * 100.0)
+            : (absNetPremium * 100.0);
 
       case StrategyType.straddle:
       case StrategyType.strangle:
@@ -821,8 +823,7 @@ class MultiLegOrderEntry {
       symbol: symbol,
       underlyingPrice: spotPrice,
       strategyType: StrategyType.calendar,
-      strategyName:
-          '${type == LegType.call ? 'Call' : 'Put'} Calendar Spread',
+      strategyName: '${type == LegType.call ? 'Call' : 'Put'} Calendar Spread',
       legs: [
         MultiLegOrderLeg(
           id: 'leg_cal_short',

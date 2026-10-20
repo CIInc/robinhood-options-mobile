@@ -57,9 +57,8 @@ class RetirementTransaction {
       );
     }
 
-    final id = json['id']?.toString() ??
-        json['payment_transfer_id']?.toString() ??
-        '';
+    final id =
+        json['id']?.toString() ?? json['payment_transfer_id']?.toString() ?? '';
     final amount = parseDouble(json['amount'] ?? json['net_amount']) ?? 0.0;
 
     String title = json['title']?.toString() ?? 'IRA Contribution';
@@ -394,7 +393,10 @@ class RetirementHistory {
         : null;
     final acctNum = json is Map ? json['account_number']?.toString() : null;
     final accountType = json is Map
-        ? (json['account_type'] ?? json['brokerage_account_type'] ?? 'ira_traditional').toString()
+        ? (json['account_type'] ??
+                json['brokerage_account_type'] ??
+                'ira_traditional')
+            .toString()
         : 'ira_traditional';
     final totalValue = json is Map ? parseDouble(json['total_value']) : null;
     final rawMatchRate = json is Map ? parseDouble(json['match_rate']) : null;
@@ -412,20 +414,26 @@ class RetirementHistory {
           continue;
         }
         final rhsAcct = acat['rhs_account_number']?.toString();
-        if (acctNum != null && rhsAcct != null && rhsAcct.isNotEmpty && rhsAcct != acctNum) {
+        if (acctNum != null &&
+            rhsAcct != null &&
+            rhsAcct.isNotEmpty &&
+            rhsAcct != acctNum) {
           continue;
         }
 
-        final settlementDateStr = (acat['settlement_date'] ?? acat['requested_at'] ?? '').toString();
+        final settlementDateStr =
+            (acat['settlement_date'] ?? acat['requested_at'] ?? '').toString();
         int transferYear = DateTime.now().year;
         if (settlementDateStr.length >= 4) {
-          transferYear = int.tryParse(settlementDateStr.substring(0, 4)) ?? transferYear;
+          transferYear =
+              int.tryParse(settlementDateStr.substring(0, 4)) ?? transferYear;
         }
 
         final contraBroker = acat['contra_broker_name']?.toString() ??
             acat['contra_account_name']?.toString() ??
             'Rollover';
-        final transferValue = parseDouble(acat['market_value']) ?? totalValue ?? 0.0;
+        final transferValue =
+            parseDouble(acat['market_value']) ?? totalValue ?? 0.0;
 
         final existingIndex = items.indexWhere((c) => c.year == transferYear);
         if (existingIndex >= 0) {
@@ -481,8 +489,8 @@ class RetirementHistory {
       for (final entry in yearTransactions.entries) {
         final txYear = entry.key;
         final txList = entry.value;
-        txList.sort((a, b) =>
-            (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)));
+        txList.sort(
+            (a, b) => (b.date ?? DateTime(0)).compareTo(a.date ?? DateTime(0)));
 
         final totalYearAmount =
             txList.fold<double>(0.0, (sum, tx) => sum + tx.amount);
@@ -498,9 +506,8 @@ class RetirementHistory {
           final contribAmt = existing.contributionAmount > 0
               ? existing.contributionAmount
               : totalYearAmount;
-          final matchAmt = existing.matchAmount > 0
-              ? existing.matchAmount
-              : totalYearMatch;
+          final matchAmt =
+              existing.matchAmount > 0 ? existing.matchAmount : totalYearMatch;
 
           items[existingIndex] = RetirementContribution(
             year: existing.year,

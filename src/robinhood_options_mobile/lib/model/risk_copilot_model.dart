@@ -156,8 +156,7 @@ class EarningsHazardAssessment {
     return EarningsHazardAssessment(
       symbol: json['symbol'] as String? ?? '',
       earningsDate: json['earnings_date'] != null
-          ? DateTime.tryParse(json['earnings_date'] as String) ??
-              DateTime.now()
+          ? DateTime.tryParse(json['earnings_date'] as String) ?? DateTime.now()
           : DateTime.now(),
       daysUntilEarnings: json['days_until_earnings'] as int? ?? 0,
       sharesCount: (json['shares_count'] as num?)?.toDouble() ?? 0.0,
@@ -282,7 +281,8 @@ class RiskCopilotMitigationAction {
   final String description;
   final RiskCopilotSeverity severity;
   final String actionLabel;
-  final String targetRoute; // 'delta_neutral', 'earnings_crush', 'options', 'instrument'
+  final String
+      targetRoute; // 'delta_neutral', 'earnings_crush', 'options', 'instrument'
 
   const RiskCopilotMitigationAction({
     required this.id,
@@ -362,10 +362,12 @@ class RiskCopilotReport {
         orElse: () => RiskCopilotSeverity.normal,
       ),
       overallScore: (json['overall_score'] as num?)?.toDouble() ?? 100.0,
-      statusHeadline: json['status_headline'] as String? ?? 'Protected & Balanced',
+      statusHeadline:
+          json['status_headline'] as String? ?? 'Protected & Balanced',
       summary: json['summary'] as String? ?? '',
       gapRisks: (json['gap_risks'] as List<dynamic>?)
-              ?.map((e) => GapRiskAssessment.fromJson(e as Map<String, dynamic>))
+              ?.map(
+                  (e) => GapRiskAssessment.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
       earningsHazards: (json['earnings_hazards'] as List<dynamic>?)

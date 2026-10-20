@@ -1868,8 +1868,7 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                     const SizedBox(width: 4),
                                     IconButton(
                                       icon: const Icon(Icons.psychology_alt,
-                                          size: 18,
-                                          color: Colors.purpleAccent),
+                                          size: 18, color: Colors.purpleAccent),
                                       tooltip: "AI Trade Post-Mortem",
                                       onPressed: () {
                                         Navigator.push(
@@ -1878,9 +1877,8 @@ Your response MUST be valid JSON. No conversational text. Do not use unescaped d
                                             builder: (context) =>
                                                 TradePostMortemSheet(
                                               symbol: t['symbol'] ?? '',
-                                              tradeType: isStock
-                                                  ? 'Stock'
-                                                  : 'Option',
+                                              tradeType:
+                                                  isStock ? 'Stock' : 'Option',
                                               side: t['side']?.toString() ??
                                                   t['direction']?.toString() ??
                                                   'Exit',

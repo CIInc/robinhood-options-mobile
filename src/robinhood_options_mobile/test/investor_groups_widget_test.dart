@@ -157,7 +157,8 @@ void main() {
       expect(find.byTooltip('Find Traders'), findsNothing);
     });
 
-    testWidgets('hides app bar direct action buttons when user is not logged in',
+    testWidgets(
+        'hides app bar direct action buttons when user is not logged in',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -279,8 +280,7 @@ void main() {
       expect(find.text('Leaderboard Publication'), findsOneWidget);
     });
 
-    testWidgets(
-        'tapping Traders tab switches to Discover Traders view',
+    testWidgets('tapping Traders tab switches to Discover Traders view',
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;

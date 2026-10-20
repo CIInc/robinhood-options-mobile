@@ -289,7 +289,8 @@ class _MultiLegSpreadBuilderSheetState
                 ),
                 const SizedBox(height: 8),
                 Text('Contracts: ${_order.quantity}'),
-                Text('Order Type: ${_order.orderType} (${_order.timeInForce.toUpperCase()})'),
+                Text(
+                    'Order Type: ${_order.orderType} (${_order.timeInForce.toUpperCase()})'),
                 Text(
                   'Limit Price: ${_currencyFormat.format(limitPrice)} per share',
                 ),
@@ -533,7 +534,8 @@ class _MultiLegSpreadBuilderSheetState
               ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 children: [
                   _buildTemplateChips(theme),
                   const SizedBox(height: 12),
@@ -904,8 +906,8 @@ class _MultiLegSpreadBuilderSheetState
                             context: context,
                             initialDate: leg.expirationDate,
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now()
-                                .add(const Duration(days: 730)),
+                            lastDate:
+                                DateTime.now().add(const Duration(days: 730)),
                           );
                           if (picked != null) {
                             setState(() {
@@ -924,8 +926,7 @@ class _MultiLegSpreadBuilderSheetState
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 _dateFormat.format(leg.expirationDate),
@@ -1093,7 +1094,8 @@ class _MultiLegSpreadBuilderSheetState
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+        border:
+            Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -1130,9 +1132,8 @@ class _MultiLegSpreadBuilderSheetState
                   )
                 : const Icon(Icons.check),
             label: Text(_isSubmitting ? 'Submitting...' : 'Review Order'),
-            onPressed: _isSubmitting
-                ? null
-                : () => _showConfirmationDialog(context),
+            onPressed:
+                _isSubmitting ? null : () => _showConfirmationDialog(context),
           ),
         ],
       ),

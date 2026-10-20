@@ -1484,9 +1484,11 @@ class PaperService implements IBrokerageService {
     final orders = engine.getStockOrders();
     final matching = instrumentUrls.isEmpty
         ? orders
-        : orders.where((o) =>
-            instrumentUrls.contains(o.instrument) ||
-            instrumentUrls.contains(o.instrumentObj?.symbol)).toList();
+        : orders
+            .where((o) =>
+                instrumentUrls.contains(o.instrument) ||
+                instrumentUrls.contains(o.instrumentObj?.symbol))
+            .toList();
     for (final order in matching) {
       store.addOrUpdate(order);
     }
@@ -1811,7 +1813,10 @@ class PaperService implements IBrokerageService {
     final id = cancel.split('/').where((s) => s.isNotEmpty).last;
     final removed = await store.cancelPendingOrder(id);
     return http.Response(
-        jsonEncode({'status': removed ? 'success' : 'not_found', 'state': 'cancelled'}),
+        jsonEncode({
+          'status': removed ? 'success' : 'not_found',
+          'state': 'cancelled'
+        }),
         removed ? 200 : 404);
   }
 

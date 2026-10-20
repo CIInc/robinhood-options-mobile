@@ -62,7 +62,8 @@ class TradeStrategyConfig {
   final bool enableGexStructuralStops; // Stop 1: Spot < nTrans
   final bool enableTrailingPeakStop; // Stop 2: Drawdown from peak gain
   final double trailingPeakStopPercent; // default: 20.0% giveback of max gain
-  final bool enableTimeThetaStop; // Stop 3: DTE < minDteStopDays or stalled sessions
+  final bool
+      enableTimeThetaStop; // Stop 3: DTE < minDteStopDays or stalled sessions
   final int minDteStopDays; // default: 14 days
   final int stalledSessionsStopLimit; // default: 10 sessions
   final bool enableMacroRegimeStop; // Stop 4: Bearish / Defensive macro regime

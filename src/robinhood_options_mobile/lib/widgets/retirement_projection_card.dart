@@ -71,7 +71,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -147,7 +148,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
+        border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +464,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,20 +541,20 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
         Wrap(
           spacing: 6,
           children: [
-            _buildChoiceChip('Max 2026 (\$7,000)', _annualContribution == 7000.0,
-                () {
+            _buildChoiceChip(
+                'Max 2026 (\$7,000)', _annualContribution == 7000.0, () {
               setState(() => _annualContribution = 7000.0);
             }),
             _buildChoiceChip(
                 'Catch-Up (\$8,000)', _annualContribution == 8000.0, () {
               setState(() => _annualContribution = 8000.0);
             }),
-            _buildChoiceChip('\$500/mo (\$6,000)', _annualContribution == 6000.0,
-                () {
+            _buildChoiceChip(
+                '\$500/mo (\$6,000)', _annualContribution == 6000.0, () {
               setState(() => _annualContribution = 6000.0);
             }),
-            _buildChoiceChip('\$250/mo (\$3,000)', _annualContribution == 3000.0,
-                () {
+            _buildChoiceChip(
+                '\$250/mo (\$3,000)', _annualContribution == 3000.0, () {
               setState(() => _annualContribution = 3000.0);
             }),
           ],
@@ -670,17 +673,11 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
         Wrap(
           spacing: 6,
           children: [
-            _buildChoiceChip(
-                'Robinhood Gold (3%)',
-                _matchRate == 0.03,
+            _buildChoiceChip('Robinhood Gold (3%)', _matchRate == 0.03,
                 () => setState(() => _matchRate = 0.03)),
-            _buildChoiceChip(
-                'Standard (1%)',
-                _matchRate == 0.01,
+            _buildChoiceChip('Standard (1%)', _matchRate == 0.01,
                 () => setState(() => _matchRate = 0.01)),
-            _buildChoiceChip(
-                'Other Brokerage (0%)',
-                _matchRate == 0.0,
+            _buildChoiceChip('Other Brokerage (0%)', _matchRate == 0.0,
                 () => setState(() => _matchRate = 0.0)),
           ],
         ),
@@ -688,7 +685,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
     );
   }
 
-  Widget _buildChoiceChip(String label, bool selected, VoidCallback onSelected) {
+  Widget _buildChoiceChip(
+      String label, bool selected, VoidCallback onSelected) {
     return ChoiceChip(
       label: Text(label, style: const TextStyle(fontSize: 11)),
       selected: selected,
@@ -706,7 +704,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: ExpansionTile(
         title: Row(
@@ -725,7 +724,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
         ),
         subtitle: Text(
           'Tax savings estimate: +${res.formattedLifetimeTaxAdvantage}',
-          style: const TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600),
         ),
         initiallyExpanded: _showTaxComparison,
         onExpansionChanged: (val) => setState(() => _showTaxComparison = val),
@@ -824,7 +824,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       child: ExpansionTile(
         title: Row(
@@ -845,7 +846,8 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
         onExpansionChanged: (val) => setState(() => _showMilestones = val),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               children: milestones.map((m) {
                 return Padding(

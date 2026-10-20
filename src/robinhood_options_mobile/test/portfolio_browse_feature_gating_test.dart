@@ -43,12 +43,15 @@ import 'package:robinhood_options_mobile/widgets/portfolio/tail_risk_card.dart';
 import 'package:robinhood_options_mobile/widgets/risk_heatmap_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_movers_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/action_center_widget.dart';
-import 'portfolio_alert_service_test.dart' show buildPosition, buildOptionPosition;
+import 'portfolio_alert_service_test.dart'
+    show buildPosition, buildOptionPosition;
 
 import 'firebase_mocks.dart';
 
 class FakeBrokerageService extends Fake implements IBrokerageService {}
+
 class FakeGenerativeService extends Fake implements GenerativeService {}
+
 class FakeObserver extends Fake implements FirebaseAnalyticsObserver {}
 
 void main() {
@@ -98,7 +101,8 @@ void main() {
       expect(find.text('Taxes'), findsNothing);
     });
 
-    testWidgets('PortfolioNavigator blocks Strategies when disabled and shows snackbar',
+    testWidgets(
+        'PortfolioNavigator blocks Strategies when disabled and shows snackbar',
         (WidgetTester tester) async {
       // Ensure automated trading and advanced research are disabled
       FeatureAccessService.instance.overrideRolloutForTesting(
@@ -148,10 +152,12 @@ void main() {
       await tester.tap(find.text('Open Strategies'));
       await tester.pump();
 
-      expect(find.text('Strategy features are not currently enabled.'), findsOneWidget);
+      expect(find.text('Strategy features are not currently enabled.'),
+          findsOneWidget);
     });
 
-    testWidgets('PortfolioNavigator blocks Insights when disabled and shows snackbar',
+    testWidgets(
+        'PortfolioNavigator blocks Insights when disabled and shows snackbar',
         (WidgetTester tester) async {
       FeatureAccessService.instance.overrideRolloutForTesting(
         FeatureBundle.aiResearch,
@@ -196,7 +202,8 @@ void main() {
       await tester.tap(find.text('Open Insights'));
       await tester.pump();
 
-      expect(find.text('AI Insights features are not currently enabled.'), findsOneWidget);
+      expect(find.text('AI Insights features are not currently enabled.'),
+          findsOneWidget);
     });
 
     testWidgets('PortfolioNavigator blocks Taxes when accountTools is disabled',
@@ -244,7 +251,8 @@ void main() {
       await tester.tap(find.text('Open Taxes'));
       await tester.pump();
 
-      expect(find.text('Tax optimization tools are not currently enabled.'), findsOneWidget);
+      expect(find.text('Tax optimization tools are not currently enabled.'),
+          findsOneWidget);
     });
 
     group('Action Center Alert Feature Gating', () {
@@ -267,9 +275,13 @@ void main() {
         );
       }
 
-      test('filters taxes and rebalance alerts based on accountTools and paper status', () {
-        final taxAlert = makeAlert(id: 'tax-loss', target: PortfolioAlertTarget.taxes);
-        final rebalanceAlert = makeAlert(id: 'rebalance-needed', target: PortfolioAlertTarget.rebalance);
+      test(
+          'filters taxes and rebalance alerts based on accountTools and paper status',
+          () {
+        final taxAlert =
+            makeAlert(id: 'tax-loss', target: PortfolioAlertTarget.taxes);
+        final rebalanceAlert = makeAlert(
+            id: 'rebalance-needed', target: PortfolioAlertTarget.rebalance);
 
         // When accountTools is disabled
         FeatureAccessService.instance.overrideRolloutForTesting(
@@ -306,13 +318,22 @@ void main() {
         expect(filtered.length, 2);
       });
 
-      test('filters research alerts based on advancedResearch and advancedTrading', () {
-        final zeroDteAlert = makeAlert(id: '0dte-radar', target: PortfolioAlertTarget.zeroDteRadar);
-        final ivCrushAlert = makeAlert(id: 'earnings-crush', target: PortfolioAlertTarget.earningsIvCrush);
-        final coneAlert = makeAlert(id: 'vol-cone', target: PortfolioAlertTarget.volatilityCone);
-        final surfaceAlert = makeAlert(id: 'iv-surface', target: PortfolioAlertTarget.ivSurface);
-        final congressAlert = makeAlert(id: 'congress-trade', target: PortfolioAlertTarget.congressionalTrading);
-        final deltaAlert = makeAlert(id: 'delta-neutral', target: PortfolioAlertTarget.deltaNeutral);
+      test(
+          'filters research alerts based on advancedResearch and advancedTrading',
+          () {
+        final zeroDteAlert = makeAlert(
+            id: '0dte-radar', target: PortfolioAlertTarget.zeroDteRadar);
+        final ivCrushAlert = makeAlert(
+            id: 'earnings-crush', target: PortfolioAlertTarget.earningsIvCrush);
+        final coneAlert = makeAlert(
+            id: 'vol-cone', target: PortfolioAlertTarget.volatilityCone);
+        final surfaceAlert =
+            makeAlert(id: 'iv-surface', target: PortfolioAlertTarget.ivSurface);
+        final congressAlert = makeAlert(
+            id: 'congress-trade',
+            target: PortfolioAlertTarget.congressionalTrading);
+        final deltaAlert = makeAlert(
+            id: 'delta-neutral', target: PortfolioAlertTarget.deltaNeutral);
 
         // All research & trading disabled
         FeatureAccessService.instance.overrideRolloutForTesting(
@@ -325,7 +346,14 @@ void main() {
         );
 
         var filtered = PortfolioAlertService.filterAlertsByFeatureAccess(
-          [zeroDteAlert, ivCrushAlert, coneAlert, surfaceAlert, congressAlert, deltaAlert],
+          [
+            zeroDteAlert,
+            ivCrushAlert,
+            coneAlert,
+            surfaceAlert,
+            congressAlert,
+            deltaAlert
+          ],
           userRole: UserRole.user,
         );
         expect(filtered, isEmpty);
@@ -353,11 +381,17 @@ void main() {
         expect(filtered.length, 5);
       });
 
-      test('filters risk guardrails alerts and copilot based on feature flags', () {
-        final breakerAlert = makeAlert(id: 'risk-circuit-breaker-drawdown', target: PortfolioAlertTarget.risk);
-        final tiltAlert = makeAlert(id: 'risk-tilt-warning', target: PortfolioAlertTarget.risk);
-        final copilotAlert = makeAlert(id: 'copilot-warning', target: PortfolioAlertTarget.riskCopilot);
-        final newsAlert = makeAlert(id: 'news-intel', target: PortfolioAlertTarget.newsIntelligence);
+      test('filters risk guardrails alerts and copilot based on feature flags',
+          () {
+        final breakerAlert = makeAlert(
+            id: 'risk-circuit-breaker-drawdown',
+            target: PortfolioAlertTarget.risk);
+        final tiltAlert = makeAlert(
+            id: 'risk-tilt-warning', target: PortfolioAlertTarget.risk);
+        final copilotAlert = makeAlert(
+            id: 'copilot-warning', target: PortfolioAlertTarget.riskCopilot);
+        final newsAlert = makeAlert(
+            id: 'news-intel', target: PortfolioAlertTarget.newsIntelligence);
 
         FeatureAccessService.instance.overrideRolloutForTesting(
           FeatureBundle.riskGuardrails,
@@ -384,7 +418,8 @@ void main() {
           userRole: UserRole.user,
         );
         // copilot still disabled because aiResearch is disabled
-        expect(filtered.map((a) => a.id), ['risk-circuit-breaker-drawdown', 'risk-tilt-warning']);
+        expect(filtered.map((a) => a.id),
+            ['risk-circuit-breaker-drawdown', 'risk-tilt-warning']);
 
         // Enable aiResearch
         FeatureAccessService.instance.overrideRolloutForTesting(
@@ -398,7 +433,9 @@ void main() {
         expect(filtered.length, 2);
       });
 
-      test('falls back short expiration alert from strategies to optionPositions when strategies disabled', () {
+      test(
+          'falls back short expiration alert from strategies to optionPositions when strategies disabled',
+          () {
         final expAlert = makeAlert(
           id: 'short-option-expiring-spy',
           target: PortfolioAlertTarget.strategies,
@@ -428,7 +465,8 @@ void main() {
     group('Sub-page Browse Feature Gating Tests', () {
       PortfolioSectionContext createTestContext() {
         return PortfolioSectionContext(
-          brokerageUser: BrokerageUser(BrokerageSource.robinhood, 'test_user', null, null),
+          brokerageUser:
+              BrokerageUser(BrokerageSource.robinhood, 'test_user', null, null),
           service: FakeBrokerageService(),
           analytics: FakeFirebaseAnalytics(),
           observer: FakeObserver(),
@@ -440,7 +478,8 @@ void main() {
         );
       }
 
-      testWidgets('PerformanceSectionPage conditionally renders Fidelity CSV import',
+      testWidgets(
+          'PerformanceSectionPage conditionally renders Fidelity CSV import',
           (WidgetTester tester) async {
         // Disabled
         FeatureAccessService.instance.overrideRolloutForTesting(
@@ -492,10 +531,12 @@ void main() {
         expect(find.byTooltip('Import from Fidelity CSV'), findsOneWidget);
       });
 
-      testWidgets('PerformanceSectionPage suppresses IncomeTransactionsWidget for paper accounts',
+      testWidgets(
+          'PerformanceSectionPage suppresses IncomeTransactionsWidget for paper accounts',
           (WidgetTester tester) async {
         final paperContext = PortfolioSectionContext(
-          brokerageUser: BrokerageUser(BrokerageSource.paper, 'paper_user', null, null),
+          brokerageUser:
+              BrokerageUser(BrokerageSource.paper, 'paper_user', null, null),
           service: FakeBrokerageService(),
           analytics: FakeFirebaseAnalytics(),
           observer: FakeObserver(),
@@ -503,7 +544,8 @@ void main() {
           appUser: null,
           userDocRef: null,
           analyticsController: PortfolioAnalyticsController(),
-          account: Account('123', 1000, '123', 'Paper Account', 1000, '3', 0, 0, 0),
+          account:
+              Account('123', 1000, '123', 'Paper Account', 1000, '3', 0, 0, 0),
         );
 
         final realContext = createTestContext();
@@ -512,7 +554,8 @@ void main() {
               providers: [
                 ChangeNotifierProvider(create: (_) => DividendStore()),
                 ChangeNotifierProvider(create: (_) => InterestStore()),
-                ChangeNotifierProvider(create: (_) => InstrumentPositionStore()),
+                ChangeNotifierProvider(
+                    create: (_) => InstrumentPositionStore()),
                 ChangeNotifierProvider(create: (_) => InstrumentOrderStore()),
                 ChangeNotifierProvider(create: (_) => ChartSelectionStore()),
               ],
@@ -532,7 +575,8 @@ void main() {
         expect(find.byType(IncomeTransactionsWidget), findsNothing);
       });
 
-      testWidgets('RiskSectionPage conditionally renders features based on flags and tiers',
+      testWidgets(
+          'RiskSectionPage conditionally renders features based on flags and tiers',
           (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1200, 3600);
         tester.view.devicePixelRatio = 1.0;
@@ -655,19 +699,30 @@ void main() {
     });
 
     group('PortfolioMoversWidget Inline Expansion Tests', () {
-      testWidgets('initially shows 3 items and expands to reveal more on toggle tap',
+      testWidgets(
+          'initially shows 3 items and expands to reveal more on toggle tap',
           (WidgetTester tester) async {
         final positions = [
-          buildPosition(symbol: 'WIN1', price: 150, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'WIN2', price: 140, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'WIN3', price: 130, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'WIN4', price: 120, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'WIN5', price: 110, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'LOS1', price: 50, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'LOS2', price: 60, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'LOS3', price: 70, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'LOS4', price: 80, previousClose: 100, quantity: 1),
-          buildPosition(symbol: 'LOS5', price: 90, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'WIN1', price: 150, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'WIN2', price: 140, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'WIN3', price: 130, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'WIN4', price: 120, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'WIN5', price: 110, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'LOS1', price: 50, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'LOS2', price: 60, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'LOS3', price: 70, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'LOS4', price: 80, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'LOS5', price: 90, previousClose: 100, quantity: 1),
         ];
 
         PortfolioMover? tappedMover;
@@ -738,7 +793,9 @@ void main() {
     });
 
     group('Concentration Risk Alert and Navigation Tests', () {
-      test('concentration alert targets instrument with View symbol when accountTools is disabled', () {
+      test(
+          'concentration alert targets instrument with View symbol when accountTools is disabled',
+          () {
         FeatureAccessService.instance.overrideRolloutForTesting(
           FeatureBundle.accountTools,
           FeatureRolloutMode.disabled,
@@ -752,7 +809,8 @@ void main() {
           optionPositions: const [],
         );
 
-        final concentration = alerts.firstWhere((a) => a.id == 'concentration-NVDA');
+        final concentration =
+            alerts.firstWhere((a) => a.id == 'concentration-NVDA');
         expect(concentration.target, PortfolioAlertTarget.instrument);
         expect(concentration.actionLabel, 'View NVDA');
         expect(concentration.symbol, 'NVDA');
@@ -767,7 +825,8 @@ void main() {
         expect(filtered.first.actionLabel, 'View NVDA');
       });
 
-      test('concentration alert targets rebalance when accountTools is enabled', () {
+      test('concentration alert targets rebalance when accountTools is enabled',
+          () {
         FeatureAccessService.instance.overrideRolloutForTesting(
           FeatureBundle.accountTools,
           FeatureRolloutMode.public,
@@ -781,13 +840,15 @@ void main() {
           optionPositions: const [],
         );
 
-        final concentration = alerts.firstWhere((a) => a.id == 'concentration-NVDA');
+        final concentration =
+            alerts.firstWhere((a) => a.id == 'concentration-NVDA');
         expect(concentration.target, PortfolioAlertTarget.rebalance);
         expect(concentration.actionLabel, 'Rebalance');
         expect(concentration.symbol, 'NVDA');
       });
 
-      testWidgets('ActionCenterWidget symbol badge tap fires onSymbolTap to link directly to instrument',
+      testWidgets(
+          'ActionCenterWidget symbol badge tap fires onSymbolTap to link directly to instrument',
           (WidgetTester tester) async {
         String? tappedSymbol;
         final concentrationAlert = PortfolioAlert(

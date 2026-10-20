@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.0] - 2026-10-20
+**Feature Access Gating & Beta Labs, 5-Tier GEX Sequential Stop Queue, Auth Badges & Hardening ([docs](docs/feature-access-and-beta-gating.md), [docs](docs/agentic-trading.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239))**
+
+- **Feature Access Service & Beta Labs User Gating ([docs](docs/feature-access-and-beta-gating.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239)):**
+  - **4-Tier Access Resolution**: Implemented `FeatureAccessService` to evaluate feature availability in strict priority order: 1) Admin custom claim bypass (`isAdmin`), 2) Remote Config global kill switch, 3) General Availability (GA) default rollout, and 4) Self-serve user opt-in (`User.betaFeatures`).
+  - **7 Partitioned Feature Bundles**: Segmented non-core and experimental capabilities into isolated bundles with explicit safety notices: `copyTrading`, `investorGroups`, `advancedResearch`, `macroCopilot`, `riskCircuitBreakers`, `socialShare`, and `multiLegSpreadBuilder`.
+  - **Self-Serve Beta Labs UI**: Added `BetaLabsWidget` in User Profile settings with interactive feature switches, status chips (`GA`, `Beta`, `Disabled`), and risk disclaimer warnings.
+  - **Remote Config Integration**: Added `remoteconfig.template.json` default definitions and integrated Firebase Remote Config parameters in `firebase.json`.
+  - **Clean Navigation & Legacy Pruning**: Guarded entry points across Navigation, Home, Portfolio, and Instrument pages. Cleaned up obsolete shareholder Say Q&A models/widgets and unused demo service methods.
+  - **Automated Test Coverage**: Added tests in `test/feature_access_service_test.dart`, `test/beta_labs_widget_test.dart`, `test/portfolio_browse_feature_gating_test.dart`, `test/advanced_research_gating_test.dart`, and `test/stock_leading_icon_overflow_test.dart`.
+- **5-Tier GEX Sequential Stop Queue ([docs](docs/agentic-trading.md), [docs](docs/gamma-exposure-analysis.md)):**
+  - **Institutional Stop Queue Architecture**: Added a 5-tier sequential exit stop priority queue to `AgenticTradingConfig` (`ExitStrategyConfig`) and `AgenticTradingProvider` to systematically protect gains and mitigate downside in volatile gamma regimes.
+  - **Tier 1 (GEX Structural Stop)**: Triggers an exit when dealer gamma flips from positive pinning to negative volatility acceleration (`enableGexStructuralStops`).
+  - **Tier 2 (Trailing Peak Stop)**: High-water mark trailing stop that locks in profits when price retraces by a user-defined percentage from post-entry peaks (`enableTrailingPeakStop`, `trailingPeakStopPercent`).
+  - **Tier 3 (Time & Theta Decay Stop)**: Automatically exits options or stock positions when approaching minimum expiration days (`minDteStopDays`) or remaining stagnant across consecutive trading sessions (`stalledSessionsStopLimit`).
+  - **Tier 4 (Macro Risk-Off Stop)**: Closes positions upon global macro regime flips to `RISK_OFF` (`enableMacroRegimeStop`).
+  - **Tier 5 (Catastrophic Hard Stop)**: Non-negotiable portfolio safety floor triggering liquidation if a position breaches maximum tolerable loss (`enableCatastrophicStop`, `catastrophicStopPercent`).
+  - **Interactive UI**: Added full toggle and parameter controls in `AgenticTradingSettingsWidget` and `ExitStrategiesWidget`.
+  - **Cloud Function & Test Coverage**: Implemented backend stop queue processing in `functions/src/agentic-agent.ts` with unit tests in `functions/tests/agentic-agent.test.ts`, `test/agentic_trading_config_test.dart`, and `test/exit_strategies_widget_test.dart`.
+- **User Profile Authentication Badges & Login Provider Icons:**
+  - Added visual identity badges and iconography on the User Profile screen (`UserWidget`) displaying the active login type (Google, Apple, Email/Password, Guest/Anonymous, Phone) and authentication providers. Covered by `test/user_widget_login_type_test.dart`.
+- **Algorithmic Performance & Memory Optimizations ([#243](https://github.com/CIInc/robinhood-options-mobile/issues/243), [#247](https://github.com/CIInc/robinhood-options-mobile/issues/247), [#248](https://github.com/CIInc/robinhood-options-mobile/issues/248)):**
+  - **Backtesting Simulation Speedup**: Eliminated transient `Date` object allocations in `runBacktestSimulation` timestamp lookups and `aggregateEquityCurves` sorting routines using primitive numeric comparisons and lexicographical ISO string sorting ([Tracking: #248](https://github.com/CIInc/robinhood-options-mobile/issues/248)).
+  - **Backtest Array Allocation Elimination**: Removed array slicing allocations across iterations in the backtesting simulation loop ([Tracking: #243](https://github.com/CIInc/robinhood-options-mobile/issues/243)).
+  - **Scalar Stochastic Indicator**: Replaced full-series `computeStochasticArray` allocations with $O(1)$ space scalar `computeStochastic` calls, speeding up `evaluateStochastic` runtime by ~3.3x ([Tracking: #247](https://github.com/CIInc/robinhood-options-mobile/issues/247)).
+- **Backend Security Hardening & Authorization Controls ([#206](https://github.com/CIInc/robinhood-options-mobile/issues/206), [#211](https://github.com/CIInc/robinhood-options-mobile/issues/211), [#225](https://github.com/CIInc/robinhood-options-mobile/issues/225), [#237](https://github.com/CIInc/robinhood-options-mobile/issues/237), [#244](https://github.com/CIInc/robinhood-options-mobile/issues/244), [#249](https://github.com/CIInc/robinhood-options-mobile/issues/249)):**
+  - **Admin Auth on Diagnostics**: Secured `signalDiagnostics` HTTP Cloud Function with Authorization Bearer token parsing and Firebase Auth admin role verification, and sanitized HTTP 500 error responses ([Tracking: #249](https://github.com/CIInc/robinhood-options-mobile/issues/249)).
+  - **Screener Universe Admin Requirement**: Enforced admin custom claims for bulk instrument seeding via `seedScreenerUniverseCall` ([Tracking: #211](https://github.com/CIInc/robinhood-options-mobile/issues/211)).
+  - **Group Analytics Auth**: Enforced `request.auth.uid` validation and date input sanitization in `getGroupPerformanceAnalytics` ([Tracking: #206](https://github.com/CIInc/robinhood-options-mobile/issues/206), [#225](https://github.com/CIInc/robinhood-options-mobile/issues/225)).
+  - **Cron HTTP Endpoint Security**: Added missing authentication checks on HTTP cron triggers ([Tracking: #237](https://github.com/CIInc/robinhood-options-mobile/issues/237)).
+  - **Error Sanitization**: Sanitized internal database error responses in `getSentimentAnalysis` ([Tracking: #244](https://github.com/CIInc/robinhood-options-mobile/issues/244)).
+  - **Cache Protection**: Secured Yahoo finance cache writes and hid unsupported features in user profile settings.
+- **Accessibility & Screen Reader Semantics ([#210](https://github.com/CIInc/robinhood-options-mobile/issues/210), [#233](https://github.com/CIInc/robinhood-options-mobile/issues/233), [#238](https://github.com/CIInc/robinhood-options-mobile/issues/238), [#242](https://github.com/CIInc/robinhood-options-mobile/issues/242), [#245](https://github.com/CIInc/robinhood-options-mobile/issues/245)):**
+  - Added screen reader semantics to `CopyTradeSlippageCard` fill quality breakdown ([Tracking: #233](https://github.com/CIInc/robinhood-options-mobile/issues/233)).
+  - Added full assistive accessibility to the retirement projection widget ([Tracking: #238](https://github.com/CIInc/robinhood-options-mobile/issues/238)).
+  - Added unified screen reader semantics for day trade monitor list cards ([Tracking: #245](https://github.com/CIInc/robinhood-options-mobile/issues/245)).
+  - Added accessibility tooltips and semantics to Home screen metric cards ([Tracking: #242](https://github.com/CIInc/robinhood-options-mobile/issues/242)).
+  - Added tooltips to benchmark filter chips in `PortfolioGreeksCard` ([Tracking: #210](https://github.com/CIInc/robinhood-options-mobile/issues/210)).
+- **CI/CD & Cloud Functions Lint Fixes ([#246](https://github.com/CIInc/robinhood-options-mobile/issues/246), [#251](https://github.com/CIInc/robinhood-options-mobile/issues/251)):**
+  - Resolved ESLint rules (`max-len`, unused vars) and TypeScript compilation issues in `agentic-agent.ts` and test suites to ensure clean automated Firebase deployment.
+
 ## [0.57.6] - 2026-10-15
 **Auto-Trade Signals No Longer Lost While the Market Is Closed ([docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234))**
 

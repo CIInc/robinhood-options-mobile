@@ -203,8 +203,8 @@ class _UserWidgetState extends State<UserWidget> {
 
                   try {
                     if (currentFirebaseUser.providerData.isNotEmpty) {
-                      primaryProviderId ??= currentFirebaseUser
-                          .providerData.first.providerId;
+                      primaryProviderId ??=
+                          currentFirebaseUser.providerData.first.providerId;
                       for (var p in currentFirebaseUser.providerData) {
                         final name = _getProviderDisplayName(p.providerId);
                         if (!providerDisplayNames.contains(name)) {
@@ -218,8 +218,8 @@ class _UserWidgetState extends State<UserWidget> {
                 if (providerDisplayNames.isEmpty) {
                   if (primaryProviderId != null &&
                       primaryProviderId.isNotEmpty) {
-                    providerDisplayNames.add(
-                        _getProviderDisplayName(primaryProviderId));
+                    providerDisplayNames
+                        .add(_getProviderDisplayName(primaryProviderId));
                   }
                 }
 
@@ -810,7 +810,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                                           .textTheme
                                                                           .bodySmall
                                                                           ?.copyWith(
-                                                                            color: Theme.of(context).colorScheme.outline,
+                                                                            color:
+                                                                                Theme.of(context).colorScheme.outline,
                                                                           ),
                                                                     ),
                                                                   ],
@@ -832,7 +833,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                                           .textTheme
                                                                           .bodySmall
                                                                           ?.copyWith(
-                                                                            color: Theme.of(context).colorScheme.outline,
+                                                                            color:
+                                                                                Theme.of(context).colorScheme.outline,
                                                                           ),
                                                                     ),
                                                                   ),
@@ -844,8 +846,7 @@ class _UserWidgetState extends State<UserWidget> {
                                                                   null &&
                                                               user.location!
                                                                   .isNotEmpty
-                                                          ? Text(user
-                                                              .location!)
+                                                          ? Text(user.location!)
                                                           : null),
                                               children: [
                                                 ListTile(
@@ -945,14 +946,15 @@ class _UserWidgetState extends State<UserWidget> {
                                                         loginName !=
                                                             user.phoneNumber)
                                                       ListTile(
-                                                        leading: const Icon(
-                                                            Icons.phone_outlined),
+                                                        leading: const Icon(Icons
+                                                            .phone_outlined),
                                                         title: const Text(
                                                             'Phone Number'),
                                                         subtitle: Text(
                                                           user.phoneNumber!,
-                                                          style: const TextStyle(
-                                                              fontSize: 14),
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize: 14),
                                                         ),
                                                         onTap: () {
                                                           final phone =
@@ -960,9 +962,10 @@ class _UserWidgetState extends State<UserWidget> {
                                                           if (phone != null) {
                                                             Clipboard.setData(
                                                                 ClipboardData(
-                                                                    text: phone));
-                                                            ScaffoldMessenger.of(
-                                                                    context)
+                                                                    text:
+                                                                        phone));
+                                                            ScaffoldMessenger
+                                                                    .of(context)
                                                                 .showSnackBar(
                                                               const SnackBar(
                                                                 content: Text(
@@ -981,8 +984,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                   leading: _buildProviderIcon(
                                                       primaryProviderId,
                                                       size: 24),
-                                                  title: const Text(
-                                                      'Login Type'),
+                                                  title:
+                                                      const Text('Login Type'),
                                                   subtitle: Text(
                                                     loginTypeDisplay,
                                                     style: const TextStyle(
@@ -1638,7 +1641,8 @@ class _UserWidgetState extends State<UserWidget> {
                                             title:
                                                 'Automated DRIP with Threshold',
                                             subtitle: Text(
-                                              user?.automatedDripConfig?.enabled ==
+                                              user?.automatedDripConfig
+                                                          ?.enabled ==
                                                       true
                                                   ? 'Active • ${user?.automatedDripConfig?.instrumentRules.length ?? 0} Custom Rules'
                                                   : 'Disabled • Reinvest dividends on price dips',
@@ -1794,7 +1798,8 @@ class _UserWidgetState extends State<UserWidget> {
                                       _buildFeatureCategory(
                                         context,
                                         title: 'Alerts & Notifications',
-                                        icon: Icons.notifications_active_outlined,
+                                        icon:
+                                            Icons.notifications_active_outlined,
                                         tiles: [
                                           // Trade Signal Notification Settings
                                           _buildFeatureTile(
@@ -1913,8 +1918,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           _buildFeatureTile(
                                             context,
                                             icon: Icons.receipt_long,
-                                            title:
-                                                'Tax Documents & Statements',
+                                            title: 'Tax Documents & Statements',
                                             subtitle: const Text(
                                                 'Download Form 1099, monthly statements & ADR fees'),
                                             requiresBrokerage: true,
@@ -1944,8 +1948,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           _buildFeatureTile(
                                             context,
                                             icon: Icons.call_split,
-                                            title:
-                                                'Corporate Actions & Splits',
+                                            title: 'Corporate Actions & Splits',
                                             subtitle: const Text(
                                                 'Stock split adjustments, cash-in-lieu & ratios'),
                                             requiresBrokerage: true,
@@ -2023,14 +2026,15 @@ class _UserWidgetState extends State<UserWidget> {
                                                   Provider.of<AccountStore>(
                                                       context,
                                                       listen: false);
-                                              var currentAccount = accountStore
-                                                  .selectedAccount;
+                                              var currentAccount =
+                                                  accountStore.selectedAccount;
                                               if (currentAccount == null ||
-                                                  !currentAccount.isRetirement) {
+                                                  !currentAccount
+                                                      .isRetirement) {
                                                 final iraAccount = accountStore
                                                     .items
-                                                    .where((a) =>
-                                                        a.isRetirement)
+                                                    .where(
+                                                        (a) => a.isRetirement)
                                                     .firstOrNull;
                                                 if (iraAccount != null) {
                                                   currentAccount = iraAccount;
@@ -2065,8 +2069,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           _buildFeatureTile(
                                             context,
                                             icon: Icons.privacy_tip_outlined,
-                                            title:
-                                                'Portfolio & Social Privacy',
+                                            title: 'Portfolio & Social Privacy',
                                             subtitle: Text(
                                               user?.portfolioPrivacy
                                                           ?.isPublic ==
@@ -2089,8 +2092,7 @@ class _UserWidgetState extends State<UserWidget> {
                                                       .show(
                                                 context,
                                                 userId: widget.userId ?? '',
-                                                currentSettings:
-                                                    currentPrivacy,
+                                                currentSettings: currentPrivacy,
                                                 firestoreService:
                                                     _firestoreService,
                                               );
@@ -2132,8 +2134,8 @@ class _UserWidgetState extends State<UserWidget> {
                                                     renderBox.size.width > 0 &&
                                                     renderBox.size.height > 0) {
                                                   final size = renderBox.size;
-                                                  final offset = renderBox
-                                                      .localToGlobal(
+                                                  final offset =
+                                                      renderBox.localToGlobal(
                                                           Offset.zero);
                                                   sharePositionOrigin =
                                                       Rect.fromLTWH(
@@ -2864,8 +2866,7 @@ class _UserWidgetState extends State<UserWidget> {
       final brokerName = _brokerLabel(widget.brokerageUser!.source);
       disabledReason = 'Not supported by $brokerName';
     } else if (featureBundle != null) {
-      final mode =
-          FeatureAccessService.instance.getRolloutMode(featureBundle);
+      final mode = FeatureAccessService.instance.getRolloutMode(featureBundle);
       if (mode == FeatureRolloutMode.betaOptIn) {
         badgeText = 'Beta';
       }

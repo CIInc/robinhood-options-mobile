@@ -120,7 +120,8 @@ class _RiskCopilotWidgetState extends State<RiskCopilotWidget>
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Card(
                 elevation: 0,
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color: theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
@@ -142,7 +143,8 @@ class _RiskCopilotWidgetState extends State<RiskCopilotWidget>
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              _report.overallSeverity == RiskCopilotSeverity.normal
+                              _report.overallSeverity ==
+                                      RiskCopilotSeverity.normal
                                   ? Icons.shield_outlined
                                   : Icons.warning_amber_rounded,
                               color: severityColor,

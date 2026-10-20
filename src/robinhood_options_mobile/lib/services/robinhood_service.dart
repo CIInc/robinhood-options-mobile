@@ -5705,8 +5705,8 @@ WATCHLIST
       // 2. Fetch match rate
       dynamic matchData;
       try {
-        matchData =
-            await getRetirementMatch(user, accountNumber: effectiveAccountNumber);
+        matchData = await getRetirementMatch(user,
+            accountNumber: effectiveAccountNumber);
       } catch (e) {
         debugPrint('Error fetching retirement match: $e');
       }
@@ -5714,8 +5714,8 @@ WATCHLIST
       // 3. Fetch ACATS transfers (for IRA rollovers)
       dynamic acatsData;
       try {
-        acatsData =
-            await getAcatsTransfers(user, accountNumber: effectiveAccountNumber);
+        acatsData = await getAcatsTransfers(user,
+            accountNumber: effectiveAccountNumber);
       } catch (e) {
         debugPrint('Error fetching ACATS transfers for retirement: $e');
       }
@@ -5724,10 +5724,10 @@ WATCHLIST
       final List<Map<String, dynamic>> iraTransfers = [];
       try {
         final pTransfersRaw = await getUnifiedTransfers(user);
-        final List<dynamic> pTransfers = (pTransfersRaw is Map &&
-                pTransfersRaw['results'] is List)
-            ? pTransfersRaw['results'] as List
-            : (pTransfersRaw is List ? pTransfersRaw : const []);
+        final List<dynamic> pTransfers =
+            (pTransfersRaw is Map && pTransfersRaw['results'] is List)
+                ? pTransfersRaw['results'] as List
+                : (pTransfersRaw is List ? pTransfersRaw : const []);
 
         for (final t in pTransfers) {
           if (t is! Map) continue;
@@ -5739,7 +5739,8 @@ WATCHLIST
           final origType =
               t['originating_account_type']?.toString().toLowerCase() ?? '';
           final destType = t['details'] is Map
-              ? t['details']['dest_account_type']?.toString().toLowerCase() ?? ''
+              ? t['details']['dest_account_type']?.toString().toLowerCase() ??
+                  ''
               : '';
 
           final matchesAccount = (effectiveAccountNumber != null &&
@@ -5793,7 +5794,8 @@ WATCHLIST
         // Probe 2: /portfolio/account/$effectiveAccountNumber/live
         if (tav == null) {
           try {
-            final liveJson = await getLivePortfolio(user, effectiveAccountNumber);
+            final liveJson =
+                await getLivePortfolio(user, effectiveAccountNumber);
             debugPrint('PROBE live portfolio: $liveJson');
             if (liveJson is Map) {
               tav = parseDouble(liveJson['equity'] ??
@@ -5833,8 +5835,7 @@ WATCHLIST
           'match_rate': matchData['match_rate'],
         if (acatsData is Map && acatsData['results'] != null)
           'acats': acatsData['results'],
-        if (iraTransfers.isNotEmpty)
-          'unified_transfers': iraTransfers,
+        if (iraTransfers.isNotEmpty) 'unified_transfers': iraTransfers,
       };
 
       return RetirementHistory.fromJson(combined);

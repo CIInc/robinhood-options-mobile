@@ -70,7 +70,8 @@ class PortfolioSectionGridWidget extends StatelessWidget {
                   mainAxisExtent: 138,
                 ),
                 itemCount: sections.length,
-                itemBuilder: (context, index) => _tile(context, sections[index]),
+                itemBuilder: (context, index) =>
+                    _tile(context, sections[index]),
               );
             },
           ),

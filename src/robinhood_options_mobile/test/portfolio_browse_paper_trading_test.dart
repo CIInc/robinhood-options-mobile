@@ -172,8 +172,8 @@ void main() {
         MultiProvider(
           providers: [
             ChangeNotifierProvider(
-                create: (_) => AgenticTradingProvider(
-                    analytics: FakeFirebaseAnalytics())),
+                create: (_) =>
+                    AgenticTradingProvider(analytics: FakeFirebaseAnalytics())),
             ChangeNotifierProvider(
                 create: (_) => FuturesAutoTradingProvider(
                     analytics: FakeFirebaseAnalytics())),

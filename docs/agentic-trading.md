@@ -402,6 +402,12 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
 - **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%). This allows locking in profits while keeping a portion of the position open for potential further gains.
 - **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met. This helps free up capital from stagnant trades.
 - **Market Close Exits:** Automatically liquidate positions a set number of minutes before the market closes to avoid overnight risk (gap risk).
+- **5-Tier Sequential Exit Stop Priority Queue:** Institutional-grade multi-tier exit framework evaluated sequentially in real time:
+  1. **Tier 1 (GEX Structural Stop):** Closes positions when dealer positioning flips into negative gamma acceleration (`enableGexStructuralStops`).
+  2. **Tier 2 (Trailing Peak Stop):** High-water mark trailing stop that locks in profits when price pulls back by a set percentage from peak unrealized gains (`enableTrailingPeakStop`, default 15%).
+  3. **Tier 3 (Time & Theta Decay Stop):** Mitigates theta burn and opportunity cost by exiting when contract DTE drops below a threshold (`minDteStopDays`, default 7) or a trade remains stalled across consecutive trading sessions (`stalledSessionsStopLimit`, default 3).
+  4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment flips to `RISK_OFF` (`enableMacroRegimeStop`).
+  5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 30%).
 
 ### Order Approval Workflow
 

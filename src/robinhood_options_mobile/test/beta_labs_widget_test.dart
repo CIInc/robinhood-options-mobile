@@ -66,12 +66,14 @@ void main() {
       // Verify titles
       expect(find.text('Advanced Trading (Multi-Leg Spreads)'), findsOneWidget);
       expect(find.text('Strategy Backtesting'), findsOneWidget);
-      expect(find.text('Risk Circuit Breakers & Tilt Guardrails'), findsOneWidget);
+      expect(
+          find.text('Risk Circuit Breakers & Tilt Guardrails'), findsOneWidget);
       expect(find.text('Investor Groups & Channels'), findsOneWidget);
       expect(find.text('Automated & Algorithmic Orders'), findsOneWidget);
     });
 
-    testWidgets('Defaults to Public for Investor Groups & Channels and allows user opt-out',
+    testWidgets(
+        'Defaults to Public for Investor Groups & Channels and allows user opt-out',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -97,8 +99,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      final investorTileFinder = find.widgetWithText(
-          SwitchListTile, 'Investor Groups & Channels');
+      final investorTileFinder =
+          find.widgetWithText(SwitchListTile, 'Investor Groups & Channels');
       expect(investorTileFinder, findsOneWidget);
       // Under this tile, status chip should say "Public"
       expect(
@@ -118,8 +120,12 @@ void main() {
       await tester.tap(investorTileFinder);
       await tester.pumpAndSettle();
 
-      expect(defaultService.isUserOptedOut(FeatureBundle.investorGroups), isTrue);
-      expect(defaultService.isFeatureEnabled(FeatureBundle.investorGroups, userRole: UserRole.user), isFalse);
+      expect(
+          defaultService.isUserOptedOut(FeatureBundle.investorGroups), isTrue);
+      expect(
+          defaultService.isFeatureEnabled(FeatureBundle.investorGroups,
+              userRole: UserRole.user),
+          isFalse);
     });
 
     testWidgets(

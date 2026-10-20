@@ -670,11 +670,11 @@ class FidelityService implements IBrokerageService {
   Quote _parseFidelityQuote(String symbol, dynamic quoteData) {
     final quote = quoteData is Map<String, dynamic> ? quoteData : {};
 
-    final bidPrice = _parseDouble(
-        quote['BID_PRICE'] ?? quote['bidPrice'] ?? quote['bid']);
+    final bidPrice =
+        _parseDouble(quote['BID_PRICE'] ?? quote['bidPrice'] ?? quote['bid']);
     final bidSize = _parseInt(quote['BID_SIZE'] ?? quote['bidSize']);
-    final askPrice = _parseDouble(
-        quote['ASK_PRICE'] ?? quote['askPrice'] ?? quote['ask']);
+    final askPrice =
+        _parseDouble(quote['ASK_PRICE'] ?? quote['askPrice'] ?? quote['ask']);
     final askSize = _parseInt(quote['ASK_SIZE'] ?? quote['askSize']);
     final lastPrice = _parseDouble(quote['LAST_PRICE'] ??
             quote['lastPrice'] ??

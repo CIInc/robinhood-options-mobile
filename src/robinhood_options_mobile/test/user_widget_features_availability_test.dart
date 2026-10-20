@@ -291,7 +291,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Supported features for Schwab are displayed
-      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsOneWidget);
@@ -305,15 +306,17 @@ void main() {
           findsOneWidget);
 
       // Unsupported features are hidden for Schwab
-      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
-      expect(
-          find.widgetWithText(ListTile, 'Corporate Actions & Splits'), findsNothing);
-      expect(
-          find.widgetWithText(ListTile, 'Stock Lending & Sweeps'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Corporate Actions & Splits'),
+          findsNothing);
+      expect(find.widgetWithText(ListTile, 'Stock Lending & Sweeps'),
+          findsNothing);
       expect(find.widgetWithText(ListTile, 'Retirement & IRA'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Connected Agents'), findsNothing);
-      expect(find.widgetWithText(ListTile, 'Notification Center'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Notification Center'), findsNothing);
 
       // Banking & Documents category header is hidden since all its features are unsupported
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
@@ -347,13 +350,15 @@ void main() {
       await tester.pumpAndSettle();
 
       // Supported features for Paper
-      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
       expect(
           find.widgetWithText(
               ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
           findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Investment Profile'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Investment Profile'), findsOneWidget);
 
       // Unsupported features are hidden for Paper
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
@@ -362,7 +367,8 @@ void main() {
           findsNothing);
       expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
           findsNothing);
-      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
     });
@@ -411,7 +417,8 @@ void main() {
           findsNothing);
       expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
           findsNothing);
-      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Tax Documents'), findsNothing);
       expect(find.text('BANKING & DOCUMENTS'), findsNothing);
     });
@@ -449,7 +456,8 @@ void main() {
 
       // All categories and features are visible
       expect(find.text('BANKING & DOCUMENTS'), findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsOneWidget);
@@ -457,7 +465,8 @@ void main() {
           findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
           findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Banking & Transfers'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Banking & Transfers'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Tax Documents & Statements'),
           findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Corporate Actions & Splits'),
@@ -467,10 +476,12 @@ void main() {
       expect(find.widgetWithText(ListTile, 'Retirement & IRA'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Connected Agents & Apps'),
           findsOneWidget);
-      expect(find.widgetWithText(ListTile, 'Notification Center'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Notification Center'), findsOneWidget);
     });
 
-    testWidgets('Advanced Trading features are hidden when user has not opted into beta',
+    testWidgets(
+        'Advanced Trading features are hidden when user has not opted into beta',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -551,7 +562,8 @@ void main() {
       expect(find.byType(BetaLabsWidget), findsOneWidget);
     });
 
-    testWidgets('Admin user sees Advanced Trading features regardless of opt-in',
+    testWidgets(
+        'Admin user sees Advanced Trading features regardless of opt-in',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -604,7 +616,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Even with opt-in false, Admin sees Automated Trading and Backtesting
-      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
+      expect(
+          find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);
     });
 
@@ -643,8 +656,8 @@ void main() {
       // Account tools tiles should NOT be displayed
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),
           findsNothing);
-      expect(
-          find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Day Trade & PDT Monitor'),
+          findsNothing);
       expect(find.widgetWithText(ListTile, 'Automated DRIP with Threshold'),
           findsNothing);
       expect(
@@ -673,4 +686,3 @@ void main() {
     });
   });
 }
-

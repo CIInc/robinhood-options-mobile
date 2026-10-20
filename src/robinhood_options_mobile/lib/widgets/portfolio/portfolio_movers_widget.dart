@@ -63,7 +63,8 @@ class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
     if (ranked.isEmpty) return const SizedBox.shrink();
 
     final allWinners = ranked.where((mover) => mover.gainLoss > 0).toList();
-    final allLosers = ranked.reversed.where((mover) => mover.gainLoss < 0).toList();
+    final allLosers =
+        ranked.reversed.where((mover) => mover.gainLoss < 0).toList();
 
     if (allWinners.isEmpty && allLosers.isEmpty) return const SizedBox.shrink();
 
@@ -118,7 +119,8 @@ class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _column(context, 'Losers', losers, theme.colorScheme.error),
+                  child: _column(
+                      context, 'Losers', losers, theme.colorScheme.error),
                 ),
               ],
             ),
@@ -144,7 +146,9 @@ class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      _isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
                       size: 16,
                       color: theme.colorScheme.primary,
                     ),

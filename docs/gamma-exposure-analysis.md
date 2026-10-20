@@ -92,6 +92,12 @@ The **GEX Orchestrator** acts as a bridge between raw positional data and the AI
 Traders can now configure automated sell orders based on dealer gamma thresholds:
 *   **GEX Exit Threshold**: Set a specific dollar-weighted threshold (e.g., \$0M) that triggers an automatic position exit. 
 *   **Regime Shift Protection**: Automatically close positions when the market transitions from a "Long Gamma" (pinning/stable) state into a "Short Gamma" (accelerating/volatile) state to protect capital from expanding volatility.
+*   **5-Tier Sequential Exit Stop Priority Queue**: Institutional-grade stop priority queue evaluated in sequence during active position monitoring:
+    1.  **Tier 1: GEX Structural Flip Stop (`enableGexStructuralStops`)**: Liquidates positions immediately upon transition into a negative dealer gamma acceleration regime.
+    2.  **Tier 2: Trailing Peak Stop (`enableTrailingPeakStop`, `trailingPeakStopPercent`)**: Dynamic trailing stop anchored to post-entry high-water marks (default 15.0%).
+    3.  **Tier 3: Time & Theta Decay Stop (`enableTimeThetaStop`)**: Safeguards against non-linear option decay by enforcing minimum days-to-expiration (`minDteStopDays`, default 7 DTE) and capping stagnant sessions without progress (`stalledSessionsStopLimit`, default 3 sessions).
+    4.  **Tier 4: Macro Regime Stop (`enableMacroRegimeStop`)**: Closes holdings when the multi-indicator macro risk gauge shifts into `RISK_OFF`.
+    5.  **Tier 5: Catastrophic Floor Stop (`enableCatastrophicStop`, `catastrophicStopPercent`)**: Non-negotiable max drawdown stop protecting portfolio equity from extreme tail events (default 30.0%).
 
 ### Pre-Built GEX Strategies
 The platform includes professional strategy templates optimized for gamma regimes:

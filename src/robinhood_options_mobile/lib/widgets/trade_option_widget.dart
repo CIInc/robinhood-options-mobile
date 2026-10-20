@@ -1193,8 +1193,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           await showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              icon:
-                  const Icon(Icons.shield_outlined, color: Colors.red, size: 36),
+              icon: const Icon(Icons.shield_outlined,
+                  color: Colors.red, size: 36),
               title: const Text('Circuit Breaker Active'),
               content: Text(
                 riskService.config.isInCoolingOff

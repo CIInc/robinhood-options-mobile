@@ -456,9 +456,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       workingCount = stockOrders
               .where((o) => _isOrderWorking(o.state, o.cancel))
               .length +
-          optOrders
-              .where((o) => _isOrderWorking(o.state, o.cancelUrl))
-              .length;
+          optOrders.where((o) => _isOrderWorking(o.state, o.cancelUrl)).length;
     } else {
       final stockStore =
           Provider.of<InstrumentPositionStore>(context, listen: false);
@@ -923,8 +921,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       final chipCenter =
           (index * estimatedChipWidth) + (estimatedChipWidth / 2) + 16.0;
       final targetScroll = math.max(0.0, chipCenter - (screenWidth / 2));
-      final maxScroll =
-          _categoryChipsScrollController.position.maxScrollExtent;
+      final maxScroll = _categoryChipsScrollController.position.maxScrollExtent;
       _categoryChipsScrollController.animateTo(
         targetScroll.clamp(0.0, maxScroll),
         duration: const Duration(milliseconds: 250),
@@ -935,8 +932,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   void _scrollToCategoryHeader() {
     if (!_scrollController.hasClients) return;
-    final renderObject =
-        _categoryHeaderKey.currentContext?.findRenderObject();
+    final renderObject = _categoryHeaderKey.currentContext?.findRenderObject();
     if (renderObject is RenderSliver) {
       final pinnedAppBarHeight =
           kToolbarHeight + MediaQuery.paddingOf(context).top;
@@ -1957,8 +1953,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 builder: (context, tradeSignalsProvider, child) {
                   final categories = _buildCategories(
                       context, instrument, tradeSignalsProvider);
-                  return _buildCategoryTransitionSliver(
-                      instrument, categories);
+                  return _buildCategoryTransitionSliver(instrument, categories);
                 },
               ),
               ..._buildFooterSlivers(),
@@ -2080,8 +2075,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       Instrument instrument, List<InstrumentCategory> categories) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final orderedCategories =
-        categories.where((c) => c.key != 'All').toList();
+    final orderedCategories = categories.where((c) => c.key != 'All').toList();
     final currentIndex =
         orderedCategories.indexWhere((c) => c.key == _selectedCategory);
 
@@ -2107,7 +2101,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               if (details.primaryVelocity! < -250) {
                 // Swiped left -> Go to Next category
                 _onCategorySelected(nextCategory.key);
-              } else if (details.primaryVelocity! > 250 && prevCategory != null) {
+              } else if (details.primaryVelocity! > 250 &&
+                  prevCategory != null) {
                 // Swiped right -> Go to Previous category
                 _onCategorySelected(prevCategory.key);
               }
@@ -2136,7 +2131,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8.0, vertical: 3.0),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -2237,9 +2233,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             style: TextStyle(
                                               fontSize: 10,
                                               fontWeight: FontWeight.bold,
-                                              color: nextCategory
-                                                      .badgeTextColor ??
-                                                  theme.colorScheme.primary,
+                                              color:
+                                                  nextCategory.badgeTextColor ??
+                                                      theme.colorScheme.primary,
                                             ),
                                           ),
                                         ),
@@ -2251,8 +2247,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     nextInfo.$2,
                                     style: TextStyle(
                                       fontSize: 11.5,
-                                      color:
-                                          theme.textTheme.bodySmall?.color,
+                                      color: theme.textTheme.bodySmall?.color,
                                       height: 1.25,
                                     ),
                                     maxLines: 2,
@@ -2308,8 +2303,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           visualDensity: VisualDensity.compact,
                         ),
                         onPressed: _scrollToTop,
-                        icon:
-                            const Icon(Icons.arrow_upward_rounded, size: 14),
+                        icon: const Icon(Icons.arrow_upward_rounded, size: 14),
                         label: const Text('Back to Top',
                             style: TextStyle(fontSize: 12)),
                       ),
@@ -2702,8 +2696,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         final workingOptionOrders = optionOrders
             .where((o) => _isOrderWorking(o.state, o.cancelUrl))
             .toList();
-        final workingComboOrders =
-            comboOrders.where((o) => o.isOpen).toList();
+        final workingComboOrders = comboOrders.where((o) => o.isOpen).toList();
 
         final totalWorking = workingStockOrders.length +
             workingOptionOrders.length +
@@ -2750,8 +2743,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(top: 4, right: 6),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
@@ -2761,9 +2754,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -2851,8 +2842,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(top: 4, right: 6),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
@@ -2862,9 +2853,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -2912,8 +2901,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ? formatCurrency.format(order.price)
               : "Market";
           final estTotal = order.price != null
-              ? formatCurrency
-                  .format(order.price! * order.quantity * 100)
+              ? formatCurrency.format(order.price! * order.quantity * 100)
               : "";
           orderTiles.add(
             ListTile(
@@ -2937,8 +2925,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(top: 4, right: 6),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(6),
@@ -2948,9 +2936,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -3004,8 +2990,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 icon: Icons.pending_actions_outlined,
               ),
               Card(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 0,
                 color: Theme.of(context)
                     .colorScheme
@@ -6635,8 +6620,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             fontWeight: FontWeight.bold))),
                             title: Text(
                                 optionOrder.legs.isNotEmpty
-                                    ? "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy ?? ''} ${optionOrder.legs.first.expirationDate != null ? formatCompactDate.format(optionOrder.legs.first.expirationDate!) : ''}".trim()
-                                    : "${optionOrder.chainSymbol} ${optionOrder.strategy ?? ''}".trim(),
+                                    ? "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy ?? ''} ${optionOrder.legs.first.expirationDate != null ? formatCompactDate.format(optionOrder.legs.first.expirationDate!) : ''}"
+                                        .trim()
+                                    : "${optionOrder.chainSymbol} ${optionOrder.strategy ?? ''}"
+                                        .trim(),
                                 style: const TextStyle(
                                     fontSize: 16.0,
                                     fontWeight: FontWeight.w500)),

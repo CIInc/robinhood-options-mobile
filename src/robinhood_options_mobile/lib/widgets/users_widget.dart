@@ -127,71 +127,71 @@ class _UsersWidgetState extends State<UsersWidget> {
                             }
                           }),
                   ]),
-              SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
-                  sliver: SliverToBoxAdapter(
-                      child: CupertinoSearchTextField(
-                    style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyLarge!.color),
-                    controller: _searchTermController,
-                    placeholder: 'Search traders by name',
-                    onChanged: (value) {
-                      setState(() {
-                        _searchTerm = value;
-                        final onlyPublic = userRole != UserRole.admin;
-                        _stream = _firestoreService.searchUsers(
-                          searchTerm: _searchTerm,
-                          onlyPublic: onlyPublic,
-                        );
-                      });
-                    },
-                  ))),
-              StreamBuilder(
-                  stream: _stream,
-                  builder:
-                      (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
-                    if (snapshot.hasError) {
-                      return SliverToBoxAdapter(
-                          child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.info_outline,
-                                  size: 40,
-                                  color: Theme.of(context).colorScheme.outline),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Unable to load traders',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              SelectableText(
-                                '${snapshot.error}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color:
-                                          Theme.of(context).colorScheme.outline,
-                                    ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
+            SliverPadding(
+                padding: const EdgeInsets.all(16.0),
+                sliver: SliverToBoxAdapter(
+                    child: CupertinoSearchTextField(
+                  style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge!.color),
+                  controller: _searchTermController,
+                  placeholder: 'Search traders by name',
+                  onChanged: (value) {
+                    setState(() {
+                      _searchTerm = value;
+                      final onlyPublic = userRole != UserRole.admin;
+                      _stream = _firestoreService.searchUsers(
+                        searchTerm: _searchTerm,
+                        onlyPublic: onlyPublic,
+                      );
+                    });
+                  },
+                ))),
+            StreamBuilder(
+                stream: _stream,
+                builder:
+                    (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
+                  if (snapshot.hasError) {
+                    return SliverToBoxAdapter(
+                        child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.info_outline,
+                                size: 40,
+                                color: Theme.of(context).colorScheme.outline),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Unable to load traders',
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            SelectableText(
+                              '${snapshot.error}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color:
+                                        Theme.of(context).colorScheme.outline,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
-                      ));
-                    }
+                      ),
+                    ));
+                  }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SliverToBoxAdapter(
-                          child: Center(child: CircularProgressIndicator()));
-                    }
-                    return showSliverList(snapshot.data!);
-                  }),
-              const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-            ]);
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SliverToBoxAdapter(
+                        child: Center(child: CircularProgressIndicator()));
+                  }
+                  return showSliverList(snapshot.data!);
+                }),
+            const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
+          ]);
           if (!widget.showAppBar) {
             return scrollView;
           }

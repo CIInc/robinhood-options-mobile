@@ -163,7 +163,7 @@ describe("group-performance-analytics tests", () => {
       }),
     });
 
-    mockUserDoc.mockImplementation((userId: string) => {
+    mockUserDoc.mockImplementation(() => {
       return Promise.resolve({
         exists: true,
         data: () => ({
@@ -173,7 +173,7 @@ describe("group-performance-analytics tests", () => {
       });
     });
 
-    mockOrderQuery.mockImplementation((userId: string) => {
+    mockOrderQuery.mockImplementation(() => {
       return Promise.resolve({
         docs: [
           {

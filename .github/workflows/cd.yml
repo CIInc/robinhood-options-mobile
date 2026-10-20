@@ -32,7 +32,7 @@ jobs:
   analyze_and_test:
     name: Analyze and Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: src/robinhood_options_mobile
@@ -46,13 +46,51 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install dependencies
+      - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Verify code formatting
-        # Consider passing '--fatal-infos' for slightly stricter analysis.
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/robinhood_options_mobile/functions/package-lock.json
+
+      - name: Install Firebase Functions dependencies
+        run: npm ci
+        working-directory: src/robinhood_options_mobile/functions
+
+      - name: Auto-format Dart code
+        run: dart format .
+
+      - name: Auto-format Firebase Functions code
+        run: npm run lint:fix
+        working-directory: src/robinhood_options_mobile/functions
+
+      - name: Commit and push formatting corrections
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Formatting corrections detected. Committing changes..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "style: auto-format Dart and Functions code [skip ci]"
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              git push origin HEAD:${{ github.head_ref }} || echo "Could not push to PR branch (check branch protection or permissions)."
+            else
+              git push || echo "Could not push to branch."
+            fi
+          else
+            echo "No formatting corrections needed."
+          fi
+        working-directory: ${{ github.workspace }}
+
+      - name: Verify Dart code formatting
         run: dart format --output=none --set-exit-if-changed .
-        continue-on-error: true
+
+      - name: Verify Firebase Functions code formatting and linting
+        run: npm run lint
+        working-directory: src/robinhood_options_mobile/functions
 
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
@@ -61,8 +99,12 @@ jobs:
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will
       # want to change this to 'flutter test'.
-      - name: Run tests
+      - name: Run Flutter tests
         run: flutter test
+
+      - name: Run Firebase Functions tests
+        run: npm test
+        working-directory: src/robinhood_options_mobile/functions
 
   check_version:
     name: Check Version Change

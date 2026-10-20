@@ -129,9 +129,11 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
     try {
       // Determine emotion state based on outcome and biases
       EmotionState derivedEmotion = EmotionState.calm;
-      if (_analysis!.detectedBiases.any((b) => b.name.toLowerCase().contains('fomo'))) {
+      if (_analysis!.detectedBiases
+          .any((b) => b.name.toLowerCase().contains('fomo'))) {
         derivedEmotion = EmotionState.fomo;
-      } else if (_analysis!.detectedBiases.any((b) => b.name.toLowerCase().contains('revenge'))) {
+      } else if (_analysis!.detectedBiases
+          .any((b) => b.name.toLowerCase().contains('revenge'))) {
         derivedEmotion = EmotionState.frustrated;
       } else if (_analysis!.executionScore >= 80) {
         derivedEmotion = EmotionState.disciplined;
@@ -142,14 +144,18 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
       }
 
       final journalNotes = StringBuffer();
-      journalNotes.writeln("AI Trade Post-Mortem: ${widget.symbol} (${_analysis!.outcomeVerdict})");
-      journalNotes.writeln("Execution Grade: ${_analysis!.executionGrade} (${_analysis!.executionScore}/100)");
-      journalNotes.writeln("Thesis Alignment: ${_analysis!.thesisAlignmentScore}/100");
+      journalNotes.writeln(
+          "AI Trade Post-Mortem: ${widget.symbol} (${_analysis!.outcomeVerdict})");
+      journalNotes.writeln(
+          "Execution Grade: ${_analysis!.executionGrade} (${_analysis!.executionScore}/100)");
+      journalNotes
+          .writeln("Thesis Alignment: ${_analysis!.thesisAlignmentScore}/100");
       if (_thesisController.text.isNotEmpty) {
         journalNotes.writeln("Entry Thesis: \"${_thesisController.text}\"");
       }
       if (_exitReasonController.text.isNotEmpty) {
-        journalNotes.writeln("Exit Rationale: \"${_exitReasonController.text}\"");
+        journalNotes
+            .writeln("Exit Rationale: \"${_exitReasonController.text}\"");
       }
       journalNotes.writeln("\nCoach Diagnostic: ${_analysis!.coachSummary}");
 
@@ -220,7 +226,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
       appBar: AppBar(
         title: Row(
           children: [
-            const Icon(Icons.psychology_alt, color: Colors.purpleAccent, size: 24),
+            const Icon(Icons.psychology_alt,
+                color: Colors.purpleAccent, size: 24),
             const SizedBox(width: 8),
             Text("${widget.symbol} Post-Mortem"),
           ],
@@ -245,7 +252,9 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                 children: [
                   Icon(Icons.check_circle, color: Colors.teal, size: 18),
                   SizedBox(width: 4),
-                  Text("Saved", style: TextStyle(color: Colors.teal, fontWeight: FontWeight.bold)),
+                  Text("Saved",
+                      style: TextStyle(
+                          color: Colors.teal, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -259,7 +268,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
             // Trade Context Card
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -270,7 +280,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                       children: [
                         Text(
                           "${widget.symbol} • ${widget.side}",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         if (widget.realizedPnl != null)
                           Text(
@@ -278,7 +289,9 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: widget.realizedPnl! >= 0 ? Colors.green : Colors.red,
+                              color: widget.realizedPnl! >= 0
+                                  ? Colors.green
+                                  : Colors.red,
                             ),
                           ),
                       ],
@@ -289,14 +302,19 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                       runSpacing: 4,
                       children: [
                         if (widget.entryPrice != null)
-                          Text("Entry: ${currencyFormat.format(widget.entryPrice)}",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                          Text(
+                              "Entry: ${currencyFormat.format(widget.entryPrice)}",
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 13)),
                         if (widget.exitPrice != null)
-                          Text("Exit: ${currencyFormat.format(widget.exitPrice)}",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                          Text(
+                              "Exit: ${currencyFormat.format(widget.exitPrice)}",
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 13)),
                         if (widget.holdingPeriod != null)
                           Text("Duration: ${widget.holdingPeriod}",
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 13)),
                       ],
                     ),
                     const Divider(height: 20),
@@ -317,7 +335,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                       controller: _exitReasonController,
                       decoration: const InputDecoration(
                         labelText: "Exit Reason (Optional)",
-                        hintText: "Target reached, stop hit, emotional exit, or thesis invalidated?",
+                        hintText:
+                            "Target reached, stop hit, emotional exit, or thesis invalidated?",
                         prefixIcon: Icon(Icons.exit_to_app, size: 20),
                         isDense: true,
                         border: OutlineInputBorder(),
@@ -328,7 +347,9 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                     ElevatedButton.icon(
                       onPressed: _isLoading ? null : _runAnalysis,
                       icon: const Icon(Icons.auto_awesome),
-                      label: Text(_analysis == null ? "Analyze Trade Execution" : "Re-evaluate Post-Mortem"),
+                      label: Text(_analysis == null
+                          ? "Analyze Trade Execution"
+                          : "Re-evaluate Post-Mortem"),
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 44),
                       ),
@@ -360,7 +381,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                 ),
-                child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                child: Text(_errorMessage!,
+                    style: const TextStyle(color: Colors.red)),
               )
             else if (_analysis != null) ...[
               _buildDiagnosticCard(context, _analysis!),
@@ -377,7 +399,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
     );
   }
 
-  Widget _buildDiagnosticCard(BuildContext context, TradePostMortemAnalysis analysis) {
+  Widget _buildDiagnosticCard(
+      BuildContext context, TradePostMortemAnalysis analysis) {
     final scoreColor = analysis.scoreColor;
     final outcomeColor = analysis.outcomeColor;
 
@@ -408,11 +431,13 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: scoreColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: scoreColor.withValues(alpha: 0.3)),
+                    border:
+                        Border.all(color: scoreColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     "GRADE ${analysis.executionGrade}",
@@ -458,12 +483,14 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                     children: [
                       const Text(
                         "Execution Quality Score",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         "Thesis Alignment: ${analysis.thesisAlignmentScore}/100",
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 6),
                       ClipRRect(
@@ -472,7 +499,9 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                           value: analysis.thesisAlignmentScore / 100.0,
                           minHeight: 6,
                           backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                          color: analysis.thesisAlignmentScore >= 70 ? Colors.teal : Colors.orange,
+                          color: analysis.thesisAlignmentScore >= 70
+                              ? Colors.teal
+                              : Colors.orange,
                         ),
                       ),
                     ],
@@ -484,12 +513,16 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceContainerHighest
+                    .withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 analysis.coachSummary,
-                style: const TextStyle(fontSize: 13, height: 1.4, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                    fontSize: 13, height: 1.4, fontStyle: FontStyle.italic),
               ),
             ),
           ],
@@ -498,7 +531,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
     );
   }
 
-  Widget _buildBiasesCard(BuildContext context, TradePostMortemAnalysis analysis) {
+  Widget _buildBiasesCard(
+      BuildContext context, TradePostMortemAnalysis analysis) {
     if (analysis.detectedBiases.isEmpty) {
       return Card(
         elevation: 1,
@@ -531,7 +565,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
           children: [
             Row(
               children: [
-                Icon(Icons.shield_outlined, color: Colors.orange.shade700, size: 20),
+                Icon(Icons.shield_outlined,
+                    color: Colors.orange.shade700, size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   "BEHAVIORAL BIASES DETECTED",
@@ -551,7 +586,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                   decoration: BoxDecoration(
                     color: bias.severityColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: bias.severityColor.withValues(alpha: 0.25)),
+                    border: Border.all(
+                        color: bias.severityColor.withValues(alpha: 0.25)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,7 +597,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                         children: [
                           Row(
                             children: [
-                              Icon(bias.icon, size: 16, color: bias.severityColor),
+                              Icon(bias.icon,
+                                  size: 16, color: bias.severityColor),
                               const SizedBox(width: 6),
                               Text(
                                 bias.name,
@@ -618,7 +655,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
     );
   }
 
-  Widget _buildFlawsCard(BuildContext context, TradePostMortemAnalysis analysis) {
+  Widget _buildFlawsCard(
+      BuildContext context, TradePostMortemAnalysis analysis) {
     if (analysis.executionFlaws.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -633,7 +671,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
           children: [
             const Row(
               children: [
-                Icon(Icons.build_circle_outlined, color: Colors.blueGrey, size: 20),
+                Icon(Icons.build_circle_outlined,
+                    color: Colors.blueGrey, size: 20),
                 SizedBox(width: 8),
                 Text(
                   "EXECUTION FLAWS & FRICTIONS",
@@ -650,12 +689,19 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
             ...analysis.executionFlaws.map((flaw) => ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.circle, size: 10, color: flaw.severityColor),
-                  title: Text(flaw.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  subtitle: Text(flaw.description, style: const TextStyle(fontSize: 12)),
+                  leading:
+                      Icon(Icons.circle, size: 10, color: flaw.severityColor),
+                  title: Text(flaw.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(flaw.description,
+                      style: const TextStyle(fontSize: 12)),
                   trailing: Text(
                     flaw.severity,
-                    style: TextStyle(color: flaw.severityColor, fontSize: 11, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: flaw.severityColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold),
                   ),
                 )),
           ],
@@ -664,7 +710,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
     );
   }
 
-  Widget _buildLessonsCard(BuildContext context, TradePostMortemAnalysis analysis) {
+  Widget _buildLessonsCard(
+      BuildContext context, TradePostMortemAnalysis analysis) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -675,7 +722,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
           children: [
             Row(
               children: [
-                Icon(Icons.school_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
+                Icon(Icons.school_outlined,
+                    color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
                 const Text(
                   "TACTICAL LESSONS & AUTO-TAGS",
@@ -695,7 +743,8 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("• ", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const Text("• ",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
                         Expanded(
                           child: Text(
                             lesson,
@@ -713,10 +762,13 @@ class _TradePostMortemSheetState extends State<TradePostMortemSheet> {
                 runSpacing: 4,
                 children: analysis.autoTags
                     .map((tag) => Chip(
-                          label: Text(tag, style: const TextStyle(fontSize: 11)),
+                          label:
+                              Text(tag, style: const TextStyle(fontSize: 11)),
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                         ))
                     .toList(),
               ),

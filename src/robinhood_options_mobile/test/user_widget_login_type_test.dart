@@ -202,7 +202,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Email'), findsOneWidget);
-      expect(find.text('google@gmail.com'), findsNWidgets(2)); // in subtitle and ListTile
+      expect(find.text('google@gmail.com'),
+          findsNWidgets(2)); // in subtitle and ListTile
       expect(find.text('Login Type'), findsOneWidget);
       // Now Google appears in both subtitle and ListTile
       expect(find.text('Google'), findsNWidgets(2));

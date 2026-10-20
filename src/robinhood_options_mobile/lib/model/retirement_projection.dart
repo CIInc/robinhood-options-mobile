@@ -92,8 +92,7 @@ class RetirementProjectionParams {
       annualContribution: parseDouble(json['annual_contribution']) ?? 7000.0,
       yearsToRetirement:
           int.tryParse(json['years_to_retirement']?.toString() ?? '25') ?? 25,
-      expectedAnnualReturn:
-          parseDouble(json['expected_annual_return']) ?? 0.08,
+      expectedAnnualReturn: parseDouble(json['expected_annual_return']) ?? 0.08,
       matchRate: parseDouble(json['match_rate']) ?? 0.03,
       estimatedMarginalTaxRate:
           parseDouble(json['estimated_marginal_tax_rate']) ?? 0.24,
@@ -259,12 +258,14 @@ class RetirementProjectionResult {
       _currencyFormat.format(lifetimeTaxAdvantage);
 
   /// Proportion of the final balance made up of user contributions (0.0 to 1.0).
-  double get userContributionShare =>
-      finalBalance > 0 ? (totalUserContributions / finalBalance).clamp(0.0, 1.0) : 0.0;
+  double get userContributionShare => finalBalance > 0
+      ? (totalUserContributions / finalBalance).clamp(0.0, 1.0)
+      : 0.0;
 
   /// Proportion of the final balance made up of pure market investment growth (0.0 to 1.0).
-  double get investmentGrowthShare =>
-      finalBalance > 0 ? (totalInvestmentGrowth / finalBalance).clamp(0.0, 1.0) : 0.0;
+  double get investmentGrowthShare => finalBalance > 0
+      ? (totalInvestmentGrowth / finalBalance).clamp(0.0, 1.0)
+      : 0.0;
 
   /// Proportion of final balance resulting directly from compounded match bonuses (0.0 to 1.0).
   double get matchShare => finalBalance > 0
@@ -284,8 +285,7 @@ class RetirementProjectionResult {
       'total_investment_growth': totalInvestmentGrowth,
       'compounded_match_added_wealth': compoundedMatchAddedWealth,
       'year_one_net_gold_bonus': yearOneNetGoldBonus,
-      'gold_break_even_annual_contribution':
-          goldBreakEvenAnnualContribution,
+      'gold_break_even_annual_contribution': goldBreakEvenAnnualContribution,
       'lifetime_tax_advantage': lifetimeTaxAdvantage,
     };
   }
@@ -294,7 +294,8 @@ class RetirementProjectionResult {
 /// Calculation engine for projecting retirement compounding, tax advantages, and Robinhood Gold match optimization.
 class RetirementProjectionCalculator {
   /// Computes a multi-year compounding simulation using beginning-of-year contributions.
-  static RetirementProjectionResult calculate(RetirementProjectionParams params) {
+  static RetirementProjectionResult calculate(
+      RetirementProjectionParams params) {
     final horizon = params.yearsToRetirement.clamp(1, 60);
     final annualReturn = params.expectedAnnualReturn.clamp(-0.20, 0.40);
     final matchRate = params.matchRate.clamp(0.0, 0.10);
@@ -302,7 +303,8 @@ class RetirementProjectionCalculator {
     final annualContrib = params.annualContribution.clamp(0.0, 10000000.0);
 
     // Taxable account effective return reflects annual tax drag (dividends & turnover tax)
-    final taxableReturn = (annualReturn - params.taxableAccountTaxDrag).clamp(0.0, 0.40);
+    final taxableReturn =
+        (annualReturn - params.taxableAccountTaxDrag).clamp(0.0, 0.40);
 
     double currentBalanceWithMatch = startingBalance;
     double currentBalanceWithoutMatch = startingBalance;

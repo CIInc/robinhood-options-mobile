@@ -331,9 +331,8 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
             var selection = value.selection;
             if (selection != null) {
               changeInPeriod = selection.adjustedCloseEquity! - open;
-              changePercentInPeriod = open > 0
-                  ? selection.adjustedCloseEquity! / open - 1
-                  : 0.0;
+              changePercentInPeriod =
+                  open > 0 ? selection.adjustedCloseEquity! / open - 1 : 0.0;
             } else {
               changeInPeriod = close - open;
               changePercentInPeriod = open > 0 ? close / open - 1 : 0.0;

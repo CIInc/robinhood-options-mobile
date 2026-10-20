@@ -86,7 +86,8 @@ void main() {
       expect(condor.breakevens.length, 2);
     });
 
-    test('creates Calendar Spreads with front-month short and back-month long', () {
+    test('creates Calendar Spreads with front-month short and back-month long',
+        () {
       final now = DateTime.now();
       final nearExp = now.add(const Duration(days: 14));
       final farExp = now.add(const Duration(days: 45));
@@ -146,7 +147,8 @@ void main() {
         spotPrice: 150.0,
       );
       final brokerageLegs = spread.toBrokerageLegs(
-        urlResolver: (leg) => 'https://api.robinhood.com/options/instruments/opt_${leg.id}/',
+        urlResolver: (leg) =>
+            'https://api.robinhood.com/options/instruments/opt_${leg.id}/',
         symbolResolver: (leg) => 'AAPL_${leg.strike}',
       );
 
@@ -184,7 +186,8 @@ void main() {
     late Account testAccount;
     late _MockBrokerageService mockService;
 
-    Instrument makeTestInstrument({String symbol = 'AAPL', double price = 150.0}) {
+    Instrument makeTestInstrument(
+        {String symbol = 'AAPL', double price = 150.0}) {
       final inst = Instrument(
         id: 'id_$symbol',
         url: 'https://api.robinhood.com/instruments/$symbol/',
@@ -258,7 +261,8 @@ void main() {
       );
     }
 
-    testWidgets('shows beta lock screen when user has not opted into advancedTrading',
+    testWidgets(
+        'shows beta lock screen when user has not opted into advancedTrading',
         (tester) async {
       app_main.userRole = UserRole.user;
       await FeatureAccessService.instance.setUserOptIn(
@@ -323,8 +327,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Iron Condor template chip
-      final ironCondorChip =
-          find.byKey(const ValueKey('template-iron-condor'));
+      final ironCondorChip = find.byKey(const ValueKey('template-iron-condor'));
       expect(ironCondorChip, findsOneWidget);
       await tester.ensureVisible(ironCondorChip);
       await tester.pumpAndSettle();

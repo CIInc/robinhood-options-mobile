@@ -127,9 +127,12 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                     symbol: positionOrder.instrumentObj!.symbol,
                     tradeType: 'Stock',
                     side: positionOrder.side,
-                    entryPrice: positionOrder.averagePrice ?? positionOrder.price,
-                    exitPrice: positionOrder.instrumentObj?.quoteObj?.lastTradePrice,
-                    orderHistory: "Order side: ${positionOrder.side}, type: ${positionOrder.type}, state: ${positionOrder.state}, quantity: ${positionOrder.quantity}",
+                    entryPrice:
+                        positionOrder.averagePrice ?? positionOrder.price,
+                    exitPrice:
+                        positionOrder.instrumentObj?.quoteObj?.lastTradePrice,
+                    orderHistory:
+                        "Order side: ${positionOrder.side}, type: ${positionOrder.type}, state: ${positionOrder.state}, quantity: ${positionOrder.quantity}",
                     userDoc: widget.userDocRef,
                     generativeService: widget.generativeService,
                   ),

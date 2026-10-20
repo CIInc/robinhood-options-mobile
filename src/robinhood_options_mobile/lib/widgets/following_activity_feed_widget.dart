@@ -1234,18 +1234,18 @@ class _FollowingActivityFeedWidgetState
                   if (FeatureAccessService.instance
                       .isFeatureEnabled(FeatureBundle.socialCopy))
                     FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      minimumSize: const Size(90, 30),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        minimumSize: const Size(90, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      icon: const Icon(Icons.copy_rounded, size: 13),
+                      label: const Text('Clone Strategy',
+                          style: TextStyle(fontSize: 11)),
+                      onPressed: () => _cloneStrategy(context, idea),
                     ),
-                    icon: const Icon(Icons.copy_rounded, size: 13),
-                    label: const Text('Clone Strategy',
-                        style: TextStyle(fontSize: 11)),
-                    onPressed: () => _cloneStrategy(context, idea),
-                  ),
                 ],
               ),
             ],

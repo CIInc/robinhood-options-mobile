@@ -49,7 +49,9 @@ void main() {
         },
       );
 
-      expect(service.isFeatureEnabled(FeatureBundle.socialCopy, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.socialCopy,
+              userRole: UserRole.user),
           isTrue);
       expect(service.isFeatureEnabled(FeatureBundle.socialCopy, userRole: null),
           isTrue);
@@ -66,7 +68,9 @@ void main() {
 
       // Even if user opted in locally, remote kill switch takes precedence
       service.setUserOptIn(FeatureBundle.advancedTrading, true);
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isFalse);
     });
 
@@ -81,13 +85,16 @@ void main() {
       );
 
       expect(
-          service.isFeatureEnabled(FeatureBundle.automatedTrading, userRole: UserRole.admin),
+          service.isFeatureEnabled(FeatureBundle.automatedTrading,
+              userRole: UserRole.admin),
           isTrue);
       expect(
-          service.isFeatureEnabled(FeatureBundle.accountTools, userRole: UserRole.admin),
+          service.isFeatureEnabled(FeatureBundle.accountTools,
+              userRole: UserRole.admin),
           isTrue);
       expect(
-          service.isFeatureEnabled(FeatureBundle.accountTools, userRole: UserRole.user),
+          service.isFeatureEnabled(FeatureBundle.accountTools,
+              userRole: UserRole.user),
           isFalse);
     });
 
@@ -101,23 +108,30 @@ void main() {
       );
 
       // Initially not enabled
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isFalse);
 
       // User opts in
       await service.setUserOptIn(FeatureBundle.advancedTrading, true);
       expect(service.isUserOptedIn(FeatureBundle.advancedTrading), isTrue);
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isTrue);
 
       // User opts out
       await service.setUserOptIn(FeatureBundle.advancedTrading, false);
       expect(service.isUserOptedIn(FeatureBundle.advancedTrading), isFalse);
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isFalse);
     });
 
-    test('Disabling self-serve opt-in blocks user-toggled beta features', () async {
+    test('Disabling self-serve opt-in blocks user-toggled beta features',
+        () async {
       final service = FeatureAccessService(
         prefs: prefs,
         remoteConfig: RemoteConfigService.instance,
@@ -128,13 +142,17 @@ void main() {
       );
 
       await service.setUserOptIn(FeatureBundle.advancedTrading, true);
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isTrue);
 
       // Administrator disables self opt-in remotely
       service.setOverrideSelfOptIn(false);
       expect(service.isSelfOptInEnabled, isFalse);
-      expect(service.isFeatureEnabled(FeatureBundle.advancedTrading, userRole: UserRole.user),
+      expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user),
           isFalse);
     });
 
@@ -204,7 +222,7 @@ void main() {
         brokerageUsers: const [],
         featureFlags: {
           'investorGroups': false, // Explicit opt-out in Firestore
-          'agenticTrading': true,  // Granted in Firestore
+          'agenticTrading': true, // Granted in Firestore
         },
       );
 
