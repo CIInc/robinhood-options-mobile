@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.2] - 2026-10-21
+**Reasoning-Mode Trade Quantity Respects Fixed Sizing**
+
+- **Fixed Quantity:** When Dynamic Sizing is off, Reasoning mode now uses the configured Trade Quantity instead of the AI-suggested quantity. With Dynamic Sizing enabled, the agent-suggested quantity remains in use.
+- **Automated Test Coverage:** Added regression tests for both Dynamic Sizing states in `functions/tests/alpha-riskguard-auth.test.ts`.
+
 ## [0.58.1] - 2026-10-20
 **Auto-Trade BUY Price Validation**
 
