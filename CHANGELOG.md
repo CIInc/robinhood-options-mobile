@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.1] - 2026-10-20
+**Auto-Trade BUY Price Validation**
+
+- **Live-Quote Entry Guard:** Auto-trade BUYs and queued BUY approvals are checked against a fresh quote. Entries more than 3% from the quote are skipped; accepted entries execute at the live quote. A failed quote request blocks the entry. If no quote source, user, or quote store is available, the stored price remains the fallback.
+- **Approval Queue:** A stale BUY approval is removed from the local queue and Firestore instead of being executed at its outdated price.
+- **Automated Test Coverage:** Added tests for the deviation threshold, stale approval rejection, and filling a close-price approval at the live quote (`test/agentic_trading_provider_test.dart`).
+
 ## [0.58.0] - 2026-10-20
 **Feature Access Gating & Beta Labs, 5-Tier GEX Sequential Stop Queue, Auth Badges & Hardening ([docs](docs/feature-access-and-beta-gating.md), [docs](docs/agentic-trading.md), [Tracking: #239](https://github.com/CIInc/robinhood-options-mobile/issues/239))**
 

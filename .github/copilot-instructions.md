@@ -7,6 +7,7 @@ Key facts (quick):
 - Flutter mobile app (Dart) in `src/robinhood_options_mobile/`.
 - Backend helpers and server code live under `src/robinhood_options_mobile/functions/` and `src/robinhood_options_mobile/firebase/` (Firebase Functions + admin tooling).
 - Firebase is heavily used: `firebase_core`, `firebase_auth`, `cloud_firestore`, `cloud_functions`, `firebase_analytics`, and `firebase_ai`.
+- Auto-trade BUYs validate the stored price against a live quote in `AgenticTradingProvider`; deviations over 3% and quote-fetch failures block execution. If quote context is unavailable, the stored price remains the fallback.
 
 Quick-start commands an agent can recommend or run (macOS / zsh):
 - Install and verify environment: `flutter doctor -v`.
