@@ -96,7 +96,11 @@ jest.mock("firebase-admin/firestore", () => ({
   },
 }));
 
-import { deleteGroupWatchlist, addSymbolToWatchlist, createPriceAlert } from "../src/group-watchlists";
+import {
+  deleteGroupWatchlist,
+  addSymbolToWatchlist,
+  createPriceAlert,
+} from "../src/group-watchlists";
 
 describe("addSymbolToWatchlist validation", () => {
   test("rejects missing or non-string symbol", async () => {

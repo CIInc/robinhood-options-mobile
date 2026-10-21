@@ -294,7 +294,8 @@ export const createPriceAlert = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol, type, threshold } = request.data || {};
+    const { groupId, watchlistId, symbol, type, threshold } =
+      request.data || {};
     const userId = request.auth.uid;
 
     if (!groupId || typeof groupId !== "string" ||
@@ -313,7 +314,11 @@ export const createPriceAlert = onCall(
       );
     }
 
-    if (typeof threshold !== "number" || !Number.isFinite(threshold) || threshold <= 0) {
+    if (
+      typeof threshold !== "number" ||
+      !Number.isFinite(threshold) ||
+      threshold <= 0
+    ) {
       throw new HttpsError(
         "invalid-argument",
         "Alert threshold must be a positive number"
