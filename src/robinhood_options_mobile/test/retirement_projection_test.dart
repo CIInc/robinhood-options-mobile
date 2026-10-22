@@ -295,6 +295,45 @@ void main() {
         findsOneWidget,
       );
 
+      // Check Gold stat box semantics
+      expect(
+        find.bySemanticsLabel(
+            RegExp(r'Year 1 Match Bonus: \$[0-9,]+\.[0-9]{2}\..*')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+            RegExp(r'Gold Fee Break-Even: \$[0-9,]+\.[0-9]{2}\..*')),
+        findsOneWidget,
+      );
+
+      // Expand tax comparison and check semantics
+      final taxTile = find.text('Tax-Advantaged Growth vs. Taxable Account');
+      await tester.ensureVisible(taxTile);
+      await tester.tap(taxTile);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(RegExp(r'IRA Account: \$[0-9,]+\.[0-9]{2}\..*')),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(
+            RegExp(r'Taxable Account: \$[0-9,]+\.[0-9]{2}\..*')),
+        findsOneWidget,
+      );
+
+      // Expand milestones and check semantics
+      final milestonesTile = find.text('5-Year Forecast Milestones');
+      await tester.ensureVisible(milestonesTile);
+      await tester.tap(milestonesTile);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel(RegExp(r'Year 5: \$[0-9,]+\.[0-9]{2}.*')),
+        findsOneWidget,
+      );
+
       handle.dispose();
     });
   });

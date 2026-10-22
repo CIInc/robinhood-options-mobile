@@ -459,35 +459,41 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
       BuildContext context, String title, String value, String subtitle) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.green,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$title: $value. $subtitle',
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style:
+                  TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -786,27 +792,32 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
   Widget _buildComparisonColumn(BuildContext context, String title,
       String amount, String note, Color amountColor) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 2),
-        Text(
-          amount,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: amountColor,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$title: $amount. $note',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(
+            amount,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: amountColor,
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          note,
-          style: TextStyle(
-            fontSize: 10,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          const SizedBox(height: 2),
+          Text(
+            note,
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -850,31 +861,40 @@ class _RetirementProjectionCardState extends State<RetirementProjectionCard> {
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               children: milestones.map((m) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Year ${m.year}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        _currencyFormat.format(m.balanceWithMatch),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                      if (m.cumulativeMatch > 0)
+                final balanceText = _currencyFormat.format(m.balanceWithMatch);
+                final matchText = m.cumulativeMatch > 0
+                    ? ', +${_currencyFormat.format(m.matchWealthGenerated)} match'
+                    : '';
+                return Semantics(
+                  container: true,
+                  excludeSemantics: true,
+                  label: 'Year ${m.year}: $balanceText$matchText',
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Text(
-                          '+${_currencyFormat.format(m.matchWealthGenerated)} match',
+                          'Year ${m.year}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          balanceText,
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.amber,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
                           ),
                         ),
-                    ],
+                        if (m.cumulativeMatch > 0)
+                          Text(
+                            '+${_currencyFormat.format(m.matchWealthGenerated)} match',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.amber,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               }).toList(),
