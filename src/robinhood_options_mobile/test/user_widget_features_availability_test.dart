@@ -563,7 +563,7 @@ void main() {
     });
 
     testWidgets(
-        'Admin user sees Advanced Trading features regardless of opt-in',
+        'Admin user has beta features disabled by default and sees them when opted in',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 1.0;
@@ -615,7 +615,28 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Even with opt-in false, Admin sees Automated Trading and Backtesting
+      // By default with opt-in false, beta features are hidden even for Admin
+      expect(
+          find.widgetWithText(ListTile, 'Automated Trading'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Backtesting'), findsNothing);
+
+      // When Admin opts in, beta features appear
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.automatedTrading,
+        true,
+      );
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.backtesting,
+        true,
+      );
+
+      await tester.pumpWidget(createTestApp(
+        auth: loggedInAuth,
+        brokerageUser: demoUser,
+        service: demoService,
+      ));
+      await tester.pumpAndSettle();
+
       expect(
           find.widgetWithText(ListTile, 'Automated Trading'), findsOneWidget);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsOneWidget);

@@ -659,13 +659,18 @@ class _AuthGateState extends State<AuthGate> {
       if (firstTotpHint != null) {
         if (mounted) {
           final code = await getSmsCodeFromUser(context);
-          final assertion =
-              await TotpMultiFactorGenerator.getAssertionForSignIn(
-            firstTotpHint.uid,
-            code!,
-          );
-          await e.resolver.resolveSignIn(assertion);
-          return;
+          if (code != null) {
+            final assertion =
+                await TotpMultiFactorGenerator.getAssertionForSignIn(
+              firstTotpHint.uid,
+              code,
+            );
+            await e.resolver.resolveSignIn(assertion);
+            if (auth.currentUser != null) {
+              await _completeSignIn(auth.currentUser!);
+            }
+            return;
+          }
         }
       }
 
@@ -678,7 +683,20 @@ class _AuthGateState extends State<AuthGate> {
       await auth.verifyPhoneNumber(
         multiFactorSession: e.resolver.session,
         multiFactorInfo: firstPhoneHint,
-        verificationCompleted: (_) {},
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          try {
+            await e.resolver.resolveSignIn(
+              PhoneMultiFactorGenerator.getAssertion(
+                credential,
+              ),
+            );
+            if (auth.currentUser != null) {
+              await _completeSignIn(auth.currentUser!);
+            }
+          } catch (e) {
+            debugPrint('Phone MFA auto-verification failed: $e');
+          }
+        },
         verificationFailed: print,
         codeSent: (String verificationId, int? resendToken) async {
           final smsCode = await getSmsCodeFromUser(context);
@@ -893,12 +911,24 @@ class _AuthGateState extends State<AuthGate> {
               smsCode: smsCode,
             );
             await auth.signInWithCredential(credential);
+            if (auth.currentUser != null) {
+              await _completeSignIn(auth.currentUser!);
+            }
           }
         }
       } else {
         await auth.verifyPhoneNumber(
           phoneNumber: phoneController.text,
-          verificationCompleted: (_) {},
+          verificationCompleted: (PhoneAuthCredential credential) async {
+            try {
+              await auth.signInWithCredential(credential);
+              if (auth.currentUser != null) {
+                await _completeSignIn(auth.currentUser!);
+              }
+            } catch (e) {
+              debugPrint('Phone auto-verification failed: $e');
+            }
+          },
           verificationFailed: (e) {
             setState(() {
               error = '${e.message}';

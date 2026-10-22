@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../enums.dart';
@@ -127,10 +128,11 @@ class FeatureAccessService extends ChangeNotifier {
   }
 
   /// Sets the user preference (opt-in or opt-out) for [bundle].
-  /// Synchronizes to local SharedPreferences and optional Cloud Firestore [userDocRef].
+  /// Synchronizes to local SharedPreferences, in-memory [user], and optional Cloud Firestore [userDocRef].
   Future<void> setUserPreference(
     FeatureBundle bundle,
     bool enabled, {
+    User? user,
     dynamic userDocRef,
   }) async {
     final prefs = _prefs;
@@ -156,9 +158,20 @@ class FeatureAccessService extends ChangeNotifier {
       }
     }
 
+    if (user != null) {
+      user.featureFlags ??= {};
+      user.featureFlags![bundle.name] = enabled;
+    }
+
     if (userDocRef != null) {
       try {
-        await userDocRef.update({'featureFlags.${bundle.name}': enabled});
+        if (userDocRef is DocumentReference) {
+          await userDocRef.firestore.doc(userDocRef.path).set({
+            'featureFlags': {bundle.name: enabled}
+          }, SetOptions(merge: true));
+        } else {
+          await userDocRef.update({'featureFlags.${bundle.name}': enabled});
+        }
       } catch (e) {
         debugPrint('Failed to sync feature flag to Firestore: $e');
       }
@@ -171,12 +184,13 @@ class FeatureAccessService extends ChangeNotifier {
   Future<void> setUserOptIn(
     FeatureBundle bundle,
     bool enabled, {
+    User? user,
     dynamic userDocRef,
   }) =>
-      setUserPreference(bundle, enabled, userDocRef: userDocRef);
+      setUserPreference(bundle, enabled, user: user, userDocRef: userDocRef);
 
   /// Resets all local user beta opt-ins and opt-outs.
-  Future<void> resetAllOptIns({dynamic userDocRef}) async {
+  Future<void> resetAllOptIns({User? user, dynamic userDocRef}) async {
     final prefs = _prefs;
     if (prefs != null) {
       for (final bundle in FeatureBundle.values) {
@@ -184,9 +198,18 @@ class FeatureAccessService extends ChangeNotifier {
         await prefs.remove('beta_opt_out_${bundle.name}');
       }
     }
+    if (user != null) {
+      user.featureFlags?.clear();
+    }
     if (userDocRef != null) {
       try {
-        await userDocRef.update({'featureFlags': {}});
+        if (userDocRef is DocumentReference) {
+          await userDocRef.firestore.doc(userDocRef.path).set({
+            'featureFlags': <String, dynamic>{}
+          }, SetOptions(mergeFields: ['featureFlags']));
+        } else {
+          await userDocRef.update({'featureFlags': {}});
+        }
       } catch (e) {
         debugPrint('Failed to reset feature flags in Firestore: $e');
       }
@@ -195,11 +218,11 @@ class FeatureAccessService extends ChangeNotifier {
   }
 
   /// Evaluates whether [bundle] is available based on:
-  /// 1. Admin bypass: admins have full access.
-  /// 2. Remote kill switch: "disabled" or "adminOnly" forces OFF for non-admins.
-  /// 3. Firestore user document: explicit userDoc override.
+  /// 1. Remote kill switch: "disabled" forces OFF for everyone.
+  /// 2. Admin-only: forces OFF for non-admins. For admins, available via opt-in.
+  /// 3. Firestore user document: explicit userDoc override (takes highest precedence for user & admin).
   /// 4. Rollout mode "public": ON by default unless user opted out.
-  /// 5. Rollout mode "betaOptIn": enabled if user opted in via Beta Labs.
+  /// 5. Rollout mode "betaOptIn": OFF by default (even for admins); enabled only if user opted in.
   /// 6. Fail-closed: unhandled / unknown modes default to false.
   bool isFeatureEnabled(
     FeatureBundle bundle, {
@@ -207,12 +230,7 @@ class FeatureAccessService extends ChangeNotifier {
     User? user,
     bool isAnonymous = false,
   }) {
-    // 1. Admin bypass
-    if (userRole == UserRole.admin) {
-      return true;
-    }
-
-    // 2. Query Remote Config rollout state
+    // 1. Query Remote Config rollout state
     final mode = getRolloutMode(bundle);
 
     // Global kill switch
@@ -220,28 +238,31 @@ class FeatureAccessService extends ChangeNotifier {
       return false;
     }
 
-    // 3. User document cloud override takes highest user-level precedence
+    // 2. User document cloud override takes highest user-level precedence (including admins and explicit user grants)
     if (user?.featureFlags != null &&
         user!.featureFlags!.containsKey(bundle.name)) {
       return user.featureFlags![bundle.name]!;
     }
 
-    if (mode == FeatureRolloutMode.adminOnly) {
+    // Admin-only features are inaccessible to non-admins without explicit cloud grant
+    if (mode == FeatureRolloutMode.adminOnly && userRole != UserRole.admin) {
       return false;
     }
 
-    // 4. Rollout mode evaluation
+    // 3. Rollout mode evaluation (all beta features disabled by default; only public enabled by default)
     switch (mode) {
       case FeatureRolloutMode.disabled:
-      case FeatureRolloutMode.adminOnly:
         return false;
+
+      case FeatureRolloutMode.adminOnly:
+        return isUserOptedIn(bundle);
 
       case FeatureRolloutMode.public:
         // Enabled by default unless user explicitly opted out
         return !isUserOptedOut(bundle);
 
       case FeatureRolloutMode.betaOptIn:
-        if (!isSelfOptInEnabled) {
+        if (!isSelfOptInEnabled && userRole != UserRole.admin) {
           return false;
         }
         return isUserOptedIn(bundle);

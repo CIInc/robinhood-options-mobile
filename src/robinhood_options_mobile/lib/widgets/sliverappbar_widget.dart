@@ -607,9 +607,12 @@ Future<String?> showProfile(
                         userRole = user.role; // authUtil.userRole();
                       }
                       if (context.mounted) {
+                        final identifier = firebaseUser.displayName ??
+                            firebaseUser.phoneNumber ??
+                            firebaseUser.email;
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                             content: Text(
-                                'Signed in ${firebaseUser.displayName != null ? 'as ${firebaseUser.displayName}' : ''}'),
+                                'Signed in ${identifier != null ? 'as $identifier' : ''}'),
                             behavior: SnackBarBehavior.floating));
                         Navigator.pop(context);
                       }
@@ -695,9 +698,12 @@ Future<String?> showLogin(BuildContext context, FirebaseAuth auth,
                     userRole = user.role; // authUtil.userRole();
                   }
                   if (context.mounted) {
+                    final identifier = firebaseUser.displayName ??
+                        firebaseUser.phoneNumber ??
+                        firebaseUser.email;
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text(
-                            'Signed in ${firebaseUser.displayName != null ? 'as ${firebaseUser.displayName}' : ''}'),
+                            'Signed in ${identifier != null ? 'as $identifier' : ''}'),
                         behavior: SnackBarBehavior.floating));
                     if (Navigator.canPop(context)) {
                       Navigator.pop(context);
