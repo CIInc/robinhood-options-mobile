@@ -1095,18 +1095,20 @@ export function detectChartPattern(
     };
   }
 
+  // Performance optimization: Evaluate pattern heuristics directly over
+  // full array index ranges without allocating windowPrices, recentPrices,
+  // set, pole, flag, or volume slices (~zero transient array churn).
   const lookback = 60; // maximum historical window inspected
   const start = Math.max(0, endIndex - Math.min(lookback, endIndex));
-  const windowPrices = prices.slice(start, endIndex);
-  // Short window for moving averages and breakout checks
-  const recentPrices = windowPrices.slice(-30);
-  const currentPrice = recentPrices[recentPrices.length - 1];
-  const prevPrice = recentPrices[recentPrices.length - 2];
+  const windowLen = endIndex - start;
+
+  const currentPrice = prices[endIndex - 1];
+  const prevPrice = prices[endIndex - 2];
 
   // Moving averages for trend context
-  const ma5 = computeSMA(recentPrices, 5);
-  const ma10 = computeSMA(recentPrices, 10);
-  const ma20 = computeSMA(recentPrices, 20);
+  const ma5 = computeSMA(prices, 5, endIndex);
+  const ma10 = computeSMA(prices, 10, endIndex);
+  const ma20 = computeSMA(prices, 20, endIndex);
   if (!ma5 || !ma10 || !ma20) {
     return {
       value: null,
@@ -1116,46 +1118,50 @@ export function detectChartPattern(
   }
 
   // Helper: linear regression slope (simplified) for overall trend direction
+  const recentLen = Math.min(30, windowLen);
+  const startRecent = endIndex - recentLen;
   const slope = (() => {
-    const n = recentPrices.length;
-    const xSum = (n * (n - 1)) / 2;
-    const xMean = xSum / n;
-    const yMean = recentPrices.reduce((a, b) => a + b, 0) / n;
+    let ySum = 0;
+    for (let i = startRecent; i < endIndex; i++) {
+      ySum += prices[i];
+    }
+    const xSum = (recentLen * (recentLen - 1)) / 2;
+    const xMean = xSum / recentLen;
+    const yMean = ySum / recentLen;
     let num = 0;
     let den = 0;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < recentLen; i++) {
       const x = i;
-      const y = recentPrices[i];
+      const y = prices[startRecent + i];
       num += (x - xMean) * (y - yMean);
       den += (x - xMean) * (x - xMean);
     }
     return den === 0 ? 0 : num / den;
   })();
 
+  // Utility to get price at relative index (from start of window)
+  const px = (i: number) => prices[start + i];
+
   /**
-   * Find local extrema indices using a 2-bar look-back/look-forward.
-   * @param {number[]} pr Price array
-   * @return {{peaks:number[], troughs:number[]}} Peak & trough indices
+   * Find local extrema relative indices using a 2-bar look-back/look-forward.
+   * @return {{peaks:number[], troughs:number[]}} Peak & trough relative indices
    */
-  function findExtrema(pr: number[]): { peaks: number[]; troughs: number[] } {
+  function findExtrema(): { peaks: number[]; troughs: number[] } {
     const peaks: number[] = [];
     const troughs: number[] = [];
-    for (let i = 2; i < pr.length - 2; i++) {
-      const p = pr[i];
-      if (p > pr[i - 1] && p > pr[i - 2] && p > pr[i + 1] && p > pr[i + 2]) {
+    for (let i = 2; i < windowLen - 2; i++) {
+      const p = px(i);
+      if (p > px(i - 1) && p > px(i - 2) && p > px(i + 1) && p > px(i + 2)) {
         peaks.push(i);
       }
-      if (p < pr[i - 1] && p < pr[i - 2] && p < pr[i + 1] && p < pr[i + 2]) {
+      if (p < px(i - 1) && p < px(i - 2) && p < px(i + 1) && p < px(i + 2)) {
         troughs.push(i);
       }
     }
     return { peaks, troughs };
   }
 
-  const { peaks, troughs } = findExtrema(windowPrices);
-
-  // Utility to get price at index (from full window)
-  const px = (i: number) => windowPrices[i];
+  const { peaks, troughs } = findExtrema();
 
   interface PatternCandidate {
     key: string;
@@ -1171,12 +1177,15 @@ export function detectChartPattern(
   const breakout = currentPrice > ma20 * 1.02 &&
     currentPrice > ma10 && prevPrice <= ma20 * 1.02;
   if (breakout) {
-    // Volume confirmation
+    // Volume confirmation without array slicing
     let volumeBoost = 0;
-    if (volumes && volumes.length >= 30) {
-      const recentVol = volumes.slice(-30);
-      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
-      const lastVol = recentVol[recentVol.length - 1];
+    if (volumes && endIndex >= 30 && volumes.length >= endIndex) {
+      let sumVol = 0;
+      for (let i = endIndex - 30; i < endIndex; i++) {
+        sumVol += volumes[i];
+      }
+      const avgVol = sumVol / 30;
+      const lastVol = volumes[endIndex - 1];
       volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
     }
     patterns.push({
@@ -1191,10 +1200,13 @@ export function detectChartPattern(
     currentPrice < ma10 && prevPrice >= ma20 * 0.98;
   if (breakdown) {
     let volumeBoost = 0;
-    if (volumes && volumes.length >= 30) {
-      const recentVol = volumes.slice(-30);
-      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
-      const lastVol = recentVol[recentVol.length - 1];
+    if (volumes && endIndex >= 30 && volumes.length >= endIndex) {
+      let sumVol = 0;
+      for (let i = endIndex - 30; i < endIndex; i++) {
+        sumVol += volumes[i];
+      }
+      const avgVol = sumVol / 30;
+      const lastVol = volumes[endIndex - 1];
       volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
     }
     patterns.push({
@@ -1209,25 +1221,29 @@ export function detectChartPattern(
   // 2. Double Top / Double Bottom
   const tolerancePct = 0.02; // 2% tolerance for peak/trough height similarity
 
-  // Helper for inline min/max over subarray range [start, end)
-  const rangeMin = (arr: number[], start: number, end: number): number => {
-    if (start >= end || start < 0 || end > arr.length) {
+  // Helper for inline min/max over relative window range [startIdx, endIdx)
+  const rangeMin = (startIdx: number, endIdx: number): number => {
+    const absStart = start + startIdx;
+    const absEnd = start + endIdx;
+    if (startIdx >= endIdx || absStart < 0 || absEnd > endIndex) {
       return Number.POSITIVE_INFINITY;
     }
-    let min = arr[start];
-    for (let i = start + 1; i < end; i++) {
-      if (arr[i] < min) min = arr[i];
+    let min = prices[absStart];
+    for (let i = absStart + 1; i < absEnd; i++) {
+      if (prices[i] < min) min = prices[i];
     }
     return min;
   };
 
-  const rangeMax = (arr: number[], start: number, end: number): number => {
-    if (start >= end || start < 0 || end > arr.length) {
+  const rangeMax = (startIdx: number, endIdx: number): number => {
+    const absStart = start + startIdx;
+    const absEnd = start + endIdx;
+    if (startIdx >= endIdx || absStart < 0 || absEnd > endIndex) {
       return Number.NEGATIVE_INFINITY;
     }
-    let max = arr[start];
-    for (let i = start + 1; i < end; i++) {
-      if (arr[i] > max) max = arr[i];
+    let max = prices[absStart];
+    for (let i = absStart + 1; i < absEnd; i++) {
+      if (prices[i] > max) max = prices[i];
     }
     return max;
   };
@@ -1246,7 +1262,7 @@ export function detectChartPattern(
     if (similarHeight) {
       // Find the neckline (lowest trough between the two peaks)
       const neckline = idxB > idxA ?
-        rangeMin(windowPrices, idxA, idxB) :
+        rangeMin(idxA, idxB) :
         Number.POSITIVE_INFINITY;
 
       // Confirmation: Price breaks below neckline
@@ -1280,7 +1296,7 @@ export function detectChartPattern(
     if (similarOne) {
       // Find the neckline (highest peak between the two troughs)
       const neckline = idxB > idxA ?
-        rangeMax(windowPrices, idxA, idxB) :
+        rangeMax(idxA, idxB) :
         Number.NEGATIVE_INFINITY;
 
       // Confirmation: Price breaks above neckline
@@ -1317,9 +1333,9 @@ export function detectChartPattern(
     if (headHigher && shouldersLevel) {
       // Neckline: Line connecting the two troughs
       // Trough 1: between Left Shoulder and Head
-      const t1 = idx2 > idx1 ? rangeMin(windowPrices, idx1, idx2) : 0;
+      const t1 = idx2 > idx1 ? rangeMin(idx1, idx2) : 0;
       // Trough 2: between Head and Right Shoulder
-      const t2 = idx3 > idx2 ? rangeMin(windowPrices, idx2, idx3) : 0;
+      const t2 = idx3 > idx2 ? rangeMin(idx2, idx3) : 0;
 
       const necklineAvg = (t1 + t2) / 2;
 
@@ -1346,8 +1362,16 @@ export function detectChartPattern(
    */
   function isAscendingTriangle(): PatternCandidate | null {
     if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
+    const lastPeaks = [
+      px(peaks[peaks.length - 3]),
+      px(peaks[peaks.length - 2]),
+      px(peaks[peaks.length - 1]),
+    ];
+    const lastTroughs = [
+      px(troughs[troughs.length - 3]),
+      px(troughs[troughs.length - 2]),
+      px(troughs[troughs.length - 1]),
+    ];
     const flatHighs = Math.max(...lastPeaks) - Math.min(...lastPeaks);
     const risingLows = lastTroughs[0] < lastTroughs[1] &&
       lastTroughs[1] < lastTroughs[2];
@@ -1368,8 +1392,16 @@ export function detectChartPattern(
    */
   function isDescendingTriangle(): PatternCandidate | null {
     if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
+    const lastPeaks = [
+      px(peaks[peaks.length - 3]),
+      px(peaks[peaks.length - 2]),
+      px(peaks[peaks.length - 1]),
+    ];
+    const lastTroughs = [
+      px(troughs[troughs.length - 3]),
+      px(troughs[troughs.length - 2]),
+      px(troughs[troughs.length - 1]),
+    ];
     const flatLows = Math.max(...lastTroughs) - Math.min(...lastTroughs);
     const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
       lastPeaks[1] > lastPeaks[2];
@@ -1392,8 +1424,16 @@ export function detectChartPattern(
    */
   function isSymmetricalTriangle(): PatternCandidate | null {
     if (peaks.length < 3 || troughs.length < 3) return null;
-    const lastPeaks = peaks.slice(-3).map(px);
-    const lastTroughs = troughs.slice(-3).map(px);
+    const lastPeaks = [
+      px(peaks[peaks.length - 3]),
+      px(peaks[peaks.length - 2]),
+      px(peaks[peaks.length - 1]),
+    ];
+    const lastTroughs = [
+      px(troughs[troughs.length - 3]),
+      px(troughs[troughs.length - 2]),
+      px(troughs[troughs.length - 1]),
+    ];
 
     // Peaks descending: P1 > P2 > P3
     const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
@@ -1435,22 +1475,19 @@ export function detectChartPattern(
 
   // 5. Cup & Handle
   const cupHandleCandidate = (() => {
-    if (windowPrices.length < 45) return null;
-    const len = windowPrices.length;
+    if (windowLen < 45) return null;
 
     // Identify regions for Left Lip, Bottom, Right Lip, and Handle
-    const leftHigh = rangeMax(windowPrices, 0, Math.floor(len * 0.4));
+    const leftHigh = rangeMax(0, Math.floor(windowLen * 0.4));
     const midLow = rangeMin(
-      windowPrices,
-      Math.floor(len * 0.3),
-      Math.floor(len * 0.7)
+      Math.floor(windowLen * 0.3),
+      Math.floor(windowLen * 0.7)
     );
     const rightHigh = rangeMax(
-      windowPrices,
-      Math.floor(len * 0.6),
-      Math.floor(len * 0.9)
+      Math.floor(windowLen * 0.6),
+      Math.floor(windowLen * 0.9)
     );
-    const handleLow = rangeMin(windowPrices, Math.floor(len * 0.85), len);
+    const handleLow = rangeMin(Math.floor(windowLen * 0.85), windowLen);
 
     // Heuristics: Depth > 2%, Rims within 15%, Handle retrace < 60% of depth
     const depth = (rightHigh - midLow) / rightHigh;
@@ -1481,19 +1518,19 @@ export function detectChartPattern(
 
   // 6. Flag (strong trend followed by consolidation)
   const flagCandidate = (() => {
-    if (windowPrices.length < 20) return null;
+    if (windowLen < 20) return null;
 
-    // Use last 20 bars: Pole (0-12) and Flag (13-20)
-    const set = windowPrices.slice(-20);
-    const pole = set.slice(0, 13);
-    const flag = set.slice(13);
-
-    const poleStart = pole[0];
-    const poleEnd = pole[pole.length - 1];
+    // Use last 20 bars: Pole (0-12, i.e. 13 bars) and Flag (13-19, i.e. 7 bars)
+    const poleStart = prices[endIndex - 20];
+    const poleEnd = prices[endIndex - 7];
     const poleMove = (poleEnd - poleStart) / poleStart;
 
-    const flagHigh = Math.max(...flag);
-    const flagLow = Math.min(...flag);
+    let flagHigh = prices[endIndex - 7];
+    let flagLow = prices[endIndex - 7];
+    for (let i = endIndex - 6; i < endIndex; i++) {
+      if (prices[i] > flagHigh) flagHigh = prices[i];
+      if (prices[i] < flagLow) flagLow = prices[i];
+    }
     const flagRange = (flagHigh - flagLow) / flagLow;
 
     // 1. Strong Pole Move (>3% absolute)
@@ -1503,7 +1540,7 @@ export function detectChartPattern(
     if (flagRange > 0.025) return null;
 
     // 3. Flag should not retrace more than 50% of the pole
-    const retrace = Math.abs(flag[flag.length - 1] - poleEnd) /
+    const retrace = Math.abs(prices[endIndex - 1] - poleEnd) /
       Math.abs(poleEnd - poleStart);
     if (retrace > 0.5) return null;
 
@@ -1524,7 +1561,7 @@ export function detectChartPattern(
 
   // 7. Candlestick Patterns (if OHLC data available)
   if (opens && highs && lows && opens.length >= 2) {
-    const i = prices.length - 1; // Current (latest) candle
+    const i = endIndex - 1; // Current (latest) candle
     const open = opens[i];
     const close = prices[i];
     const high = highs[i];
@@ -1697,19 +1734,20 @@ export function evaluateMomentum(
     // Look at last 30 bars (or fewer)
     const lookback = 30;
     const startIdx = Math.max(0, rsiSeries.length - lookback);
-    const recentRSI = rsiSeries.slice(startIdx);
+    const recentLen = rsiSeries.length - startIdx;
+    const getRSI = (k: number) => rsiSeries[startIdx + k];
 
-    // Map recentRSI index k to prices index
+    // Map relative index k to prices index
     const getPriceIdx = (k: number) => rsiPeriod + startIdx + k;
 
     // 1. Identify RSI Extrema
     const rsiPeaks: number[] = [];
     const rsiTroughs: number[] = [];
-    for (let i = 1; i < recentRSI.length - 1; i++) {
-      if (recentRSI[i] > recentRSI[i - 1] && recentRSI[i] > recentRSI[i + 1]) {
+    for (let i = 1; i < recentLen - 1; i++) {
+      if (getRSI(i) > getRSI(i - 1) && getRSI(i) > getRSI(i + 1)) {
         rsiPeaks.push(i);
       }
-      if (recentRSI[i] < recentRSI[i - 1] && recentRSI[i] < recentRSI[i + 1]) {
+      if (getRSI(i) < getRSI(i - 1) && getRSI(i) < getRSI(i + 1)) {
         rsiTroughs.push(i);
       }
     }
@@ -1721,7 +1759,7 @@ export function evaluateMomentum(
       const t1 = rsiTroughs[rsiTroughs.length - 2]; // older
 
       // RSI Higher Low?
-      if (recentRSI[t2] > recentRSI[t1] && recentRSI[t2] < 50) {
+      if (getRSI(t2) > getRSI(t1) && getRSI(t2) < 50) {
         // Price Lower Low?
         const p2 = prices[getPriceIdx(t2)];
         const p1 = prices[getPriceIdx(t1)];
@@ -1737,7 +1775,7 @@ export function evaluateMomentum(
       const p1 = rsiPeaks[rsiPeaks.length - 2]; // older
 
       // RSI Lower High?
-      if (recentRSI[p2] < recentRSI[p1] && recentRSI[p2] > 50) {
+      if (getRSI(p2) < getRSI(p1) && getRSI(p2) > 50) {
         // Price Higher High?
         const price2 = prices[getPriceIdx(p2)];
         const price1 = prices[getPriceIdx(p1)];
@@ -1749,12 +1787,12 @@ export function evaluateMomentum(
 
     // Simplified RSI Trend (Short term momentum direction)
     // Compare last 3 bars vs previous 3 bars without array slicing
-    const n = recentRSI.length;
+    const n = recentLen;
     const recentAvg =
-      (recentRSI[n - 1] + recentRSI[n - 2] + recentRSI[n - 3]) / 3;
+      (getRSI(n - 1) + getRSI(n - 2) + getRSI(n - 3)) / 3;
     const prevAvg = n >= 6 ?
-      (recentRSI[n - 4] + recentRSI[n - 5] + recentRSI[n - 6]) / 3 :
-      recentRSI[0];
+      (getRSI(n - 4) + getRSI(n - 5) + getRSI(n - 6)) / 3 :
+      getRSI(0);
     rsiTrend = recentAvg - prevAvg;
 
     const pLen = endIndex;
