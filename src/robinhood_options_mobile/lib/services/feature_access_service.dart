@@ -204,9 +204,9 @@ class FeatureAccessService extends ChangeNotifier {
     if (userDocRef != null) {
       try {
         if (userDocRef is DocumentReference) {
-          await userDocRef.firestore.doc(userDocRef.path).set({
-            'featureFlags': <String, dynamic>{}
-          }, SetOptions(mergeFields: ['featureFlags']));
+          await userDocRef.firestore.doc(userDocRef.path).set(
+              {'featureFlags': <String, dynamic>{}},
+              SetOptions(mergeFields: ['featureFlags']));
         } else {
           await userDocRef.update({'featureFlags': {}});
         }

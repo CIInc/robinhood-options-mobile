@@ -616,8 +616,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // By default with opt-in false, beta features are hidden even for Admin
-      expect(
-          find.widgetWithText(ListTile, 'Automated Trading'), findsNothing);
+      expect(find.widgetWithText(ListTile, 'Automated Trading'), findsNothing);
       expect(find.widgetWithText(ListTile, 'Backtesting'), findsNothing);
 
       // When Admin opts in, beta features appear

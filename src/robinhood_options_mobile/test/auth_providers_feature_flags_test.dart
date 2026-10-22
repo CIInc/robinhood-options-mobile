@@ -207,8 +207,7 @@ void main() {
       );
 
       final updatedSnapshot = await docRef.get();
-      expect(
-          updatedSnapshot.data()?.featureFlags?['advancedTrading'], isTrue);
+      expect(updatedSnapshot.data()?.featureFlags?['advancedTrading'], isTrue);
 
       // 2. Public feature opt-out toggle
       await featureService.setUserPreference(
@@ -226,8 +225,8 @@ void main() {
       );
 
       final updatedSnapshot2 = await docRef.get();
-      expect(
-          updatedSnapshot2.data()?.featureFlags?['extendedBrokerages'], isFalse);
+      expect(updatedSnapshot2.data()?.featureFlags?['extendedBrokerages'],
+          isFalse);
 
       // 3. Reset opt-ins
       await featureService.resetAllOptIns(
@@ -293,8 +292,7 @@ void main() {
           brokerageUserStore: null,
         );
 
-        final docRef =
-            firestoreService.userCollection.doc(tc['uid'] as String);
+        final docRef = firestoreService.userCollection.doc(tc['uid'] as String);
 
         final featureService = FeatureAccessService(
           prefs: prefs,

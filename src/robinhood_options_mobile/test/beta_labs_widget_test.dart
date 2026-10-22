@@ -303,8 +303,8 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        final switchFinder = find.widgetWithText(
-            SwitchListTile, 'Extended Brokerages');
+        final switchFinder =
+            find.widgetWithText(SwitchListTile, 'Extended Brokerages');
         expect(switchFinder, findsOneWidget);
 
         SwitchListTile tile = tester.widget<SwitchListTile>(switchFinder);

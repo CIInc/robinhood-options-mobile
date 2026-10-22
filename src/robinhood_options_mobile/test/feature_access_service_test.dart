@@ -75,7 +75,9 @@ void main() {
           isFalse);
     });
 
-    test('Beta features are disabled by default even for admins, only public enabled by default', () async {
+    test(
+        'Beta features are disabled by default even for admins, only public enabled by default',
+        () async {
       final service = FeatureAccessService(
         prefs: prefs,
         remoteConfig: RemoteConfigService.instance,
