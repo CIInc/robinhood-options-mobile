@@ -45,3 +45,7 @@
 ## 2026-04-03 - Scalar Stochastic Oscillator Evaluation without Full-Series Array Allocations
 **Learning:** `evaluateStochastic` called `computeStochasticArray` and performed array slicing (`stochArray.slice(-20)`, `closes.slice(...)`) on every bar evaluation. In multi-indicator backtest loops and real-time scanning across 500+ bars, this generated hundreds of thousands of transient arrays and object wrappers, running in ~45.0 µs/op.
 **Action:** Refactor `evaluateStochastic` to evaluate scalar `computeStochastic` directly over the trailing lookback window without full-series array allocations or array slicing. This speeds up `evaluateStochastic` by ~15x (from 45.0 µs/op down to 3.0 µs/op) and eliminates GC memory overhead.
+
+## 2026-04-03 - Zero-Allocation Pattern Scan & RSI Momentum Evaluation
+**Learning:** `detectChartPattern` and `evaluateMomentum` were creating 6+ transient sub-arrays (`windowPrices`, `recentPrices`, `set`, `pole`, `flag`, `volumes.slice(-30)`, `rsiSeries.slice(startIdx)`) per bar evaluation. In multi-indicator backtests over thousands of bars, this generated millions of temporary array objects and triggered frequent GC pauses.
+**Action:** Access dataset arrays directly using window index offset helpers (`px(i) = prices[start + i]`, `getRSI(k) = rsiSeries[startIdx + k]`) and index loop bounds (`rangeMin`/`rangeMax`/Flag loops) to evaluate chart patterns and RSI momentum with zero transient array allocations.

@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -787,6 +788,7 @@ class _AgenticTradingSettingsWidgetState
       userDocRef: widget.userDocRef,
       paperTradingStore: paperTradingStore,
       heldQuantity: heldQuantity,
+      quoteStore: Provider.of<QuoteStore>(context, listen: false),
     );
     if (!mounted) return;
     messenger
