@@ -69,7 +69,8 @@ void main() {
       expect(find.byType(Card), findsOneWidget);
     });
 
-    testWidgets('Admin user sees OptionsFlowCardWidget regardless of opt-in',
+    testWidgets(
+        'Admin user sees OptionsFlowCardWidget when opted in, hidden when not opted in',
         (WidgetTester tester) async {
       app_main.userRole = UserRole.admin;
       await FeatureAccessService.instance.setUserOptIn(
@@ -77,6 +78,22 @@ void main() {
         false,
       );
 
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: OptionsFlowCardWidget(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Options Flow Analysis'), findsNothing);
+
+      // When admin opts in, it appears
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedResearch,
+        true,
+      );
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

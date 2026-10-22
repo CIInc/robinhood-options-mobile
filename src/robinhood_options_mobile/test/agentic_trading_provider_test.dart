@@ -68,6 +68,21 @@ class ApprovingTradeSignalsProvider {
   }
 }
 
+class FakeQuote {
+  final double? lastTradePrice;
+  final double? lastExtendedHoursTradePrice = null;
+  FakeQuote(this.lastTradePrice);
+}
+
+class FakeQuoteService {
+  final double? livePrice;
+  FakeQuoteService(this.livePrice);
+
+  Future<FakeQuote> getQuote(
+          dynamic user, dynamic store, String symbol) async =>
+      FakeQuote(livePrice);
+}
+
 void main() {
   group('AgenticTradingProvider Tests', () {
     late AgenticTradingProvider provider;
@@ -464,6 +479,59 @@ void main() {
 
       expect(approved, isFalse);
       expect(provider.pendingOrders, isEmpty);
+    });
+
+    test('isEntryPriceStale flags prices more than 3% from the live quote', () {
+      expect(AgenticTradingProvider.isEntryPriceStale(320.32, 471.83), isTrue);
+      expect(AgenticTradingProvider.isEntryPriceStale(470.0, 471.83), isFalse);
+      expect(AgenticTradingProvider.isEntryPriceStale(100.0, 0), isFalse);
+    });
+
+    test('approveOrder refuses and drops a BUY priced far from the live quote',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'BUY',
+        'quantity': 100,
+        'price': 320.32,
+      });
+
+      final approved = await provider.approveOrder(
+        provider.pendingOrders.first,
+        brokerageUser: 'user',
+        account: null,
+        brokerageService: FakeQuoteService(471.83),
+        quoteStore: 'store',
+      );
+
+      expect(approved, isFalse);
+      expect(provider.pendingOrders, isEmpty);
+      expect(provider.autoTradeHistory, isEmpty);
+    });
+
+    test('approveOrder fills a BUY at the live quote when it is close',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'BUY',
+        'quantity': 100,
+        'price': 470.0,
+      });
+
+      final approved = await provider.approveOrder(
+        provider.pendingOrders.first,
+        brokerageUser: 'user',
+        account: null,
+        brokerageService: FakeQuoteService(471.83),
+        quoteStore: 'store',
+      );
+
+      expect(approved, isTrue);
+      expect(provider.autoTradeHistory.first['price'], 471.83);
     });
 
     test('autoTrade clears pending BUYs for symbols already held', () async {

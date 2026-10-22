@@ -612,6 +612,7 @@ class AgenticTradingProvider with ChangeNotifier {
         instrumentStore: instrumentStore,
         paperTradingStore: paperTradingStore,
         userDocRef: userDocRef,
+        quoteStore: quoteStore,
       );
 
       // A blocked cycle (market closed, daily limit, cooldown) never evaluated
@@ -1390,6 +1391,49 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  /// Widest gap between a stored price and the live quote that still allows an entry.
+  static const double maxEntryPriceDeviation = 0.03;
+
+  @visibleForTesting
+  static bool isEntryPriceStale(double price, double livePrice) =>
+      livePrice > 0 &&
+      (price - livePrice).abs() / livePrice > maxEntryPriceDeviation;
+
+  /// Returns the live price to enter at, or null when the entry must be skipped.
+  /// Without a quote source the stored [price] is returned unchanged.
+  Future<double?> _confirmEntryPrice({
+    required dynamic brokerageService,
+    required dynamic brokerageUser,
+    required dynamic quoteStore,
+    required String symbol,
+    required double price,
+  }) async {
+    if (brokerageService == null ||
+        brokerageUser == null ||
+        quoteStore == null) {
+      return price;
+    }
+    double? live;
+    try {
+      final quote =
+          await brokerageService.getQuote(brokerageUser, quoteStore, symbol);
+      live = quote.lastTradePrice ?? quote.lastExtendedHoursTradePrice;
+    } catch (e) {
+      _log('⏭️ Skipping BUY for $symbol: could not confirm live price ($e)');
+      return null;
+    }
+    if (live == null || live <= 0) {
+      _log('⏭️ Skipping BUY for $symbol: no live price available');
+      return null;
+    }
+    if (isEntryPriceStale(price, live)) {
+      _log(
+          '⏭️ Skipping BUY for $symbol: stored price \$$price is stale vs live \$$live');
+      return null;
+    }
+    return live;
+  }
+
   /// Helper to execute order (handles paper vs real)
   Future<http.Response> _executeOrder({
     required dynamic brokerageService,
@@ -1460,6 +1504,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic tradeSignalsProvider,
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
+    dynamic quoteStore,
   }) async {
     _isAutoTrading = true;
     _showAutoTradingVisual = true;
@@ -1798,7 +1843,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
         final signal = item['signal'] as Map<String, dynamic>;
         final symbol = item['symbol'] as String;
-        final currentPrice = item['currentPrice'] as double;
+        var currentPrice = item['currentPrice'] as double;
         final proposalResult = item['result'] as Map<String, dynamic>;
 
         try {
@@ -1849,6 +1894,16 @@ class AgenticTradingProvider with ChangeNotifier {
                     '⏭️ Skipping BUY for $symbol: already proposed this cycle');
                 continue;
               }
+
+              final confirmedPrice = await _confirmEntryPrice(
+                brokerageService: brokerageService,
+                brokerageUser: brokerageUser,
+                quoteStore: quoteStore,
+                symbol: symbol,
+                price: currentPrice,
+              );
+              if (confirmedPrice == null) continue;
+              currentPrice = confirmedPrice;
             }
 
             // Check buying power for parallel execution safety
@@ -2201,6 +2256,7 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
     double? heldQuantity,
+    dynamic quoteStore,
   }) async {
     final order = _findPendingOrder(staleOrder);
     if (order == null) {
@@ -2223,8 +2279,28 @@ class AgenticTradingProvider with ChangeNotifier {
     final symbol = order['symbol'] as String;
     final action = order['action'] as String;
     final quantity = order['quantity'] as int;
-    final price = (order['price'] as num).toDouble();
+    var price = (order['price'] as num).toDouble();
     final instrument = order['instrument'];
+
+    // A queued price can be hours old; never fill an entry far from the market.
+    if (action.toUpperCase() == 'BUY') {
+      final confirmedPrice = await _confirmEntryPrice(
+        brokerageService: brokerageService,
+        brokerageUser: brokerageUser,
+        quoteStore: quoteStore,
+        symbol: symbol,
+        price: price,
+      );
+      if (confirmedPrice == null) {
+        _pendingOrders.remove(order);
+        if (userDocRef != null) {
+          unawaited(_removePendingOrderFromFirestore(userDocRef, order));
+        }
+        notifyListeners();
+        return false;
+      }
+      price = confirmedPrice;
+    }
 
     try {
       final side = action.toLowerCase() == 'buy' ? 'buy' : 'sell';

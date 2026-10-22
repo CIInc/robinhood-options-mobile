@@ -49,3 +49,7 @@
 ## 2026-04-03 - O(1) Space Scalar MACD Evaluation without Full-Series Array Allocations
 **Learning:** `computeMACD` previously allocated 4 full-series intermediate arrays (`fastEMAs`, `slowEMAs`, `macdSeries`, `signalLineSeries`) per bar evaluation. In backtesting loops and automated trading scans over hundreds of bars, this caused millions of transient array allocations and ran in ~24.5 µs/op.
 **Action:** Refactor `computeMACD` to calculate fast, slow, and signal line EMAs directly using running scalar variables in O(1) space. This speeds up MACD computation by ~8.5x (from 24.5 µs/op down to 2.97 µs/op) and eliminates 100% of transient array allocations per evaluation.
+
+## 2026-04-03 - Zero-Allocation Pattern Scan & RSI Momentum Evaluation
+**Learning:** `detectChartPattern` and `evaluateMomentum` were creating 6+ transient sub-arrays (`windowPrices`, `recentPrices`, `set`, `pole`, `flag`, `volumes.slice(-30)`, `rsiSeries.slice(startIdx)`) per bar evaluation. In multi-indicator backtests over thousands of bars, this generated millions of temporary array objects and triggered frequent GC pauses.
+**Action:** Access dataset arrays directly using window index offset helpers (`px(i) = prices[start + i]`, `getRSI(k) = rsiSeries[startIdx + k]`) and index loop bounds (`rangeMin`/`rangeMax`/Flag loops) to evaluate chart patterns and RSI momentum with zero transient array allocations.

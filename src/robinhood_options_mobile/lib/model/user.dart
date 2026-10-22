@@ -104,11 +104,14 @@ class User {
       this.followingCount = 0,
       this.riskCircuitBreakerConfig,
       this.automatedDripConfig,
-      this.featureFlags,
+      Map<String, bool>? featureFlags,
       this.subscriptionStatus,
       this.trialStartDate,
       this.subscriptionExpiryDate,
-      this.referralCode});
+      this.referralCode})
+      : featureFlags = featureFlags != null
+            ? Map<String, bool>.from(featureFlags)
+            : <String, bool>{};
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -173,8 +176,8 @@ class User {
             riskCircuitBreakerConfig: json['riskCircuitBreakerConfig'] != null ? RiskCircuitBreakerConfig.fromJson(json['riskCircuitBreakerConfig'] as Map<String, dynamic>) : null,
             automatedDripConfig: json['automatedDripConfig'] != null ? AutomatedDripConfig.fromJson(json['automatedDripConfig'] as Map<String, dynamic>) : null,
             featureFlags: json['featureFlags'] != null
-                ? (json['featureFlags'] as Map<String, dynamic>).map(
-                    (key, value) => MapEntry(key, value as bool),
+                ? (json['featureFlags'] as Map).map(
+                    (key, value) => MapEntry(key.toString(), value as bool),
                   )
                 : null,
             subscriptionStatus: json['subscriptionStatus'] as String?,
@@ -217,7 +220,7 @@ class User {
       'followingCount': followingCount,
       'riskCircuitBreakerConfig': riskCircuitBreakerConfig?.toJson(),
       'automatedDripConfig': automatedDripConfig?.toJson(),
-      'featureFlags': featureFlags,
+      'featureFlags': featureFlags ?? {},
     };
   }
 

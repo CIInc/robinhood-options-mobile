@@ -96,7 +96,79 @@ jest.mock("firebase-admin/firestore", () => ({
   },
 }));
 
-import { deleteGroupWatchlist } from "../src/group-watchlists";
+import {
+  deleteGroupWatchlist,
+  addSymbolToWatchlist,
+  createPriceAlert,
+} from "../src/group-watchlists";
+
+describe("addSymbolToWatchlist validation", () => {
+  test("rejects missing or non-string symbol", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: { groupId: "group1", watchlistId: "wl1", symbol: null },
+    };
+
+    await expect(
+      (addSymbolToWatchlist as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects empty symbol string", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: { groupId: "group1", watchlistId: "wl1", symbol: "   " },
+    };
+
+    await expect(
+      (addSymbolToWatchlist as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+});
+
+describe("createPriceAlert validation", () => {
+  test("rejects missing or invalid alert type", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: {
+        groupId: "group1",
+        watchlistId: "wl1",
+        symbol: "AAPL",
+        type: "invalid_type",
+        threshold: 150,
+      },
+    };
+
+    await expect(
+      (createPriceAlert as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects negative or non-numeric threshold", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: {
+        groupId: "group1",
+        watchlistId: "wl1",
+        symbol: "AAPL",
+        type: "above",
+        threshold: -50,
+      },
+    };
+
+    await expect(
+      (createPriceAlert as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+});
 
 describe("deleteGroupWatchlist function and benchmark", () => {
   beforeEach(() => {

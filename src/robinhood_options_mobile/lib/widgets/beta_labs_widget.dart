@@ -111,6 +111,7 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
     await _service.setUserPreference(
       bundle,
       newValue,
+      user: widget.user,
       userDocRef: widget.userDocRef,
     );
     if (mounted) setState(() {});
@@ -130,7 +131,10 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
             tooltip: 'Reset Opt-Ins',
             onPressed: () async {
               final scaffoldMessenger = ScaffoldMessenger.of(context);
-              await _service.resetAllOptIns(userDocRef: widget.userDocRef);
+              await _service.resetAllOptIns(
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+              );
               if (mounted) {
                 setState(() {});
                 scaffoldMessenger.showSnackBar(
@@ -197,7 +201,7 @@ class _BetaLabsWidgetState extends State<BetaLabsWidget> {
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      'Synced with account (${widget.user?.email ?? 'active user'})',
+                                      'Synced with account (${widget.user?.email ?? widget.user?.phoneNumber ?? widget.user?.name ?? 'active user'})',
                                       style:
                                           theme.textTheme.labelSmall?.copyWith(
                                         color: theme

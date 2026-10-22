@@ -42,10 +42,37 @@ jest.mock("../src/market-data", () => ({
   })),
 }));
 
-import { alphabotTask } from "../src/alpha-agent";
+import {
+  alphabotTask,
+  resolveReasoningProposalQuantity,
+} from "../src/alpha-agent";
 import { riskguardTask, calculatePositionSize } from "../src/riskguard-agent";
 
 describe("Alpha & RiskGuard callable authentication", () => {
+  test(
+    "reasoning mode uses configured quantity when dynamic sizing is off",
+    () => {
+      expect(
+        resolveReasoningProposalQuantity(200, {
+          tradeQuantity: 100,
+          enableDynamicPositionSizing: false,
+        })
+      ).toBe(100);
+    }
+  );
+
+  test(
+    "reasoning mode uses agent quantity when dynamic sizing is on",
+    () => {
+      expect(
+        resolveReasoningProposalQuantity(200, {
+          tradeQuantity: 100,
+          enableDynamicPositionSizing: true,
+        })
+      ).toBe(200);
+    }
+  );
+
   test("alphabotTask rejects unauthenticated call", async () => {
     const unauthenticatedRequest = {
       auth: null,

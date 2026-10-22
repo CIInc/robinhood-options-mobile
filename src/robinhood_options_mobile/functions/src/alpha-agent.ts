@@ -14,6 +14,24 @@ import { adjustSignalConfidence, NewsIntelligence } from "./news-intelligence";
 const db = getFirestore();
 const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Resolves the reasoning-mode quantity while honoring fixed-size settings.
+ * @param {number | undefined} agenticQuantity Quantity suggested by the agent.
+ * @param {object} config Trade sizing configuration.
+ * @return {number} Quantity to place in the proposal.
+ */
+export function resolveReasoningProposalQuantity(
+  agenticQuantity: number | undefined,
+  config?: {
+    tradeQuantity?: number;
+    enableDynamicPositionSizing?: boolean;
+  }
+): number {
+  const fixedQuantity = config?.tradeQuantity || 1;
+  if (!config?.enableDynamicPositionSizing) return fixedQuantity;
+  return agenticQuantity || fixedQuantity;
+}
+
 type MacroAssessment = Awaited<ReturnType<typeof getMacroAssessment>>;
 
 let macroAssessmentCache: {
@@ -231,7 +249,10 @@ export async function handleAlphaTask(marketData: any,
         config
       );
 
-      const quantity = agenticResult.quantity || config?.tradeQuantity || 1;
+      const quantity = resolveReasoningProposalQuantity(
+        agenticResult.quantity,
+        config
+      );
       const proposal = {
         symbol,
         action: agenticResult.signal,

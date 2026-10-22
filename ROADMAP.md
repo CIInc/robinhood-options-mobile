@@ -43,17 +43,19 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** October 20, 2026 · **Current app version:** 0.58.0
+**Last reviewed:** October 21, 2026 · **Current app version:** 0.58.2
 
 ### Quick Stats
-- **Completed checklist items:** 414
+- **Completed checklist items:** 416
 - **Planned checklist items:** 67
-- **GitHub issues:** 122 total — 34 open and 88 closed (as of October 20, 2026)
+- **GitHub issues:** 122 total — 34 open and 88 closed (as of October 21, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
 - ✅ **Recently Completed (v0.56.0-v0.58.0):** Feature Access Gating & Beta Labs ([docs](docs/feature-access-and-beta-gating.md), [#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)), 5-Tier GEX Sequential Stop Queue ([docs](docs/agentic-trading.md#advanced-exit-strategies)), User Profile Auth Badges, Backtest and Indicator Performance Optimizations ([#243](https://github.com/CIInc/robinhood-options-mobile/issues/243), [#247](https://github.com/CIInc/robinhood-options-mobile/issues/247), [#248](https://github.com/CIInc/robinhood-options-mobile/issues/248)), Backend Security & Accessibility Hardening ([#206](https://github.com/CIInc/robinhood-options-mobile/issues/206), [#210](https://github.com/CIInc/robinhood-options-mobile/issues/210), [#211](https://github.com/CIInc/robinhood-options-mobile/issues/211), [#225](https://github.com/CIInc/robinhood-options-mobile/issues/225), [#233](https://github.com/CIInc/robinhood-options-mobile/issues/233), [#237](https://github.com/CIInc/robinhood-options-mobile/issues/237), [#238](https://github.com/CIInc/robinhood-options-mobile/issues/238), [#242](https://github.com/CIInc/robinhood-options-mobile/issues/242), [#244](https://github.com/CIInc/robinhood-options-mobile/issues/244), [#245](https://github.com/CIInc/robinhood-options-mobile/issues/245)), Auto-Trade Settings Persistence & Signal Re-Evaluation ([#234](https://github.com/CIInc/robinhood-options-mobile/issues/234)), and Retirement Planning & Gold Match Maximizer ([#139](https://github.com/CIInc/robinhood-options-mobile/issues/139)). See the release timeline for issue links and details.
 - ✅ **v0.58.0 Shipped:** Shipped 4-tier feature access resolution (Admin bypass, Remote Config kill switches, GA rollout, self-serve Beta Labs opt-in) partitioning non-core features into 7 bundles with safety disclaimers, 5-tier GEX sequential exit stop queue, user authentication badges, and scalar/date performance hardening ([docs](docs/feature-access-and-beta-gating.md), [#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)).
+- ✅ **v0.58.1 Shipped:** Added a live-quote guard for auto-trade BUYs and queued approvals: mismatches above 3% are skipped, acceptable entries use the live quote, and quote-fetch failures block execution. When quote context is unavailable, the stored price remains the fallback ([docs](docs/multi-indicator-trading.md)).
+- ✅ **v0.58.2 Shipped:** Reasoning-mode auto-trades now use the configured Trade Quantity when Dynamic Sizing is off; agent-suggested quantity remains active when enabled ([docs](docs/multi-indicator-trading.md)).
 - **Next proposed milestone:** **v0.59.0 (target: Q1 2027; tentative)** — SEC EDGAR Filing Expansion (Phase 2) ([#143](https://github.com/CIInc/robinhood-options-mobile/issues/143)), Alert Customization & Delivery Channels ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)), Streamlined AI Conviction Engine ([#118](https://github.com/CIInc/robinhood-options-mobile/issues/118)), and Streaming Performance Optimizations ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 - **Later candidates (v0.60.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
 - **Longer-term exploration:** Biometric health tracking, paid strategy marketplace royalties, desktop workflows, zero-knowledge proofs, wearable clients, and spatial interfaces remain exploratory until scoped and validated.
@@ -523,6 +525,14 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Accessibility & Screen Reader Semantics:** Added assistive semantics to CopyTradeSlippageCard fill quality breakdown ([#233](https://github.com/CIInc/robinhood-options-mobile/issues/233)), retirement projection widget ([#238](https://github.com/CIInc/robinhood-options-mobile/issues/238)), day trade monitor list cards ([#245](https://github.com/CIInc/robinhood-options-mobile/issues/245)), home cards ([#242](https://github.com/CIInc/robinhood-options-mobile/issues/242)), and benchmark chips in PortfolioGreeksCard ([#210](https://github.com/CIInc/robinhood-options-mobile/issues/210)).
 - ✅ **CI/CD & Cloud Functions Stability:** Resolved ESLint and TypeScript compilation issues across Cloud Functions and test suites ([#246](https://github.com/CIInc/robinhood-options-mobile/issues/246), [#251](https://github.com/CIInc/robinhood-options-mobile/issues/251)).
 
+### v0.58.1 ✅ (Released October 20, 2026)
+**Auto-Trade BUY Price Validation**
+- ✅ **Live-Quote Entry Guard:** Before an automatic or approved BUY executes, its stored price is checked against a fresh quote. A deviation greater than 3% or a quote-fetch failure blocks the entry; acceptable BUYs use the live quote. A stale approval is removed from the local and Firestore queues. If quote context is unavailable, the stored price remains the fallback ([docs](docs/multi-indicator-trading.md), `test/agentic_trading_provider_test.dart`).
+
+### v0.58.2 ✅ (Released October 21, 2026)
+**Reasoning-Mode Trade Quantity Respects Fixed Sizing**
+- ✅ **Configured Quantity Enforcement:** With Dynamic Sizing off, Reasoning mode now uses the configured Trade Quantity rather than an AI-suggested quantity; with it on, agent sizing remains enabled and RiskGuard limits still apply ([docs](docs/multi-indicator-trading.md), `functions/tests/alpha-riskguard-auth.test.ts`).
+
 ### v0.59.0 (Target: Q1 2027)
 **SEC EDGAR Expansion, Alerts & Streamlined AI Conviction**
 - **SEC EDGAR Filing Expansion (Phase 2):** 10-K/10-Q financial statements parsing, real-time insider filing alerts, and 8-K material catalyst notifications ([Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
@@ -730,6 +740,8 @@ Mapping features to specific versions helps users anticipate releases and unders
 - [x] **Auto-Trade Orders & Positions Refresh** (v0.57.5, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): History orders and the stock positions list update after the auto-trader executes orders, including market-close exits, without restarting the app; covered by `test/history_past_positions_test.dart` and `test/agentic_trading_provider_test.dart`
 - [x] **Auto-Trade Signals Kept While Market Is Closed** (v0.57.6, [docs](docs/multi-indicator-trading.md), [Tracking: #234](https://github.com/CIInc/robinhood-options-mobile/issues/234)): Blocked cycles no longer consume signals, and turning Require Approval off re-evaluates signals and clears queued approvals; covered by `test/agentic_trading_provider_test.dart`
 - [x] **5-Tier GEX Sequential Stop Queue** (v0.58.0, [docs](docs/agentic-trading.md#advanced-exit-strategies), [docs](docs/gamma-exposure-analysis.md)): Multi-tier exit priority queue integrating GEX structural flips, trailing peak stops, time/theta decay bounds, macro regime flips, and catastrophic hard floors; covered by `test/agentic_trading_config_test.dart` and `test/exit_strategies_widget_test.dart`
+- [x] **Auto-Trade BUY Price Validation** (v0.58.1, [docs](docs/multi-indicator-trading.md)): Automatic BUYs and queued approvals are checked against a live quote; stale prices are rejected and accepted orders use the live price, with focused coverage in `test/agentic_trading_provider_test.dart`
+- [x] **Reasoning-Mode Fixed Trade Quantity** (v0.58.2, [docs](docs/multi-indicator-trading.md)): Reasoning-mode proposals use configured Trade Quantity when Dynamic Sizing is off; regression tests cover fixed and agent-selected sizing in `functions/tests/alpha-riskguard-auth.test.ts`
 
 ### Quantitative Research
 - [x] **Alpha Factor Discovery** ([#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):

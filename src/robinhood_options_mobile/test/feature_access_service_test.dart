@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -74,28 +75,55 @@ void main() {
           isFalse);
     });
 
-    test('Admin bypass allows admins to access all features', () {
+    test(
+        'Beta features are disabled by default even for admins, only public enabled by default',
+        () async {
       final service = FeatureAccessService(
         prefs: prefs,
         remoteConfig: RemoteConfigService.instance,
         overrideModes: {
           FeatureBundle.automatedTrading: FeatureRolloutMode.disabled,
+          FeatureBundle.advancedTrading: FeatureRolloutMode.betaOptIn,
+          FeatureBundle.investorGroups: FeatureRolloutMode.public,
           FeatureBundle.accountTools: FeatureRolloutMode.adminOnly,
         },
       );
 
+      // Disabled mode is off for everyone including admins
       expect(
           service.isFeatureEnabled(FeatureBundle.automatedTrading,
               userRole: UserRole.admin),
-          isTrue);
+          isFalse);
+
+      // Beta features are disabled by default even for admins
       expect(
-          service.isFeatureEnabled(FeatureBundle.accountTools,
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.admin),
+          isFalse);
+
+      // Public features are enabled by default
+      expect(
+          service.isFeatureEnabled(FeatureBundle.investorGroups,
               userRole: UserRole.admin),
           isTrue);
+
+      // AdminOnly features: non-admins cannot access, admins can access when opted in
       expect(
           service.isFeatureEnabled(FeatureBundle.accountTools,
               userRole: UserRole.user),
           isFalse);
+      expect(
+          service.isFeatureEnabled(FeatureBundle.accountTools,
+              userRole: UserRole.admin),
+          isFalse); // disabled by default until opted in
+
+      // When admin opts in, it is enabled
+      await service.setUserPreference(FeatureBundle.accountTools, true);
+      expect(
+          service.isFeatureEnabled(FeatureBundle.accountTools,
+              userRole: UserRole.admin),
+          isTrue);
+      await service.setUserPreference(FeatureBundle.accountTools, false);
     });
 
     test('Beta opt-in requires explicit user opt-in', () async {
@@ -237,6 +265,86 @@ void main() {
           service.isFeatureEnabled(FeatureBundle.agenticTrading,
               userRole: UserRole.user, user: testUser),
           isTrue);
+    });
+
+    test(
+        'setUserPreference and resetAllOptIns update in-memory User and Firestore across auth providers',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final usersCollection = firestore.collection('users').withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      final authProviders = [
+        {'id': 'phone_user', 'provider': 'phone', 'phone': '+15551234567'},
+        {'id': 'google_user', 'provider': 'google.com', 'email': 'g@test.com'},
+        {'id': 'apple_user', 'provider': 'apple.com', 'email': 'a@test.com'},
+        {'id': 'email_user', 'provider': 'password', 'email': 'e@test.com'},
+        {'id': 'anon_user', 'provider': 'anonymous'},
+      ];
+
+      for (final providerInfo in authProviders) {
+        final userId = providerInfo['id']!;
+        final docRef = usersCollection.doc(userId);
+
+        final user = User(
+          name: 'Test ${providerInfo['provider']}',
+          phoneNumber: providerInfo['phone'],
+          email: providerInfo['email'],
+          providerId: providerInfo['provider'],
+          devices: const [],
+          dateCreated: DateTime(2026, 1, 1),
+          brokerageUsers: const [],
+          featureFlags: null, // Initially null
+        );
+
+        await docRef.set(user);
+
+        final service = FeatureAccessService(
+          prefs: prefs,
+          remoteConfig: RemoteConfigService.instance,
+          overrideModes: {
+            FeatureBundle.advancedTrading: FeatureRolloutMode.betaOptIn,
+          },
+          overrideSelfOptIn: true,
+        );
+
+        // Initially disabled
+        expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user, user: user),
+          isFalse,
+        );
+
+        // Opt in with user and docRef
+        await service.setUserPreference(
+          FeatureBundle.advancedTrading,
+          true,
+          user: user,
+          userDocRef: docRef,
+        );
+
+        // Verify in-memory user is updated immediately
+        expect(user.featureFlags, isNotNull);
+        expect(user.featureFlags![FeatureBundle.advancedTrading.name], isTrue);
+        expect(
+          service.isFeatureEnabled(FeatureBundle.advancedTrading,
+              userRole: UserRole.user, user: user),
+          isTrue,
+        );
+
+        // Verify Firestore was updated
+        final updatedDoc = await docRef.get();
+        expect(updatedDoc.data()?.featureFlags?['advancedTrading'], isTrue);
+
+        // Reset opt-ins
+        await service.resetAllOptIns(user: user, userDocRef: docRef);
+
+        expect(user.featureFlags, isEmpty);
+        final resetDoc = await docRef.get();
+        expect(resetDoc.data()?.featureFlags, isEmpty);
+      }
     });
   });
 }
