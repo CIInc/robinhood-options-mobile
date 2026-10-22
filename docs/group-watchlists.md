@@ -278,7 +278,9 @@ Functions return specific error messages:
 - `unauthenticated` - User not logged in
 - `not-found` - Watchlist, group, or member not found
 - `permission-denied` - User lacks required permission
-- `invalid-argument` - Invalid permission value or data
+- `invalid-argument` - Invalid permission value or callable input
+
+The add/remove-symbol and price-alert callables require non-empty string `groupId`, `watchlistId`, and `symbol` values. Creating an alert also requires an `above` or `below` type and a finite threshold greater than zero. Deleting an alert requires a non-empty string `alertId`.
 
 ## Firestore Indexes
 

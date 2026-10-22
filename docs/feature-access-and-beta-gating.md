@@ -13,49 +13,21 @@ The core public MVP focus comprises:
 * **Core Single-Account Portfolio & Watchlist tracking**.
 * **Essential Order History & Search**.
 
-All non-core or high-liability features are partitioned into **Feature Bundles** controlled by Firebase Remote Config and surfaced to experimental users through the in-app **Beta Labs** dashboard.
+All non-core or high-liability features are partitioned into **Feature Bundles** controlled by Firebase Remote Config and surfaced through the in-app **Beta Labs** dashboard. When a user is signed in, preferences are synchronized across local `SharedPreferences`, the in-memory `User`, and the Firestore user document.
 
 ---
 
-## 2. Four-Tier Access Waterfall
+## 2. Feature Access Resolution
 
-Each feature check follows a deterministic 4-tier resolution hierarchy within `FeatureAccessService.isFeatureEnabled(FeatureBundle bundle, {UserRole? userRole})`:
+`FeatureAccessService.isFeatureEnabled` applies these checks in order:
 
-```
-                       [ Feature Check Requested ]
-                                    |
-                                    v
-                         Is userRole == Admin?
-                              /          \
-                         (Yes)            (No)
-                            /                \
-                 [ Access GRANTED ]      Is Remote Config
-                  (Instant Bypass)       mode == 'disabled'?
-                                            /           \
-                                       (Yes)             (No)
-                                          /                 \
-                               [ Access DENIED ]       Is Remote Config
-                              (Remote Kill Switch)     mode == 'public'?
-                                                          /          \
-                                                     (Yes)            (No)
-                                                        /                \
-                                             [ Access GRANTED ]    Is Remote Config
-                                               (GA / Full Rollout) mode == 'betaOptIn'?
-                                                                      /          \
-                                                                 (Yes)            (No)
-                                                                    /                \
-                                                     Is global opt-in enabled    [ Access DENIED ]
-                                                     AND user opted in locally?
-                                                            /          \
-                                                       (Yes)            (No)
-                                                          /                \
-                                               [ Access GRANTED ]     [ Access DENIED ]
-```
+1. **Global disable:** Remote Config mode `disabled` denies access to everyone, including admins.
+2. **Explicit user flag:** A boolean in `User.featureFlags` overrides rollout defaults and role checks. This permits an explicit Firestore grant or denial, except when the global disable switch is active.
+3. **Admin-only mode:** Non-admin users are denied unless an explicit user flag grants access. Admins still need to opt in locally when no explicit user flag is set.
+4. **Public mode:** Enabled by default; a local user opt-out disables it unless an explicit Firestore flag overrides that preference.
+5. **Beta opt-in mode:** Requires a local opt-in. The `beta_self_opt_in_enabled` master switch blocks opt-ins for non-admins when disabled; admins can still opt in.
 
-1. **Tier 1: Admin Bypass**: Internal team members with `UserRole.admin` have immediate access regardless of remote flags or local toggle states.
-2. **Tier 2: Global Remote Kill Switch (`disabled`)**: If Firebase Remote Config marks a bundle as `disabled`, access is immediately revoked for all non-admin users, overriding any local user opt-in.
-3. **Tier 3: GA / Public (`public`)**: Bundles graduated to general availability are enabled for all users without requiring opt-in.
-4. **Tier 4: Self-Serve Beta Opt-In (`betaOptIn`)**: Users can self-opt into features via **Beta Labs** (`UserWidget` -> **Profile & Community** -> **Beta Labs**), provided the global kill switch `beta_self_opt_in_enabled` is `true`. Choices persist locally in `SharedPreferences`.
+Users manage local opt-ins and public-mode opt-outs in **Beta Labs** (`UserWidget` -> **Profile & Community** -> **Beta Labs**). Changes update local `SharedPreferences` and the in-memory `User` immediately, and synchronize to the Firestore user document when one is available.
 
 ---
 
@@ -97,11 +69,11 @@ Remote config keys accept one of four case-insensitive strings: `disabled`, `adm
 ### Feature Access Service (`lib/services/feature_access_service.dart`)
 * Singleton extending `ChangeNotifier` to allow real-time UI rebuilds when flags or opt-in states change.
 * Methods:
-  * `isFeatureEnabled(bundle, {userRole})`: Resolves access according to the 4-tier waterfall.
+  * `isFeatureEnabled(bundle, {userRole, user})`: Resolves access using the precedence above.
   * `getRolloutMode(bundle)`: Returns current `FeatureRolloutMode`.
-  * `isUserOptedIn(bundle)`: Checks local `SharedPreferences` toggle.
-  * `setUserOptIn(bundle, enabled)`: Sets local preference and notifies listeners.
-  * `resetAllOptIns()`: Resets all preferences back to default (`false`).
+  * `isUserOptedIn(bundle)` / `isUserOptedOut(bundle)`: Checks the in-memory preference cache and local `SharedPreferences`.
+  * `setUserPreference(bundle, enabled, {user, userDocRef})`: Updates local preference, the in-memory `User.featureFlags`, and Firestore when supplied.
+  * `resetAllOptIns({user, userDocRef})`: Clears local choices and the corresponding in-memory and Firestore flags.
   * `setOverrideMode(bundle, mode)`: In-memory override for automated testing and sandbox previews.
 
 ### Beta Labs UI (`lib/widgets/beta_labs_widget.dart`)
@@ -133,12 +105,11 @@ Remote config keys accept one of four case-insensitive strings: `disabled`, `adm
 
 Comprehensive tests verify both unit logic and UI behaviors:
 * **`test/feature_access_service_test.dart`**:
-  * Admin bypass validation across all rollout modes.
-  * Remote kill switch (`disabled`) enforcement even if local opt-in is active.
+  * Global disable (`disabled`) enforcement and explicit user-flag precedence.
+  * Admin-only access requires an admin and opt-in unless a user document grants access.
   * `public` rollout mode granting access to all users.
-  * User opt-in and opt-out toggle behavior.
-  * Master switch `beta_self_opt_in_enabled = false` preventing opt-in.
-  * In-memory overrides and reset actions.
+  * Beta opt-in, public opt-out, and master-switch behavior.
+  * Preference synchronization across local state, the in-memory user, and Firestore.
 * **`test/beta_labs_widget_test.dart`**:
   * Status badge rendering for all bundles.
   * Disclaimer dialog for automated trading confirmation.
@@ -146,4 +117,4 @@ Comprehensive tests verify both unit logic and UI behaviors:
 * **`test/user_widget_features_availability_test.dart`**:
   * Advanced Trading features hidden when user is opted out.
   * Navigation to `BetaLabsWidget` from profile.
-  * Admin role seeing gated features regardless of opt-in.
+  * Admin-only features remain unavailable until an admin opts in or receives an explicit user-document grant.

@@ -6,6 +6,8 @@ The multi-indicator automatic trading system correlates **19 technical indicator
 
 This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators. It uses a **Weighted Signal Strength system** where indicators are weighted by importance (Price Movement > Momentum/Trend > Others) to calculate a final **Signal Strength score (0-100)**.
 
+**Evaluation efficiency (v0.58.3):** MACD computes its trailing EMA, signal, and histogram using scalar state in O(1) auxiliary space, avoiding full-series arrays. Chart-pattern and momentum evaluation also avoid temporary array slices ([#256](https://github.com/CIInc/robinhood-options-mobile/pull/256), [#259](https://github.com/CIInc/robinhood-options-mobile/pull/259)).
+
 ## Signal Discovery & Filtering
 
 Users can explore trade signals in the **Search** tab using advanced filtering options:

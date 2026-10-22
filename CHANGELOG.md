@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.58.3] - 2026-10-22
+**Feature Access, Validation, Performance & Accessibility Hardening**
+
+- **Feature Access & Authentication:** The global `disabled` rollout now denies access to everyone, explicit per-user Firestore flags take precedence over rollout defaults, and admin access follows the configured opt-in rules. Beta Labs changes synchronize to local preferences, the in-memory user, and Firestore. Dismissing a TOTP prompt no longer causes a null-assertion failure and can continue to phone MFA when available.
+- **Group Watchlist Validation ([#257](https://github.com/CIInc/robinhood-options-mobile/pull/257), [#260](https://github.com/CIInc/robinhood-options-mobile/pull/260)):** Callable endpoints reject missing or malformed IDs and symbols, invalid alert types, and non-finite or non-positive thresholds.
+- **Technical Indicator Performance ([#256](https://github.com/CIInc/robinhood-options-mobile/pull/256), [#259](https://github.com/CIInc/robinhood-options-mobile/pull/259)):** MACD now computes trailing values with scalar EMA state in O(1) space; chart-pattern and momentum evaluations avoid temporary array slices.
+- **Screen Reader Semantics ([#258](https://github.com/CIInc/robinhood-options-mobile/pull/258), [#261](https://github.com/CIInc/robinhood-options-mobile/pull/261)):** Retirement projection and portfolio publication statistics expose concise, unified labels to assistive technologies.
+
 ## [0.58.2] - 2026-10-21
 **Reasoning-Mode Trade Quantity Respects Fixed Sizing**
 
