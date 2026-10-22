@@ -39,6 +39,13 @@ describe("isAllowedYahooUrl", () => {
     expect(isAllowedYahooUrl("not a url")).toBe(false);
     expect(isAllowedYahooUrl("")).toBe(false);
   });
+
+  it("rejects URLs exceeding maximum allowed length (2048 characters)", () => {
+    const longParam = "a".repeat(2000);
+    const longUrl = `https://query2.finance.yahoo.com/v1/finance/search?q=${longParam}`;
+    expect(longUrl.length).toBeGreaterThan(2048);
+    expect(isAllowedYahooUrl(longUrl)).toBe(false);
+  });
 });
 
 describe("cacheTtlSeconds", () => {
