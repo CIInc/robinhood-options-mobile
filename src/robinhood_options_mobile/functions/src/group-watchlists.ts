@@ -161,8 +161,17 @@ export const addSymbolToWatchlist = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol } = request.data;
+    const { groupId, watchlistId, symbol } = request.data || {};
     const userId = request.auth.uid;
+
+    if (!groupId || typeof groupId !== "string" ||
+      !watchlistId || typeof watchlistId !== "string" ||
+      !symbol || typeof symbol !== "string" || !symbol.trim()) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, and symbol must be non-empty strings"
+      );
+    }
 
     const watchlistDoc = await db
       .collection("investor_groups")
@@ -285,8 +294,36 @@ export const createPriceAlert = onCall(
       );
     }
 
-    const { groupId, watchlistId, symbol, type, threshold } = request.data;
+    const { groupId, watchlistId, symbol, type, threshold } =
+      request.data || {};
     const userId = request.auth.uid;
+
+    if (!groupId || typeof groupId !== "string" ||
+      !watchlistId || typeof watchlistId !== "string" ||
+      !symbol || typeof symbol !== "string" || !symbol.trim()) {
+      throw new HttpsError(
+        "invalid-argument",
+        "groupId, watchlistId, and symbol must be non-empty strings"
+      );
+    }
+
+    if (type !== "above" && type !== "below") {
+      throw new HttpsError(
+        "invalid-argument",
+        "Alert type must be 'above' or 'below'"
+      );
+    }
+
+    if (
+      typeof threshold !== "number" ||
+      !Number.isFinite(threshold) ||
+      threshold <= 0
+    ) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Alert threshold must be a positive number"
+      );
+    }
 
     const watchlistDoc = await db
       .collection("investor_groups")
