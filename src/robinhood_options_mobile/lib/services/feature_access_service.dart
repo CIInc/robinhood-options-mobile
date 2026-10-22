@@ -12,6 +12,7 @@ class FeatureAccessService extends ChangeNotifier {
   final RemoteConfigService? _remoteConfig;
   Map<FeatureBundle, FeatureRolloutMode>? _overrideModes;
   bool? _overrideSelfOptIn;
+  final Map<String, bool> _inMemoryPrefs = {};
 
   FeatureAccessService({
     SharedPreferences? prefs,
@@ -93,6 +94,7 @@ class FeatureAccessService extends ChangeNotifier {
   void clearOverridesForTesting() {
     _overrideModes = null;
     _overrideSelfOptIn = null;
+    _inMemoryPrefs.clear();
     notifyListeners();
   }
 
@@ -115,6 +117,9 @@ class FeatureAccessService extends ChangeNotifier {
 
   /// Checks if the current user has explicitly opted out of [bundle] locally.
   bool isUserOptedOut(FeatureBundle bundle) {
+    if (_inMemoryPrefs.containsKey('beta_opt_out_${bundle.name}')) {
+      return _inMemoryPrefs['beta_opt_out_${bundle.name}']!;
+    }
     final prefs = _prefs;
     if (prefs == null) return false;
     return prefs.getBool('beta_opt_out_${bundle.name}') ?? false;
@@ -122,6 +127,9 @@ class FeatureAccessService extends ChangeNotifier {
 
   /// Checks if the current user has opted into [bundle] locally.
   bool isUserOptedIn(FeatureBundle bundle) {
+    if (_inMemoryPrefs.containsKey('beta_opt_in_${bundle.name}')) {
+      return _inMemoryPrefs['beta_opt_in_${bundle.name}']!;
+    }
     final prefs = _prefs;
     if (prefs == null) return false;
     return prefs.getBool('beta_opt_in_${bundle.name}') ?? false;
@@ -137,6 +145,18 @@ class FeatureAccessService extends ChangeNotifier {
   }) async {
     final prefs = _prefs;
     final mode = getRolloutMode(bundle);
+
+    _inMemoryPrefs.remove('beta_opt_in_${bundle.name}');
+    _inMemoryPrefs.remove('beta_opt_out_${bundle.name}');
+    if (mode == FeatureRolloutMode.public) {
+      if (!enabled) {
+        _inMemoryPrefs['beta_opt_out_${bundle.name}'] = true;
+      }
+    } else {
+      if (enabled) {
+        _inMemoryPrefs['beta_opt_in_${bundle.name}'] = true;
+      }
+    }
 
     if (prefs != null) {
       if (mode == FeatureRolloutMode.public) {
@@ -191,6 +211,7 @@ class FeatureAccessService extends ChangeNotifier {
 
   /// Resets all local user beta opt-ins and opt-outs.
   Future<void> resetAllOptIns({User? user, dynamic userDocRef}) async {
+    _inMemoryPrefs.clear();
     final prefs = _prefs;
     if (prefs != null) {
       for (final bundle in FeatureBundle.values) {

@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/futures_auto_trading_provider.dar
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
+import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
@@ -131,11 +132,19 @@ void main() {
         (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
+      addTearDown(() async {
         tester.view.resetPhysicalSize();
         app_main.userRole = UserRole.user;
+        await FeatureAccessService.instance.setUserOptIn(
+          FeatureBundle.automatedTrading,
+          false,
+        );
       });
       app_main.userRole = UserRole.admin;
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.automatedTrading,
+        true,
+      );
 
       final paperUser = BrokerageUser(
         BrokerageSource.paper,

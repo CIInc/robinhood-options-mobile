@@ -224,8 +224,12 @@ void main() {
       return inst;
     }
 
-    setUp(() {
+    setUp(() async {
       app_main.userRole = UserRole.admin;
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedTrading,
+        true,
+      );
       testInstrument = makeTestInstrument(symbol: 'AAPL', price: 150.0);
       testUser = BrokerageUser(BrokerageSource.schwab, 'user_1', null, null);
       testAccount = Account(
@@ -242,8 +246,12 @@ void main() {
       mockService = _MockBrokerageService();
     });
 
-    tearDown(() {
+    tearDown(() async {
       app_main.userRole = UserRole.user;
+      await FeatureAccessService.instance.setUserOptIn(
+        FeatureBundle.advancedTrading,
+        false,
+      );
     });
 
     Widget createTestApp(Widget child) {
