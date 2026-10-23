@@ -302,61 +302,69 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
                     const SizedBox(height: 14),
 
                     // Managers Buy vs Sell Split Bar
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Buyers: ${summary.buyingManagersCount} (${buyersPct.toStringAsFixed(1)}%)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: buyColor,
+                    Semantics(
+                      container: true,
+                      excludeSemantics: true,
+                      label:
+                          'Manager sentiment breakdown: ${summary.buyingManagersCount} buyers (${buyersPct.toStringAsFixed(1)}%), ${summary.sellingManagersCount} sellers (${sellersPct.toStringAsFixed(1)}%)',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Buyers: ${summary.buyingManagersCount} (${buyersPct.toStringAsFixed(1)}%)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: buyColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                'Sellers: ${summary.sellingManagersCount} (${sellersPct.toStringAsFixed(1)}%)',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: sellColor,
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'Sellers: ${summary.sellingManagersCount} (${sellersPct.toStringAsFixed(1)}%)',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: sellColor,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.end,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.end,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: SizedBox(
-                            height: 10,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: (buyersPct * 10).round().clamp(1, 999),
-                                  child: Container(color: buyColor),
-                                ),
-                                const SizedBox(width: 2),
-                                Expanded(
-                                  flex: (sellersPct * 10).round().clamp(1, 999),
-                                  child: Container(color: sellColor),
-                                ),
-                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: SizedBox(
+                              height: 10,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex:
+                                        (buyersPct * 10).round().clamp(1, 999),
+                                    child: Container(color: buyColor),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Expanded(
+                                    flex:
+                                        (sellersPct * 10).round().clamp(1, 999),
+                                    child: Container(color: sellColor),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
 
@@ -647,101 +655,117 @@ class _HedgeFundActivityWidgetState extends State<HedgeFundActivityWidget> {
     final sharesFmt = _compactNumberFormat.format(tx.sharesHeld);
     final valFmt = tx.value != null ? _currencyFormat.format(tx.value!) : null;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: tx.typeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+    final detailStr = tx.fundName != null
+        ? (tx.reportDate != null
+            ? '${tx.fundName}, ${_dateFormat.format(tx.reportDate!)}'
+            : tx.fundName!)
+        : (tx.reportDate != null
+            ? _dateFormat.format(tx.reportDate!)
+            : (tx.quarter ?? 'Quarterly 13F Filing'));
+
+    final semanticLabel =
+        '${tx.managerName}. $detailStr. Action: ${tx.displayType}, $sharesFmt shares${valFmt != null ? ', value $valFmt' : ''}.';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: tx.typeColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(tx.typeIcon, size: 16, color: tx.typeColor),
             ),
-            child: Icon(tx.typeIcon, size: 16, color: tx.typeColor),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx.managerName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tx.managerName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  tx.fundName != null
-                      ? (tx.reportDate != null
-                          ? '${tx.fundName} • ${_dateFormat.format(tx.reportDate!)}'
-                          : tx.fundName!)
-                      : (tx.reportDate != null
-                          ? _dateFormat.format(tx.reportDate!)
-                          : (tx.quarter ?? 'Quarterly 13F Filing')),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                  Text(
+                    tx.fundName != null
+                        ? (tx.reportDate != null
+                            ? '${tx.fundName} • ${_dateFormat.format(tx.reportDate!)}'
+                            : tx.fundName!)
+                        : (tx.reportDate != null
+                            ? _dateFormat.format(tx.reportDate!)
+                            : (tx.quarter ?? 'Quarterly 13F Filing')),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 105),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$sharesFmt sh',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 105),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '$sharesFmt sh',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 3,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: tx.typeColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        tx.displayType,
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          color: tx.typeColor,
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 3,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: tx.typeColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          tx.displayType,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: tx.typeColor,
+                          ),
                         ),
                       ),
-                    ),
-                    if (valFmt != null)
-                      Text(
-                        valFmt,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(fontSize: 9),
-                      ),
-                  ],
-                ),
-              ],
+                      if (valFmt != null)
+                        Text(
+                          valFmt,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(fontSize: 9),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

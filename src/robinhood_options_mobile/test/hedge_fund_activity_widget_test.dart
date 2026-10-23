@@ -73,9 +73,21 @@ void main() {
     // Verify Sentiment Badge
     expect(find.text('Accumulation'), findsOneWidget);
 
-    // Verify Buyers & Sellers Bar Labels
-    expect(find.textContaining('Buyers: 184'), findsOneWidget);
-    expect(find.textContaining('Sellers: 86'), findsOneWidget);
+    // Verify Buyers & Sellers Bar Semantics
+    expect(
+      find.bySemanticsLabel(
+        'Manager sentiment breakdown: 184 buyers (68.1%), 86 sellers (31.9%)',
+      ),
+      findsOneWidget,
+    );
+
+    // Verify Institutional Filing Tile Semantics
+    expect(
+      find.bySemanticsLabel(
+        'Berkshire Hathaway Inc.. Warren Buffett Portfolio, Jun 30, 2026. Action: Held, 400M shares, value \$90,000,000,000.',
+      ),
+      findsOneWidget,
+    );
 
     // Verify Key Metric Labels
     expect(find.text('Net Flow'), findsOneWidget);
