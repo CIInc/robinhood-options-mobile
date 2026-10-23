@@ -1,3 +1,8 @@
+## 2025-03-17 - Missing Input Length Validation on HTTP Proxy Endpoint
+**Vulnerability:** `yahooProxy` in `yahoo-proxy.ts` validated domain origin for proxied URLs but allowed arbitrarily long query parameters (`req.query.url`). Extremely large URL inputs could lead to excessive memory allocation during SHA-256 hashing, caching, and upstream proxying (DoS / Resource Exhaustion risk).
+**Learning:** Proxy endpoints accepting external URL target strings must constrain input string lengths in addition to hostname whitelisting to mitigate memory bloat and hash computation DoS.
+**Prevention:** Enforce a hard maximum input length limit (e.g. `MAX_URL_LENGTH = 2048`) on target URL strings before parsing or processing upstream proxy requests.
+
 ## 2025-03-16 - Missing Authentication & Admin Authorization on Watchlist Alerts Cron Endpoint
 **Vulnerability:** `checkWatchlistAlerts` in `watchlist-alerts-cron.ts` was an unauthenticated `onRequest` Cloud Function that allowed public HTTP callers to manually trigger watchlist alert scans, triggering external market data API calls, multi-user FCM notification dispatches, and Firestore state updates (`lastTriggered`).
 **Learning:** `onRequest` HTTP functions exposing ad-hoc cron triggers or notification dispatching must verify Firebase Auth Bearer ID tokens and admin custom claims (`role === "admin"`).

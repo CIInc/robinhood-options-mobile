@@ -21,13 +21,18 @@ const ALLOWED_HOSTS = new Set([
   "query2.finance.yahoo.com",
 ]);
 
+const MAX_URL_LENGTH = 2048;
+
 /**
  * Validates a proxy target: must be an https URL on a whitelisted Yahoo
- * Finance host. Exported for unit testing.
+ * Finance host and within maximum URL length limit. Exported for unit testing.
  * @param {string} raw The requested target URL.
  * @return {boolean} Whether the URL may be proxied.
  */
 export function isAllowedYahooUrl(raw: string): boolean {
+  if (typeof raw !== "string" || raw.length > MAX_URL_LENGTH) {
+    return false;
+  }
   try {
     const url = new URL(raw);
     return url.protocol === "https:" && ALLOWED_HOSTS.has(url.hostname);
