@@ -1,7 +1,95 @@
 import {
   computeCCIArrayLocal,
   computeMFIArrayLocal,
+  discoverAlphaFactors,
 } from "../src/alpha-factor-discovery";
+
+describe("discoverAlphaFactors input validation", () => {
+  const sampleFactor = {
+    id: "f1",
+    name: "RSI",
+    type: "RSI",
+    parameters: { period: 14 },
+  };
+
+  test("rejects unauthenticated request", async () => {
+    const request = {
+      auth: null,
+      data: { factors: [sampleFactor] },
+    };
+
+    await expect(
+      (discoverAlphaFactors as any).run(request)
+    ).rejects.toMatchObject({
+      code: "unauthenticated",
+    });
+  });
+
+  test("rejects missing or empty factors", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: { factors: [] },
+    };
+
+    await expect(
+      (discoverAlphaFactors as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects factors with more than 50 configurations", async () => {
+    const factors = Array.from({ length: 51 }, (_, i) => ({
+      id: `f${i}`,
+      name: `RSI_${i}`,
+      type: "RSI",
+      parameters: { period: 14 },
+    }));
+
+    const request = {
+      auth: { uid: "user1" },
+      data: { factors },
+    };
+
+    await expect(
+      (discoverAlphaFactors as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects invalid forwardHorizon", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: {
+        factors: [sampleFactor],
+        forwardHorizon: -5,
+      },
+    };
+
+    await expect(
+      (discoverAlphaFactors as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects invalid or empty symbols list", async () => {
+    const request = {
+      auth: { uid: "user1" },
+      data: {
+        factors: [sampleFactor],
+        symbols: ["   ", ""],
+      },
+    };
+
+    await expect(
+      (discoverAlphaFactors as any).run(request)
+    ).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+});
 
 describe("Alpha Factor Discovery - Local Indicator Functions", () => {
   describe("computeCCIArrayLocal", () => {

@@ -1,3 +1,8 @@
+## 2025-03-18 - Missing Input Array Bounds and Object Type Validation on Heavy Analysis Callable
+**Vulnerability:** `discoverAlphaFactors` in `alpha-factor-discovery.ts` was an `onCall` Cloud Function with 512MiB memory and 300s timeout that accepted `request.data.factors` and `request.data.symbols` without bounds checking or array validation. Passing non-array values caused unhandled `TypeError` exceptions, while passing arbitrarily large arrays caused CPU/Memory exhaustion and Denial of Service (DoS) / Denial of Wallet.
+**Learning:** High-memory computation functions accepting complex nested arrays must strictly validate array types (`Array.isArray`), non-emptiness, and cap element limits (e.g. `factors.length <= 50`, `symbols.length <= 50`).
+**Prevention:** Validate input array types and enforce hard upper bounds on element counts before iterating or spawning concurrent sub-tasks in Cloud Functions.
+
 ## 2025-03-17 - Missing Input Length Validation on HTTP Proxy Endpoint
 **Vulnerability:** `yahooProxy` in `yahoo-proxy.ts` validated domain origin for proxied URLs but allowed arbitrarily long query parameters (`req.query.url`). Extremely large URL inputs could lead to excessive memory allocation during SHA-256 hashing, caching, and upstream proxying (DoS / Resource Exhaustion risk).
 **Learning:** Proxy endpoints accepting external URL target strings must constrain input string lengths in addition to hostname whitelisting to mitigate memory bloat and hash computation DoS.
