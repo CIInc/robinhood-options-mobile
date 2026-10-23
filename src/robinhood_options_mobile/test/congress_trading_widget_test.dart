@@ -68,6 +68,15 @@ void main() {
     expect(find.text('6d lag'), findsOneWidget);
     expect(find.text('View PTR Filing'), findsOneWidget);
     expect(find.text('Explore All Political Trades'), findsOneWidget);
+
+    // Verify consolidated screen reader semantics
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+            r'Rep\. Nancy Pelosi \(D-CA-11, House\), Purchase of \$1,000,001 - \$5,000,000\.'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -110,10 +119,23 @@ void main() {
   testWidgets(
       'renders CongressTradingDashboardWidget with search and filter controls',
       (WidgetTester tester) async {
+    final snapshot = CongressTradingSnapshot(
+      symbol: '',
+      trades: [sampleTrade],
+      portfolioOverlap: true,
+      overlappingSymbols: ['NVDA'],
+      totalTrades: 1,
+      totalPurchases: 1000001.0,
+      totalSales: 0.0,
+      netPurchases: 1000001.0,
+      updatedAt: DateTime(2026, 9, 24),
+    );
+
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: CongressTradingDashboardWidget(
-          userPortfolioSymbols: ['NVDA', 'AAPL'],
+          userPortfolioSymbols: const ['NVDA', 'AAPL'],
+          preloadedSnapshot: snapshot,
         ),
       ),
     );
@@ -126,6 +148,16 @@ void main() {
     expect(find.text('Held Overlap'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
     expect(find.textContaining('Showing '), findsOneWidget);
+
+    // Verify consolidated metric semantics and trade disclosure card semantics
+    expect(find.bySemanticsLabel('Tracked: 1'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+            r'Held in your portfolio\. Congressional disclosure: Rep\. Nancy Pelosi'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }
