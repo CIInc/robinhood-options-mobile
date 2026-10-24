@@ -16,4 +16,18 @@ class SecDisclosuresService {
       Map<String, dynamic>.from(response.data as Map),
     );
   }
+
+  Future<SecFilingResearchBrief> analyzeFiling({
+    required String symbol,
+    String? question,
+  }) async {
+    final response = await _functions.httpsCallable('analyzeSecFiling').call({
+      'symbol': symbol.trim().toUpperCase(),
+      if (question != null && question.trim().isNotEmpty)
+        'question': question.trim(),
+    });
+    return SecFilingResearchBrief.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
 }
