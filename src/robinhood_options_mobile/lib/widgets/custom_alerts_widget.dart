@@ -265,6 +265,8 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
         return const Icon(Icons.auto_graph);
       case AlertType.unusual_activity:
         return const Icon(Icons.flash_on);
+      case AlertType.sec_filing:
+        return const Icon(Icons.account_balance_outlined);
       default:
         return const Icon(Icons.notifications);
     }
@@ -531,6 +533,14 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
           AlertCondition.above_band,
           AlertCondition.below_band,
           AlertCondition.spike,
+        ];
+      case AlertType.sec_filing:
+        return [
+          AlertCondition.sec_form4_insider_buy,
+          AlertCondition.sec_form4_insider_sell,
+          AlertCondition.sec_8k_material_event,
+          AlertCondition.sec_13f_institutional,
+          AlertCondition.sec_10k_10q_filing,
         ];
       default:
         return AlertCondition.values;

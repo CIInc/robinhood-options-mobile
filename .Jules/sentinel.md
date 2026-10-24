@@ -1,3 +1,8 @@
+## 2025-03-18 - Missing Active Group Membership Verification on Group Watchlist Operations
+**Vulnerability:** Group watchlist management functions (`deleteGroupWatchlist`, `addSymbolToWatchlist`, `removeSymbolFromWatchlist`, `createPriceAlert`, `deletePriceAlert`, `setWatchlistMemberPermission`, `removeWatchlistMemberPermission`) in `group-watchlists.ts` checked watchlist-level creator/editor permissions but failed to verify active membership in the parent `investor_groups` group. Removed or former group members retained persistent ability to alter symbols, alerts, permissions, or delete watchlists.
+**Learning:** Subcollection resource permission checks (e.g. `watchlists.permissions[uid]`) must always validate active membership in the parent entity (`investor_groups.members.includes(uid)`). Stale permissions stored on child documents can lead to privilege retention when users leave or are removed from parent groups.
+**Prevention:** Enforce a parent group membership check (`ensureGroupMember(groupId, userId)`) on all callable functions accessing or modifying group subcollection resources.
+
 ## 2025-03-17 - Missing Input Length Validation on HTTP Proxy Endpoint
 **Vulnerability:** `yahooProxy` in `yahoo-proxy.ts` validated domain origin for proxied URLs but allowed arbitrarily long query parameters (`req.query.url`). Extremely large URL inputs could lead to excessive memory allocation during SHA-256 hashing, caching, and upstream proxying (DoS / Resource Exhaustion risk).
 **Learning:** Proxy endpoints accepting external URL target strings must constrain input string lengths in addition to hostname whitelisting to mitigate memory bloat and hash computation DoS.

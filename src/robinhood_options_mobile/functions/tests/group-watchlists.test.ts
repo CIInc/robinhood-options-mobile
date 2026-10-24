@@ -69,9 +69,11 @@ const mockWatchlistDocRef = {
 const mockWatchlistDoc = {
   exists: true,
   data: () => ({
+    members: ["user1"],
     createdBy: "user1",
     permissions: {
       user1: "editor",
+      user_removed: "editor",
     },
   }),
   ref: mockWatchlistDocRef,
@@ -81,6 +83,7 @@ jest.mock("firebase-admin/firestore", () => ({
   getFirestore: jest.fn(() => ({
     collection: jest.fn(() => ({
       doc: jest.fn(() => ({
+        get: jest.fn(async () => mockWatchlistDoc),
         collection: jest.fn(() => ({
           doc: jest.fn(() => ({
             get: jest.fn(async () => mockWatchlistDoc),
@@ -211,6 +214,19 @@ describe("deleteGroupWatchlist function and benchmark", () => {
       (deleteGroupWatchlist as any).run(request)
     ).rejects.toMatchObject({
       code: "unauthenticated",
+    });
+  });
+
+  test("rejects request from former member removed from group", async () => {
+    const request = {
+      auth: { uid: "user_removed" },
+      data: { groupId: "group1", watchlistId: "wl1" },
+    };
+
+    await expect(
+      (deleteGroupWatchlist as any).run(request)
+    ).rejects.toMatchObject({
+      code: "permission-denied",
     });
   });
 });

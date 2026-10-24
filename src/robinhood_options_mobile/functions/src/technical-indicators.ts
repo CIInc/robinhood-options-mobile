@@ -877,6 +877,36 @@ export function computeKeltnerChannelsArray(
 }
 
 /**
+ * Performance optimization: Computes scalar OBV ending at endIndex in
+ * O(1) space without allocating full-series cumulative OBV arrays.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @param {number} [endIndex] - Optional end index.
+ * @return {number|null} The trailing OBV scalar value or null.
+ */
+export function computeScalarOBV(
+  closes: number[],
+  volumes: number[],
+  endIndex = closes ? closes.length : 0
+): number | null {
+  if (!closes || !volumes || endIndex < 2 ||
+    closes.length < endIndex || volumes.length < endIndex) {
+    return null;
+  }
+
+  let obv = 0;
+  for (let i = 1; i < endIndex; i++) {
+    if (closes[i] > closes[i - 1]) {
+      obv += volumes[i];
+    } else if (closes[i] < closes[i - 1]) {
+      obv -= volumes[i];
+    }
+  }
+
+  return obv;
+}
+
+/**
  * Compute On-Balance Volume (OBV)
  * @param {number[]} closes - Array of close prices.
  * @param {number[]} volumes - Array of volumes.
@@ -2897,8 +2927,46 @@ export function evaluateOBV(
     };
   }
 
-  const obv = computeOBV(closes, volumes, endIndex);
-  if (!obv || obv.length < 20) {
+  // Performance optimization: Calculate trailing OBV values over lookback
+  // window (last 20 bars) in O(1) space, avoiding full OBV array per bar.
+  // Evaluate running OBV starting at base index = endIndex - 20
+  const baseIndex = endIndex - 20;
+  let runningObv = 0;
+  let sumOlderOBV = 0;
+  let sumRecentOBV = 0;
+  let maxObv = 0;
+  let minObv = 0;
+
+  for (let i = baseIndex + 1; i < endIndex; i++) {
+    if (closes[i] > closes[i - 1]) {
+      runningObv += volumes[i];
+    } else if (closes[i] < closes[i - 1]) {
+      runningObv -= volumes[i];
+    }
+
+    if (i === baseIndex + 1) {
+      maxObv = runningObv;
+      minObv = runningObv;
+    } else {
+      if (runningObv > maxObv) maxObv = runningObv;
+      if (runningObv < minObv) minObv = runningObv;
+    }
+
+    // Accumulate for older (first 10 of last 20) and recent (last 10)
+    if (i < baseIndex + 10) {
+      sumOlderOBV += runningObv;
+    } else {
+      sumRecentOBV += runningObv;
+    }
+  }
+
+  // For index baseIndex itself, runningObv = 0
+  if (0 > maxObv) maxObv = 0;
+  if (0 < minObv) minObv = 0;
+  sumOlderOBV += 0;
+
+  const cumulativeOBV = computeScalarOBV(closes, volumes, endIndex);
+  if (cumulativeOBV === null) {
     return {
       value: null,
       signal: "HOLD",
@@ -2906,29 +2974,10 @@ export function evaluateOBV(
     };
   }
 
-  const currentOBV = obv[obv.length - 1];
-  const obvLen = obv.length;
-  const closeLen = endIndex;
-
-  // Calculate recent/older averages and extrema without array allocations
-  let sumRecentOBV = 0;
-  let maxObv = obv[obvLen - 20];
-  let minObv = obv[obvLen - 20];
-  for (let i = obvLen - 10; i < obvLen; i++) {
-    sumRecentOBV += obv[i];
-  }
+  const currentOBV = cumulativeOBV;
   const recentAvg = sumRecentOBV / 10;
-
-  let sumOlderOBV = 0;
-  for (let i = obvLen - 20; i < obvLen - 10; i++) {
-    sumOlderOBV += obv[i];
-  }
   const olderAvg = sumOlderOBV / 10;
-
-  for (let i = obvLen - 20; i < obvLen; i++) {
-    if (obv[i] > maxObv) maxObv = obv[i];
-    if (obv[i] < minObv) minObv = obv[i];
-  }
+  const closeLen = endIndex;
   const isNewHighOBV = currentOBV >= maxObv;
   const isNewLowOBV = currentOBV <= minObv;
 
@@ -4857,9 +4906,7 @@ export function evaluateCustomIndicator(
           endIndex
         );
       case "OBV": {
-        const obvRes = computeOBV(p, v, endIndex);
-        return obvRes && obvRes.length > 0 ?
-          obvRes[obvRes.length - 1] : null;
+        return computeScalarOBV(p, v, endIndex);
       }
       case "WilliamsR":
         return computeWilliamsR(

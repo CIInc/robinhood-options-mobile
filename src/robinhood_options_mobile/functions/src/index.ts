@@ -163,6 +163,7 @@ export const getGammaExposure = gammaExposureFuncs.getGammaExposure;
 export const getTopGammaExposure = gammaExposureFuncs.getTopGammaExposure;
 export const getNewsIntelligence = newsIntelligence.getNewsIntelligence;
 export const getSecDisclosures = secEdgar.getSecDisclosures;
+export const analyzeSecFiling = secEdgar.analyzeSecFiling;
 export const refreshTrackedSecDisclosures =
   secEdgar.refreshTrackedSecDisclosures;
 export const getWatchlistNewsIntelligence =
