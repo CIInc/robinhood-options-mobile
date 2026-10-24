@@ -4,6 +4,30 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 const db = getFirestore();
 
 /**
+ * Verifies group existence and that caller is currently an active member.
+ */
+async function ensureGroupMember(groupId: string, userId: string) {
+  const groupDoc = await db
+    .collection("investor_groups")
+    .doc(groupId)
+    .get();
+
+  if (!groupDoc.exists) {
+    throw new HttpsError("not-found", "Group not found");
+  }
+
+  const groupData = groupDoc.data() as any;
+  const members = groupData?.members || [];
+  if (!Array.isArray(members) || !members.includes(userId)) {
+    throw new HttpsError(
+      "permission-denied",
+      "You must be an active member of this group"
+    );
+  }
+  return groupData;
+}
+
+/**
  * Create a new group watchlist
  */
 export const createGroupWatchlist = onCall(
@@ -27,30 +51,7 @@ export const createGroupWatchlist = onCall(
       );
     }
 
-    // Check if group exists
-    const groupDoc = await db
-      .collection("investor_groups")
-      .doc(groupId)
-      .get();
-
-    if (!groupDoc.exists) {
-      throw new HttpsError("not-found", "Group not found");
-    }
-
-    const groupData = groupDoc.data() as any;
-
-    // Check membership - members is an array of user IDs
-    const members = groupData?.members || [];
-    const isMember = Array.isArray(members) ?
-      members.includes(userId) :
-      false;
-
-    if (!isMember) {
-      throw new HttpsError(
-        "permission-denied",
-        "You must be a member of this group to create watchlists"
-      );
-    }
+    await ensureGroupMember(groupId, userId);
 
     // Create watchlist with user as editor only
     // All other group members are assumed to be
@@ -94,6 +95,8 @@ export const deleteGroupWatchlist = onCall(
 
     const { groupId, watchlistId } = request.data;
     const userId = request.auth.uid;
+
+    await ensureGroupMember(groupId, userId);
 
     const watchlistDoc = await db
       .collection("investor_groups")
@@ -173,6 +176,8 @@ export const addSymbolToWatchlist = onCall(
       );
     }
 
+    await ensureGroupMember(groupId, userId);
+
     const watchlistDoc = await db
       .collection("investor_groups")
       .doc(groupId)
@@ -239,6 +244,8 @@ export const removeSymbolFromWatchlist = onCall(
         "groupId, watchlistId, and symbol must be non-empty strings"
       );
     }
+
+    await ensureGroupMember(groupId, userId);
 
     const watchlistDoc = await db
       .collection("investor_groups")
@@ -334,6 +341,8 @@ export const createPriceAlert = onCall(
       );
     }
 
+    await ensureGroupMember(groupId, userId);
+
     const watchlistDoc = await db
       .collection("investor_groups")
       .doc(groupId)
@@ -407,6 +416,8 @@ export const deletePriceAlert = onCall(
       );
     }
 
+    await ensureGroupMember(groupId, userId);
+
     const watchlistDoc = await db
       .collection("investor_groups")
       .doc(groupId)
@@ -469,6 +480,8 @@ export const setWatchlistMemberPermission = onCall(
       );
     }
 
+    const groupData = await ensureGroupMember(groupId, userId);
+
     const watchlistDoc = await db
       .collection("investor_groups")
       .doc(groupId)
@@ -496,11 +509,6 @@ export const setWatchlistMemberPermission = onCall(
     }
 
     // Check member exists in group
-    const groupDoc = await db
-      .collection("investor_groups")
-      .doc(groupId)
-      .get();
-    const groupData = groupDoc.data() as any;
     const groupMembers = groupData?.members || [];
     if (!Array.isArray(groupMembers) || !groupMembers.includes(memberId)) {
       throw new HttpsError(
@@ -539,6 +547,8 @@ export const removeWatchlistMemberPermission = onCall(
 
     const { groupId, watchlistId, memberId } = request.data;
     const userId = request.auth.uid;
+
+    await ensureGroupMember(groupId, userId);
 
     const watchlistDoc = await db
       .collection("investor_groups")
