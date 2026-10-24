@@ -66,16 +66,21 @@ interface AlphaDiscoveryRequest {
 // --- Helper Functions ---
 
 /**
- * Calculates Pearson correlation coefficient between two arrays.
- * Ignores indices where either value is null/NaN.
- * @param {Array<number|null>} x First array of values
- * @param {Array<number|null>} y Second array of values
- * @return {number|null} Pearson correlation coefficient or null if invalid
+ * Calculates Pearson correlation coefficient between two arrays for specified
+ * indices. Ignores indices where either value is null/NaN.
+ * Performance Optimization: Single pass calculates correlation and valid pair
+ * count directly over optional index boundaries, eliminating temporary array
+ * allocations (.map / .filter).
+ * @param {Array<number|null>} x First array of values.
+ * @param {Array<number|null>} y Second array of values.
+ * @param {Array<number>} [indices] Optional array of valid indices.
+ * @return {Object} Result containing correlation and non-null pair count.
  */
-function calculateCorrelation(
+export function calculateCorrelation(
   x: (number | null)[],
-  y: (number | null)[]
-): number | null {
+  y: (number | null)[],
+  indices?: number[]
+): { correlation: number | null; count: number } {
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
@@ -83,9 +88,12 @@ function calculateCorrelation(
   let sumY2 = 0;
   let n = 0;
 
-  for (let i = 0; i < x.length; i++) {
-    const xi = x[i];
-    const yi = y[i];
+  const len = indices ? indices.length : x.length;
+
+  for (let i = 0; i < len; i++) {
+    const idx = indices ? indices[i] : i;
+    const xi = x[idx];
+    const yi = y[idx];
 
     if (xi !== null && yi !== null && !isNaN(xi) && !isNaN(yi)) {
       sumX += xi;
@@ -97,15 +105,15 @@ function calculateCorrelation(
     }
   }
 
-  if (n < 2) return null;
+  if (n < 2) return { correlation: null, count: n };
 
   const numerator = n * sumXY - sumX * sumY;
   const denominator = Math.sqrt(
     (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)
   );
 
-  if (denominator === 0) return 0;
-  return numerator / denominator;
+  if (denominator === 0) return { correlation: 0, count: n };
+  return { correlation: numerator / denominator, count: n };
 }
 
 /**
@@ -749,18 +757,22 @@ export const discoverAlphaFactors = onCall({
             continue;
           }
 
-          // 2e. Apply Filter and Compute Correlation
-          const filteredValues = validIndices.map((idx) => values[idx]);
-          const filteredReturns = validIndices.map((idx) =>
-            forwardReturns[idx]);
-
-          const ic = calculateCorrelation(filteredValues, filteredReturns);
+          // 2e. Compute Correlation directly over validIndices without
+          // intermediate array allocations
+          // Performance Optimization: Passes validIndices directly to
+          // calculateCorrelation, eliminating transient filteredValues,
+          // filteredReturns, and .filter() array allocations.
+          const { correlation: ic, count } = calculateCorrelation(
+            values,
+            forwardReturns,
+            validIndices
+          );
 
           if (ic !== null) {
             results[j].symbolBreakdown.push({
               symbol,
               correlation: ic,
-              count: filteredValues.filter((v) => v !== null).length,
+              count,
             });
           }
         }

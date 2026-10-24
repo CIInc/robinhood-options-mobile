@@ -1,4 +1,5 @@
 import {
+  calculateCorrelation,
   computeCCIArrayLocal,
   computeMFIArrayLocal,
   discoverAlphaFactors,
@@ -132,6 +133,50 @@ describe("Alpha Factor Discovery - Local Indicator Functions", () => {
       const result = computeCCIArrayLocal(highs, lows, closes, 5);
 
       expect(result[4]).toBe(0);
+    });
+  });
+
+  describe("calculateCorrelation", () => {
+    it("should compute exact correlation and count without indices", () => {
+      const x = [1, 2, 3, 4, 5];
+      const y = [2, 4, 6, 8, 10]; // Perfect positive correlation r = 1.0
+
+      const result = calculateCorrelation(x, y);
+
+      expect(result.correlation).toBeCloseTo(1.0, 5);
+      expect(result.count).toBe(5);
+    });
+
+    it("should compute correlation and count over a subset of indices", () => {
+      const x = [100, 1, 2, 3, 4, 5, 200];
+      const y = [-50, 2, 4, 6, 8, 10, 300];
+      const validIndices = [1, 2, 3, 4, 5]; // Subset ignoring outer noise
+
+      const result = calculateCorrelation(x, y, validIndices);
+
+      expect(result.correlation).toBeCloseTo(1.0, 5);
+      expect(result.count).toBe(5);
+    });
+
+    it("should filter out null and NaN values correctly", () => {
+      const x = [1, null, 3, 4, NaN, 6];
+      const y = [10, 20, 30, null, 50, 60];
+
+      const result = calculateCorrelation(x, y);
+
+      // Valid pairs: (1,10), (3,30), (6,60) => r = 1.0, count = 3
+      expect(result.correlation).toBeCloseTo(1.0, 5);
+      expect(result.count).toBe(3);
+    });
+
+    it("should return null correlation when < 2 valid pairs exist", () => {
+      const x = [1, null, null];
+      const y = [10, 20, 30];
+
+      const result = calculateCorrelation(x, y);
+
+      expect(result.correlation).toBeNull();
+      expect(result.count).toBe(1);
     });
   });
 
