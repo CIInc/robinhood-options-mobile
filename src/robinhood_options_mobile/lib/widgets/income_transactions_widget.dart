@@ -2137,47 +2137,56 @@ class SummaryStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      color: Theme.of(context)
-          .colorScheme
-          .surfaceContainerHighest
-          .withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: const EdgeInsets.all(4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[icon!, const SizedBox(width: 4)],
-                  Text(
-                    value,
-                    style: TextStyle(
-                        fontSize: valueFontSize, fontWeight: FontWeight.bold),
-                  ),
-                  if (onTap != null) ...[
-                    const SizedBox(width: 4),
-                    Icon(Icons.info_outline,
-                        size: 14, color: Theme.of(context).colorScheme.primary),
-                  ]
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                    fontSize: labelFontSize,
-                    color: Theme.of(context).textTheme.bodySmall?.color),
-              ),
-            ],
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $value',
+      button: onTap != null,
+      hint: onTap != null ? 'Double tap to view detailed calculation' : null,
+      child: Card(
+        elevation: 0,
+        color: Theme.of(context)
+            .colorScheme
+            .surfaceContainerHighest
+            .withValues(alpha: 0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[icon!, const SizedBox(width: 4)],
+                    Text(
+                      value,
+                      style: TextStyle(
+                          fontSize: valueFontSize, fontWeight: FontWeight.bold),
+                    ),
+                    if (onTap != null) ...[
+                      const SizedBox(width: 4),
+                      Icon(Icons.info_outline,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary),
+                    ]
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                      fontSize: labelFontSize,
+                      color: Theme.of(context).textTheme.bodySmall?.color),
+                ),
+              ],
+            ),
           ),
         ),
       ),
