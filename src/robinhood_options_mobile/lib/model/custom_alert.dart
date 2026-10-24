@@ -20,6 +20,7 @@ enum AlertType {
   news,
   unusual_activity,
   congress_trading,
+  sec_filing,
   custom
 }
 
@@ -69,6 +70,11 @@ enum AlertCondition {
   congress_trade_purchase,
   congress_trade_sale,
   congress_trade_any,
+  sec_form4_insider_buy,
+  sec_form4_insider_sell,
+  sec_8k_material_event,
+  sec_13f_institutional,
+  sec_10k_10q_filing,
 }
 
 enum AlertLogic { all, any }
