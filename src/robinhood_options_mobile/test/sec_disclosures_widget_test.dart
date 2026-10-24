@@ -162,7 +162,9 @@ void main() {
           summary: 'Annual report for period ended September 26, 2026',
           url: 'https://www.sec.gov/example-10k',
           symbols: const ['AAPL'],
-          riskHighlights: const ['Supply chain, tariff, or geopolitical exposure noted'],
+          riskHighlights: const [
+            'Supply chain, tariff, or geopolitical exposure noted'
+          ],
         ),
       ],
     );
@@ -203,7 +205,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('builds Action Center alerts and evaluates SmartAlertRules for SEC filings',
+  test(
+      'builds Action Center alerts and evaluates SmartAlertRules for SEC filings',
       () {
     final now = DateTime.utc(2026, 9, 25);
     final disclosures = [
@@ -267,8 +270,7 @@ void main() {
       now: now,
     );
 
-    final secAlerts =
-        alerts.where((a) => a.category == 'SEC Filings').toList();
+    final secAlerts = alerts.where((a) => a.category == 'SEC Filings').toList();
     expect(secAlerts.length, 4);
     expect(
       secAlerts.any((a) =>

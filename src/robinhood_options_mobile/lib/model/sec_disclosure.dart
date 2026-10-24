@@ -173,9 +173,8 @@ class SecFilingResearchBrief {
       }
       if (financials.netIncome != null) {
         final margin = financials.netMargin;
-        final marginStr = margin != null
-            ? ' (${margin.toStringAsFixed(1)}% net margin)'
-            : '';
+        final marginStr =
+            margin != null ? ' (${margin.toStringAsFixed(1)}% net margin)' : '';
         financialHighlights.add(
           'Net Income: ${compactUsd.format(financials.netIncome)}$marginStr',
         );
@@ -203,7 +202,8 @@ class SecFilingResearchBrief {
           financials.debtToEquity != null) {
         final parts = <String>[];
         if (financials.cashAndEquivalents != null) {
-          parts.add('Cash: ${compactUsd.format(financials.cashAndEquivalents)}');
+          parts
+              .add('Cash: ${compactUsd.format(financials.cashAndEquivalents)}');
         }
         if (financials.debtToEquity != null) {
           parts.add(
