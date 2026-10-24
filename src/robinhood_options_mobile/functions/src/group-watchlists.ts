@@ -5,6 +5,9 @@ const db = getFirestore();
 
 /**
  * Verifies group existence and that caller is currently an active member.
+ * @param {string} groupId ID of the investor group.
+ * @param {string} userId ID of the user calling the function.
+ * @return {Promise<any>} The group data object.
  */
 async function ensureGroupMember(groupId: string, userId: string) {
   const groupDoc = await db
