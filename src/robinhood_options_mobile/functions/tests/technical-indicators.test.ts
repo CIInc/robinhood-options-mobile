@@ -15,6 +15,9 @@ import {
   computeStochasticArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
+  computeScalarOBV,
+  computeOBV,
+  evaluateOBV,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -530,6 +533,51 @@ describe("Technical Indicators", () => {
       expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
       expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
       expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+  });
+
+  describe("computeScalarOBV and evaluateOBV", () => {
+    it("should match computeOBV trailing value exactly", () => {
+      const closes = [10, 11, 10.5, 12, 11.8, 13, 12.5, 14, 13.8, 15];
+      const volumes = [100, 200, 150, 300, 120, 250, 180, 400, 210, 350];
+
+      const scalarObv = computeScalarOBV(closes, volumes);
+      const fullObvArray = computeOBV(closes, volumes);
+
+      expect(scalarObv).not.toBeNull();
+      expect(fullObvArray).not.toBeNull();
+      expect(scalarObv).toEqual(fullObvArray![fullObvArray!.length - 1]);
+    });
+
+    it("should respect custom endIndex parameter in computeScalarOBV", () => {
+      const closes = [10, 11, 10.5, 12, 11.8, 13, 12.5, 14, 13.8, 15];
+      const volumes = [100, 200, 150, 300, 120, 250, 180, 400, 210, 350];
+      const endIndex = 6;
+
+      const scalarObv = computeScalarOBV(closes, volumes, endIndex);
+      const fullObvArray = computeOBV(closes, volumes, endIndex);
+
+      expect(scalarObv).toEqual(fullObvArray![fullObvArray!.length - 1]);
+    });
+
+    it("should evaluate OBV correctly for accumulation breakout", () => {
+      const closes: number[] = [];
+      const volumes: number[] = [];
+      // 25 bars: bar 10 sets price peak 110 in recent 20-bar window
+      for (let i = 0; i < 25; i++) {
+        if (i === 10) {
+          closes.push(110);
+          volumes.push(100);
+        } else {
+          const isUp = i % 2 === 0;
+          closes.push(100 + (isUp ? 0.5 : -0.5));
+          volumes.push(isUp ? 1000 : 100);
+        }
+      }
+
+      const result = evaluateOBV(closes, volumes);
+      expect(result.signal).toBe("BUY");
+      expect(result.reason).toContain("Accumulation");
     });
   });
 });
