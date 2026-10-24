@@ -606,20 +606,56 @@ export const discoverAlphaFactors = onCall({
   memory: "512MiB",
 }, async (request) => {
   // 1. Validate inputs
-  if (!request.auth) {
+  if (!request.auth || !request.auth.uid) {
     throw new HttpsError("unauthenticated", "User must be logged in.");
   }
 
   const {
-    symbols = [
-      "SPY", "QQQ", "IWM", "AAPL", "MSFT", "NVDA",
-      "TSLA", "AMZN", "GOOGL", "META",
-    ],
+    symbols,
     startDate,
     endDate,
     factors,
     forwardHorizon = 5, // 5 days return
-  } = request.data as AlphaDiscoveryRequest;
+  } = (request.data || {}) as AlphaDiscoveryRequest;
+
+  if (!Array.isArray(factors) || factors.length === 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      "At least one alpha factor configuration is required in 'factors'."
+    );
+  }
+
+  if (factors.length > 50) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Maximum of 50 alpha factor configurations allowed per request."
+    );
+  }
+
+  const horizon = Number(forwardHorizon);
+  if (!Number.isInteger(horizon) || horizon < 1 || horizon > 60) {
+    throw new HttpsError(
+      "invalid-argument",
+      "forwardHorizon must be an integer between 1 and 60."
+    );
+  }
+
+  const defaultSymbols = [
+    "SPY", "QQQ", "IWM", "AAPL", "MSFT", "NVDA",
+    "TSLA", "AMZN", "GOOGL", "META",
+  ];
+  const rawSymbols = Array.isArray(symbols) ? symbols : defaultSymbols;
+  const validatedSymbols = rawSymbols
+    .filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+    .map((s) => s.trim().toUpperCase())
+    .slice(0, 50);
+
+  if (validatedSymbols.length === 0) {
+    throw new HttpsError(
+      "invalid-argument",
+      "At least one valid symbol is required in 'symbols'."
+    );
+  }
 
   // Determine needed range
   let range = "2y";
@@ -634,7 +670,7 @@ export const discoverAlphaFactors = onCall({
   }
 
   logger.info("Starting Alpha Factor Discovery", {
-    symbolsCount: symbols.length,
+    symbolsCount: validatedSymbols.length,
     factorsCount: factors.length,
     startDate,
     endDate,
@@ -658,12 +694,12 @@ export const discoverAlphaFactors = onCall({
   // 2. Iterate Universe in Parallel
   // Rate limiting to 5 concurrent requests to avoid API bans (Yahoo/Plaid etc)
   const CONCURRENT_LIMIT = 5;
-  for (let i = 0; i < symbols.length; i += CONCURRENT_LIMIT) {
+  for (let i = 0; i < validatedSymbols.length; i += CONCURRENT_LIMIT) {
     // Add delay between batches to throttle API requests
     if (i > 0) {
       await delay(1000);
     }
-    const chunk = symbols.slice(i, i + CONCURRENT_LIMIT);
+    const chunk = validatedSymbols.slice(i, i + CONCURRENT_LIMIT);
     await Promise.all(chunk.map(async (symbol) => {
       try {
         // 2a. Get Data
@@ -680,7 +716,7 @@ export const discoverAlphaFactors = onCall({
         }
 
         // 2b. Compute Forward Returns
-        const forwardReturns = calculateForwardReturns(closes, forwardHorizon);
+        const forwardReturns = calculateForwardReturns(closes, horizon);
 
         // 2c. Define Filter Mask
         // We only correlate where timestamp is within requested window

@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/automated_drip_config.dart';
 import 'package:robinhood_options_mobile/model/zero_dte_squeeze_radar_model.dart';
 import 'package:robinhood_options_mobile/model/news_intelligence.dart';
 import 'package:robinhood_options_mobile/model/congress_trade.dart';
+import 'package:robinhood_options_mobile/model/sec_disclosure.dart';
 import 'package:robinhood_options_mobile/model/risk_copilot_model.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
@@ -79,6 +80,8 @@ class PortfolioAlertService {
     List<NewsIntelligence>? newsIntelligence,
     Map<String, NewsIntelligence>? newsIntelligenceBySymbol,
     List<CongressTrade>? congressTrades,
+    List<SecDisclosure>? secDisclosures,
+    Map<String, SecDisclosureSnapshot>? secDisclosuresBySymbol,
     double? dayPnL,
     double? dayPnLPercent,
     RiskCopilotReport? riskCopilotReport,
@@ -127,6 +130,13 @@ class PortfolioAlertService {
       instrumentPositions: instrumentPositions,
       optionPositions: optionPositions,
       congressTrades: congressTrades,
+      now: effectiveNow,
+    ));
+    alerts.addAll(_secDisclosureAlerts(
+      instrumentPositions: instrumentPositions,
+      optionPositions: optionPositions,
+      secDisclosures: secDisclosures,
+      secDisclosuresBySymbol: secDisclosuresBySymbol,
       now: effectiveNow,
     ));
     alerts.addAll(_earningsCrushAlerts(earningsCrushAnalyses));
@@ -1775,6 +1785,252 @@ class PortfolioAlertService {
         return rule.value <= 0 || trade.amountMin >= rule.value;
       default:
         return rule.value <= 0 || trade.amountMin >= rule.value;
+    }
+  }
+
+  /// Builds Action Center alerts for SEC EDGAR filings (8-K material events,
+  /// Form 4 insider buy/sell clusters, and 10-K/10-Q periodic financial statements)
+  /// that overlap with held stock or option positions.
+  static List<PortfolioAlert> _secDisclosureAlerts({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    List<SecDisclosure>? secDisclosures,
+    Map<String, SecDisclosureSnapshot>? secDisclosuresBySymbol,
+    DateTime? now,
+  }) {
+    final alerts = <PortfolioAlert>[];
+    if ((secDisclosures == null || secDisclosures.isEmpty) &&
+        (secDisclosuresBySymbol == null || secDisclosuresBySymbol.isEmpty)) {
+      return alerts;
+    }
+
+    final heldSymbols = <String>{};
+    for (final pos in instrumentPositions) {
+      final sym = pos.instrumentObj?.symbol ?? '';
+      final shares = pos.quantity ?? 0.0;
+      if (sym.isNotEmpty && shares > 0) {
+        heldSymbols.add(sym.toUpperCase());
+      }
+    }
+    for (final op in optionPositions) {
+      final sym = op.symbol.isNotEmpty
+          ? op.symbol
+          : (op.optionInstrument?.chainSymbol ?? '');
+      final contracts = (op.quantity ?? 0.0).round();
+      if (sym.isNotEmpty && contracts > 0) {
+        heldSymbols.add(sym.toUpperCase());
+      }
+    }
+    if (heldSymbols.isEmpty) return alerts;
+
+    final effectiveNow = now ?? DateTime.now();
+    final combined = <SecDisclosure>[
+      ...?secDisclosures,
+      if (secDisclosuresBySymbol != null)
+        ...secDisclosuresBySymbol.values.expand((s) => s.disclosures),
+    ];
+
+    final seenIds = <String>{};
+    for (final disclosure in combined) {
+      final matchingSymbols = disclosure.symbols
+          .map((s) => s.toUpperCase())
+          .where(heldSymbols.contains)
+          .toList();
+      if (matchingSymbols.isEmpty) continue;
+      final sym = matchingSymbols.first;
+      final dedupeKey = '$sym-${disclosure.accessionNumber}';
+      if (!seenIds.add(dedupeKey)) continue;
+
+      final ageDays = effectiveNow.difference(disclosure.filedAt).inDays;
+      if (disclosure.form == '8-K') {
+        if (ageDays > 30) continue;
+        final isCritical = disclosure.materialEventSeverity == 'critical' ||
+            disclosure.itemCodes.any(
+              (c) => c == '1.03' || c == '3.01' || c == '4.02',
+            );
+        final isWarning = !isCritical &&
+            (disclosure.materialEventSeverity == 'warning' ||
+                disclosure.itemCodes.any(
+                  (c) =>
+                      c == '1.02' ||
+                      c == '2.04' ||
+                      c == '2.05' ||
+                      c == '2.06' ||
+                      c == '4.01' ||
+                      c == '5.02',
+                ));
+        final severity = isCritical
+            ? PortfolioAlertSeverity.critical
+            : (isWarning
+                ? PortfolioAlertSeverity.warning
+                : PortfolioAlertSeverity.info);
+        final itemsMetric = disclosure.itemCodes.isNotEmpty
+            ? 'Items ${disclosure.itemCodes.join(", ")}'
+            : 'Form 8-K';
+        final desc = disclosure.itemDescriptions.isNotEmpty
+            ? disclosure.itemDescriptions.join(' · ')
+            : disclosure.summary;
+        alerts.add(
+          PortfolioAlert(
+            id: 'sec-8k-$sym-${disclosure.accessionNumber}',
+            severity: severity,
+            icon: Icons.gavel_outlined,
+            title: 'SEC 8-K Material Event ($sym)',
+            detail: '${disclosure.companyName} filed Form 8-K ($desc).',
+            metric: itemsMetric,
+            target: PortfolioAlertTarget.instrument,
+            symbol: sym,
+            category: 'SEC Filings',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'disclosure': disclosure},
+          ),
+        );
+      } else if (disclosure.form == '4') {
+        if (ageDays > 30) continue;
+        final buyCount = disclosure.openMarketBuyCount ?? 0;
+        final sellCount = disclosure.openMarketSellCount ?? 0;
+        final buyCluster = disclosure.insiderClusterCount ?? 0;
+        final sellCluster = disclosure.insiderSellClusterCount ?? 0;
+        final netValue = disclosure.netTransactionValue ?? 0.0;
+
+        if (buyCount > 0) {
+          final isClusterOrLarge = buyCluster >= 2 || netValue >= 100000;
+          final severity = isClusterOrLarge
+              ? PortfolioAlertSeverity.positive
+              : PortfolioAlertSeverity.info;
+          final metricStr = buyCluster >= 2
+              ? '$buyCluster Insiders Buying'
+              : (netValue > 0
+                  ? '+${_currency.format(netValue)}'
+                  : '$buyCount Buy${buyCount == 1 ? "" : "s"}');
+          alerts.add(
+            PortfolioAlert(
+              id: 'sec-form4-buy-$sym-${disclosure.accessionNumber}',
+              severity: severity,
+              icon: Icons.person_add_alt_1_outlined,
+              title: buyCluster >= 2
+                  ? 'Insider Buy Cluster ($sym)'
+                  : 'Form 4 Insider Buy ($sym)',
+              detail: '${disclosure.title}: ${disclosure.summary}'
+                  '${buyCluster >= 2 ? " ($buyCluster unique insiders bought in 30d)." : "."}',
+              metric: metricStr,
+              target: PortfolioAlertTarget.instrument,
+              symbol: sym,
+              category: 'SEC Filings',
+              actionLabel: 'View $sym',
+              payload: {'symbol': sym, 'disclosure': disclosure},
+            ),
+          );
+        } else if (sellCluster >= 2 || sellCount >= 2 || netValue <= -250000) {
+          final metricStr = sellCluster >= 2
+              ? '$sellCluster Insiders Selling'
+              : (netValue < 0
+                  ? _currency.format(netValue)
+                  : '$sellCount Sales');
+          alerts.add(
+            PortfolioAlert(
+              id: 'sec-form4-sell-$sym-${disclosure.accessionNumber}',
+              severity: PortfolioAlertSeverity.warning,
+              icon: Icons.person_remove_outlined,
+              title: sellCluster >= 2
+                  ? 'Insider Selling Cluster ($sym)'
+                  : 'Form 4 Insider Sale ($sym)',
+              detail: '${disclosure.title}: ${disclosure.summary}'
+                  '${sellCluster >= 2 ? " ($sellCluster unique insiders sold in 30d)." : "."}',
+              metric: metricStr,
+              target: PortfolioAlertTarget.instrument,
+              symbol: sym,
+              category: 'SEC Filings',
+              actionLabel: 'View $sym',
+              payload: {'symbol': sym, 'disclosure': disclosure},
+            ),
+          );
+        }
+      } else if (disclosure.form == '10-K' || disclosure.form == '10-Q') {
+        if (ageDays > 60) continue;
+        final snapshot = secDisclosuresBySymbol?[sym];
+        final financials = snapshot?.financials;
+        final growth = financials?.revenueGrowthYoY;
+        final netInc = financials?.netIncome;
+        final hasRisk = disclosure.riskHighlights.isNotEmpty ||
+            (netInc != null && netInc < 0) ||
+            (growth != null && growth < -5);
+        final isStrong = !hasRisk &&
+            growth != null &&
+            growth >= 12 &&
+            (netInc == null || netInc > 0);
+        final severity = hasRisk
+            ? PortfolioAlertSeverity.warning
+            : (isStrong
+                ? PortfolioAlertSeverity.positive
+                : PortfolioAlertSeverity.info);
+        final metricStr = growth != null
+            ? 'Rev ${growth >= 0 ? "+" : ""}${growth.toStringAsFixed(1)}% YoY'
+            : 'Form ${disclosure.form}';
+        alerts.add(
+          PortfolioAlert(
+            id: 'sec-periodic-$sym-${disclosure.accessionNumber}',
+            severity: severity,
+            icon: Icons.description_outlined,
+            title: 'SEC Form ${disclosure.form} Filed ($sym)',
+            detail: '${disclosure.summary}'
+                '${disclosure.riskHighlights.isNotEmpty ? " · ${disclosure.riskHighlights.first}" : ""}',
+            metric: metricStr,
+            target: PortfolioAlertTarget.instrument,
+            symbol: sym,
+            category: 'SEC Filings',
+            actionLabel: 'View $sym',
+            payload: {'symbol': sym, 'disclosure': disclosure},
+          ),
+        );
+      }
+    }
+
+    return alerts;
+  }
+
+  /// Evaluates a SmartAlertRule against an SEC EDGAR [SecDisclosure].
+  static bool evaluateSecDisclosureAlert({
+    required SmartAlertRule rule,
+    required SecDisclosure disclosure,
+  }) {
+    if (rule.type != AlertType.sec_filing) return false;
+
+    switch (rule.condition) {
+      case AlertCondition.sec_form4_insider_buy:
+        if (disclosure.form != '4') return false;
+        final buys = disclosure.openMarketBuyCount ?? 0;
+        if (buys <= 0) return false;
+        if (rule.value <= 0) return true;
+        final cluster = disclosure.insiderClusterCount ?? 1;
+        final netVal = (disclosure.netTransactionValue ?? 0).abs();
+        return cluster >= rule.value ||
+            buys >= rule.value ||
+            netVal >= rule.value;
+      case AlertCondition.sec_form4_insider_sell:
+        if (disclosure.form != '4') return false;
+        final sells = disclosure.openMarketSellCount ?? 0;
+        if (sells <= 0) return false;
+        if (rule.value <= 0) return true;
+        final cluster = disclosure.insiderSellClusterCount ?? 1;
+        final netVal = (disclosure.netTransactionValue ?? 0).abs();
+        return cluster >= rule.value ||
+            sells >= rule.value ||
+            netVal >= rule.value;
+      case AlertCondition.sec_8k_material_event:
+        return disclosure.form == '8-K';
+      case AlertCondition.sec_13f_institutional:
+        if (disclosure.form != '13F-HR') return false;
+        if (rule.value <= 0) return true;
+        final totalValUsd = disclosure.holdings.fold<double>(
+          0,
+          (sum, h) => sum + h.valueThousands * 1000,
+        );
+        return totalValUsd >= rule.value;
+      case AlertCondition.sec_10k_10q_filing:
+        return disclosure.form == '10-K' || disclosure.form == '10-Q';
+      default:
+        return false;
     }
   }
 
