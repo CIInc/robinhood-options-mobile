@@ -3,6 +3,8 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 const db = getFirestore();
 const batchSize = 400;
+// SECURITY: Enforce upper bound on input array length to prevent DoS
+const MAX_ORDERS = 2000;
 
 const asFirestoreDate = (value: unknown): unknown => {
   if (typeof value !== "string") return value;
@@ -19,6 +21,13 @@ export const syncInstrumentOrders = onCall(async (request) => {
   const orders = request.data?.orders;
   if (!Array.isArray(orders)) {
     throw new HttpsError("invalid-argument", "orders must be an array.");
+  }
+
+  if (orders.length > MAX_ORDERS) {
+    throw new HttpsError(
+      "invalid-argument",
+      `orders array exceeds maximum limit of ${MAX_ORDERS} items.`
+    );
   }
 
   const orderCollection = db.collection("user").doc(uid)
