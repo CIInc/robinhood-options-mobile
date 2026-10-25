@@ -43,12 +43,12 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** October 23, 2026 · **Current app version:** 0.58.3
+**Last reviewed:** October 24, 2026 · **Current app version:** 0.58.3
 
 ### Quick Stats
 - **Completed checklist items:** 428
-- **Planned checklist items:** 60
-- **GitHub issues:** 122 total — 33 open and 89 closed (as of October 23, 2026)
+- **Planned checklist items:** 65
+- **GitHub issues:** 125 total — 36 open and 89 closed (as of October 24, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
@@ -987,6 +987,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Automated DRIP with Threshold** ([#23](https://github.com/CIInc/robinhood-options-mobile/issues/23)): Dividend reinvestment at price thresholds - **Small** (1 week)
 - [x] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare against market indices - **Small** (1 week)
 - [x] **Beta-Weighted Portfolio Delta & Cross-Asset Greeks Engine** (v0.51.0): Portfolio-wide beta-weighting ($\Delta_{\beta-SPY}$) and aggregate Gamma/Vega across stocks, options, crypto, futures, and forex to quantify true market-move dollar risk ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)) - **Medium** (2-3 weeks)
+- [ ] **Cross-Account & IRA Wash Sale Guardrails with Pre-Trade Warning & Asset Location Optimizer** (v0.59.0, [#272](https://github.com/CIInc/robinhood-options-mobile/issues/272)): Detect permanent IRS Revenue Ruling 2008-5 wash-sale disallowances across linked taxable and Traditional/Roth IRA accounts, surface inline pre-trade wash-sale warnings in equity/option order tickets, and score tax-advantaged asset location across accounts - **Medium** (2-3 weeks)
 
 #### Research & Quantitative ([Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137))
 - [x] **Alpha Factor Discovery**: Research engine for signal correlation - **Medium** (3-4 weeks)
@@ -1003,6 +1004,7 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): Historical dividend tracking - **Small** (1 week)
 - [x] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Interest payment tracking - **Small** (1 week)
 - [x] **SEC EDGAR Filing Expansion** ([docs](docs/sec-edgar-integration.md), [Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)): Extend the delivered 13F/Form 4/8-K research slice with real-time 13F/Form 4 ingestion, 8-K event alerts, 10-K/10-Q parsing, and an automated filing research assistant - **Large** (4-5 weeks)
+- [ ] **Macro Regime & GEX-Conditioned Strategy Backtest Attribution (Walk-Forward Validation)** (v0.59.0, [#273](https://github.com/CIInc/robinhood-options-mobile/issues/273)): Partition historical backtest performance across market trend and volatility/GEX regimes with In-Sample vs. Out-of-Sample walk-forward split validation and overfitting detection - **Medium** (2-3 weeks)
 
 #### Analytics & Insights ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118))
 - [x] **Generative AI Assistant**: Natural language portfolio insights ([#74](https://github.com/CIInc/robinhood-options-mobile/issues/74))
@@ -1081,6 +1083,9 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [ ] **Strategy Marketplace** (Deferred to Future Horizons): Monetized platform for users to share and rent Agentic Trading configurations (deferred due to investment adviser / broker-dealer regulatory licensing and payout overhead) - **Large** (6-8 weeks)
 - [x] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
 - [ ] **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer** (v0.57.0+): Dynamically evaluate and route equity/option orders between connected brokerages (Schwab and Robinhood) to minimize margin requirements, borrow fees, and maximize uninvested cash yields - **Large** (6-8 weeks)
+- [ ] **Options Pin Risk, Ex-Dividend Early Assignment & Expiration Exercise Guard** (v0.59.0, [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271)): Detect ITM short call early-assignment risk ahead of ex-dividend dates ($\text{Extrinsic Value} < \text{Dividend}$), score 0DTE expiration pin risk ($\pm 0.5\%$ of strike), and project post-assignment buying-power shocks with 1-tap roll/close defense actions - **Medium** (2-3 weeks)
+- [ ] **Futures Contract Roll Assistant, Term Structure & Contango/Backwardation Analyzer** (v0.59.0, [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104), [#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)): Expiration and First Notice countdown alerts, front-to-back contract term-structure curve (contango/backwardation roll yield), contract specifications, and guided calendar roll assistant - **Medium** (2-3 weeks)
+- [ ] **Bracket (OTOCO) & One-Cancels-Other (OCO) Exit Protection Orders** (v0.60.0+, [#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)): Attach simultaneous Take-Profit Limit and Stop-Loss exit brackets at order entry or pair existing position exits as OCO orders with live Risk:Reward preview and native Schwab conditional order routing - **Medium** (2-3 weeks)
 
 #### Behavioral & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - [x] **Autonomous Risk Circuit Breakers & Cooling-Off Lock** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Daily max loss, portfolio drawdown, and consecutive loss guardrails
