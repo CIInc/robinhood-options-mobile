@@ -65,3 +65,7 @@
 ## 2026-04-03 - Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
+
+## 2026-04-03 - Zero-Allocation Rolling Statistics Evaluation in Event Study
+**Learning:** `calculateRollingStats` allocated 3 temporary arrays (`sample`, `assetReturns`, `benchmarkReturns`) per rolling step (`.slice()`, `.map()`, `.reduce()`). For long historical time series (~2500 daily price bars), this created 7,500+ transient array allocations and multiple data passes per event study request.
+**Action:** Compute rolling asset/benchmark means, covariance, and variances directly using index-bounded loops over `pairedReturns` (`start` to `end`), eliminating 100% of temporary array allocations per rolling step.
