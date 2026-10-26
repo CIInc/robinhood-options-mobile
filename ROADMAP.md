@@ -46,9 +46,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** October 24, 2026 · **Current app version:** 0.58.3
 
 ### Quick Stats
-- **Completed checklist items:** 428
-- **Planned checklist items:** 65
-- **GitHub issues:** 125 total — 36 open and 89 closed (as of October 24, 2026)
+- **Completed checklist items:** 429
+- **Planned checklist items:** 64
+- **GitHub issues:** 125 total — 35 open and 90 closed (as of October 24, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
@@ -1083,7 +1083,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [ ] **Strategy Marketplace** (Deferred to Future Horizons): Monetized platform for users to share and rent Agentic Trading configurations (deferred due to investment adviser / broker-dealer regulatory licensing and payout overhead) - **Large** (6-8 weeks)
 - [x] **Combo Orders Support**: Stock + Option atomic order execution and history (`/combo/orders/`) - **Medium** (2-3 weeks)
 - [ ] **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer** (v0.57.0+): Dynamically evaluate and route equity/option orders between connected brokerages (Schwab and Robinhood) to minimize margin requirements, borrow fees, and maximize uninvested cash yields - **Large** (6-8 weeks)
-- [ ] **Options Pin Risk, Ex-Dividend Early Assignment & Expiration Exercise Guard** (v0.59.0, [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271)): Detect ITM short call early-assignment risk ahead of ex-dividend dates ($\text{Extrinsic Value} < \text{Dividend}$), score 0DTE expiration pin risk ($\pm 0.5\%$ of strike), and project post-assignment buying-power shocks with 1-tap roll/close defense actions - **Medium** (2-3 weeks)
+- [x] **Options Pin Risk, Ex-Dividend Early Assignment & Expiration Exercise Guard** (v0.59.0, [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271)): Detect ITM short call early-assignment risk ahead of ex-dividend dates ($\text{Extrinsic Value} \le 1.25 \times \text{Dividend}$), score 0DTE/1DTE expiration pin risk ($\pm 1.0\%$ of strike), and project post-assignment buying-power margin shocks with 1-tap roll/close defense actions - **Medium** (2-3 weeks)
 - [ ] **Futures Contract Roll Assistant, Term Structure & Contango/Backwardation Analyzer** (v0.59.0, [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104), [#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)): Expiration and First Notice countdown alerts, front-to-back contract term-structure curve (contango/backwardation roll yield), contract specifications, and guided calendar roll assistant - **Medium** (2-3 weeks)
 - [ ] **Bracket (OTOCO) & One-Cancels-Other (OCO) Exit Protection Orders** (v0.60.0+, [#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)): Attach simultaneous Take-Profit Limit and Stop-Loss exit brackets at order entry or pair existing position exits as OCO orders with live Risk:Reward preview and native Schwab conditional order routing - **Medium** (2-3 weeks)
 

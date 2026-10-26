@@ -29,6 +29,9 @@ class OptionDefensePlaybookWidget extends StatefulWidget {
   final bool initialIsPaperTrade;
   final double? underlyingCostBasis;
   final RiskCircuitBreakerService? riskCircuitBreakerService;
+  final DateTime? exDividendDate;
+  final double? upcomingDividendAmount;
+  final double? availableBuyingPower;
 
   const OptionDefensePlaybookWidget({
     super.key,
@@ -45,6 +48,9 @@ class OptionDefensePlaybookWidget extends StatefulWidget {
     this.initialIsPaperTrade = false,
     this.underlyingCostBasis,
     this.riskCircuitBreakerService,
+    this.exDividendDate,
+    this.upcomingDividendAmount,
+    this.availableBuyingPower,
   });
 
   @override
@@ -74,6 +80,9 @@ class _OptionDefensePlaybookWidgetState
       optionInstrument: widget.optionInstrument,
       underlyingPrice: spotPrice,
       underlyingCostBasis: widget.underlyingCostBasis,
+      exDividendDate: widget.exDividendDate,
+      upcomingDividendAmount: widget.upcomingDividendAmount,
+      availableBuyingPower: widget.availableBuyingPower,
     );
   }
 
@@ -153,6 +162,10 @@ class _OptionDefensePlaybookWidgetState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Critical Hazard Callout Card (Ex-Dividend or Pin Risk / Margin Shock)
+            if (threat.isExDivEarlyAssignmentRisk || threat.isPinRisk)
+              _buildCriticalHazardCard(context, threat),
+
             // 1. Threat Status Header Banner
             Container(
               decoration: BoxDecoration(
@@ -373,6 +386,160 @@ class _OptionDefensePlaybookWidgetState
     );
   }
 
+  Widget _buildCriticalHazardCard(
+      BuildContext context, OptionDefenseThreat threat) {
+    final isExDiv = threat.isExDivEarlyAssignmentRisk;
+    final isMarginShock = threat.isMarginShock;
+    final isPin = threat.isPinRisk;
+
+    final title = isMarginShock
+        ? 'CRITICAL MARGIN SHOCK DEFICIT'
+        : isExDiv
+            ? 'EX-DIVIDEND EARLY ASSIGNMENT HAZARD'
+            : '0DTE / 1DTE PIN RISK HAZARD';
+
+    final badge = isMarginShock
+        ? 'MARGIN SHOCK'
+        : isExDiv
+            ? 'EX-DIV HAZARD'
+            : 'PIN RISK';
+    final cardColor = Colors.red.shade900.withValues(alpha: 0.35);
+    final borderColor = Colors.red.shade600;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 2.0),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded,
+                  color: Colors.red.shade400, size: 26),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.red.shade300,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade700,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (isExDiv) ...[
+            Text(
+              'Short call extrinsic value (${_currencyFormat.format(threat.remainingExtrinsicValue ?? 0.0)}) is less than 1.25x the upcoming dividend (${_currencyFormat.format(threat.upcomingDividendAmount ?? 0.0)}). Long counterparties capture higher yield by exercising early before the ex-dividend date (${threat.exDividendDate != null ? DateFormat.yMd().format(threat.exDividendDate!) : 'imminent'}).',
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 13, height: 1.35),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.sync_alt, size: 18),
+              label: const Text('Roll Ahead of Ex-Dividend'),
+              onPressed: () => _navigateToRollAssistant(RollPreset.rollUpAndOut),
+            ),
+          ] else if (isPin) ...[
+            Text(
+              'Spot (${_currencyFormat.format(threat.underlyingPrice ?? 0.0)}) is pinned within ${threat.pinProximityPct?.toStringAsFixed(2)}% of strike (${_currencyFormat.format(threat.shortStrike ?? 0.0)}) at ${threat.daysToExpiration} DTE. After-hours unhedged assignment will occur if exercised by counterparty.',
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 13, height: 1.35),
+            ),
+            if (isMarginShock) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black45,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade400, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.report_problem,
+                        color: Colors.red.shade300, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Assignment Notional: ${_currencyFormat.format(threat.notionalAssignmentObligation ?? 0.0)} | Deficit: -${_currencyFormat.format(threat.marginShockDeficit ?? 0.0)} beyond buying power.',
+                        style: TextStyle(
+                          color: Colors.red.shade200,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Close Position'),
+                    onPressed: () => _navigateToTradeOption(
+                      positionType: widget.optionPosition.direction == 'credit'
+                          ? 'Buy'
+                          : 'Sell',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.red.shade400),
+                    ),
+                    icon: const Icon(Icons.sync_alt, size: 18),
+                    label: const Text('Roll Out'),
+                    onPressed: () =>
+                        _navigateToRollAssistant(RollPreset.rollOut),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildMetricItem(
     BuildContext context, {
     required String label,
@@ -534,12 +701,14 @@ class _OptionDefensePlaybookWidgetState
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    action.expectedImpact,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurfaceVariant,
+                  Flexible(
+                    child: Text(
+                      action.expectedImpact,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ],

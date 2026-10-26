@@ -346,9 +346,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           .where((element) =>
               element.legs.isNotEmpty &&
               (element.legs.first.option == widget.optionInstrument.url ||
-                  (widget.optionInstrument.id != null &&
+                  (widget.optionInstrument.id.isNotEmpty &&
                       element.legs.first.option
-                          .contains(widget.optionInstrument.id!)) ||
+                          .contains(widget.optionInstrument.id)) ||
                   (element.chainSymbol == widget.optionInstrument.chainSymbol &&
                       element.legs.first.strikePrice ==
                           widget.optionInstrument.strikePrice &&
@@ -416,7 +416,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           SliverToBoxAdapter(child: _buildMarketDataCard(optionInstrument)),
           SliverToBoxAdapter(
               child: _buildPositionCard(
-                  optionInstrument, optionPosition, dte, originalDte)),
+                  optionInstrument, optionPosition, dte, originalDte,
+                  instrument: instrument)),
           if (optionPosition != null && optionPosition.legs.length > 1) ...[
             SliverToBoxAdapter(
                 child: Card(
@@ -460,7 +461,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   }
 
   Widget _buildPositionCard(OptionInstrument optionInstrument,
-      OptionAggregatePosition? optionPosition, int dte, int originalDte) {
+      OptionAggregatePosition? optionPosition, int dte, int originalDte,
+      {Instrument? instrument}) {
     if (optionPosition == null) return Container();
 
     var isLong = optionPosition.legs.first.positionType == "long";
@@ -477,6 +479,19 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         isItm = mark > strike;
       } else {
         isItm = mark < strike;
+      }
+    }
+
+    // Pin Risk Logic (0DTE/1DTE short option within 1.0% of strike)
+    final isShort = !isLong;
+    final strike = optionInstrument.strikePrice;
+    final spot = instrument?.quoteObj?.lastTradePrice ??
+        optionPosition.instrumentObj?.quoteObj?.lastTradePrice;
+    bool isPinRisk = false;
+    if (isShort && dte <= 1 && spot != null && strike != null && strike > 0) {
+      final proximityPct = ((spot - strike).abs() / strike) * 100.0;
+      if (proximityPct <= 1.0) {
+        isPinRisk = true;
       }
     }
 
@@ -548,6 +563,34 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   ? Colors.green
                                   : Theme.of(context).colorScheme.outline,
                             ),
+                          ),
+                        ),
+                      ],
+                      if (isPinRisk) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.red, width: 1),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.warning_amber_rounded,
+                                  size: 12, color: Colors.red),
+                              SizedBox(width: 2),
+                              Text(
+                                "Pin Risk",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

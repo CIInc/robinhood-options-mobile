@@ -59,6 +59,65 @@ class TestBrokerageService extends Fake implements IBrokerageService {
   }
 }
 
+OptionInstrument buildTestOptionInstrument({
+  required String id,
+  required String symbol,
+  required String type,
+  required double strikePrice,
+  required DateTime expirationDate,
+  required double markPrice,
+  double delta = 0.50,
+}) {
+  final instr = OptionInstrument.fromJson({
+    'chain_id': 'chain_$symbol',
+    'chain_symbol': symbol,
+    'expiration_date': expirationDate.toIso8601String().split('T').first,
+    'id': id,
+    'min_ticks': {'above_tick': 0.05, 'below_tick': 0.01, 'cutoff_price': 3.0},
+    'rhs_tradability': 'tradable',
+    'state': 'active',
+    'strike_price': strikePrice.toString(),
+    'tradability': 'tradable',
+    'type': type,
+    'url': 'url_$id',
+    'long_strategy_code': '',
+    'short_strategy_code': '',
+  });
+  instr.optionMarketData = OptionMarketData.fromJson({
+    'adjusted_mark_price': markPrice.toString(),
+    'ask_price': (markPrice + 0.05).toString(),
+    'ask_size': 10,
+    'bid_price': (markPrice - 0.05).toString(),
+    'bid_size': 10,
+    'break_even_price': strikePrice.toString(),
+    'mark_price': markPrice.toString(),
+    'symbol': symbol,
+    'delta': delta.toString(),
+    'instrument': instr.url,
+    'instrument_id': instr.id,
+    'last_trade_price': markPrice.toString(),
+    'open_interest': 100,
+    'volume': 50,
+    'occ_symbol': '${symbol}_TEST',
+  });
+  return instr;
+}
+
+Quote buildTestQuote({required String symbol, required double lastTradePrice}) {
+  return Quote.fromJson({
+    'ask_price': lastTradePrice.toString(),
+    'ask_size': 10,
+    'bid_price': lastTradePrice.toString(),
+    'bid_size': 10,
+    'last_trade_price': lastTradePrice.toString(),
+    'symbol': symbol,
+    'last_trade_price_source': 'consolidated',
+    'updated_at': DateTime.now().toIso8601String(),
+    'instrument': 'url_$symbol',
+    'instrument_id': 'inst_$symbol',
+  });
+}
+
 void main() {
   testWidgets(
       'OptionDefensePlaybookWidget renders threat diagnostics and playbook cards',
@@ -243,5 +302,214 @@ void main() {
 
     // Verify Institutional Defense Rules
     expect(find.text('Institutional Options Defense Rules'), findsOneWidget);
+  });
+
+  testWidgets(
+      'OptionDefensePlaybookWidget renders Ex-Dividend Early Assignment Hazard card',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final now = DateTime.now();
+    final expiration = now.add(const Duration(days: 20));
+
+    final callOption = buildTestOptionInstrument(
+      id: 'call_aapl_150',
+      symbol: 'AAPL',
+      type: 'call',
+      strikePrice: 150.0,
+      expirationDate: expiration,
+      markPrice: 5.20,
+      delta: 0.85,
+    );
+
+    final leg = OptionLeg(
+      'leg_exdiv',
+      null,
+      'short',
+      callOption.url,
+      'open',
+      1,
+      'sell',
+      expiration,
+      150.0,
+      'call',
+      [],
+    );
+
+    final position = OptionAggregatePosition(
+      'pos_exdiv',
+      'chain_AAPL',
+      'acct_1',
+      'AAPL',
+      'Covered Call',
+      100.0,
+      [leg],
+      1.0,
+      null,
+      null,
+      'credit',
+      '',
+      100.0,
+      now,
+      now,
+      'covered_call',
+    );
+    position.optionInstrument = callOption;
+
+    final instrument = Instrument.fromJson({
+      'id': 'inst_aapl',
+      'url': 'url_inst',
+      'symbol': 'AAPL',
+      'name': 'Apple Inc.',
+      'state': 'active',
+      'tradeable': true,
+      'tradability': 'tradable',
+      'rhs_tradability': 'tradable',
+      'fractional_tradability': 'tradable',
+      'country': 'US',
+      'type': 'stock',
+    });
+
+    instrument.quoteObj =
+        buildTestQuote(symbol: 'AAPL', lastTradePrice: 155.00);
+
+    final user = BrokerageUser(
+      BrokerageSource.robinhood,
+      'test_user',
+      null,
+      null,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OptionDefensePlaybookWidget(
+          user: user,
+          service: TestBrokerageService(),
+          instrument: instrument,
+          optionPosition: position,
+          optionInstrument: callOption,
+          analytics: MockFirebaseAnalytics(),
+          observer: MockFirebaseAnalyticsObserver(),
+          generativeService: MockGenerativeService(),
+          appUser: null,
+          userDocRef: null,
+          exDividendDate: now.add(const Duration(days: 3)),
+          upcomingDividendAmount: 0.25, // Extrinsic 0.20 <= 1.25 * 0.25 = 0.3125
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('EX-DIVIDEND EARLY ASSIGNMENT HAZARD'), findsOneWidget);
+    expect(find.text('EX-DIV HAZARD'), findsWidgets);
+    expect(find.text('Roll Ahead of Ex-Dividend'), findsOneWidget);
+  });
+
+  testWidgets(
+      'OptionDefensePlaybookWidget renders 0DTE/1DTE Pin Risk & Margin Shock card',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final now = DateTime.now();
+    final expiration = now; // 0 DTE
+
+    final putOption = buildTestOptionInstrument(
+      id: 'put_tsla_200',
+      symbol: 'TSLA',
+      type: 'put',
+      strikePrice: 200.0,
+      expirationDate: expiration,
+      markPrice: 0.40,
+      delta: -0.50,
+    );
+
+    final leg = OptionLeg(
+      'leg_pin',
+      null,
+      'short',
+      putOption.url,
+      'open',
+      5,
+      'sell',
+      expiration,
+      200.0,
+      'put',
+      [],
+    );
+
+    final position = OptionAggregatePosition(
+      'pos_pin',
+      'chain_TSLA',
+      'acct_1',
+      'TSLA',
+      'Cash-Secured Put',
+      100.0,
+      [leg],
+      5.0, // 5 contracts -> Notional = 100 * 200 * 5 = $100,000
+      null,
+      null,
+      'credit',
+      '',
+      100.0,
+      now,
+      now,
+      'short_put',
+    );
+    position.optionInstrument = putOption;
+
+    final instrument = Instrument.fromJson({
+      'id': 'inst_tsla',
+      'url': 'url_inst',
+      'symbol': 'TSLA',
+      'name': 'Tesla, Inc.',
+      'state': 'active',
+      'tradeable': true,
+      'tradability': 'tradable',
+      'rhs_tradability': 'tradable',
+      'fractional_tradability': 'tradable',
+      'country': 'US',
+      'type': 'stock',
+    });
+
+    instrument.quoteObj =
+        buildTestQuote(symbol: 'TSLA', lastTradePrice: 200.80);
+
+    final user = BrokerageUser(
+      BrokerageSource.robinhood,
+      'test_user',
+      null,
+      null,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OptionDefensePlaybookWidget(
+          user: user,
+          service: TestBrokerageService(),
+          instrument: instrument,
+          optionPosition: position,
+          optionInstrument: putOption,
+          analytics: MockFirebaseAnalytics(),
+          observer: MockFirebaseAnalyticsObserver(),
+          generativeService: MockGenerativeService(),
+          appUser: null,
+          userDocRef: null,
+          availableBuyingPower: 45000.0, // Notional $100,000 > $45,000 -> Deficit $55,000
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('CRITICAL MARGIN SHOCK DEFICIT'), findsOneWidget);
+    expect(find.text('MARGIN SHOCK'), findsWidgets);
+    expect(find.text('Close Position'), findsWidgets);
+    expect(find.text('Roll Out'), findsWidgets);
+    expect(find.textContaining('Deficit: -\$55,000'), findsOneWidget);
   });
 }

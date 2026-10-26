@@ -31,7 +31,34 @@ The analysis engine evaluates the position's strike price, underlying spot price
 | **SAFE** | `SAFE` | Spot is > 2.5% OTM, $\Delta < 0.35$, DTE > 14 | Hold position, capture theta decay, manage at 50% profit target. |
 | **CAUTION** | `CAUTION` | Spot within 2.5% of short strike, $\Delta \ge 0.35$, or DTE $\le 14$ | Proactive roll: Roll Out in Time or Roll Away & Out before gamma accelerates. |
 | **BREACHED** | `BREACHED` | Spot crosses short strike (ITM), or $\Delta \ge 0.50$ | Active defense: Roll Strike Away (Up & Out / Down & Out) or Roll Out in Time for credit; convert to Iron Condor if credit spread. |
-| **CRITICAL** | `CRITICAL` | Spot breached by > 3.0% or DTE $\le 3$ with strike breached | High-urgency defense: Roll Out in Time for credit or close position to prevent uncapped tail risk. |
+| **CRITICAL** | `CRITICAL` | Spot breached by > 3.0%, DTE $\le 3$ with strike breached, Ex-Dividend early assignment hazard, or 0DTE/1DTE Pin Risk | High-urgency defense: Roll Out in Time for credit, roll ahead of ex-dividend, or close position to prevent uncapped tail risk or margin shock. |
+
+---
+
+## Ex-Dividend Early Assignment & Pin Risk Guardrails
+
+### 1. Ex-Dividend Early Assignment Hazard Guard
+Counterparties holding deep in-the-money or low-extrinsic call options have a strong economic incentive to exercise early on the day immediately preceding the ex-dividend date to capture the upcoming cash dividend payout.
+
+- **Trigger Condition**: Short call position where $\text{Remaining Extrinsic Value} \le 1.25 \times \text{Upcoming Dividend}$ within 7 calendar days ($\le 5$ trading days) of the scheduled ex-dividend date.
+- **Diagnostics**: Computes exact mark price, intrinsic value ($\max(0, \text{Spot} - \text{Strike})$), and remaining extrinsic value ($\max(0, \text{Mark} - \text{Intrinsic})$).
+- **Tactical Prescription**:
+  - Pre-populates `RollPreset.rollUpAndOut` to move short strike OTM and past ex-dividend cutoff.
+  - Generates critical Action Center alert `opt-exdiv-assignment-{id}` targeting `PortfolioAlertTarget.strategies`.
+  - Displays high-visibility `EX-DIV HAZARD` card on `OptionDefensePlaybookWidget`.
+
+### 2. 0DTE / 1DTE Pin Risk & Margin Shock Engine
+Expiring short options that trade at-the-money create severe assignment uncertainty because long holders can submit exercise notices up to 5:30 PM ET after market close regardless of the 4:00 PM settlement price.
+
+- **Trigger Condition**: 0DTE or 1DTE short legs or credit spreads trading within $\pm 1.0\%$ of the strike price ($|\text{Spot} - \text{Strike}| / \text{Strike} \le 0.01$).
+- **Notional Obligation & Margin Shock**:
+  - Calculates total notional equity obligation: $100 \times \text{Strike} \times \text{Contracts}$.
+  - Evaluates notional obligation against available buying power (`UnifiedAccount.buyingPower` / `Account.buyingPower`).
+  - When assignment obligation exceeds buying power, flags a critical **Margin Shock Deficit** ($\text{Deficit} = \text{Obligation} - \text{Buying Power}$), surfacing immediate liquidation warnings.
+- **Tactical Prescription**:
+  - Highlights `MARGIN SHOCK` or `PIN RISK DEFENSE` cards with 1-tap position closure before the 4:00 PM ET cutoff.
+  - Displays `⚠️ Pin Risk` badges directly on the position card in `OptionInstrumentWidget`.
+  - Dispatches critical Action Center alert `opt-pin-risk-{id}` with emergency close actions.
 
 ---
 

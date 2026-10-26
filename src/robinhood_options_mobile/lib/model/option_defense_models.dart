@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_roll_models.dart';
@@ -31,6 +32,17 @@ class OptionDefenseThreat {
   final String statusTitle;
   final String statusDescription;
 
+  // Pin risk & early-assignment diagnostics
+  final bool isExDivEarlyAssignmentRisk;
+  final double? upcomingDividendAmount;
+  final DateTime? exDividendDate;
+  final double? remainingExtrinsicValue;
+  final bool isPinRisk;
+  final double? pinProximityPct;
+  final double? notionalAssignmentObligation;
+  final bool isMarginShock;
+  final double? marginShockDeficit;
+
   const OptionDefenseThreat({
     required this.level,
     required this.isTested,
@@ -42,6 +54,15 @@ class OptionDefenseThreat {
     required this.threatReasons,
     required this.statusTitle,
     required this.statusDescription,
+    this.isExDivEarlyAssignmentRisk = false,
+    this.upcomingDividendAmount,
+    this.exDividendDate,
+    this.remainingExtrinsicValue,
+    this.isPinRisk = false,
+    this.pinProximityPct,
+    this.notionalAssignmentObligation,
+    this.isMarginShock = false,
+    this.marginShockDeficit,
   });
 }
 
@@ -117,6 +138,10 @@ class OptionDefensePlaybook {
     required OptionInstrument optionInstrument,
     double? underlyingPrice,
     double? underlyingCostBasis,
+    DateTime? exDividendDate,
+    double? upcomingDividendAmount,
+    double? availableBuyingPower,
+    DateTime? now,
   }) {
     // 1. Determine if position is short or long
     final isShort = position.direction == 'credit' ||
@@ -130,9 +155,9 @@ class OptionDefensePlaybook {
         strike;
 
     // Days to expiration
-    final now = DateTime.now();
+    final effectiveNow = now ?? DateTime.now();
     final dte = optionInstrument.expirationDate != null
-        ? optionInstrument.expirationDate!.difference(now).inDays
+        ? optionInstrument.expirationDate!.difference(effectiveNow).inDays
         : 0;
 
     // Delta
@@ -151,6 +176,57 @@ class OptionDefensePlaybook {
     final bool isBreached = isCall ? (spot >= strike) : (spot <= strike);
     final double breachMargin = isCall ? (spot - strike) : (strike - spot);
     final double breachPct = strike > 0 ? (breachMargin / strike) * 100.0 : 0.0;
+
+    // Ex-Dividend Early Assignment Risk Check (Short Calls)
+    bool isExDivRisk = false;
+    double? remainingExtrinsic;
+    if (isShort &&
+        isCall &&
+        upcomingDividendAmount != null &&
+        upcomingDividendAmount > 0 &&
+        exDividendDate != null) {
+      final daysToExDiv = exDividendDate.difference(effectiveNow).inDays;
+      // Alert within 7 calendar days (<= 5 trading days) of ex-dividend date
+      if (daysToExDiv >= 0 && daysToExDiv <= 7) {
+        final mark = optionInstrument.optionMarketData?.adjustedMarkPrice ??
+            optionInstrument.optionMarketData?.markPrice ??
+            (position.averageOpenPrice != null
+                ? position.averageOpenPrice! / 100.0
+                : null) ??
+            0.0;
+        final intrinsic = (spot - strike) > 0 ? (spot - strike) : 0.0;
+        final calcExtrinsic = (mark - intrinsic) > 0 ? (mark - intrinsic) : 0.0;
+        remainingExtrinsic = calcExtrinsic;
+
+        // When extrinsic <= 1.25 * upcoming dividend, early assignment is economically rational
+        if (calcExtrinsic <= 1.25 * upcomingDividendAmount) {
+          isExDivRisk = true;
+        }
+      }
+    }
+
+    // 0DTE / 1DTE Pin Risk & Margin Shock Check
+    bool isPinRisk = false;
+    double? pinProximity;
+    double? notionalObligation;
+    bool isMarginShock = false;
+    double? marginDeficit;
+
+    if (isShort && dte <= 1 && strike > 0 && spot > 0) {
+      final proximityPct = ((spot - strike).abs() / strike) * 100.0;
+      pinProximity = proximityPct;
+      if (proximityPct <= 1.0) {
+        isPinRisk = true;
+        final contracts = position.quantity?.abs() ?? 1.0;
+        notionalObligation = 100.0 * strike * contracts;
+
+        if (availableBuyingPower != null &&
+            notionalObligation > availableBuyingPower) {
+          isMarginShock = true;
+          marginDeficit = notionalObligation - availableBuyingPower;
+        }
+      }
+    }
 
     // Determine threat level & reasons
     final List<String> reasons = [];
@@ -213,31 +289,69 @@ class OptionDefensePlaybook {
       }
     }
 
-    final isTested = level != OptionDefenseThreatLevel.safe;
+    // Elevate threat level for early-assignment hazard or pin risk
+    if (isExDivRisk) {
+      level = OptionDefenseThreatLevel.critical;
+      final exDivStr = DateFormat.yMd().format(exDividendDate!);
+      final daysToExDiv = exDividendDate.difference(effectiveNow).inDays;
+      reasons.insert(
+          0,
+          'Ex-Dividend Early Assignment Hazard: Remaining extrinsic value (\$${remainingExtrinsic!.toStringAsFixed(2)}) <= 1.25x upcoming dividend (\$${upcomingDividendAmount!.toStringAsFixed(2)}) with ex-div in $daysToExDiv day${daysToExDiv == 1 ? '' : 's'} ($exDivStr). Call holders capture higher yield by exercising early.');
+    }
+
+    if (isPinRisk) {
+      level = OptionDefenseThreatLevel.critical;
+      reasons.insert(
+          0,
+          'Pin Risk: Spot (\$${spot.toStringAsFixed(2)}) is within ${pinProximity!.toStringAsFixed(2)}% of short strike (\$${strike.toStringAsFixed(2)}) at $dte DTE. After-hours unhedged assignment hazard.');
+      if (isMarginShock) {
+        reasons.insert(
+            0,
+            'MARGIN SHOCK DEFICIT: Potential assignment obligation (\$${notionalObligation!.toStringAsFixed(2)}) exceeds available buying power (\$${availableBuyingPower!.toStringAsFixed(2)}) by \$${marginDeficit!.toStringAsFixed(2)}! Immediate liquidation/margin call risk.');
+      }
+    }
+
+    final isTested = level != OptionDefenseThreatLevel.safe ||
+        isExDivRisk ||
+        isPinRisk;
 
     String statusTitle;
     String statusDesc;
-    switch (level) {
-      case OptionDefenseThreatLevel.critical:
-        statusTitle = 'CRITICAL: Strike Heavily Breached';
-        statusDesc =
-            'Short leg is deep ITM with imminent assignment or high gamma risk. Urgent defense or capital preservation recommended.';
-        break;
-      case OptionDefenseThreatLevel.breached:
-        statusTitle = 'TESTED: Strike Breached';
-        statusDesc =
-            'Underlying spot price has crossed your short strike. Deploy tactical adjustments to buy time and lower breakeven.';
-        break;
-      case OptionDefenseThreatLevel.caution:
-        statusTitle = 'CAUTION: Approaching Short Strike';
-        statusDesc =
-            'Delta is elevating or spot price is pressing toward your short strike. Prepare defensive maneuvers before breach.';
-        break;
-      case OptionDefenseThreatLevel.safe:
-        statusTitle = 'SAFE: Position Intact';
-        statusDesc =
-            'Position is functioning within expected parameters. Let theta decay work or consider taking profit at target.';
-        break;
+    if (isMarginShock) {
+      statusTitle = 'CRITICAL: Margin Shock Pin Risk';
+      statusDesc =
+          'Short leg is pinned near strike at expiration with potential assignment obligation exceeding available buying power by \$${marginDeficit!.toStringAsFixed(0)}. Close immediately before market close.';
+    } else if (isExDivRisk) {
+      statusTitle = 'CRITICAL: Ex-Dividend Early Assignment Hazard';
+      statusDesc =
+          'Remaining extrinsic value is less than 1.25x upcoming dividend. Long counterparties will likely exercise early before ex-dividend cutoff. Roll or close immediately.';
+    } else if (isPinRisk) {
+      statusTitle = 'CRITICAL: 0DTE/1DTE Pin Risk';
+      statusDesc =
+          'Spot is pinned within 1.0% of short strike near expiration. Counterparty exercise decisions can occur after-hours, creating unhedged stock risk.';
+    } else {
+      switch (level) {
+        case OptionDefenseThreatLevel.critical:
+          statusTitle = 'CRITICAL: Strike Heavily Breached';
+          statusDesc =
+              'Short leg is deep ITM with imminent assignment or high gamma risk. Urgent defense or capital preservation recommended.';
+          break;
+        case OptionDefenseThreatLevel.breached:
+          statusTitle = 'TESTED: Strike Breached';
+          statusDesc =
+              'Underlying spot price has crossed your short strike. Deploy tactical adjustments to buy time and lower breakeven.';
+          break;
+        case OptionDefenseThreatLevel.caution:
+          statusTitle = 'CAUTION: Approaching Short Strike';
+          statusDesc =
+              'Delta is elevating or spot price is pressing toward your short strike. Prepare defensive maneuvers before breach.';
+          break;
+        case OptionDefenseThreatLevel.safe:
+          statusTitle = 'SAFE: Position Intact';
+          statusDesc =
+              'Position is functioning within expected parameters. Let theta decay work or consider taking profit at target.';
+          break;
+      }
     }
 
     final threat = OptionDefenseThreat(
@@ -251,6 +365,15 @@ class OptionDefensePlaybook {
       threatReasons: reasons,
       statusTitle: statusTitle,
       statusDescription: statusDesc,
+      isExDivEarlyAssignmentRisk: isExDivRisk,
+      upcomingDividendAmount: upcomingDividendAmount,
+      exDividendDate: exDividendDate,
+      remainingExtrinsicValue: remainingExtrinsic,
+      isPinRisk: isPinRisk,
+      pinProximityPct: pinProximity,
+      notionalAssignmentObligation: notionalObligation,
+      isMarginShock: isMarginShock,
+      marginShockDeficit: marginDeficit,
     );
 
     // 2. Build tactical playbook recommendations based on strategy and threat
@@ -453,6 +576,61 @@ class OptionDefensePlaybook {
         ],
         isRecommended: true,
       ));
+    }
+
+    // Prepend dedicated tactical actions for Ex-Dividend Early Assignment Hazard
+    if (isExDivRisk) {
+      actions.insert(
+        0,
+        DefensePlaybookAction(
+          actionType: DefenseActionType.rollStrikeAway,
+          title: 'Roll Out & Up Ahead of Ex-Dividend',
+          badge: 'EX-DIV HAZARD',
+          objective:
+              'Roll short call past ex-div date or to higher OTM strike to prevent dividend capture assignment.',
+          rationale:
+              'Extrinsic value (\$${remainingExtrinsic!.toStringAsFixed(2)}) is <= 1.25x upcoming dividend (\$${upcomingDividendAmount!.toStringAsFixed(2)}). Counterparties will exercise early before ex-dividend cutoff.',
+          suggestedPreset: RollPreset.rollUpAndOut,
+          urgency: OptionDefenseThreatLevel.critical,
+          expectedImpact: 'Eliminates short call early assignment hazard',
+          executionSteps: [
+            'Roll short call out in time to capture additional extrinsic premium.',
+            'Or roll up to an OTM strike where delta < 0.20.',
+            'Alternatively, close the short call before ex-dividend cutoff.',
+          ],
+          isRecommended: true,
+        ),
+      );
+    }
+
+    // Prepend dedicated tactical actions for Pin Risk & Margin Shock
+    if (isPinRisk) {
+      actions.insert(
+        0,
+        DefensePlaybookAction(
+          actionType: DefenseActionType.closePosition,
+          title: isMarginShock
+              ? 'Close Position (Margin Shock Alert)'
+              : 'Close or Roll Pinned Leg (Pin Risk)',
+          badge: isMarginShock ? 'MARGIN SHOCK' : 'PIN RISK DEFENSE',
+          objective: isMarginShock
+              ? 'Prevent \$${marginDeficit!.toStringAsFixed(0)} margin deficit and forced broker liquidation.'
+              : 'Eliminate after-hours exercise uncertainty and avoid overnight unhedged equity assignment.',
+          rationale: isMarginShock
+              ? 'Assignment notional (\$${notionalObligation!.toStringAsFixed(0)}) exceeds buying power (\$${availableBuyingPower!.toStringAsFixed(0)}) by \$${marginDeficit!.toStringAsFixed(0)}. Account faces immediate margin call if assigned.'
+              : 'Spot is pinned within 1.0% of strike on expiration. Counterparties can exercise up to 5:30 PM ET after market close regardless of closing print.',
+          suggestedPreset: RollPreset.rollOut,
+          urgency: OptionDefenseThreatLevel.critical,
+          expectedImpact:
+              'Eliminates unhedged overnight stock exposure and margin deficit risk',
+          executionSteps: [
+            'Buy to close the short pinned contract before 4:00 PM ET market close.',
+            'Or roll out to next weekly expiration if thesis remains intact.',
+            'Never leave pinned 0DTE/1DTE short legs unmanaged into the close.',
+          ],
+          isRecommended: true,
+        ),
+      );
     }
 
     return OptionDefensePlaybook._(

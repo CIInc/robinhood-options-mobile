@@ -409,5 +409,270 @@ void main() {
           (a) => a.actionType == DefenseActionType.convertIronCondor);
       expect(ironCondorAction.badge, 'ZERO MARGIN CREDIT');
     });
+
+    test(
+        'Ex-Dividend Early Assignment Hazard flags short call when extrinsic <= 1.25x dividend',
+        () {
+      // Short Call strike 150, spot 155 (ITM by $5.00)
+      final callInstr = createInstrument(
+        id: 'aapl_150_c',
+        symbol: 'AAPL',
+        type: 'call',
+        strike: 150.0,
+        expiration: expFar,
+        mark: 5.20, // intrinsic = 5.00, extrinsic = 0.20
+        delta: 0.85,
+      );
+
+      final legShort = OptionLeg(
+        'leg_short_call',
+        null,
+        'short',
+        callInstr.url,
+        'open',
+        1,
+        'sell',
+        expFar,
+        150.0,
+        'call',
+        [],
+      );
+
+      final position = OptionAggregatePosition(
+        'pos_aapl_call',
+        'chain_AAPL',
+        'acct_1',
+        'AAPL',
+        'Covered Call',
+        20.0,
+        [legShort],
+        1.0,
+        null,
+        null,
+        'credit',
+        '',
+        100.0,
+        now,
+        now,
+        'short_call',
+      );
+
+      final exDivDate = now.add(const Duration(days: 3));
+      final playbook = OptionDefensePlaybook.analyze(
+        position: position,
+        optionInstrument: callInstr,
+        underlyingPrice: 155.0,
+        exDividendDate: exDivDate,
+        upcomingDividendAmount: 0.25, // 1.25 * 0.25 = 0.3125 >= 0.20 extrinsic
+        now: now,
+      );
+
+      expect(playbook.threat.isExDivEarlyAssignmentRisk, isTrue);
+      expect(playbook.threat.level, OptionDefenseThreatLevel.critical);
+      expect(playbook.threat.remainingExtrinsicValue, closeTo(0.20, 0.001));
+      expect(playbook.threat.upcomingDividendAmount, 0.25);
+      expect(playbook.threat.exDividendDate, exDivDate);
+      expect(playbook.actions.first.badge, 'EX-DIV HAZARD');
+      expect(
+          playbook.actions.first.suggestedPreset, RollPreset.rollUpAndOut);
+      expect(
+          playbook.threat.threatReasons.any(
+              (r) => r.contains('Ex-Dividend Early Assignment Hazard')),
+          isTrue);
+    });
+
+    test(
+        'Short call with healthy extrinsic value is safe from early assignment hazard',
+        () {
+      // Short Call strike 150, spot 152 (ITM by $2.00)
+      // mark = 4.50 -> extrinsic = 2.50 >> 1.25 * 0.25
+      final callInstr = createInstrument(
+        id: 'aapl_150_c2',
+        symbol: 'AAPL',
+        type: 'call',
+        strike: 150.0,
+        expiration: expFar,
+        mark: 4.50,
+        delta: 0.65,
+      );
+
+      final legShort = OptionLeg(
+        'leg_short_call2',
+        null,
+        'short',
+        callInstr.url,
+        'open',
+        1,
+        'sell',
+        expFar,
+        150.0,
+        'call',
+        [],
+      );
+
+      final position = OptionAggregatePosition(
+        'pos_aapl_call2',
+        'chain_AAPL',
+        'acct_1',
+        'AAPL',
+        'Short Call',
+        250.0,
+        [legShort],
+        1.0,
+        null,
+        null,
+        'credit',
+        '',
+        100.0,
+        now,
+        now,
+        'short_call',
+      );
+
+      final playbook = OptionDefensePlaybook.analyze(
+        position: position,
+        optionInstrument: callInstr,
+        underlyingPrice: 152.0,
+        exDividendDate: now.add(const Duration(days: 3)),
+        upcomingDividendAmount: 0.25,
+        now: now,
+      );
+
+      expect(playbook.threat.isExDivEarlyAssignmentRisk, isFalse);
+      expect(playbook.actions.any((a) => a.badge == 'EX-DIV HAZARD'), isFalse);
+    });
+
+    test(
+        '0DTE / 1DTE Pin Risk & Margin Shock detects assignment obligation exceeding buying power',
+        () {
+      final expToday = now;
+      // Strike 200, spot 201.00 (within 0.5% proximity)
+      final putInstr = createInstrument(
+        id: 'tsla_200_p',
+        symbol: 'TSLA',
+        type: 'put',
+        strike: 200.0,
+        expiration: expToday,
+        mark: 0.40,
+        delta: 0.48,
+      );
+
+      final legShort = OptionLeg(
+        'leg_tsla_p',
+        null,
+        'short',
+        putInstr.url,
+        'open',
+        5,
+        'sell',
+        expToday,
+        200.0,
+        'put',
+        [],
+      );
+
+      final position = OptionAggregatePosition(
+        'pos_tsla_put',
+        'chain_TSLA',
+        'acct_1',
+        'TSLA',
+        'Cash-Secured Put',
+        200.0,
+        [legShort],
+        5.0, // 5 contracts
+        null,
+        null,
+        'credit',
+        '',
+        100.0,
+        now,
+        now,
+        'short_put',
+      );
+
+      // Notional obligation = 100 * 200 * 5 = $100,000
+      // Available buying power = $40,000 -> Deficit = $60,000
+      final playbook = OptionDefensePlaybook.analyze(
+        position: position,
+        optionInstrument: putInstr,
+        underlyingPrice: 201.00,
+        availableBuyingPower: 40000.0,
+        now: now,
+      );
+
+      expect(playbook.threat.isPinRisk, isTrue);
+      expect(playbook.threat.isMarginShock, isTrue);
+      expect(playbook.threat.level, OptionDefenseThreatLevel.critical);
+      expect(playbook.threat.notionalAssignmentObligation, 100000.0);
+      expect(playbook.threat.marginShockDeficit, 60000.0);
+      expect(playbook.actions.first.badge, 'MARGIN SHOCK');
+      expect(playbook.actions.first.actionType, DefenseActionType.closePosition);
+      expect(
+          playbook.threat.threatReasons
+              .any((r) => r.contains('MARGIN SHOCK DEFICIT')),
+          isTrue);
+    });
+
+    test(
+        '0DTE Pin Risk without Margin Shock when buying power is sufficient',
+        () {
+      final expToday = now;
+      final putInstr = createInstrument(
+        id: 'tsla_200_p_safe_margin',
+        symbol: 'TSLA',
+        type: 'put',
+        strike: 200.0,
+        expiration: expToday,
+        mark: 0.35,
+        delta: 0.50,
+      );
+
+      final legShort = OptionLeg(
+        'leg_tsla_p2',
+        null,
+        'short',
+        putInstr.url,
+        'open',
+        1,
+        'sell',
+        expToday,
+        200.0,
+        'put',
+        [],
+      );
+
+      final position = OptionAggregatePosition(
+        'pos_tsla_put2',
+        'chain_TSLA',
+        'acct_1',
+        'TSLA',
+        'Cash-Secured Put',
+        100.0,
+        [legShort],
+        1.0, // 1 contract -> notional = $20,000
+        null,
+        null,
+        'credit',
+        '',
+        100.0,
+        now,
+        now,
+        'short_put',
+      );
+
+      final playbook = OptionDefensePlaybook.analyze(
+        position: position,
+        optionInstrument: putInstr,
+        underlyingPrice: 200.50, // within 0.25% of strike
+        availableBuyingPower: 50000.0, // buying power > $20,000
+        now: now,
+      );
+
+      expect(playbook.threat.isPinRisk, isTrue);
+      expect(playbook.threat.isMarginShock, isFalse);
+      expect(playbook.threat.level, OptionDefenseThreatLevel.critical);
+      expect(playbook.threat.notionalAssignmentObligation, 20000.0);
+      expect(playbook.actions.first.badge, 'PIN RISK DEFENSE');
+    });
   });
 }

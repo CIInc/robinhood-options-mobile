@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/dividend_payment_event.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
+import 'package:robinhood_options_mobile/model/unified_account.dart';
 import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
 
 /// Builds a position worth `price * quantity`, bought at `costBasis` per share
@@ -107,6 +109,7 @@ OptionAggregatePosition buildOptionPosition({
   String positionType = 'long',
   String strategy = 'call',
   double? underlyingPrice,
+  double? markPrice,
 }) {
   final leg = OptionLeg(
     'leg-$symbol-$strikePrice-$optionType',
@@ -128,7 +131,7 @@ OptionAggregatePosition buildOptionPosition({
     '1AB23456',
     symbol,
     strategy,
-    2.5,
+    markPrice != null ? markPrice * 100.0 : 250.0,
     [leg],
     quantity,
     null,
@@ -502,6 +505,158 @@ void main() {
       );
 
       expect(alerts.where((a) => a.id.startsWith('opt-exp-')), isEmpty);
+    });
+
+    test(
+        'evaluateOptionEarlyAssignmentAlert triggers when short call extrinsic <= 1.25x dividend',
+        () {
+      // Strike 100, spot 105 (ITM by $5.00). Mark = 5.20 -> Intrinsic = 5.00, Extrinsic = 0.20
+      final pos = buildOptionPosition(
+        symbol: 'IBM',
+        strikePrice: 100,
+        optionType: 'call',
+        direction: 'credit',
+        positionType: 'short',
+        strategy: 'short_call',
+        expirationDate: DateTime(2026, 10, 15), // Expiration is 21 days out
+        underlyingPrice: 105.0,
+        markPrice: 5.20,
+      );
+
+      final divEvent = DividendPaymentEvent(
+        symbol: 'IBM',
+        exDividendDate: DateTime(2026, 9, 27), // Ex-div is in 3 days
+        rate: 0.25, // 1.25 * 0.25 = 0.3125 >= 0.20 extrinsic
+      );
+
+      final alert = PortfolioAlertService.evaluateOptionEarlyAssignmentAlert(
+        pos,
+        fixedNow,
+        [divEvent],
+      );
+
+      expect(alert, isNotNull);
+      expect(alert!.severity, PortfolioAlertSeverity.critical);
+      expect(alert.id, contains('opt-exdiv-assignment-'));
+      expect(alert.title, contains('IBM \$100 CALL Ex-Div Assignment Hazard'));
+      expect(alert.target, PortfolioAlertTarget.strategies);
+      expect(alert.payload?['isExDivRisk'], isTrue);
+      expect(alert.payload?['extrinsicValue'], closeTo(0.20, 0.001));
+    });
+
+    test(
+        'evaluateOptionPinRiskAlert flags 0DTE/1DTE short option with Margin Shock deficit',
+        () {
+      // Strike 300, spot 301.50 (within 0.5% proximity <= 1.0%), 0 DTE
+      final pos = buildOptionPosition(
+        symbol: 'MSFT',
+        strikePrice: 300,
+        optionType: 'put',
+        direction: 'credit',
+        positionType: 'short',
+        strategy: 'short_put',
+        expirationDate: DateTime(2026, 9, 24),
+        underlyingPrice: 301.50,
+        quantity: 3, // Notional = 100 * 300 * 3 = $90,000
+      );
+
+      final account = buildAccount(buyingPower: 35000); // Deficit = $55,000
+
+      final alert = PortfolioAlertService.evaluateOptionPinRiskAlert(
+        pos,
+        fixedNow,
+        account: account,
+      );
+
+      expect(alert, isNotNull);
+      expect(alert!.severity, PortfolioAlertSeverity.critical);
+      expect(alert.id, contains('opt-pin-risk-'));
+      expect(alert.title, contains('MSFT \$300 PUT Margin Shock Pin Risk'));
+      expect(alert.detail, contains('Assignment notional (\$90000) exceeds buying power (\$35000) by \$55000'));
+      expect(alert.payload?['isMarginShock'], isTrue);
+      expect(alert.payload?['notionalObligation'], 90000.0);
+      expect(alert.payload?['marginDeficit'], 55000.0);
+      expect(alert.actionLabel, 'Emergency Close');
+    });
+
+    test(
+        'evaluateOptionPinRiskAlert flags 0DTE short option without margin shock if buying power covers obligation',
+        () {
+      final pos = buildOptionPosition(
+        symbol: 'SPY',
+        strikePrice: 500,
+        optionType: 'call',
+        direction: 'credit',
+        positionType: 'short',
+        strategy: 'short_call',
+        expirationDate: DateTime(2026, 9, 24),
+        underlyingPrice: 498.0, // within 0.4% proximity
+        quantity: 1, // Notional = $50,000
+      );
+
+      final unifiedAccount = const UnifiedAccount(
+        accountNumber: '1AB23456',
+        buyingPower: 120000,
+      );
+
+      final alert = PortfolioAlertService.evaluateOptionPinRiskAlert(
+        pos,
+        fixedNow,
+        unifiedAccount: unifiedAccount,
+      );
+
+      expect(alert, isNotNull);
+      expect(alert!.severity, PortfolioAlertSeverity.critical);
+      expect(alert.title, contains('SPY \$500 CALL 0DTE/1DTE Pin Risk'));
+      expect(alert.payload?['isMarginShock'], isFalse);
+      expect(alert.actionLabel, 'Manage Defense');
+    });
+
+    test(
+        'PortfolioAlertService.buildAlerts surfaces both ex-dividend and pin-risk alerts',
+        () {
+      final exDivPos = buildOptionPosition(
+        symbol: 'IBM',
+        strikePrice: 100,
+        optionType: 'call',
+        direction: 'credit',
+        positionType: 'short',
+        strategy: 'short_call',
+        expirationDate: DateTime(2026, 10, 15),
+        underlyingPrice: 105.0,
+        markPrice: 5.15, // extrinsic = 0.15 <= 1.25 * 0.20 = 0.25
+      );
+
+      final pinPos = buildOptionPosition(
+        symbol: 'TSLA',
+        strikePrice: 200,
+        optionType: 'put',
+        direction: 'credit',
+        positionType: 'short',
+        strategy: 'short_put',
+        expirationDate: DateTime(2026, 9, 24),
+        underlyingPrice: 200.80, // 0.4% away
+        quantity: 2, // Notional = $40,000
+      );
+
+      final divEvent = DividendPaymentEvent(
+        symbol: 'IBM',
+        exDividendDate: DateTime(2026, 9, 28),
+        rate: 0.20,
+      );
+
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: const [],
+        optionPositions: [exDivPos, pinPos],
+        account: buildAccount(buyingPower: 25000), // Deficit for TSLA: 40000 - 25000 = $15000
+        dividendEvents: [divEvent],
+        now: fixedNow,
+      );
+
+      expect(alerts.any((a) => a.id.startsWith('opt-exdiv-assignment-')), isTrue);
+      expect(alerts.any((a) => a.id.startsWith('opt-pin-risk-')), isTrue);
+      final pinAlert = alerts.firstWhere((a) => a.id.startsWith('opt-pin-risk-'));
+      expect(pinAlert.title, contains('Margin Shock Pin Risk'));
     });
   });
 }
