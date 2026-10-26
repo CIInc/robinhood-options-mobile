@@ -94,39 +94,46 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                widget.headline,
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: widget.statusColor,
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label: widget.status != null
+                ? '${widget.headline}, ${widget.status}'
+                : widget.headline,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  widget.headline,
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: widget.statusColor,
+                  ),
                 ),
-              ),
-              if (widget.status != null) ...[
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      widget.status!,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: statusColor,
-                        fontWeight: FontWeight.bold,
+                if (widget.status != null) ...[
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.status!,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
           if (widget.summary != null) ...[
             const SizedBox(height: 8),
@@ -151,26 +158,35 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
             InkWell(
               onTap: () => setState(() => _expanded = !_expanded),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.advancedLabel,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+              child: Semantics(
+                button: true,
+                label: widget.advancedLabel,
+                hint: _expanded
+                    ? 'Double tap to collapse'
+                    : 'Double tap to expand',
+                expanded: _expanded,
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.advancedLabel,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: Icon(Icons.expand_more,
-                          color: theme.colorScheme.primary),
-                    ),
-                  ],
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(Icons.expand_more,
+                            color: theme.colorScheme.primary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -195,27 +211,32 @@ class _MetricDisclosureCardState extends State<MetricDisclosureCard> {
 
   Widget _buildTile(BuildContext context, DisclosureTile tile) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tile.label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          tile.value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: tile.valueColor,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '${tile.label}: ${tile.value}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tile.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            tile.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: tile.valueColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
