@@ -181,6 +181,12 @@ export const seedAgenticTrading = onCall({
       "Authentication is required to seed agentic trading."
     );
   }
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admin users can seed agentic trading."
+    );
+  }
   const inputSymbols = request.data.symbols;
   const useFullList = request.data.full === true;
 
