@@ -30,6 +30,16 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    final semanticsFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          widget.container == true &&
+          widget.properties.label ==
+              'Take RealizeAlpha with you. Explore the mobile app for a focused, on-the-go portfolio and market research experience.',
+    );
+    expect(semanticsFinder, findsOneWidget);
+
     expect(tester.takeException(), isNull);
   });
 }
