@@ -53,6 +53,13 @@ class WashSaleRecord {
   final double? disallowedLoss; // Positive amount of loss disallowed
   final double? adjustedCostBasis; // Replacement cost basis + disallowed loss
 
+  // Cross-account provenance & IRS Rev. Rul. 2008-5
+  final String? saleAccountId;
+  final String? saleAccountType; // 'taxable', 'traditional_ira', 'roth_ira'
+  final String? replacementAccountId;
+  final String? replacementAccountType;
+  final bool isPermanentIraDisallowance; // True if taxable sale + IRA purchase (permanent loss)
+
   const WashSaleRecord({
     required this.id,
     required this.symbol,
@@ -71,6 +78,11 @@ class WashSaleRecord {
     this.replacementAssetType,
     this.disallowedLoss,
     this.adjustedCostBasis,
+    this.saleAccountId,
+    this.saleAccountType,
+    this.replacementAccountId,
+    this.replacementAccountType,
+    this.isPermanentIraDisallowance = false,
   });
 
   /// Calculates days remaining in the 30-day post-sale window.
@@ -96,6 +108,24 @@ class WashSaleRecord {
   /// First date when it is safe to repurchase without IRS Section 1091 penalty.
   DateTime get safeRepurchaseDate => windowEndDate.add(const Duration(days: 1));
 
+  bool get isCrossAccount =>
+      saleAccountId != null &&
+      replacementAccountId != null &&
+      saleAccountId != replacementAccountId;
+
+  String get taxConsequenceDescription {
+    if (isPermanentIraDisallowance) {
+      return 'Permanent Loss Disallowed (IRS Rev. Rul. 2008-5). Basis not adjusted in IRA.';
+    }
+    if (isDisallowed) {
+      return 'Loss Disallowed (IRC §1091). Basis added to replacement.';
+    }
+    if (isWindowActive()) {
+      return 'Active 30-Day Restriction Window';
+    }
+    return 'Window Cleared';
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'symbol': symbol,
@@ -114,6 +144,11 @@ class WashSaleRecord {
         'replacement_asset_type': replacementAssetType,
         'disallowed_loss': disallowedLoss,
         'adjusted_cost_basis': adjustedCostBasis,
+        'sale_account_id': saleAccountId,
+        'sale_account_type': saleAccountType,
+        'replacement_account_id': replacementAccountId,
+        'replacement_account_type': replacementAccountType,
+        'is_permanent_ira_disallowance': isPermanentIraDisallowance,
       };
 
   factory WashSaleRecord.fromJson(dynamic json) {
@@ -167,6 +202,45 @@ class WashSaleRecord {
           parseDouble(json['disallowed_loss'] ?? json['disallowedLoss']),
       adjustedCostBasis:
           parseDouble(json['adjusted_cost_basis'] ?? json['adjustedCostBasis']),
+      saleAccountId: json['sale_account_id']?.toString() ??
+          json['saleAccountId']?.toString(),
+      saleAccountType: json['sale_account_type']?.toString() ??
+          json['saleAccountType']?.toString(),
+      replacementAccountId: json['replacement_account_id']?.toString() ??
+          json['replacementAccountId']?.toString(),
+      replacementAccountType: json['replacement_account_type']?.toString() ??
+          json['replacementAccountType']?.toString(),
+      isPermanentIraDisallowance: json['is_permanent_ira_disallowance'] == true ||
+          json['isPermanentIraDisallowance'] == true,
     );
   }
+}
+
+/// Represents an inline pre-trade wash sale evaluation result for order tickets.
+class PreTradeWashSaleRisk {
+  final String symbol;
+  final bool hasRisk;
+  final bool isPermanentIraDisallowance;
+  final int daysRemaining;
+  final DateTime? safeRepurchaseDate;
+  final double? potentialDisallowedLoss;
+  final String severity; // 'critical' or 'warning'
+  final String headline;
+  final String details;
+  final String? sourceAccountId;
+  final String? destinationAccountId;
+
+  const PreTradeWashSaleRisk({
+    required this.symbol,
+    required this.hasRisk,
+    this.isPermanentIraDisallowance = false,
+    this.daysRemaining = 0,
+    this.safeRepurchaseDate,
+    this.potentialDisallowedLoss,
+    this.severity = 'warning',
+    required this.headline,
+    required this.details,
+    this.sourceAccountId,
+    this.destinationAccountId,
+  });
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -42,12 +43,14 @@ void main() {
   Widget createWidgetUnderTest({
     List<WashSaleRecord>? initialWashSales,
     int initialTabIndex = 1,
+    AccountStore? accountStore,
   }) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => InstrumentPositionStore()),
         ChangeNotifierProvider(create: (_) => OptionPositionStore()),
         ChangeNotifierProvider(create: (_) => InstrumentStore()),
+        ChangeNotifierProvider(create: (_) => accountStore ?? AccountStore()),
       ],
       child: MaterialApp(
         home: TaxOptimizationWidget(
@@ -197,5 +200,84 @@ void main() {
 
     expect(find.text('30-Day Wash Sale Tracker'), findsOneWidget);
     expect(find.text('IRS Section 1091 Real-Time Monitoring'), findsOneWidget);
+  });
+
+  testWidgets(
+      'renders IRS Rev. Rul. 2008-5 permanent loss badge and account routing for IRA wash sales',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final now = DateTime.now();
+    final iraRecord = WashSaleRecord(
+      id: 'ws_ira_disallowed',
+      symbol: 'MSFT',
+      name: 'Microsoft Corporation',
+      assetType: 'stock',
+      saleDate: now.subtract(const Duration(days: 10)),
+      salePrice: 420.0,
+      quantitySold: 10.0,
+      realizedLoss: -500.0,
+      windowStartDate: now.subtract(const Duration(days: 40)),
+      windowEndDate: now.add(const Duration(days: 20)),
+      status: WashSaleStatus.disallowed,
+      replacementDate: now.subtract(const Duration(days: 5)),
+      replacementPrice: 425.0,
+      replacementQuantity: 10.0,
+      replacementAssetType: 'stock',
+      disallowedLoss: 500.0,
+      isPermanentIraDisallowance: true,
+      saleAccountId: 'taxable_001',
+      saleAccountType: 'Individual',
+      replacementAccountId: 'ira_002',
+      replacementAccountType: 'Roth IRA',
+    );
+
+    await tester.pumpWidget(createWidgetUnderTest(
+      initialWashSales: [iraRecord],
+      initialTabIndex: 1,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('MSFT'), findsOneWidget);
+    expect(find.textContaining('Permanent Loss (Rev. Rul. 2008-5)'), findsOneWidget);
+    expect(find.textContaining('IRS Rev. Rul. 2008-5'), findsWidgets);
+    expect(find.textContaining('Individual → Roth IRA'), findsOneWidget);
+  });
+
+  testWidgets(
+      'renders Asset Location tab on initialTabIndex 4 with score, account breakdown and principles',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(createWidgetUnderTest(
+      initialWashSales: [],
+      initialTabIndex: 4,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset Location Optimizer'), findsOneWidget);
+    expect(find.text('Tax-Advantaged Account Placement Efficiency'), findsOneWidget);
+    expect(find.text('Taxable'), findsWidgets);
+    expect(find.text('Trad IRA'), findsWidgets);
+    expect(find.text('Roth IRA'), findsWidgets);
+
+    // Tap info icon to view Asset Location Principles modal
+    await tester.tap(find.byIcon(Icons.info_outline));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset Location Principles'), findsOneWidget);
+    expect(find.text('Taxable Accounts'), findsOneWidget);
+    expect(find.text('Traditional IRA (Tax-Deferred)'), findsOneWidget);
+    expect(find.text('Roth IRA (Tax-Free)'), findsOneWidget);
+
+    // Dismiss sheet
+    await tester.tap(find.text('Understood'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Asset Location Principles'), findsNothing);
   });
 }

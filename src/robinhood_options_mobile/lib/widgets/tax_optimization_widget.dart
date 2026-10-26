@@ -5,6 +5,9 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/asset_location_model.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/form_8949_model.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
@@ -78,6 +81,7 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
   int? _form8949Year = DateTime.now().year;
   String _form8949Filter =
       'all'; // 'all', 'short_term', 'long_term', 'wash_sales'
+  String _assetLocationFilter = 'all'; // 'all', 'misplaced', 'high', 'low'
 
   @override
   void initState() {
@@ -89,6 +93,12 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
     final instrumentPositionStore =
         Provider.of<InstrumentPositionStore>(context);
     final optionPositionStore = Provider.of<OptionPositionStore>(context);
+
+    AccountStore? accountStore;
+    try {
+      accountStore = Provider.of<AccountStore>(context);
+    } catch (_) {}
+    final accounts = accountStore?.items ?? <Account>[];
 
     InstrumentOrderStore? instrumentOrderStore;
     try {
@@ -125,6 +135,7 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       instrumentPositions: instrumentPositionStore.items,
       optionPositions: optionPositionStore.items,
       initialRecords: widget.initialWashSales,
+      accounts: accounts,
     );
 
     final capitalGainsSummary = TaxOptimizationService.analyzeCapitalGains(
@@ -142,10 +153,16 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
       taxYear: _form8949Year,
     );
 
+    final assetLocationAnalysis = TaxOptimizationService.analyzeAssetLocation(
+      instrumentPositions: instrumentPositionStore.items,
+      optionPositions: optionPositionStore.items,
+      accounts: accounts,
+    );
+
     final formatCurrency = NumberFormat.simpleCurrency();
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       initialIndex: widget.initialTabIndex,
       child: Scaffold(
         appBar: AppBar(
@@ -169,6 +186,10 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               Tab(
                 icon: Icon(Icons.description_outlined),
                 text: 'Form 8949',
+              ),
+              Tab(
+                icon: Icon(Icons.account_balance_outlined),
+                text: 'Asset Location',
               ),
             ],
           ),
@@ -196,6 +217,11 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
             _buildForm8949Tab(
               context,
               form8949Reconciliation,
+              formatCurrency,
+            ),
+            _buildAssetLocationTab(
+              context,
+              assetLocationAnalysis,
               formatCurrency,
             ),
           ],
@@ -1553,7 +1579,10 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
 
     Color statusColor;
     String statusLabel;
-    if (isDisallowed) {
+    if (record.isPermanentIraDisallowance) {
+      statusColor = Colors.red;
+      statusLabel = 'Permanent Loss (Rev. Rul. 2008-5)';
+    } else if (isDisallowed) {
       statusColor = Colors.red;
       statusLabel = 'Loss Disallowed';
     } else if (daysRemaining > 0) {
@@ -1636,6 +1665,55 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
               ),
               const SizedBox(height: 8),
               if (isDisallowed) ...[
+                if (record.isPermanentIraDisallowance) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border:
+                          Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.error_outline, size: 14, color: Colors.red),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'IRS Rev. Rul. 2008-5: Loss permanently forfeited. Basis not increased in IRA.',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (record.isCrossAccount) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Account Routing:',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        '${record.saleAccountType ?? 'Taxable'} → ${record.replacementAccountType ?? 'IRA'}',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1774,6 +1852,13 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
                     Icons.add_chart,
                     'Loss Is Deferred, Not Lost',
                     'The disallowed loss is added to the cost basis of your replacement shares or options. This defers the tax benefit until you eventually dispose of the replacement position without triggering another wash sale.',
+                  ),
+                  const SizedBox(height: 14),
+                  _explainerBullet(
+                    context,
+                    Icons.warning_amber_rounded,
+                    'IRS Rev. Rul. 2008-5 (IRA Wash Sale Trap)',
+                    'If you sell at a loss in a taxable account and repurchase in an IRA (Traditional or Roth), the loss is permanently disallowed. Unlike taxable accounts, the IRA basis cannot be increased, permanently forfeiting the deduction.',
                   ),
                   const SizedBox(height: 20),
                   FilledButton(
@@ -2927,5 +3012,702 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
         );
       }
     }
+  }
+
+  Widget _buildAssetLocationTab(
+    BuildContext context,
+    AssetLocationAnalysis analysis,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+
+    // Filter holdings
+    final filteredHoldings = analysis.holdings.where((h) {
+      if (_assetLocationFilter == 'misplaced') return h.isMisplaced;
+      if (_assetLocationFilter == 'high') {
+        return h.taxEfficiencyTier == TaxEfficiencyTier.high;
+      }
+      if (_assetLocationFilter == 'low') {
+        return h.taxEfficiencyTier == TaxEfficiencyTier.low;
+      }
+      return true;
+    }).toList();
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAssetLocationScoreCard(context, analysis),
+                const SizedBox(height: 16),
+                _buildAccountTaxBreakdown(context, analysis, formatCurrency),
+                if (analysis.recommendations.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildRecommendationsSection(
+                      context, analysis, formatCurrency),
+                ],
+                const SizedBox(height: 16),
+                _buildAssetLocationFilterBar(context, analysis),
+              ],
+            ),
+          ),
+        ),
+        if (filteredHoldings.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.account_balance_outlined,
+                      size: 64,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No holdings found',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No positions match the selected filter.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color:
+                            theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final holding = filteredHoldings[index];
+                return _buildAssetLocationHoldingCard(
+                  context,
+                  holding,
+                  formatCurrency,
+                );
+              },
+              childCount: filteredHoldings.length,
+            ),
+          ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 32)),
+      ],
+    );
+  }
+
+  Widget _buildAssetLocationScoreCard(
+    BuildContext context,
+    AssetLocationAnalysis analysis,
+  ) {
+    final theme = Theme.of(context);
+    final score = analysis.efficiencyScore;
+
+    Color scoreColor;
+    if (score >= 85) {
+      scoreColor = Colors.green;
+    } else if (score >= 70) {
+      scoreColor = Colors.teal;
+    } else if (score >= 50) {
+      scoreColor = Colors.orange;
+    } else {
+      scoreColor = Colors.red;
+    }
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.account_balance_outlined,
+                    color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Asset Location Optimizer',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        'Tax-Advantaged Account Placement Efficiency',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.info_outline, size: 20),
+                  tooltip: 'Asset Location Principles',
+                  onPressed: () => _showAssetLocationExplainer(context),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: (score / 100.0).clamp(0.0, 1.0),
+                        strokeWidth: 7,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        color: scoreColor,
+                      ),
+                      Text(
+                        '${score.toInt()}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: scoreColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: scoreColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: scoreColor.withValues(alpha: 0.4)),
+                        ),
+                        child: Text(
+                          analysis.ratingLabel,
+                          style: TextStyle(
+                            color: scoreColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        analysis.misplacedHoldingsCount == 0
+                            ? 'All holdings are located in tax-optimal accounts!'
+                            : '${analysis.misplacedHoldingsCount} of ${analysis.holdings.length} holdings could reduce tax drag if relocated.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountTaxBreakdown(
+    BuildContext context,
+    AssetLocationAnalysis analysis,
+    NumberFormat formatCurrency,
+  ) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildAccountSummaryMiniCard(
+            context,
+            'Taxable',
+            analysis.totalTaxableValue,
+            Colors.blue,
+            formatCurrency,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildAccountSummaryMiniCard(
+            context,
+            'Trad IRA',
+            analysis.totalTraditionalIraValue,
+            Colors.purple,
+            formatCurrency,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildAccountSummaryMiniCard(
+            context,
+            'Roth IRA',
+            analysis.totalRothIraValue,
+            Colors.teal,
+            formatCurrency,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountSummaryMiniCard(
+    BuildContext context,
+    String label,
+    double value,
+    Color color,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              formatCurrency.format(value),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection(
+    BuildContext context,
+    AssetLocationAnalysis analysis,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.swap_horizontal_circle_outlined,
+                    color: Colors.orange, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Tax Location Recommendations',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            ...analysis.recommendations.take(3).map((rec) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        rec.symbol,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${rec.action} from ${rec.fromAccount.shortLabel} → ${rec.toAccount.shortLabel}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            rec.rationale,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          if (rec.estimatedTaxImpact > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Est. annual tax savings: ~${formatCurrency.format(rec.estimatedTaxImpact)}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssetLocationFilterBar(
+    BuildContext context,
+    AssetLocationAnalysis analysis,
+  ) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: Text('All (${analysis.holdings.length})'),
+            selected: _assetLocationFilter == 'all',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetLocationFilter = 'all');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar: const Icon(Icons.warning_amber_rounded,
+                size: 16, color: Colors.orange),
+            label: Text('Misplaced (${analysis.misplacedHoldingsCount})'),
+            selected: _assetLocationFilter == 'misplaced',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetLocationFilter = 'misplaced');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar:
+                const Icon(Icons.check_circle, size: 16, color: Colors.green),
+            label: Text(
+                'Tax-Efficient (${analysis.holdings.where((h) => h.taxEfficiencyTier == TaxEfficiencyTier.high).length})'),
+            selected: _assetLocationFilter == 'high',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetLocationFilter = 'high');
+            },
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            avatar: const Icon(Icons.error_outline,
+                size: 16, color: Colors.purple),
+            label: Text(
+                'Tax-Inefficient (${analysis.holdings.where((h) => h.taxEfficiencyTier == TaxEfficiencyTier.low).length})'),
+            selected: _assetLocationFilter == 'low',
+            onSelected: (selected) {
+              if (selected) setState(() => _assetLocationFilter = 'low');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssetLocationHoldingCard(
+    BuildContext context,
+    AssetLocationHolding holding,
+    NumberFormat formatCurrency,
+  ) {
+    final theme = Theme.of(context);
+    final isStock = holding.assetType == 'stock';
+
+    Color tierColor;
+    switch (holding.taxEfficiencyTier) {
+      case TaxEfficiencyTier.high:
+        tierColor = Colors.green;
+        break;
+      case TaxEfficiencyTier.moderate:
+        tierColor = Colors.blue;
+        break;
+      case TaxEfficiencyTier.low:
+        tierColor = Colors.orange;
+        break;
+    }
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: holding.isMisplaced
+              ? Colors.orange.withValues(alpha: 0.4)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _navigateToInstrument(context, holding.symbol, isStock),
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isStock
+                          ? Colors.blue.withValues(alpha: 0.1)
+                          : Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      holding.symbol,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isStock ? Colors.blue : Colors.purple,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      holding.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    formatCurrency.format(holding.marketValue),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Held in: ',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      Text(
+                        holding.accountClassification.shortLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: tierColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      holding.taxEfficiencyTier.label,
+                      style: TextStyle(
+                        color: tierColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (holding.isMisplaced) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.arrow_forward,
+                          size: 14, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Suggested: Relocate to ${holding.idealAccountClassification.shortLabel}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAssetLocationExplainer(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        maxChildSize: 0.90,
+        minChildSize: 0.40,
+        expand: false,
+        builder: (ctx, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.account_balance_outlined,
+                      color: Colors.teal),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Asset Location Principles',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              const Text(
+                'Asset location refers to placing specific investments in the optimal account type (Taxable, Traditional IRA, or Roth IRA) to minimize lifetime taxes without altering your overall portfolio asset allocation.',
+                style: TextStyle(fontSize: 14, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              _explainerBullet(
+                context,
+                Icons.savings_outlined,
+                'Taxable Accounts',
+                'Ideal for tax-efficient broad index ETFs (SPY, VOO, VTI), low-dividend growth stocks, and municipal bonds. Benefits from qualified dividend rates (0-20%) and tax-loss harvesting.',
+              ),
+              const SizedBox(height: 14),
+              _explainerBullet(
+                context,
+                Icons.schedule,
+                'Traditional IRA (Tax-Deferred)',
+                'Best for assets that produce high ordinary income, such as REITs, taxable bonds, high-yield dividend stocks, and dividend reinvestment that would otherwise trigger annual taxes.',
+              ),
+              const SizedBox(height: 14),
+              _explainerBullet(
+                context,
+                Icons.trending_up,
+                'Roth IRA (Tax-Free)',
+                'Best for assets with the highest expected capital growth (e.g., high-growth tech stocks, active options trading) because gains and future withdrawals are 100% tax-free forever.',
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Understood'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -33,6 +33,7 @@ class OptionOrder {
   final double? stopPrice;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? account;
 
   List<OptionEvent>? optionEvents;
 
@@ -60,13 +61,15 @@ class OptionOrder {
       this.closingStrategy,
       this.stopPrice,
       this.createdAt,
-      this.updatedAt);
+      this.updatedAt,
+      {this.account});
 
   OptionOrder.fromJson(dynamic json)
       : id = json['id'],
         chainId = json['chain_id'],
         chainSymbol = json['chain_symbol'],
         cancelUrl = json['cancel_url'],
+        account = json['account']?.toString() ?? json['accountNumber']?.toString(),
         canceledQuantity = parseDouble(json['canceled_quantity']),
         direction = json['direction'],
         legs = OptionLeg.fromJsonArray(json['legs']),
@@ -292,7 +295,8 @@ class OptionOrder {
             ? DateTime.tryParse(json['enteredTime'])
             : null,
         updatedAt =
-            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? '');
+            DateTime.tryParse(json['closeTime'] ?? json['enteredTime'] ?? ''),
+        account = json['accountNumber']?.toString();
 
   String get strategy {
     String strat = "";
@@ -359,7 +363,8 @@ class OptionOrder {
         'closing_strategy': closingStrategy,
         'stop_price': stopPrice,
         'created_at': createdAt,
-        'updated_at': updatedAt
+        'updated_at': updatedAt,
+        'account': account,
       };
 
   /* CSV Generation */

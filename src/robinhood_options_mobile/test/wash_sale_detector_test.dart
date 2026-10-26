@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/asset_location_model.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio_alert.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/portfolio_alert_service.dart';
@@ -411,6 +415,405 @@ void main() {
       expect(alert.title, contains('1 active wash sale window'));
       expect(alert.detail, contains('TSLA'));
       expect(alert.target, PortfolioAlertTarget.taxes);
+    });
+
+    test('generates critical alert for permanent IRA wash sale disallowance',
+        () {
+      final permanentIraRecord = WashSaleRecord(
+        id: 'w_ira_1',
+        symbol: 'AMZN',
+        name: 'Amazon.com, Inc.',
+        assetType: 'stock',
+        saleDate: now.subtract(const Duration(days: 5)),
+        salePrice: 180.0,
+        quantitySold: 10.0,
+        realizedLoss: -300.0,
+        windowStartDate: now.subtract(const Duration(days: 35)),
+        windowEndDate: now.add(const Duration(days: 25)),
+        status: WashSaleStatus.disallowed,
+        isPermanentIraDisallowance: true,
+        saleAccountId: 'taxable_001',
+        saleAccountType: 'Individual',
+        replacementAccountId: 'ira_002',
+        replacementAccountType: 'Roth IRA',
+        disallowedLoss: 300.0,
+      );
+
+      final alerts = PortfolioAlertService.buildAlerts(
+        instrumentPositions: [],
+        optionPositions: [],
+        washSales: [permanentIraRecord],
+      );
+
+      expect(alerts.any((a) => a.id == 'wash-sale-permanent-ira'), isTrue);
+      final alert =
+          alerts.firstWhere((a) => a.id == 'wash-sale-permanent-ira');
+      expect(alert.severity, PortfolioAlertSeverity.critical);
+      expect(alert.title, contains('Permanent IRA Wash Sale'));
+      expect(alert.detail, contains('Rev. Rul. 2008-5'));
+      expect(alert.detail, contains('AMZN'));
+      expect(alert.target, PortfolioAlertTarget.taxes);
+    });
+  });
+
+  group('Cross-Account IRA Wash Sale & Rev. Rul. 2008-5 Engine Tests', () {
+    final asOfDate = DateTime(2026, 10, 20);
+
+    final taxableAccount = Account(
+      'https://api.robinhood.com/accounts/taxable_123/',
+      10000.0,
+      'taxable_123',
+      'margin',
+      10000.0,
+      'level_3',
+      0.0,
+      0.0,
+      0.0,
+      brokerageAccountType: 'individual',
+    );
+
+    final rothIraAccount = Account(
+      'https://api.robinhood.com/accounts/ira_456/',
+      5000.0,
+      'ira_456',
+      'ira_roth',
+      5000.0,
+      'level_2',
+      0.0,
+      0.0,
+      0.0,
+      brokerageAccountType: 'ira_roth',
+    );
+
+    final accounts = [taxableAccount, rothIraAccount];
+
+    InstrumentOrder makeOrder({
+      required String id,
+      required String symbol,
+      required String side,
+      required double price,
+      required double quantity,
+      required DateTime date,
+      required String account,
+    }) {
+      final order = InstrumentOrder(
+        id,
+        id,
+        'https://api.robinhood.com/orders/$id/',
+        account,
+        '',
+        null,
+        'https://api.robinhood.com/instruments/$symbol/',
+        symbol,
+        quantity,
+        price,
+        0.0,
+        'filled',
+        null,
+        'market',
+        side,
+        'gtc',
+        'immediate',
+        price,
+        null,
+        quantity,
+        null,
+        date,
+        date,
+        null,
+      );
+      order.instrumentObj = Instrument.forSymbol(symbol);
+      return order;
+    }
+
+    test('flags permanent loss disallowance under Rev. Rul. 2008-5 when repurchased in IRA', () {
+      final buyInitial = makeOrder(
+        id: 'ord_buy_taxable',
+        symbol: 'NVDA',
+        side: 'buy',
+        price: 130.0,
+        quantity: 20.0,
+        date: DateTime(2026, 9, 20),
+        account: 'taxable_123',
+      );
+
+      final sellLoss = makeOrder(
+        id: 'ord_sell_taxable',
+        symbol: 'NVDA',
+        side: 'sell',
+        price: 110.0,
+        quantity: 20.0,
+        date: DateTime(2026, 10, 5), // Loss of -$400
+        account: 'taxable_123',
+      );
+
+      final buyIra = makeOrder(
+        id: 'ord_buy_ira',
+        symbol: 'NVDA',
+        side: 'buy',
+        price: 112.0,
+        quantity: 20.0,
+        date: DateTime(2026, 10, 10), // Replacement within 5 days in IRA
+        account: 'ira_456',
+      );
+
+      final washSales = TaxOptimizationService.detectWashSales(
+        stockOrders: [buyInitial, sellLoss, buyIra],
+        accounts: accounts,
+        asOf: asOfDate,
+      );
+
+      expect(washSales.length, 1);
+      final ws = washSales.first;
+      expect(ws.symbol, 'NVDA');
+      expect(ws.status, WashSaleStatus.disallowed);
+      expect(ws.isPermanentIraDisallowance, isTrue);
+      expect(ws.isCrossAccount, isTrue);
+      expect(ws.saleAccountId, 'taxable_123');
+      expect(ws.replacementAccountId, 'ira_456');
+      expect(ws.disallowedLoss, 400.0);
+      // Under Rev. Rul. 2008-5, IRA replacement cost basis is NOT adjusted by the disallowed loss
+      expect(ws.adjustedCostBasis, 112.0 * 20.0);
+      expect(ws.taxConsequenceDescription, contains('IRS Rev. Rul. 2008-5'));
+    });
+  });
+
+  group('PreTradeWashSaleRisk Evaluation Tests', () {
+    final asOfDate = DateTime(2026, 10, 20);
+
+    final taxableAccount = Account(
+      'https://api.robinhood.com/accounts/taxable_123/',
+      10000.0,
+      'taxable_123',
+      'margin',
+      10000.0,
+      'level_3',
+      0.0,
+      0.0,
+      0.0,
+      brokerageAccountType: 'individual',
+    );
+
+    final rothIraAccount = Account(
+      'https://api.robinhood.com/accounts/ira_456/',
+      5000.0,
+      'ira_456',
+      'ira_roth',
+      5000.0,
+      'level_2',
+      0.0,
+      0.0,
+      0.0,
+      brokerageAccountType: 'ira_roth',
+    );
+
+    final activeWashSale = WashSaleRecord(
+      id: 'ws_active_tsla',
+      symbol: 'TSLA',
+      name: 'Tesla, Inc.',
+      assetType: 'stock',
+      saleDate: DateTime(2026, 10, 10),
+      salePrice: 220.0,
+      quantitySold: 10.0,
+      realizedLoss: -350.0,
+      windowStartDate: DateTime(2026, 9, 10),
+      windowEndDate: DateTime(2026, 11, 9),
+      status: WashSaleStatus.activeWindow,
+      saleAccountId: 'taxable_123',
+      saleAccountType: 'Individual',
+    );
+
+    test('returns critical Rev. Rul. 2008-5 risk when buying in IRA during active taxable wash window', () {
+      final risk = TaxOptimizationService.evaluatePreTradeWashSale(
+        symbol: 'TSLA',
+        positionType: 'Buy',
+        currentAccount: rothIraAccount,
+        activeWashSales: [activeWashSale],
+        asOf: asOfDate,
+      );
+
+      expect(risk, isNotNull);
+      expect(risk!.hasRisk, isTrue);
+      expect(risk.isPermanentIraDisallowance, isTrue);
+      expect(risk.severity, 'critical');
+      expect(risk.headline, contains('IRS Rev. Rul. 2008-5'));
+      expect(risk.details, contains('permanently forfeit'));
+      expect(risk.potentialDisallowedLoss, 350.0);
+    });
+
+    test('returns warning risk when buying in taxable account during active wash window', () {
+      final risk = TaxOptimizationService.evaluatePreTradeWashSale(
+        symbol: 'TSLA',
+        positionType: 'Buy',
+        currentAccount: taxableAccount,
+        activeWashSales: [activeWashSale],
+        asOf: asOfDate,
+      );
+
+      expect(risk, isNotNull);
+      expect(risk!.hasRisk, isTrue);
+      expect(risk.isPermanentIraDisallowance, isFalse);
+      expect(risk.severity, 'warning');
+      expect(risk.headline, contains('IRC §1091'));
+      expect(risk.details, contains('added to your replacement cost basis'));
+    });
+
+    test('returns null when positionType is Sell or symbol has no wash risk', () {
+      final sellRisk = TaxOptimizationService.evaluatePreTradeWashSale(
+        symbol: 'TSLA',
+        positionType: 'Sell',
+        currentAccount: taxableAccount,
+        activeWashSales: [activeWashSale],
+        asOf: asOfDate,
+      );
+      expect(sellRisk, isNull);
+
+      final cleanRisk = TaxOptimizationService.evaluatePreTradeWashSale(
+        symbol: 'AAPL',
+        positionType: 'Buy',
+        currentAccount: taxableAccount,
+        activeWashSales: [activeWashSale],
+        asOf: asOfDate,
+      );
+      expect(cleanRisk, isNull);
+    });
+  });
+
+  group('AssetLocationOptimizer Analysis Tests', () {
+    InstrumentPosition buildTestPosition({
+      required String symbol,
+      required double quantity,
+      required double price,
+      required String accountNumber,
+    }) {
+      final pos = InstrumentPosition(
+        'https://api.robinhood.com/positions/$accountNumber/pos_$symbol/',
+        'https://api.robinhood.com/instruments/$symbol/',
+        accountNumber,
+        accountNumber,
+        price,
+        0.0,
+        quantity,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        false,
+        DateTime(2026, 10, 20),
+        DateTime(2026, 1, 1),
+      );
+      pos.instrumentObj = Instrument.forSymbol(symbol);
+      pos.instrumentObj!.quoteObj = Quote(
+        askPrice: price,
+        askSize: 0,
+        bidPrice: price,
+        bidSize: 0,
+        lastTradePrice: price,
+        lastExtendedHoursTradePrice: price,
+        previousClose: price,
+        adjustedPreviousClose: price,
+        previousCloseDate: DateTime(2026, 1, 1),
+        symbol: symbol,
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'test',
+        updatedAt: DateTime(2026, 10, 20),
+        instrument: '',
+        instrumentId: symbol,
+      );
+      return pos;
+    }
+
+    final taxableAccount = Account(
+      'https://api.robinhood.com/accounts/taxable_1/',
+      10000.0,
+      'taxable_1',
+      'individual',
+      10000.0,
+      'level_3',
+      0.0,
+      0.0,
+      0.0,
+    );
+
+    final tradIraAccount = Account(
+      'https://api.robinhood.com/accounts/ira_1/',
+      15000.0,
+      'ira_1',
+      'ira_traditional',
+      15000.0,
+      'level_2',
+      0.0,
+      0.0,
+      0.0,
+      brokerageAccountType: 'ira_traditional',
+    );
+
+    final accounts = [taxableAccount, tradIraAccount];
+
+    test('identifies misplaced REIT in taxable account and generates relocation recommendation', () {
+      // Misplaced REIT in taxable (100 shares @ $55 = $5,500)
+      final oPosition = buildTestPosition(
+        symbol: 'O',
+        quantity: 100.0,
+        price: 55.0,
+        accountNumber: 'taxable_1',
+      );
+
+      // Efficient Core S&P 500 ETF in taxable (20 shares @ $450 = $9,000)
+      final vooPosition = buildTestPosition(
+        symbol: 'VOO',
+        quantity: 20.0,
+        price: 450.0,
+        accountNumber: 'taxable_1',
+      );
+
+      // Bond ETF in Traditional IRA (optimal placement!) (100 shares @ $75 = $7,500)
+      final bndPosition = buildTestPosition(
+        symbol: 'BND',
+        quantity: 100.0,
+        price: 75.0,
+        accountNumber: 'ira_1',
+      );
+
+      final analysis = TaxOptimizationService.analyzeAssetLocation(
+        instrumentPositions: [oPosition, vooPosition, bndPosition],
+        optionPositions: [],
+        accounts: accounts,
+      );
+
+      expect(analysis.holdings.length, 3);
+      expect(analysis.misplacedHoldingsCount, 1);
+
+      final oHolding = analysis.holdings.firstWhere((h) => h.symbol == 'O');
+      expect(oHolding.isMisplaced, isTrue);
+      expect(oHolding.taxEfficiencyTier, TaxEfficiencyTier.low);
+      expect(oHolding.idealAccountClassification, AccountTaxClassification.traditionalIra);
+
+      final vooHolding = analysis.holdings.firstWhere((h) => h.symbol == 'VOO');
+      expect(vooHolding.isMisplaced, isFalse);
+      expect(vooHolding.taxEfficiencyTier, TaxEfficiencyTier.high);
+
+      final bndHolding = analysis.holdings.firstWhere((h) => h.symbol == 'BND');
+      expect(bndHolding.isMisplaced, isFalse);
+      expect(bndHolding.taxEfficiencyTier, TaxEfficiencyTier.low);
+
+      expect(analysis.recommendations.length, 1);
+      final rec = analysis.recommendations.first;
+      expect(rec.symbol, 'O');
+      expect(rec.action, 'Relocate');
+      expect(rec.fromAccount, AccountTaxClassification.taxable);
+      expect(rec.toAccount, AccountTaxClassification.traditionalIra);
+      expect(rec.estimatedTaxImpact, greaterThan(0.0));
+
+      expect(analysis.efficiencyScore, greaterThan(70.0));
+      expect(analysis.efficiencyScore, lessThan(100.0));
     });
   });
 }

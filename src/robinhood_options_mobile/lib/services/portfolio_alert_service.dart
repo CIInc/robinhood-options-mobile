@@ -478,7 +478,32 @@ class PortfolioAlertService {
 
     // 1. Wash Sale Disallowed loss alert (Critical)
     if (washSales != null) {
-      final disallowed = washSales.where((w) => w.isDisallowed).toList();
+      final permanentIra =
+          washSales.where((w) => w.isPermanentIraDisallowance).toList();
+      if (permanentIra.isNotEmpty) {
+        final totalPermanent = permanentIra.fold<double>(
+            0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));
+        final symbols = permanentIra.map((w) => w.symbol).toSet().toList();
+        alerts.add(
+          PortfolioAlert(
+            id: 'wash-sale-permanent-ira',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.error_outline,
+            title:
+                '${permanentIra.length} Permanent IRA Wash ${permanentIra.length == 1 ? 'Sale' : 'Sales'}',
+            detail:
+                '${symbols.join(', ')} tax deduction permanently forfeited under IRS Rev. Rul. 2008-5. Basis cannot adjust in IRA.',
+            metric: _currency.format(totalPermanent),
+            target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Review Wash Sales',
+            symbol: symbols.isNotEmpty ? symbols.first : null,
+            payload: permanentIra,
+          ),
+        );
+      }
+
+      final disallowed = washSales.where((w) => w.isDisallowed && !w.isPermanentIraDisallowance).toList();
       if (disallowed.isNotEmpty) {
         final totalDisallowed = disallowed.fold<double>(
             0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));

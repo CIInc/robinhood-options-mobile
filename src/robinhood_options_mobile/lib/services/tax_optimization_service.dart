@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/asset_location_model.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -920,7 +922,40 @@ class TaxOptimizationService {
     return scanResult.suggestions;
   }
 
-  /// Detects wash sales and active 30-day restriction windows per IRS Section 1091.
+  /// Resolves an Account from an account URL or account number reference.
+  static Account? _resolveAccount(
+    String? accountRef, {
+    Map<String, Account>? accountsMap,
+    List<Account>? accounts,
+  }) {
+    if (accountRef == null || accountRef.isEmpty) return null;
+    if (accountsMap != null) {
+      if (accountsMap.containsKey(accountRef)) return accountsMap[accountRef];
+      for (final entry in accountsMap.entries) {
+        if (entry.key == accountRef ||
+            entry.value.accountNumber == accountRef ||
+            entry.value.url == accountRef ||
+            entry.value.url.endsWith('/$accountRef/') ||
+            entry.value.url.contains(accountRef)) {
+          return entry.value;
+        }
+      }
+    }
+    if (accounts != null) {
+      for (final a in accounts) {
+        if (a.accountNumber == accountRef ||
+            a.url == accountRef ||
+            a.url.endsWith('/$accountRef/') ||
+            a.url.contains(accountRef)) {
+          return a;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Detects wash sales and active 30-day restriction windows per IRS Section 1091,
+  /// including cross-account IRA permanent loss disallowances under IRS Revenue Ruling 2008-5.
   ///
   /// Evaluates closed orders, open positions, and optional historical/initial records
   /// across equities and substantially identical options contracts.
@@ -930,6 +965,8 @@ class TaxOptimizationService {
     List<InstrumentPosition> instrumentPositions = const [],
     List<OptionAggregatePosition> optionPositions = const [],
     List<WashSaleRecord>? initialRecords,
+    Map<String, Account>? accountsMap,
+    List<Account>? accounts,
     DateTime? asOf,
   }) {
     final now = asOf ?? DateTime.now();
@@ -981,6 +1018,21 @@ class TaxOptimizationService {
                 record.realizedLoss.abs(),
                 record.realizedLoss.abs() *
                     (repQty / max(record.quantitySold, 1.0)));
+
+            final sellAcct = _resolveAccount(record.saleAccountId,
+                accountsMap: accountsMap, accounts: accounts);
+            final repAcct = _resolveAccount(rep.account,
+                accountsMap: accountsMap, accounts: accounts);
+
+            final isPermanentIra = (sellAcct != null &&
+                    !sellAcct.isRetirement &&
+                    repAcct != null &&
+                    repAcct.isRetirement) ||
+                (record.saleAccountType != null &&
+                    !record.saleAccountType!.toLowerCase().contains('ira') &&
+                    repAcct != null &&
+                    repAcct.isRetirement);
+
             updated = WashSaleRecord(
               id: record.id,
               symbol: record.symbol,
@@ -998,7 +1050,16 @@ class TaxOptimizationService {
               replacementQuantity: repQty,
               replacementAssetType: 'stock',
               disallowedLoss: disallowed,
-              adjustedCostBasis: (repPrice * repQty) + disallowed,
+              // Under IRS Rev. Rul. 2008-5, basis in IRA cannot be increased!
+              adjustedCostBasis: isPermanentIra
+                  ? (repPrice * repQty)
+                  : ((repPrice * repQty) + disallowed),
+              saleAccountId: sellAcct?.accountNumber ?? record.saleAccountId,
+              saleAccountType: sellAcct?.displayType ?? record.saleAccountType,
+              replacementAccountId: repAcct?.accountNumber ?? rep.account,
+              replacementAccountType: repAcct?.displayType ??
+                  (isPermanentIra ? 'IRA' : 'Taxable'),
+              isPermanentIraDisallowance: isPermanentIra,
             );
           } else if (optionReplacements.isNotEmpty) {
             final rep = optionReplacements.first;
@@ -1007,6 +1068,21 @@ class TaxOptimizationService {
                 ? rep.processedPremium! / (repQty * 100)
                 : (rep.price ?? 0.0);
             final disallowed = record.realizedLoss.abs();
+
+            final sellAcct = _resolveAccount(record.saleAccountId,
+                accountsMap: accountsMap, accounts: accounts);
+            final repAcct = _resolveAccount(rep.account,
+                accountsMap: accountsMap, accounts: accounts);
+
+            final isPermanentIra = (sellAcct != null &&
+                    !sellAcct.isRetirement &&
+                    repAcct != null &&
+                    repAcct.isRetirement) ||
+                (record.saleAccountType != null &&
+                    !record.saleAccountType!.toLowerCase().contains('ira') &&
+                    repAcct != null &&
+                    repAcct.isRetirement);
+
             updated = WashSaleRecord(
               id: record.id,
               symbol: record.symbol,
@@ -1024,7 +1100,15 @@ class TaxOptimizationService {
               replacementQuantity: repQty,
               replacementAssetType: 'option',
               disallowedLoss: disallowed,
-              adjustedCostBasis: (repPrice * repQty * 100) + disallowed,
+              adjustedCostBasis: isPermanentIra
+                  ? (repPrice * repQty * 100)
+                  : ((repPrice * repQty * 100) + disallowed),
+              saleAccountId: sellAcct?.accountNumber ?? record.saleAccountId,
+              saleAccountType: sellAcct?.displayType ?? record.saleAccountType,
+              replacementAccountId: repAcct?.accountNumber ?? rep.account,
+              replacementAccountType: repAcct?.displayType ??
+                  (isPermanentIra ? 'IRA' : 'Taxable'),
+              isPermanentIraDisallowance: isPermanentIra,
             );
           } else if (now.isAfter(record.windowEndDate)) {
             updated = WashSaleRecord(
@@ -1039,6 +1123,8 @@ class TaxOptimizationService {
               windowStartDate: record.windowStartDate,
               windowEndDate: record.windowEndDate,
               status: WashSaleStatus.cleared,
+              saleAccountId: record.saleAccountId,
+              saleAccountType: record.saleAccountType,
             );
           }
         }
@@ -1080,6 +1166,9 @@ class TaxOptimizationService {
       final sellPrice = sellOrder.averagePrice ?? sellOrder.price ?? 0.0;
       final sellQty = sellOrder.cumulativeQuantity ?? sellOrder.quantity ?? 0.0;
       if (sellQty <= 0 || sellPrice <= 0) continue;
+
+      final sellAcct = _resolveAccount(sellOrder.account,
+          accountsMap: accountsMap, accounts: accounts);
 
       // Find preceding buy order to determine cost basis
       final priorBuys = (buyOrdersBySymbol[symbol] ?? []).where((b) {
@@ -1126,6 +1215,13 @@ class TaxOptimizationService {
           final repPrice = rep.averagePrice ?? rep.price ?? 0.0;
           final disallowed = min(loss.abs(), loss.abs() * (repQty / sellQty));
 
+          final repAcct = _resolveAccount(rep.account,
+              accountsMap: accountsMap, accounts: accounts);
+          final isPermanentIra = (sellAcct != null &&
+                  !sellAcct.isRetirement &&
+                  repAcct != null &&
+                  repAcct.isRetirement);
+
           results.add(WashSaleRecord(
             id: recordId,
             symbol: symbol,
@@ -1143,7 +1239,15 @@ class TaxOptimizationService {
             replacementQuantity: repQty,
             replacementAssetType: 'stock',
             disallowedLoss: disallowed,
-            adjustedCostBasis: (repPrice * repQty) + disallowed,
+            adjustedCostBasis: isPermanentIra
+                ? (repPrice * repQty)
+                : ((repPrice * repQty) + disallowed),
+            saleAccountId: sellAcct?.accountNumber ?? sellOrder.account,
+            saleAccountType: sellAcct?.displayType ?? 'Taxable',
+            replacementAccountId: repAcct?.accountNumber ?? rep.account,
+            replacementAccountType: repAcct?.displayType ??
+                (isPermanentIra ? 'IRA' : 'Taxable'),
+            isPermanentIraDisallowance: isPermanentIra,
           ));
         } else if (replacementOptionBuys.isNotEmpty) {
           final rep = replacementOptionBuys.first;
@@ -1152,6 +1256,13 @@ class TaxOptimizationService {
               ? rep.processedPremium! / (repQty * 100)
               : (rep.price ?? 0.0);
           final disallowed = loss.abs();
+
+          final repAcct = _resolveAccount(rep.account,
+              accountsMap: accountsMap, accounts: accounts);
+          final isPermanentIra = (sellAcct != null &&
+                  !sellAcct.isRetirement &&
+                  repAcct != null &&
+                  repAcct.isRetirement);
 
           results.add(WashSaleRecord(
             id: recordId,
@@ -1170,7 +1281,15 @@ class TaxOptimizationService {
             replacementQuantity: repQty,
             replacementAssetType: 'option',
             disallowedLoss: disallowed,
-            adjustedCostBasis: (repPrice * repQty * 100) + disallowed,
+            adjustedCostBasis: isPermanentIra
+                ? (repPrice * repQty * 100)
+                : ((repPrice * repQty * 100) + disallowed),
+            saleAccountId: sellAcct?.accountNumber ?? sellOrder.account,
+            saleAccountType: sellAcct?.displayType ?? 'Taxable',
+            replacementAccountId: repAcct?.accountNumber ?? rep.account,
+            replacementAccountType: repAcct?.displayType ??
+                (isPermanentIra ? 'IRA' : 'Taxable'),
+            isPermanentIraDisallowance: isPermanentIra,
           ));
         } else {
           final isCleared = now.isAfter(windowEnd);
@@ -1188,6 +1307,8 @@ class TaxOptimizationService {
             status: isCleared
                 ? WashSaleStatus.cleared
                 : WashSaleStatus.activeWindow,
+            saleAccountId: sellAcct?.accountNumber ?? sellOrder.account,
+            saleAccountType: sellAcct?.displayType ?? 'Taxable',
           ));
         }
         processedRecordIds.add(recordId);
@@ -1221,6 +1342,376 @@ class TaxOptimizationService {
     List<WashSaleRecord> records,
   ) {
     return records.where((r) => r.isDisallowed).toList();
+  }
+
+  /// Known tax-inefficient REIT symbols generating ordinary income.
+  static const Set<String> reitSymbols = {
+    'O', 'AMT', 'PLD', 'CCI', 'EQIX', 'PSA', 'SPG', 'WELL', 'DLR', 'AVB',
+    'EQR', 'VICI', 'WY', 'SBAC', 'INVH', 'ARE', 'MAA', 'UDR', 'HST', 'CPT',
+    'VNQ', 'IYR', 'XLRE', 'SCHH', 'RWR', 'USRT'
+  };
+
+  /// Known taxable bond and fixed-income ETFs generating non-qualified ordinary coupon interest.
+  static const Set<String> taxableBondSymbols = {
+    'BND', 'AGG', 'HYG', 'JNK', 'TLT', 'IEF', 'SHY', 'LQD', 'VCIT', 'VCSH',
+    'BNDX', 'EMB', 'TIP', 'STIP', 'VGIT', 'VGSH', 'VGLT', 'MBB', 'BSV', 'BIV'
+  };
+
+  /// Known broad-market core index ETFs with ultra-low turnover and qualified dividend efficiency.
+  static const Set<String> coreIndexEtfSymbols = {
+    'SPY', 'VOO', 'IVV', 'VTI', 'QQQ', 'QQQM', 'IWM', 'VXUS', 'VEA', 'VWO',
+    'SCHX', 'ITOT', 'SPLG', 'SCHD', 'DIA', 'VIG'
+  };
+
+  /// Evaluates an intended trade before execution for IRS Section 1091 wash sale violations
+  /// and IRS Revenue Ruling 2008-5 permanent loss disallowances across IRA accounts.
+  static PreTradeWashSaleRisk? evaluatePreTradeWashSale({
+    required String symbol,
+    required String positionType, // 'Buy' or 'Sell'
+    Account? currentAccount,
+    Map<String, Account>? accountsMap,
+    List<Account>? accounts,
+    List<WashSaleRecord> activeWashSales = const [],
+    List<InstrumentOrder> stockOrders = const [],
+    List<OptionOrder> optionOrders = const [],
+    DateTime? asOf,
+  }) {
+    final posTypeLower = positionType.toLowerCase();
+    final isBuy = posTypeLower == 'buy' || posTypeLower == 'debit';
+    if (!isBuy) return null; // Pre-trade wash sale risk only triggers on replacement buys
+
+    final sym = symbol.toUpperCase();
+    final now = asOf ?? DateTime.now();
+
+    // 1. Check existing active wash sale records for this symbol
+    final matchingRecord = activeWashSales.cast<WashSaleRecord?>().firstWhere(
+          (w) => w != null && w.symbol.toUpperCase() == sym && w.isWindowActive(now),
+          orElse: () => null,
+        );
+
+    // 2. Also check closed stock orders for recent sales at a loss in past 30 days
+    WashSaleRecord? dynamicLossRecord;
+    if (matchingRecord == null && stockOrders.isNotEmpty) {
+      final filledSells = stockOrders.where((o) {
+        if (o.side.toLowerCase() != 'sell') return false;
+        final oSym = o.instrumentObj?.symbol.toUpperCase();
+        if (oSym != sym) return false;
+        final state = o.state.toLowerCase();
+        if (state != 'filled' && state != 'confirmed') return false;
+        final dt = o.createdAt ?? o.updatedAt;
+        if (dt == null) return false;
+        return dt.isAfter(now.subtract(const Duration(days: 30))) && dt.isBefore(now);
+      }).toList();
+
+      for (final sell in filledSells) {
+        final sellPrice = sell.averagePrice ?? sell.price ?? 0.0;
+        final sellQty = sell.cumulativeQuantity ?? sell.quantity ?? 0.0;
+        if (sellQty <= 0 || sellPrice <= 0) continue;
+
+        // Find prior buy to determine cost basis
+        final priorBuys = stockOrders.where((b) {
+          if (b.side.toLowerCase() != 'buy') return false;
+          if (b.instrumentObj?.symbol.toUpperCase() != sym) return false;
+          final bDt = b.createdAt ?? b.updatedAt;
+          final sDt = sell.createdAt ?? sell.updatedAt;
+          return bDt != null && sDt != null && bDt.isBefore(sDt);
+        }).toList();
+
+        double buyPrice = 0.0;
+        if (priorBuys.isNotEmpty) {
+          buyPrice = priorBuys.last.averagePrice ?? priorBuys.last.price ?? 0.0;
+        }
+
+        if (buyPrice > 0 && sellPrice < buyPrice) {
+          final loss = (sellPrice - buyPrice) * sellQty;
+          final sDt = sell.createdAt ?? sell.updatedAt!;
+          final sellAcct = _resolveAccount(sell.account,
+              accountsMap: accountsMap, accounts: accounts);
+          dynamicLossRecord = WashSaleRecord(
+            id: 'pre_trade_${sym}_${sDt.millisecondsSinceEpoch}',
+            symbol: sym,
+            name: sell.instrumentObj?.name ?? sym,
+            assetType: 'stock',
+            saleDate: sDt,
+            salePrice: sellPrice,
+            quantitySold: sellQty,
+            realizedLoss: loss,
+            windowStartDate: sDt.subtract(const Duration(days: 30)),
+            windowEndDate: sDt.add(const Duration(days: 30)),
+            status: WashSaleStatus.activeWindow,
+            saleAccountId: sellAcct?.accountNumber ?? sell.account,
+            saleAccountType: sellAcct?.displayType ?? 'Taxable',
+          );
+          break;
+        }
+      }
+    }
+
+    final targetRecord = matchingRecord ?? dynamicLossRecord;
+    if (targetRecord == null) return null;
+
+    final daysRemaining = targetRecord.getDaysRemaining(now);
+    final safeDate = targetRecord.safeRepurchaseDate;
+    final lossAmount = targetRecord.realizedLoss.abs();
+
+    // Check account context
+    final isDestRetirement = currentAccount?.isRetirement == true;
+    final isSourceTaxable = targetRecord.saleAccountType == null ||
+        (!targetRecord.saleAccountType!.toLowerCase().contains('ira') &&
+            !targetRecord.saleAccountType!.toLowerCase().contains('retirement'));
+
+    if (isDestRetirement && isSourceTaxable) {
+      // IRS Revenue Ruling 2008-5 Permanent Wash Sale Disallowance Hazard!
+      return PreTradeWashSaleRisk(
+        symbol: sym,
+        hasRisk: true,
+        isPermanentIraDisallowance: true,
+        daysRemaining: daysRemaining,
+        safeRepurchaseDate: safeDate,
+        potentialDisallowedLoss: lossAmount,
+        severity: 'critical',
+        headline: 'IRS Rev. Rul. 2008-5: Permanent Tax Loss Forfeiture',
+        details:
+            'Buying $sym in your ${currentAccount?.displayType ?? 'IRA'} within 30 days of a loss sale in your taxable account will permanently forfeit up to \$${lossAmount.toStringAsFixed(2)} in tax deductions. Cost basis cannot be increased in retirement accounts.',
+        sourceAccountId: targetRecord.saleAccountId,
+        destinationAccountId: currentAccount?.accountNumber,
+      );
+    }
+
+    // Standard IRC Section 1091 Wash Sale Basis Deferral Warning
+    return PreTradeWashSaleRisk(
+      symbol: sym,
+      hasRisk: true,
+      isPermanentIraDisallowance: false,
+      daysRemaining: daysRemaining,
+      safeRepurchaseDate: safeDate,
+      potentialDisallowedLoss: lossAmount,
+      severity: 'warning',
+      headline: 'Wash Sale Restriction Window Active (IRC §1091)',
+      details:
+          'Repurchasing $sym ($daysRemaining days remaining until ${safeDate.month}/${safeDate.day}/${safeDate.year}) will trigger an IRS §1091 wash sale. The realized loss of \$${lossAmount.toStringAsFixed(2)} will be disallowed and added to your replacement cost basis.',
+      sourceAccountId: targetRecord.saleAccountId,
+      destinationAccountId: currentAccount?.accountNumber,
+    );
+  }
+
+  /// Analyzes asset allocation across taxable, traditional IRA, and Roth IRA accounts
+  /// to score tax location efficiency (0-100%) and produce asset relocation guidance.
+  static AssetLocationAnalysis analyzeAssetLocation({
+    required List<InstrumentPosition> instrumentPositions,
+    required List<OptionAggregatePosition> optionPositions,
+    required List<Account> accounts,
+    Map<String, dynamic>? marketData,
+  }) {
+    double totalTaxable = 0.0;
+    double totalTradIra = 0.0;
+    double totalRothIra = 0.0;
+    final holdings = <AssetLocationHolding>[];
+    final recommendations = <AssetLocationRecommendation>[];
+
+    // Build accounts map for quick lookup
+    final accountsMap = <String, Account>{};
+    for (final a in accounts) {
+      if (a.accountNumber.isNotEmpty) accountsMap[a.accountNumber] = a;
+      if (a.url.isNotEmpty) accountsMap[a.url] = a;
+    }
+
+    // Process equity positions
+    for (final pos in instrumentPositions) {
+      final symbol = (pos.instrumentObj?.symbol ?? '').toUpperCase();
+      if (symbol.isEmpty) continue;
+      double value = pos.marketValue;
+      if (value <= 0 && (pos.quantity ?? 0) > 0) {
+        value = (pos.quantity ?? 0) *
+            (pos.averageBuyPrice ?? pos.pendingAverageBuyPrice ?? 0.0);
+      }
+      if (value <= 0) continue;
+
+      final acct = _resolveAccount(
+        pos.account.isNotEmpty ? pos.account : pos.accountNumber,
+        accountsMap: accountsMap,
+        accounts: accounts,
+      );
+      final currentTaxClass = AccountTaxClassification.fromAccount(acct);
+
+      switch (currentTaxClass) {
+        case AccountTaxClassification.taxable:
+          totalTaxable += value;
+          break;
+        case AccountTaxClassification.traditionalIra:
+          totalTradIra += value;
+          break;
+        case AccountTaxClassification.rothIra:
+          totalRothIra += value;
+          break;
+      }
+
+      // Check dividend yield
+      final divYield = pos.instrumentObj?.fundamentalsObj?.dividendYield ?? 0.0;
+
+      // Determine asset efficiency tier and ideal tax classification
+      TaxEfficiencyTier tier = TaxEfficiencyTier.moderate;
+      AccountTaxClassification idealClass = AccountTaxClassification.taxable;
+      bool isMisplaced = false;
+      String rationale = '';
+
+      if (reitSymbols.contains(symbol)) {
+        tier = TaxEfficiencyTier.low;
+        idealClass = AccountTaxClassification.traditionalIra;
+        if (currentTaxClass == AccountTaxClassification.taxable) {
+          isMisplaced = true;
+          rationale =
+              'REIT distributions are taxed as ordinary income up to 37%. Relocate to Traditional or Roth IRA to shield dividends.';
+        }
+      } else if (taxableBondSymbols.contains(symbol)) {
+        tier = TaxEfficiencyTier.low;
+        idealClass = AccountTaxClassification.traditionalIra;
+        if (currentTaxClass == AccountTaxClassification.taxable) {
+          isMisplaced = true;
+          rationale =
+              'Taxable bond coupon interest is taxed at ordinary income rates without preferential treatment. Relocate to Traditional IRA.';
+        }
+      } else if (coreIndexEtfSymbols.contains(symbol)) {
+        tier = TaxEfficiencyTier.high;
+        idealClass = AccountTaxClassification.taxable;
+        if (currentTaxClass != AccountTaxClassification.taxable) {
+          rationale =
+              'Broad index ETFs are tax-efficient with qualified dividends; ideal for taxable brokerage accounts.';
+        }
+      } else if (divYield >= 3.0) {
+        tier = TaxEfficiencyTier.low;
+        idealClass = AccountTaxClassification.traditionalIra;
+        if (currentTaxClass == AccountTaxClassification.taxable) {
+          isMisplaced = true;
+          rationale =
+              'High dividend yield (${divYield.toStringAsFixed(1)}%) creates annual dividend drag in taxable accounts. Better placed in an IRA.';
+        }
+      } else if (divYield <= 1.5) {
+        tier = TaxEfficiencyTier.high;
+        idealClass = AccountTaxClassification.taxable;
+      }
+
+      holdings.add(AssetLocationHolding(
+        symbol: symbol,
+        name: pos.instrumentObj?.simpleName ?? pos.instrumentObj?.name ?? symbol,
+        assetType: 'stock',
+        marketValue: value,
+        accountNumber: acct?.accountNumber ?? pos.accountNumber,
+        accountType: acct?.displayType ?? 'Individual',
+        accountClassification: currentTaxClass,
+        dividendYield: divYield,
+        taxEfficiencyTier: tier,
+        idealAccountClassification: idealClass,
+        isMisplaced: isMisplaced,
+        misplacementRationale: rationale,
+      ));
+
+      if (isMisplaced) {
+        final effYield = divYield > 0 ? divYield / 100.0 : 0.04;
+        final taxSavings = value * effYield * 0.15;
+        recommendations.add(AssetLocationRecommendation(
+          symbol: symbol,
+          action: 'Relocate',
+          fromAccount: currentTaxClass,
+          toAccount: idealClass,
+          priority: value > 5000 ? 'high' : 'medium',
+          rationale: rationale,
+          estimatedTaxImpact: taxSavings,
+        ));
+      }
+    }
+
+    // Process option positions
+    for (final pos in optionPositions) {
+      final symbol = pos.chainSymbol.toUpperCase();
+      if (symbol.isEmpty) continue;
+      final value = pos.marketValue.abs();
+      if (value <= 0) continue;
+
+      final acct = _resolveAccount(
+        pos.account,
+        accountsMap: accountsMap,
+        accounts: accounts,
+      );
+      final currentTaxClass = AccountTaxClassification.fromAccount(acct);
+
+      switch (currentTaxClass) {
+        case AccountTaxClassification.taxable:
+          totalTaxable += value;
+          break;
+        case AccountTaxClassification.traditionalIra:
+          totalTradIra += value;
+          break;
+        case AccountTaxClassification.rothIra:
+          totalRothIra += value;
+          break;
+      }
+
+      final isMisplaced = currentTaxClass == AccountTaxClassification.taxable;
+      final rationale = isMisplaced
+          ? 'Active option writing and trading generate short-term capital gains taxed as ordinary income. Best held in a Roth IRA for tax-free compounding.'
+          : 'Options contract held in tax-advantaged account.';
+
+      holdings.add(AssetLocationHolding(
+        symbol: symbol,
+        name: '$symbol Options Spread',
+        assetType: 'option',
+        marketValue: value,
+        accountNumber: acct?.accountNumber ?? pos.account,
+        accountType: acct?.displayType ?? 'Individual',
+        accountClassification: currentTaxClass,
+        dividendYield: 0.0,
+        taxEfficiencyTier: TaxEfficiencyTier.low,
+        idealAccountClassification: AccountTaxClassification.rothIra,
+        isMisplaced: isMisplaced,
+        misplacementRationale: rationale,
+      ));
+
+      if (isMisplaced) {
+        final taxSavings = value * 0.10;
+        recommendations.add(AssetLocationRecommendation(
+          symbol: symbol,
+          action: 'Relocate',
+          fromAccount: currentTaxClass,
+          toAccount: AccountTaxClassification.rothIra,
+          priority: value > 3000 ? 'high' : 'medium',
+          rationale: rationale,
+          estimatedTaxImpact: taxSavings,
+        ));
+      }
+    }
+
+    final totalPortfolioVal = totalTaxable + totalTradIra + totalRothIra;
+    final misplacedVal = holdings
+        .where((h) => h.isMisplaced)
+        .fold(0.0, (sum, h) => sum + h.marketValue);
+
+    double score = 100.0;
+    if (totalPortfolioVal > 0) {
+      score = max(0.0, min(100.0, 100.0 - ((misplacedVal / totalPortfolioVal) * 100.0)));
+    }
+
+    String ratingLabel = 'Optimal Tax Placement';
+    if (score < 50.0) {
+      ratingLabel = 'Needs Rebalancing';
+    } else if (score < 70.0) {
+      ratingLabel = 'Suboptimal Placement';
+    } else if (score < 85.0) {
+      ratingLabel = 'Good Placement';
+    }
+
+    recommendations.sort((a, b) => b.estimatedTaxImpact.compareTo(a.estimatedTaxImpact));
+
+    return AssetLocationAnalysis(
+      efficiencyScore: double.parse(score.toStringAsFixed(1)),
+      ratingLabel: ratingLabel,
+      totalTaxableValue: totalTaxable,
+      totalTraditionalIraValue: totalTradIra,
+      totalRothIraValue: totalRothIra,
+      holdings: holdings,
+      recommendations: recommendations,
+      misplacedHoldingsCount: holdings.where((h) => h.isMisplaced).length,
+    );
   }
 
   static String getSeasonalityMessage() {

@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -14,9 +16,11 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/order_template.dart';
 import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/wash_sale_record.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/tax_optimization_service.dart';
 import 'package:robinhood_options_mobile/model/schwab_order_preview.dart';
 import 'package:robinhood_options_mobile/main.dart' as app_main;
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
@@ -75,6 +79,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   bool _isPreviewing = false;
   String? _riskGuardWarning;
   SchwabOrderPreview? _schwabPreview;
+  PreTradeWashSaleRisk? _preTradeWashSaleRisk;
 
   @override
   void initState() {
@@ -100,6 +105,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
       if (user != null) {
         context.read<OrderTemplateStore>().loadTemplates(user.uid);
       }
+      _evaluatePreTradeWashSaleRisk();
     });
   }
 
@@ -192,6 +198,182 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     );
   }
 
+  void _evaluatePreTradeWashSaleRisk() {
+    final sym = widget.optionInstrument?.chainSymbol;
+    if (sym == null || sym.isEmpty) return;
+
+    Account? currentAccount;
+    List<Account> accounts = [];
+    try {
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+      accounts = accountStore.items;
+      if (accounts.isNotEmpty) {
+        currentAccount = accounts[0];
+      }
+    } catch (_) {}
+
+    List<InstrumentOrder> orders = [];
+    try {
+      final orderStore =
+          Provider.of<InstrumentOrderStore>(context, listen: false);
+      orders = orderStore.items;
+    } catch (_) {}
+
+    final risk = TaxOptimizationService.evaluatePreTradeWashSale(
+      symbol: sym,
+      positionType: positionType ?? 'Buy',
+      currentAccount: currentAccount,
+      accounts: accounts,
+      stockOrders: orders,
+    );
+
+    if (mounted) {
+      setState(() {
+        _preTradeWashSaleRisk = risk;
+      });
+    }
+  }
+
+  Widget _buildPreTradeWashSaleBanner(
+      BuildContext context, PreTradeWashSaleRisk risk) {
+    final isCritical =
+        risk.isPermanentIraDisallowance || risk.severity == 'critical';
+    final theme = Theme.of(context);
+    final borderColor = isCritical ? Colors.red : Colors.orange;
+    final iconColor = isCritical ? Colors.red : Colors.orange;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: borderColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                isCritical ? Icons.error_outline : Icons.warning_amber_rounded,
+                color: iconColor,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  risk.headline,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: iconColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.info_outline, size: 20),
+                tooltip: 'Wash Sale Guidance',
+                onPressed: () => _showWashSaleGuidanceSheet(context, risk),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            risk.details,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          if (risk.safeRepurchaseDate != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Safe Repurchase Date: ${risk.safeRepurchaseDate!.month}/${risk.safeRepurchaseDate!.day}/${risk.safeRepurchaseDate!.year} (${risk.daysRemaining} days remaining)',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: iconColor,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showWashSaleGuidanceSheet(
+      BuildContext context, PreTradeWashSaleRisk risk) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        maxChildSize: 0.85,
+        minChildSize: 0.35,
+        expand: false,
+        builder: (ctx, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    risk.isPermanentIraDisallowance
+                        ? Icons.error
+                        : Icons.warning_amber_rounded,
+                    color: risk.isPermanentIraDisallowance
+                        ? Colors.red
+                        : Colors.orange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      risk.isPermanentIraDisallowance
+                          ? 'IRS Revenue Ruling 2008-5 (IRA Wash Sale Trap)'
+                          : 'IRS Section 1091 Wash Sale Rule',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              Text(
+                risk.isPermanentIraDisallowance
+                    ? 'Under IRS Revenue Ruling 2008-5, selling a security at a loss in a taxable account and repurchasing substantially identical securities (such as call options or stock) within the 61-day window in an IRA (Traditional or Roth) permanently disallows the loss. Crucially, unlike taxable accounts, the basis of contracts inside the IRA is NOT increased. The tax deduction is permanently forfeited forever.'
+                    : 'Under IRC Section 1091, a wash sale occurs when you sell a stock or option at a loss and within 30 days before or after buy substantially identical securities or options. The realized loss is disallowed for the current tax year and added to the cost basis of the replacement position, deferring the loss until the replacement position is closed.',
+                style: const TextStyle(fontSize: 14, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Key Takeaways:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                  '• 61-day window: 30 days before sale, day of sale, and 30 days after sale.'),
+              const Text(
+                  '• Purchasing call options or deep ITM contracts on a loss stock triggers wash sales.'),
+              const Text(
+                  '• IRA wash sales permanently extinguish the tax loss deduction without basis adjustment.'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Understood'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showDevilsAdvocateSheet() {
     final symbol = widget.optionInstrument?.chainSymbol ?? '';
     if (symbol.isEmpty) return;
@@ -260,6 +442,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               setState(() {
                 positionType = newSelection.first;
               });
+              _evaluatePreTradeWashSaleRisk();
             },
             style: ButtonStyle(
               backgroundColor: WidgetStateProperty.resolveWith<Color?>((
@@ -282,6 +465,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               }),
             ),
           ),
+          if (positionType == 'Buy' &&
+              _preTradeWashSaleRisk != null &&
+              _preTradeWashSaleRisk!.hasRisk) ...[
+            const SizedBox(height: 12),
+            _buildPreTradeWashSaleBanner(context, _preTradeWashSaleRisk!),
+          ],
           const SizedBox(height: 24),
           // Paper Trading Toggle
           SwitchListTile(
@@ -605,6 +794,12 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             ),
             textAlign: TextAlign.center,
           ),
+          if (positionType == 'Buy' &&
+              _preTradeWashSaleRisk != null &&
+              _preTradeWashSaleRisk!.hasRisk) ...[
+            const SizedBox(height: 12),
+            _buildPreTradeWashSaleBanner(context, _preTradeWashSaleRisk!),
+          ],
           if (_riskGuardWarning != null) ...[
             const SizedBox(height: 16),
             Container(
