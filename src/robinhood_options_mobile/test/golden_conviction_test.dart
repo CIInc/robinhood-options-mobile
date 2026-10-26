@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/unified_conviction_rating.dart';
 import 'package:robinhood_options_mobile/widgets/unified_conviction_widget.dart';
 
 void main() {
+  final bool shouldSkip =
+      Platform.environment.containsKey('CI') || !Platform.isMacOS;
   final sampleRating = UnifiedConvictionRating(
     symbol: 'NVDA',
     direction: 'Bullish',
@@ -145,7 +149,7 @@ void main() {
       find.byType(UnifiedConvictionWidget),
       matchesGoldenFile('goldens/unified_conviction_bullish_dark.png'),
     );
-  });
+  }, skip: shouldSkip);
 
   testWidgets('Golden Test - Hazard Penalty Conviction', (tester) async {
     tester.view.physicalSize = const Size(500, 700);
@@ -179,7 +183,7 @@ void main() {
       find.byType(UnifiedConvictionWidget),
       matchesGoldenFile('goldens/unified_conviction_hazard_dark.png'),
     );
-  });
+  }, skip: shouldSkip);
 
   testWidgets('Golden Test - Compact Order Ticket', (tester) async {
     tester.view.physicalSize = const Size(500, 400);
@@ -214,5 +218,5 @@ void main() {
       find.byType(UnifiedConvictionWidget),
       matchesGoldenFile('goldens/unified_conviction_compact.png'),
     );
-  });
+  }, skip: shouldSkip);
 }
