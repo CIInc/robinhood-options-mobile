@@ -210,6 +210,13 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                             : 'Never triggered',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${alert.priority.toUpperCase()} • Sound: ${alert.sound} • ${alert.channels.map((c) => c.toUpperCase()).join(', ')}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                      ),
                     ],
                   ),
                   trailing: Switch(
@@ -228,7 +235,11 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
                           active: val,
                           lastTriggered: alert.lastTriggered,
                           createdAt: alert.createdAt,
-                          deviceToken: alert.deviceToken));
+                          deviceToken: alert.deviceToken,
+                          priority: alert.priority,
+                          sound: alert.sound,
+                          channels: alert.channels,
+                          cooldownMinutes: alert.cooldownMinutes));
                     },
                   ),
                   onTap: () => _showAlertEditor(context, alert),
@@ -278,12 +289,19 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
     String? initialSymbol,
     String? userId,
   }) async {
-    return showDialog<CustomAlert>(
-      context: context,
-      builder: (context) => AlertEditorDialog(
-        alert: alert,
-        initialSymbol: initialSymbol,
-        userId: userId ?? FirebaseAuth.instance.currentUser?.uid,
+    String? resolvedUserId = userId;
+    if (resolvedUserId == null) {
+      try {
+        resolvedUserId = FirebaseAuth.instance.currentUser?.uid;
+      } catch (_) {}
+    }
+    return Navigator.of(context).push<CustomAlert>(
+      MaterialPageRoute(
+        builder: (context) => AlertEditorPage(
+          alert: alert,
+          initialSymbol: initialSymbol,
+          userId: resolvedUserId,
+        ),
       ),
     );
   }
@@ -310,20 +328,24 @@ class _CustomAlertsWidgetState extends State<CustomAlertsWidget> {
   }
 }
 
-class AlertEditorDialog extends StatefulWidget {
+typedef AlertEditorDialog = AlertEditorPage;
+
+class AlertEditorPage extends StatefulWidget {
   final CustomAlert? alert;
   final String? initialSymbol;
   final String? userId;
+  final YahooService? yahooService;
 
-  const AlertEditorDialog({
+  const AlertEditorPage({
     super.key,
     this.alert,
     this.initialSymbol,
     this.userId,
+    this.yahooService,
   });
 
   @override
-  State<AlertEditorDialog> createState() => _AlertEditorDialogState();
+  State<AlertEditorPage> createState() => _AlertEditorPageState();
 }
 
 class _RuleEditState {
@@ -369,14 +391,19 @@ class _RuleEditState {
   }
 }
 
-class _AlertEditorDialogState extends State<AlertEditorDialog> {
+class _AlertEditorPageState extends State<AlertEditorPage> {
   final _formKey = GlobalKey<FormState>();
   late String _symbol;
   late AlertLogic _logic;
   late List<_RuleEditState> _rules;
   late TextEditingController _symbolController;
+  late String _priority;
+  late String _sound;
+  late int _cooldownMinutes;
+  late List<String> _channels;
 
-  final YahooService _yahooService = YahooService();
+  late final YahooService _yahooService =
+      widget.yahooService ?? YahooService();
   Quote? _currentQuote;
   bool _isLoadingQuote = false;
 
@@ -387,6 +414,11 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
     _symbol = alert?.symbol ?? widget.initialSymbol ?? '';
     _logic = alert?.logic ?? AlertLogic.all;
     _symbolController = TextEditingController(text: _symbol);
+    _priority = alert?.priority ?? 'high';
+    _sound = alert?.sound ?? 'default';
+    _cooldownMinutes = alert?.cooldownMinutes ?? 60;
+    _channels = List<String>.from(
+        alert?.channels.isNotEmpty == true ? alert!.channels : const ['push', 'in_app']);
 
     if (alert != null && alert.rules.isNotEmpty) {
       _rules = alert.rules
@@ -702,174 +734,323 @@ class _AlertEditorDialogState extends State<AlertEditorDialog> {
     );
   }
 
+  Future<void> _submitAlert() async {
+    if (!_formKey.currentState!.validate()) return;
+    final userId = widget.userId;
+    _symbol = _symbolController.text.toUpperCase();
+
+    if (userId != null && _symbol.isNotEmpty && _rules.isNotEmpty) {
+      String? token = widget.alert?.deviceToken;
+      if (token == null) {
+        try {
+          token = await FirebaseMessaging.instance.getToken();
+        } catch (e) {
+          debugPrint('Error getting FCM token: $e');
+        }
+      }
+
+      final smartRules = _rules.map((r) => r.toRule()).toList();
+      final primaryRule = smartRules.first;
+
+      final newAlert = CustomAlert(
+        id: widget.alert?.id ?? '',
+        userId: userId,
+        symbol: _symbol,
+        type: primaryRule.type,
+        condition: primaryRule.condition,
+        value: primaryRule.value,
+        period: primaryRule.period,
+        logic: _logic,
+        rules: smartRules,
+        active: widget.alert?.active ?? true,
+        lastTriggered: widget.alert?.lastTriggered,
+        createdAt: widget.alert?.createdAt ?? DateTime.now(),
+        deviceToken: token,
+        priority: _priority,
+        sound: _sound,
+        channels: _channels,
+        cooldownMinutes: _cooldownMinutes,
+      );
+      if (mounted) Navigator.pop(context, newAlert);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.alert != null;
 
-    return AlertDialog(
-      title: Text(isEditing ? 'Edit Alert' : 'Add Alert'),
-      content: SizedBox(
-        width: double.maxFinite,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? 'Edit Alert' : 'Add Alert'),
+        actions: [
+          TextButton(
+            onPressed: _submitAlert,
+            child: Text(isEditing ? 'Save' : 'Add'),
+          ),
+        ],
+      ),
+      body: SafeArea(
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (widget.initialSymbol == null)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _symbolController,
-                          decoration:
-                              const InputDecoration(labelText: 'Symbol'),
-                          textCapitalization: TextCapitalization.characters,
-                          onChanged: (val) {
-                            _symbol = val.toUpperCase();
-                          },
-                          validator: (val) =>
-                              val == null || val.isEmpty ? 'Required' : null,
+          child: ListView(
+            padding: const EdgeInsets.all(16.0),
+            children: [
+              if (widget.initialSymbol == null)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _symbolController,
+                        decoration: const InputDecoration(
+                          labelText: 'Symbol',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.search),
                         ),
+                        textCapitalization: TextCapitalization.characters,
+                        onChanged: (val) {
+                          _symbol = val.toUpperCase();
+                        },
+                        validator: (val) =>
+                            val == null || val.isEmpty ? 'Required' : null,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: () => _fetchQuote(_symbolController.text),
-                        tooltip: 'Refresh Quote',
-                      ),
-                    ],
-                  ),
-                if (_isLoadingQuote)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (_currentQuote != null) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: () => _fetchQuote(_symbolController.text),
+                      tooltip: 'Refresh Quote',
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          'Current Price:',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        Icon(
+                          Icons.label_important_outline,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
+                        const SizedBox(width: 8),
                         Text(
-                          _currentQuote?.lastTradePrice != null
-                              ? NumberFormat.simpleCurrency()
-                                  .format(_currentQuote!.lastTradePrice)
-                              : '--',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          _symbol.toUpperCase(),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                if (_rules.length > 1) ...[
-                  DropdownButtonFormField<AlertLogic>(
-                    initialValue: _logic,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Smart Trigger Logic',
-                      helperText: 'How conditions should be combined',
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: () => _fetchQuote(_symbol),
+                      tooltip: 'Refresh Quote',
                     ),
-                    items: AlertLogic.values
-                        .map((logic) => DropdownMenuItem(
-                              value: logic,
-                              child: Text(
-                                logic == AlertLogic.all
-                                    ? 'Trigger when ALL rules match (AND)'
-                                    : 'Trigger when ANY rule matches (OR)',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _logic = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Text(
-                  _rules.length > 1 ? 'Rules' : 'Rule',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ],
                 ),
+              if (_isLoadingQuote)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: LinearProgressIndicator(),
+                ),
+              if (_currentQuote != null) ...[
                 const SizedBox(height: 8),
-                for (int i = 0; i < _rules.length; i++) ...[
-                  _buildRuleCard(context, i, _rules[i]),
-                  const SizedBox(height: 12),
-                ],
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: _addRule,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Add Rule'),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Current Price:',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      Text(
+                        _currentQuote?.lastTradePrice != null
+                            ? NumberFormat.simpleCurrency()
+                                .format(_currentQuote!.lastTradePrice)
+                            : '--',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                 ),
               ],
+              const SizedBox(height: 16),
+              if (_rules.length > 1) ...[
+                DropdownButtonFormField<AlertLogic>(
+                  initialValue: _logic,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Smart Trigger Logic',
+                    helperText: 'How conditions should be combined',
+                  ),
+                  items: AlertLogic.values
+                      .map((logic) => DropdownMenuItem(
+                            value: logic,
+                            child: Text(
+                              logic == AlertLogic.all
+                                  ? 'Trigger when ALL rules match (AND)'
+                                  : 'Trigger when ANY rule matches (OR)',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _logic = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                _rules.length > 1 ? 'Rules' : 'Rule',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              for (int i = 0; i < _rules.length; i++) ...[
+                _buildRuleCard(context, i, _rules[i]),
+                const SizedBox(height: 12),
+              ],
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _addRule,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add Rule'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Text(
+                'Delivery & Customization',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _priority,
+                      decoration: const InputDecoration(
+                        labelText: 'Priority',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'critical', child: Text('Critical')),
+                        DropdownMenuItem(value: 'high', child: Text('High')),
+                        DropdownMenuItem(
+                            value: 'standard', child: Text('Standard')),
+                        DropdownMenuItem(value: 'low', child: Text('Low')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _priority = val);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _sound,
+                      decoration: const InputDecoration(
+                        labelText: 'Sound',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                            value: 'default', child: Text('Default')),
+                        DropdownMenuItem(value: 'chime', child: Text('Chime')),
+                        DropdownMenuItem(value: 'bell', child: Text('Bell')),
+                        DropdownMenuItem(value: 'pulse', child: Text('Pulse')),
+                        DropdownMenuItem(value: 'radar', child: Text('Radar')),
+                        DropdownMenuItem(
+                            value: 'silent', child: Text('Silent')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _sound = val);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                initialValue: [15, 60, 240, 1440].contains(_cooldownMinutes)
+                    ? _cooldownMinutes
+                    : 60,
+                decoration: const InputDecoration(
+                  labelText: 'Cooldown Window',
+                ),
+                items: const [
+                  DropdownMenuItem(value: 15, child: Text('15 minutes')),
+                  DropdownMenuItem(value: 60, child: Text('1 hour')),
+                  DropdownMenuItem(value: 240, child: Text('4 hours')),
+                  DropdownMenuItem(value: 1440, child: Text('24 hours')),
+                ],
+                onChanged: (val) {
+                  if (val != null) setState(() => _cooldownMinutes = val);
+                },
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Delivery Channels',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final channel in const [
+                    ('push', 'Push'),
+                    ('in_app', 'In-App'),
+                    ('email', 'Email'),
+                    ('sms', 'SMS'),
+                  ])
+                    FilterChip(
+                      label: Text(channel.$2),
+                      selected: _channels.contains(channel.$1),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            if (!_channels.contains(channel.$1)) {
+                              _channels.add(channel.$1);
+                            }
+                          } else if (_channels.length > 1) {
+                            _channels.remove(channel.$1);
+                          }
+                        });
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: _submitAlert,
+              icon: const Icon(Icons.check),
+              label: Text(isEditing ? 'Save Alert' : 'Create Alert'),
             ),
           ),
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              final userId = widget.userId;
-              // Ensure symbol is updated
-              _symbol = _symbolController.text.toUpperCase();
-
-              if (userId != null && _symbol.isNotEmpty && _rules.isNotEmpty) {
-                // Get device token if new or missing
-                String? token = widget.alert?.deviceToken;
-                if (token == null) {
-                  try {
-                    token = await FirebaseMessaging.instance.getToken();
-                  } catch (e) {
-                    debugPrint('Error getting FCM token: $e');
-                  }
-                }
-
-                final smartRules = _rules.map((r) => r.toRule()).toList();
-                final primaryRule = smartRules.first;
-
-                final newAlert = CustomAlert(
-                  id: widget.alert?.id ?? '',
-                  userId: userId,
-                  symbol: _symbol,
-                  type: primaryRule.type,
-                  condition: primaryRule.condition,
-                  value: primaryRule.value,
-                  period: primaryRule.period,
-                  logic: _logic,
-                  rules: smartRules,
-                  active: widget.alert?.active ?? true,
-                  lastTriggered: widget.alert?.lastTriggered,
-                  createdAt: widget.alert?.createdAt ?? DateTime.now(),
-                  deviceToken: token,
-                );
-                if (context.mounted) Navigator.pop(context, newAlert);
-              }
-            }
-          },
-          child: Text(isEditing ? 'Save' : 'Add'),
-        ),
-      ],
     );
   }
 }

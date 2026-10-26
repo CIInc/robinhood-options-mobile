@@ -231,12 +231,59 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       debugPrint('Notification permission request failed: $e');
     }
 
-    // Request permissions for local notifications on Android 13+
+    // Request permissions for local notifications on Android 13+ and register priority channels
     if (Platform.isAndroid) {
-      await flutterLocalNotificationsPlugin
+      final androidPlugin = flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+              AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.requestNotificationsPermission();
+
+      const List<AndroidNotificationChannel> channels = [
+        AndroidNotificationChannel(
+          'critical_alerts',
+          'Critical Trade & Risk Alerts',
+          description:
+              'High-urgency alerts for critical signals, pin risk, and stops',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        ),
+        AndroidNotificationChannel(
+          'trade_signals',
+          'Trade Signals',
+          description: 'Notifications for algorithmic trade signals',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        AndroidNotificationChannel(
+          'custom_alerts',
+          'Custom Price & Technical Alerts',
+          description: 'User-configured price, volume, and technical alerts',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        AndroidNotificationChannel(
+          'options_flow',
+          'Unusual Options Flow',
+          description: 'Whale sweeps, block trades, and options flow alerts',
+          importance: Importance.defaultImportance,
+          playSound: true,
+          enableVibration: true,
+        ),
+        AndroidNotificationChannel(
+          'silent_digest',
+          'Silent & Low-Priority Alerts',
+          description: 'Low-priority alerts delivered without sound',
+          importance: Importance.low,
+          playSound: false,
+          enableVibration: false,
+        ),
+      ];
+      for (final channel in channels) {
+        await androidPlugin?.createNotificationChannel(channel);
+      }
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -343,14 +390,39 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       }
     }
 
+    final String channelId =
+        (message.data['channelId'] as String?) ?? 'trade_signals';
+    final String priorityStr =
+        (message.data['priority'] as String?) ?? 'high';
+    final String soundStr = (message.data['sound'] as String?) ?? 'default';
+    final bool isSilent = soundStr == 'silent' || priorityStr == 'low';
+
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'trade_signals',
-      'Trade Signals',
-      channelDescription: 'Notifications for trade signals',
+      channelId,
+      channelId == 'critical_alerts'
+          ? 'Critical Trade & Risk Alerts'
+          : channelId == 'custom_alerts'
+              ? 'Custom Price & Technical Alerts'
+              : channelId == 'options_flow'
+                  ? 'Unusual Options Flow'
+                  : channelId == 'silent_digest'
+                      ? 'Silent & Low-Priority Alerts'
+                      : 'Trade Signals',
+      channelDescription: 'Notifications for trade signals and alerts',
       styleInformation: bigPictureStyleInformation,
-      importance: Importance.max,
-      priority: Priority.high,
+      importance: priorityStr == 'critical'
+          ? Importance.max
+          : isSilent
+              ? Importance.low
+              : Importance.high,
+      priority: priorityStr == 'critical'
+          ? Priority.max
+          : isSilent
+              ? Priority.low
+              : Priority.high,
+      playSound: !isSilent,
+      enableVibration: !isSilent,
       actions: <AndroidNotificationAction>[
         if (message.data['type'] == 'trade_signal') ...[
           const AndroidNotificationAction('TRADE', 'Trade',

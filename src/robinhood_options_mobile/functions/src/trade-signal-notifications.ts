@@ -6,6 +6,7 @@
  * to BUY or SELL based on user preferences.
  */
 
+import { initializeApp, getApps } from "firebase-admin/app";
 import * as logger from "firebase-functions/logger";
 import {
   onDocumentCreated,
@@ -13,6 +14,16 @@ import {
 } from "firebase-functions/v2/firestore";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import {
+  UserNotificationCustomizationSettings,
+  isWithinQuietHours,
+  resolveChannelAndSound,
+  dispatchMultiChannelAlert,
+} from "./alert-delivery";
+
+if (getApps().length === 0) {
+  initializeApp();
+}
 
 const db = getFirestore();
 const messaging = getMessaging();
@@ -189,7 +200,8 @@ interface TradeSignal {
 /**
  * Interface for user notification settings
  */
-interface NotificationSettings {
+export interface NotificationSettings
+  extends UserNotificationCustomizationSettings {
   enabled: boolean;
   signalTypes: string[];
   symbols: string[];
@@ -203,7 +215,7 @@ interface NotificationSettings {
  * @param {TradeSignal} signal The trade signal
  * @return {number|undefined} The confidence score (0-1) or undefined
  */
-function getSignalConfidence(signal: TradeSignal): number | undefined {
+export function getSignalConfidence(signal: TradeSignal): number | undefined {
   if (signal.confidence !== undefined) {
     return signal.confidence;
   }
@@ -220,12 +232,30 @@ function getSignalConfidence(signal: TradeSignal): number | undefined {
  * @param {NotificationSettings} settings The user's notification settings
  * @return {boolean} True if user should be notified
  */
-function shouldNotifyUser(
+export function shouldNotifyUser(
   signal: TradeSignal,
   settings: NotificationSettings
 ): boolean {
   // Check if notifications are enabled
   if (!settings.enabled) {
+    return false;
+  }
+
+  // Check category trigger toggles (Price/Technical vs GEX)
+  const indicatorsMap = signal.multiIndicatorResult?.indicators ||
+    signal.indicators || {};
+  const customIndicatorsMap =
+    signal.multiIndicatorResult?.customIndicators || {};
+  const isGexDominant = Boolean(
+    indicatorsMap.gex?.signal === signal.signal &&
+    (signal.reason?.toUpperCase().includes("GEX") ||
+      signal.reason?.toUpperCase().includes("GAMMA"))
+  );
+
+  if (isGexDominant && settings.gexTriggerEnabled === false) {
+    return false;
+  }
+  if (!isGexDominant && settings.priceTriggerEnabled === false) {
     return false;
   }
 
@@ -268,6 +298,19 @@ function shouldNotifyUser(
     return false;
   }
 
+  // Check granular required indicator triggers (if any configured)
+  if (settings.requiredIndicators && settings.requiredIndicators.length > 0) {
+    const matchesRequiredIndicator = settings.requiredIndicators.some(
+      (indKey) => {
+        const ind = indicatorsMap[indKey] || customIndicatorsMap[indKey];
+        return ind && ind.signal === signal.signal;
+      }
+    );
+    if (!matchesRequiredIndicator) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -302,14 +345,42 @@ async function sendTradeSignalNotification(
     }
 
     const userData = userDoc.data();
+    const userSettings: NotificationSettings | undefined =
+      userData?.tradeSignalNotificationSettings;
     const devices: Array<{ fcmToken?: string | null }> =
       userData?.devices || [];
     const fcmTokens: string[] = devices
       .map((device) => device.fcmToken)
       .filter((token): token is string => token != null && token !== "");
 
-    if (fcmTokens.length === 0) {
-      logger.info("No FCM tokens found for user", { userId });
+    const confidence = getSignalConfidence(signal);
+    const categoryKey = (signal.signal === "BUY" || signal.signal === "SELL") ?
+      signal.signal :
+      "HOLD";
+    const resolvedDelivery = resolveChannelAndSound(
+      categoryKey,
+      userSettings,
+      undefined,
+      confidence
+    );
+    const quietHoursSuppressed = isWithinQuietHours(
+      userSettings,
+      resolvedDelivery.priority
+    );
+    const shouldSendPush = resolvedDelivery.channels.includes("push") &&
+      fcmTokens.length > 0 &&
+      !quietHoursSuppressed;
+
+    if (
+      fcmTokens.length === 0 &&
+      !resolvedDelivery.channels.includes("in_app") &&
+      !resolvedDelivery.channels.includes("email") &&
+      !resolvedDelivery.channels.includes("sms") &&
+      !resolvedDelivery.channels.includes("webhook")
+    ) {
+      logger.info("No active delivery channels or FCM tokens found for user", {
+        userId,
+      });
       return;
     }
 
@@ -337,7 +408,6 @@ async function sendTradeSignalNotification(
 
     const title = `${emoji} ${action} ${signal.symbol} @ ${priceStr}`;
 
-    const confidence = getSignalConfidence(signal);
     // Use emoji for high confidence
     const confEmoji = (confidence && confidence > 0.8) ? "🔥 " : "";
     const confidenceStr = confidence !== undefined ?
@@ -413,8 +483,8 @@ async function sendTradeSignalNotification(
     const imageUrl = `https://charts2.finviz.com/chart.ashx?t=${signal.symbol}&ty=c&ta=0&p=d&s=l`;
 
     // Send notification to all user devices (unless the push cap was hit,
-    // in which case it is only saved to the in-app history below)
-    const response = pushSlot === "capped" ? null :
+    // quiet hours are active, or push channel is disabled)
+    const response = (pushSlot === "capped" || !shouldSendPush) ? null :
       await messaging.sendEachForMulticast({
         tokens: fcmTokens,
         notification: {
@@ -431,28 +501,36 @@ async function sendTradeSignalNotification(
           confidence: confidence?.toString() || "",
           timestamp: signal.timestamp.toString(),
           imageUrl: imageUrl,
+          channelId: resolvedDelivery.channelId,
+          priority: resolvedDelivery.priority,
+          sound: resolvedDelivery.sound || "silent",
           click_action: "FLUTTER_NOTIFICATION_CLICK",
         },
         android: {
-          priority: "high",
+          priority: resolvedDelivery.fcmAndroidPriority,
           notification: {
-            channelId: "trade_signals",
-            priority: "high",
-            sound: "default",
+            channelId: resolvedDelivery.channelId,
+            priority: resolvedDelivery.priority === "critical" ?
+              "max" :
+              resolvedDelivery.priority === "low" ?
+                "low" :
+                "high",
+            ...(resolvedDelivery.sound ?
+              { sound: resolvedDelivery.sound } :
+              {}),
             clickAction: "FLUTTER_NOTIFICATION_CLICK",
-            // Group notifications by symbol
-            // tag: signal.symbol,
             imageUrl: imageUrl,
           },
         },
         apns: {
           payload: {
             aps: {
-              "sound": "default",
+              ...(resolvedDelivery.sound ?
+                { sound: resolvedDelivery.sound } :
+                {}),
               "badge": 1,
               "category": "TRADE_SIGNAL",
-              // Group notifications by symbol on iOS
-              // "threadId": signal.symbol,
+              "interruption-level": resolvedDelivery.apnsInterruptionLevel,
               "mutable-content": 1,
             },
           },
@@ -470,35 +548,59 @@ async function sendTradeSignalNotification(
       await releasePushSlot(userId, signal, reservation);
     }
 
-    // Store notification in Firestore history if successfully sent
-    // (or at least attempted). We store it even if push fails so user can
-    // see it in app.
-    await db.collection("user")
-      .doc(userId)
-      .collection("signal_notifications")
-      .add({
+    // Dispatch external channels (Email, SMS, Webhook) if not in quiet hours
+    const deliveredExternal = quietHoursSuppressed ? [] :
+      await dispatchMultiChannelAlert(db, {
+        userId,
+        category: categoryKey as "BUY" | "SELL" | "HOLD",
         symbol: signal.symbol,
-        signal: signal.signal,
-        interval: signal.interval || "1d",
-        price: price || null,
-        confidence: confidence || null,
-        timestamp: FieldValue.serverTimestamp(),
-        title: title,
+        title,
         body: bodyWithConfidence,
-        read: false,
-        indicators: {
-          rsi: rsi || null,
-          macd: macd || null,
-          smaFast: smaFast || null,
-          smaSlow: smaSlow || null,
+        confidence,
+        settings: userSettings,
+        resolved: resolvedDelivery,
+        metadata: {
+          interval: signal.interval || "1d",
+          price: price || null,
         },
-        data: {
-          type: "trade_signal",
+      });
+
+    // Store notification in Firestore history if in_app channel is enabled
+    if (resolvedDelivery.channels.includes("in_app")) {
+      await db.collection("user")
+        .doc(userId)
+        .collection("signal_notifications")
+        .add({
           symbol: signal.symbol,
           signal: signal.signal,
           interval: signal.interval || "1d",
-        },
-      });
+          price: price || null,
+          confidence: confidence || null,
+          timestamp: FieldValue.serverTimestamp(),
+          title: title,
+          body: bodyWithConfidence,
+          read: false,
+          priority: resolvedDelivery.priority,
+          channelId: resolvedDelivery.channelId,
+          deliveredChannels: [
+            ...(response && response.successCount > 0 ? ["push"] : []),
+            "in_app",
+            ...deliveredExternal,
+          ],
+          indicators: {
+            rsi: rsi || null,
+            macd: macd || null,
+            smaFast: smaFast || null,
+            smaSlow: smaSlow || null,
+          },
+          data: {
+            type: "trade_signal",
+            symbol: signal.symbol,
+            signal: signal.signal,
+            interval: signal.interval || "1d",
+          },
+        });
+    }
 
     logger.info("Trade signal notification sent and stored", {
       userId,

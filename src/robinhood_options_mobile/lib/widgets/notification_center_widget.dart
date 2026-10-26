@@ -4,7 +4,7 @@ import 'package:robinhood_options_mobile/model/notification_item.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// In-app notification center and announcements viewer integrating Midlands stack
+/// In-app notification center and announcements viewer integrating Robinhood stack
 /// (`/midlands/notifications/stack/`) and Inbox threads (`/inbox/threads/`).
 class NotificationCenterWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;

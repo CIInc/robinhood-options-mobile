@@ -370,6 +370,10 @@ class _InstrumentAlertsWidgetState extends State<InstrumentAlertsWidget> {
                                       lastTriggered: alert.lastTriggered,
                                       createdAt: alert.createdAt,
                                       deviceToken: alert.deviceToken,
+                                      priority: alert.priority,
+                                      sound: alert.sound,
+                                      channels: alert.channels,
+                                      cooldownMinutes: alert.cooldownMinutes,
                                     ));
                                   },
                                 ),

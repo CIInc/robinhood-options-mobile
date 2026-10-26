@@ -633,7 +633,7 @@ abstract class IBrokerageService {
   Future<bool> revokeExternalToken(BrokerageUser user, String tokenId) async =>
       false;
 
-  /// In-app notification center and Midlands stack
+  /// In-app notification center and Robinhood stack
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async => [];
   Future<List<NotificationItem>> getNotificationStackModel(
           BrokerageUser user) async =>

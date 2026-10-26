@@ -1852,7 +1852,7 @@ class _UserWidgetState extends State<UserWidget> {
                                             icon: Icons.inbox_outlined,
                                             title: 'Notification Center',
                                             subtitle: const Text(
-                                                'Midlands announcements, market notices & inbox'),
+                                                'Robinhood announcements, market notices & inbox'),
                                             requiresBrokerage: true,
                                             supportedSources: const {
                                               BrokerageSource.robinhood,

@@ -69,6 +69,9 @@ export const createOptionAlert = onCall(async (request) => {
     condition,
     expirationRange,
     flags,
+    priority,
+    sound,
+    channels,
   } = request.data;
 
   if (!symbol || typeof symbol !== "string") {
@@ -130,6 +133,11 @@ export const createOptionAlert = onCall(async (request) => {
       condition: condition || "above",
       expirationRange: expirationRange || "any",
       flags: Array.isArray(flags) ? flags : [],
+      priority: typeof priority === "string" ? priority : "high",
+      sound: typeof sound === "string" ? sound : "default",
+      channels: Array.isArray(channels) && channels.length > 0 ?
+        channels :
+        ["push", "in_app"],
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       isActive: true,
     });

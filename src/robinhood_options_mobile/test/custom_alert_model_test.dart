@@ -73,6 +73,34 @@ void main() {
       expect(rules[2]['type'], 'gex');
       expect(rules[3]['type'], 'dynamic_threshold');
       expect(firestoreMap['active'], true);
+      expect(firestoreMap['priority'], 'high');
+      expect(firestoreMap['sound'], 'default');
+      expect(firestoreMap['channels'], ['push', 'in_app']);
+      expect(firestoreMap['cooldownMinutes'], 60);
+    });
+
+    test('CustomAlert custom priority, sound, channels, and cooldown serialization', () {
+      final now = DateTime(2026, 8, 27, 10, 0);
+      final alert = CustomAlert(
+        id: 'alert-custom',
+        userId: 'user-1',
+        symbol: 'NVDA',
+        type: AlertType.gex,
+        condition: AlertCondition.above_call_wall,
+        value: 0.0,
+        active: true,
+        createdAt: now,
+        priority: 'critical',
+        sound: 'radar',
+        channels: const ['push', 'in_app', 'email', 'sms'],
+        cooldownMinutes: 15,
+      );
+
+      final firestoreMap = alert.toFirestore();
+      expect(firestoreMap['priority'], 'critical');
+      expect(firestoreMap['sound'], 'radar');
+      expect(firestoreMap['channels'], ['push', 'in_app', 'email', 'sms']);
+      expect(firestoreMap['cooldownMinutes'], 15);
     });
   });
 }

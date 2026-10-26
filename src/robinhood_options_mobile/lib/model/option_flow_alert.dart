@@ -11,6 +11,9 @@ class OptionFlowAlert {
   final String expirationRange; // 'any', '0-7', '8-30', '30+'
   final List<String> flags;
   final bool isActive;
+  final String priority; // 'low', 'standard', 'high', 'critical'
+  final String sound; // 'default', 'chime', 'bell', 'pulse', 'radar', 'silent'
+  final List<String> channels; // 'push', 'in_app', 'email', 'sms', 'webhook'
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -27,6 +30,9 @@ class OptionFlowAlert {
     this.expirationRange = 'any',
     this.flags = const [],
     this.isActive = true,
+    this.priority = 'high',
+    this.sound = 'default',
+    this.channels = const ['push', 'in_app'],
     required this.createdAt,
     this.updatedAt,
   });
@@ -47,6 +53,12 @@ class OptionFlowAlert {
           (map['flags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
               const [],
       isActive: map['isActive'] as bool? ?? true,
+      priority: map['priority'] as String? ?? 'high',
+      sound: map['sound'] as String? ?? 'default',
+      channels: (map['channels'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const ['push', 'in_app'],
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -68,6 +80,9 @@ class OptionFlowAlert {
       'expirationRange': expirationRange,
       'flags': flags,
       'isActive': isActive,
+      'priority': priority,
+      'sound': sound,
+      'channels': channels,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

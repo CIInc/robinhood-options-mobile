@@ -46,8 +46,8 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **Last reviewed:** October 24, 2026 · **Current app version:** 0.58.3
 
 ### Quick Stats
-- **Completed checklist items:** 429
-- **Planned checklist items:** 64
+- **Completed checklist items:** 432
+- **Planned checklist items:** 62
 - **GitHub issues:** 125 total — 35 open and 90 closed (as of October 24, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
@@ -545,7 +545,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### v0.59.0 (Target: Q1 2027)
 **SEC EDGAR Expansion, Alerts & Streamlined AI Conviction**
 - ✅ **SEC EDGAR Filing Expansion (Phase 2):** 10-K/10-Q financial statements parsing, real-time insider filing alerts, and 8-K material catalyst notifications ([docs](docs/sec-edgar-integration.md), [Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
-- **Alert Customization & Multi-Channel Delivery:** Custom sounds, priority notification channels, and granular per-signal alert triggers for price, GEX, and options flow ([Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
+- ✅ **Alert Customization & Multi-Channel Delivery:** Multi-channel routing (Push, In-App, Email, SMS, Webhook with critical-only gating), custom sounds with per-category overrides, 5 dedicated Android/APNs priority notification channels, quiet hours with critical bypass, and granular per-signal/per-indicator alert triggers for price, GEX, and options flow ([docs](docs/custom-alerts.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
 - **Unified AI Conviction & Factor Alignment:** Lightweight synthesis combining Gemini 3.1 Flash-Lite reasoning with quantitative factor scores and Devil's Advocate stress tests (streamlined from speculative multi-LLM consensus) ([Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - **Performance, Memory & Stream Throttling:** Viewport-aware streaming subscriptions, memory optimization, and background stream pausing for mobile battery efficiency ([#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 
@@ -903,6 +903,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 ### Notifications & Smart Alerts
 - [x] **Custom Alerts**: Multi-condition price, volume, and volatility alerts with trigger history ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
 - [x] **Instrument-Level Custom Alerts** (v0.47.1): Direct embedded alert creation and toggles in stock/option detail pages ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
+- [x] **Alert Customization & Multi-Channel Delivery** (v0.59.0): Push, In-App, Email, SMS, and Webhook routing with critical-only gating, priority notification channels (`critical_alerts`, `trade_signals`, `custom_alerts`, `options_flow`, `silent_digest`), custom sounds with per-category overrides, quiet hours, and granular per-indicator signal triggers ([docs](docs/custom-alerts.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [x] **Rich Trade Notifications**: Actionable push notifications with charts, options flow flags, and deep linking ([#80](https://github.com/CIInc/robinhood-options-mobile/issues/80))
 - [x] **Dynamic Alert Thresholds**: AI- and ATR-calculated volatility breakout bands (v0.38.0)
 - [x] **Notification History**: Filterable in-app audit ledger of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
@@ -1042,8 +1043,8 @@ Prioritize analytical correctness, understandable risk presentation, and evidenc
 - [x] **Custom Alerts**: Price, volume, and volatility alerts ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81))
 - [x] **Instrument-Level Custom Alerts** (v0.47.1): Direct alert creation and management embedded within instrument detail views ([#81](https://github.com/CIInc/robinhood-options-mobile/issues/81), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115))
 - [x] **Notification History**: In-app log of past notifications ([#82](https://github.com/CIInc/robinhood-options-mobile/issues/82))
-- [ ] **Email/SMS Channels**: Critical signal notifications via multiple channels
-- [ ] **Alert Customization**: Custom sounds and per-signal preferences
+- [x] **Email/SMS Channels** (v0.59.0, [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Multi-channel routing across Push, In-App, Email, SMS, and Webhook with critical-only gating
+- [x] **Alert Customization** (v0.59.0, [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Custom sounds, per-category sound overrides, priority notification channels, quiet hours, and granular per-indicator signal preferences
 - [x] **Earnings Calendar Notifications** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Earnings date alerts
 - [x] **Options Expiration Alerts** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Contract expiration reminders
 - [x] **Dividend Payment Reminders** ([#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Ex-dividend and payment date reminders for held positions

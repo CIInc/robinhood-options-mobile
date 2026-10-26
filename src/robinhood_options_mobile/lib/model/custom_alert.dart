@@ -132,6 +132,10 @@ class CustomAlert {
   final DateTime? lastTriggered;
   final DateTime createdAt;
   final String? deviceToken; // Optional: specific device
+  final String priority; // 'low', 'standard', 'high', 'critical'
+  final String sound; // 'default', 'chime', 'bell', 'pulse', 'radar', 'silent'
+  final List<String> channels; // 'push', 'in_app', 'email', 'sms', 'webhook'
+  final int cooldownMinutes; // Cooldown between repeat triggers
 
   CustomAlert({
     required this.id,
@@ -147,6 +151,10 @@ class CustomAlert {
     this.lastTriggered,
     required this.createdAt,
     this.deviceToken,
+    this.priority = 'high',
+    this.sound = 'default',
+    this.channels = const ['push', 'in_app'],
+    this.cooldownMinutes = 60,
   });
 
   factory CustomAlert.fromFirestore(DocumentSnapshot doc) {
@@ -159,6 +167,10 @@ class CustomAlert {
                 SmartAlertRule.fromMap(Map<String, dynamic>.from(rule)))
             .toList()
         : <SmartAlertRule>[];
+    final channelsData = data['channels'];
+    final channels = (channelsData is List)
+        ? channelsData.map((e) => e.toString()).toList()
+        : const <String>['push', 'in_app'];
 
     return CustomAlert(
       id: doc.id,
@@ -187,6 +199,10 @@ class CustomAlert {
           ? (data['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
       deviceToken: data['deviceToken'],
+      priority: data['priority'] as String? ?? 'high',
+      sound: data['sound'] as String? ?? 'default',
+      channels: channels,
+      cooldownMinutes: (data['cooldownMinutes'] as num?)?.toInt() ?? 60,
     );
   }
 
@@ -205,6 +221,10 @@ class CustomAlert {
           lastTriggered != null ? Timestamp.fromDate(lastTriggered!) : null,
       'createdAt': Timestamp.fromDate(createdAt),
       'deviceToken': deviceToken,
+      'priority': priority,
+      'sound': sound,
+      'channels': channels,
+      'cooldownMinutes': cooldownMinutes,
     };
   }
 }

@@ -5,6 +5,12 @@ import { getMessaging } from "firebase-admin/messaging";
 import { logger } from "firebase-functions";
 import { getMarketData } from "./market-data";
 import { computeSMA, computeRSI, computeATR } from "./technical-indicators";
+import {
+  UserNotificationCustomizationSettings,
+  isWithinQuietHours,
+  resolveChannelAndSound,
+  dispatchMultiChannelAlert,
+} from "./alert-delivery";
 
 if (getApps().length === 0) {
   initializeApp();
@@ -434,8 +440,37 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
           if (!alert.userId) {
             logger.warn(`Alert ${alert.id} has no userId`);
           } else {
+            const userDoc = await db.collection("user")
+              .doc(alert.userId)
+              .get();
+            const userData = userDoc.data() as
+              | {
+                tradeSignalNotificationSettings?:
+                  UserNotificationCustomizationSettings;
+              }
+              | undefined;
+            const userSettings = userData?.tradeSignalNotificationSettings;
+            const alertCategory = alert.type === "gex" ? "GEX" : "CUSTOM";
+            const resolvedDelivery = resolveChannelAndSound(
+              alertCategory,
+              userSettings,
+              {
+                priority: alert.priority,
+                sound: alert.sound,
+                channels: alert.channels,
+              }
+            );
+            const quietHoursSuppressed = isWithinQuietHours(
+              userSettings,
+              resolvedDelivery.priority
+            );
+
             const tokens = await getUserFCMTokens(alert.userId);
-            if (tokens.length > 0) {
+            if (
+              tokens.length > 0 &&
+              resolvedDelivery.channels.includes("push") &&
+              !quietHoursSuppressed
+            ) {
               const notification = {
                 tokens: tokens,
                 notification: {
@@ -447,11 +482,27 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
                   symbol: symbol,
                   alertId: alert.id,
                   value: triggerValue.toString(),
+                  channelId: resolvedDelivery.channelId,
+                  priority: resolvedDelivery.priority,
+                  sound: resolvedDelivery.sound || "silent",
+                },
+                android: {
+                  priority: resolvedDelivery.fcmAndroidPriority,
+                  notification: {
+                    channelId: resolvedDelivery.channelId,
+                    ...(resolvedDelivery.sound ?
+                      { sound: resolvedDelivery.sound } :
+                      {}),
+                  },
                 },
                 apns: {
                   payload: {
                     aps: {
-                      sound: "default",
+                      ...(resolvedDelivery.sound ?
+                        { sound: resolvedDelivery.sound } :
+                        {}),
+                      "interruption-level":
+                        resolvedDelivery.apnsInterruptionLevel,
                     },
                   },
                 },
@@ -471,8 +522,24 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
                 logger.info(`Notification sent to ${response.successCount} ` +
                   `devices for alert ${alert.id}`);
               }
-            } else {
+            } else if (tokens.length === 0) {
               logger.warn(`No FCM tokens found for user ${alert.userId}`);
+            }
+
+            if (!quietHoursSuppressed) {
+              await dispatchMultiChannelAlert(db, {
+                userId: alert.userId,
+                category: alertCategory,
+                symbol,
+                title: `Alert: ${symbol}`,
+                body: message,
+                settings: userSettings,
+                resolved: resolvedDelivery,
+                metadata: {
+                  alertId: alert.id,
+                  triggerValue,
+                },
+              });
             }
           }
 

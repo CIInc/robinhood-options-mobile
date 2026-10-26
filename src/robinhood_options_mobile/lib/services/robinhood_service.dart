@@ -5374,7 +5374,7 @@ WATCHLIST
   }
 
   /// Fetches notification stack cards (market closure notices, disclosures, educational cards)
-  /// https://api.robinhood.com/midlands/notifications/stack/
+  /// https://api.robinhood.com/robinhood/notifications/stack/
   @override
   Future<List<dynamic>> getNotificationStack(BrokerageUser user) async {
     var url = "$endpoint/midlands/notifications/stack/";
@@ -5382,7 +5382,7 @@ WATCHLIST
     return results;
   }
 
-  /// Fetches typed NotificationItem models from Midlands stack
+  /// Fetches typed NotificationItem models from Robinhood stack
   @override
   Future<List<NotificationItem>> getNotificationStackModel(
       BrokerageUser user) async {
