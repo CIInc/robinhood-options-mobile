@@ -12,6 +12,7 @@ on:
       - main
     # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
     paths:
+      - ".github/workflows/cd.yml"
       - "src/robinhood_options_mobile/lib/**"
       - "src/robinhood_options_mobile/test/**"
       - "src/robinhood_options_mobile/android/**"
