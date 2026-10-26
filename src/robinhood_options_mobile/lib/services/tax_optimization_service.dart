@@ -1623,7 +1623,7 @@ class TaxOptimizationService {
 
     // Process option positions
     for (final pos in optionPositions) {
-      final symbol = pos.chainSymbol.toUpperCase();
+      final symbol = pos.symbol.toUpperCase();
       if (symbol.isEmpty) continue;
       final value = pos.marketValue.abs();
       if (value <= 0) continue;

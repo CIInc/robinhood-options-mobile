@@ -6,6 +6,12 @@ enum RebalancingFrequency {
   monthly,
 }
 
+enum RebalancingModelType {
+  nominalCapital,
+  inverseVolatility,
+  equalRiskContribution,
+}
+
 class RebalancingConfig {
   bool isEnabled;
   RebalancingFrequency frequency;
@@ -13,6 +19,7 @@ class RebalancingConfig {
       driftThreshold; // Drift amount (currency) to trigger notification/action
   bool autoExecute; // Whether to automatically execute or just notify
   DateTime? lastRun;
+  RebalancingModelType modelType;
 
   RebalancingConfig({
     this.isEnabled = false,
@@ -20,6 +27,7 @@ class RebalancingConfig {
     this.driftThreshold = 100.0,
     this.autoExecute = false,
     this.lastRun,
+    this.modelType = RebalancingModelType.nominalCapital,
   });
 
   factory RebalancingConfig.fromJson(Map<String, dynamic> json) {
@@ -31,6 +39,7 @@ class RebalancingConfig {
       lastRun: json['lastRun'] != null
           ? (json['lastRun'] as Timestamp).toDate()
           : null,
+      modelType: _parseModelType(json['modelType'] as String?),
     );
   }
 
@@ -41,6 +50,7 @@ class RebalancingConfig {
       'driftThreshold': driftThreshold,
       'autoExecute': autoExecute,
       'lastRun': lastRun != null ? Timestamp.fromDate(lastRun!) : null,
+      'modelType': modelType.name,
     };
   }
 
@@ -57,12 +67,25 @@ class RebalancingConfig {
     }
   }
 
+  static RebalancingModelType _parseModelType(String? modelType) {
+    switch (modelType) {
+      case 'inverseVolatility':
+        return RebalancingModelType.inverseVolatility;
+      case 'equalRiskContribution':
+        return RebalancingModelType.equalRiskContribution;
+      case 'nominalCapital':
+      default:
+        return RebalancingModelType.nominalCapital;
+    }
+  }
+
   RebalancingConfig copyWith({
     bool? isEnabled,
     RebalancingFrequency? frequency,
     double? driftThreshold,
     bool? autoExecute,
     DateTime? lastRun,
+    RebalancingModelType? modelType,
   }) {
     return RebalancingConfig(
       isEnabled: isEnabled ?? this.isEnabled,
@@ -70,6 +93,7 @@ class RebalancingConfig {
       driftThreshold: driftThreshold ?? this.driftThreshold,
       autoExecute: autoExecute ?? this.autoExecute,
       lastRun: lastRun ?? this.lastRun,
+      modelType: modelType ?? this.modelType,
     );
   }
 }

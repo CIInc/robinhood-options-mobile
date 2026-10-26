@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/rebalancing_config.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/risk_parity_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 
 class RebalancingWidget extends StatefulWidget {
@@ -51,6 +52,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
   Map<String, double>? _sectorTargetsBackup;
   bool _isEditing = false;
   int _viewMode = 0; // 0: Asset Class, 1: Sector
+  int _analysisMode = 0; // 0: Capital Allocation, 1: Risk Contribution (MCR)
   final NumberFormat formatCurrency =
       NumberFormat.simpleCurrency(locale: "en_US");
   final NumberFormat formatPercentage =
@@ -202,6 +204,34 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             _assetTargets['Futures'] = 0.0;
             _assetTargets['Fixed Income'] = 0.0;
             _assetTargets['Cash'] = 0.0;
+            _rebalancingConfig.modelType = RebalancingModelType.nominalCapital;
+            break;
+          case 'Inverse-Vol':
+            final invVol = RiskParityService.solveInverseVolatility(
+              RiskParityService.defaultAssetClassVolatilities,
+              cashTarget: 0.05,
+            );
+            _assetTargets.addAll(invVol);
+            _rebalancingConfig.modelType =
+                RebalancingModelType.inverseVolatility;
+            break;
+          case 'Risk Parity (ERC)':
+            final assets = _assetTargets.keys.toList();
+            final n = assets.length;
+            final cov = List.generate(n, (i) => List.generate(n, (j) {
+              final vI = RiskParityService.defaultAssetClassVolatilities[assets[i]] ?? 0.16;
+              final vJ = RiskParityService.defaultAssetClassVolatilities[assets[j]] ?? 0.16;
+              final corr = i == j ? 1.0 : 0.25;
+              return corr * vI * vJ;
+            }));
+            final erc = RiskParityService.solveEqualRiskContribution(
+              assets: assets,
+              covarianceMatrix: cov,
+              cashTarget: 0.05,
+            );
+            _assetTargets.addAll(erc);
+            _rebalancingConfig.modelType =
+                RebalancingModelType.equalRiskContribution;
             break;
         }
       } else {
@@ -213,6 +243,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             _sectorTargets['Consumer Cyclical'] = 0.2;
             _sectorTargets['Communication Services'] = 0.2;
             _sectorTargets['Financial Services'] = 0.1;
+            _rebalancingConfig.modelType = RebalancingModelType.nominalCapital;
             break;
           case 'Balanced':
             _sectorTargets['Technology'] = 0.2;
@@ -225,6 +256,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             _sectorTargets['Utilities'] = 0.05;
             _sectorTargets['Real Estate'] = 0.05;
             _sectorTargets['Basic Materials'] = 0.05;
+            _rebalancingConfig.modelType = RebalancingModelType.nominalCapital;
             break;
           case 'Defensive':
             _sectorTargets['Healthcare'] = 0.3;
@@ -232,6 +264,32 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             _sectorTargets['Utilities'] = 0.2;
             _sectorTargets['Energy'] = 0.1;
             _sectorTargets['Real Estate'] = 0.1;
+            _rebalancingConfig.modelType = RebalancingModelType.nominalCapital;
+            break;
+          case 'Inverse-Vol':
+            final invVolSector = RiskParityService.solveInverseVolatility(
+              RiskParityService.defaultSectorVolatilities,
+            );
+            _sectorTargets.addAll(invVolSector);
+            _rebalancingConfig.modelType =
+                RebalancingModelType.inverseVolatility;
+            break;
+          case 'Risk Parity (ERC)':
+            final sectors = _standardSectors;
+            final n = sectors.length;
+            final cov = List.generate(n, (i) => List.generate(n, (j) {
+              final vI = RiskParityService.defaultSectorVolatilities[sectors[i]] ?? 0.18;
+              final vJ = RiskParityService.defaultSectorVolatilities[sectors[j]] ?? 0.18;
+              final corr = i == j ? 1.0 : 0.40;
+              return corr * vI * vJ;
+            }));
+            final ercSector = RiskParityService.solveEqualRiskContribution(
+              assets: sectors,
+              covarianceMatrix: cov,
+            );
+            _sectorTargets.addAll(ercSector);
+            _rebalancingConfig.modelType =
+                RebalancingModelType.equalRiskContribution;
             break;
         }
       }
@@ -1057,23 +1115,55 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               }
             }
 
+            final riskAnalysis = RiskParityService.calculateRiskContributions(
+              weights: currentAllocation,
+              isSectorMode: _viewMode == 1,
+            );
+
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(value: 0, label: Text('Asset Class')),
-                      ButtonSegment(value: 1, label: Text('Sector')),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SegmentedButton<int>(
+                          segments: const [
+                            ButtonSegment(value: 0, label: Text('Asset Class')),
+                            ButtonSegment(value: 1, label: Text('Sector')),
+                          ],
+                          selected: {_viewMode},
+                          onSelectionChanged: (Set<int> newSelection) {
+                            setState(() {
+                              _viewMode = newSelection.first;
+                              _isEditing =
+                                  false; // Exit edit mode when switching views
+                            });
+                          },
+                        ),
+                      ),
+                      if (!_isEditing) ...[
+                        const SizedBox(width: 8),
+                        SegmentedButton<int>(
+                          segments: const [
+                            ButtonSegment(
+                                value: 0,
+                                icon: Icon(Icons.pie_chart, size: 16),
+                                label: Text('Capital')),
+                            ButtonSegment(
+                                value: 1,
+                                icon: Icon(Icons.shield_outlined, size: 16),
+                                label: Text('Risk MCR')),
+                          ],
+                          selected: {_analysisMode},
+                          onSelectionChanged: (Set<int> newSelection) {
+                            setState(() {
+                              _analysisMode = newSelection.first;
+                            });
+                          },
+                        ),
+                      ],
                     ],
-                    selected: {_viewMode},
-                    onSelectionChanged: (Set<int> newSelection) {
-                      setState(() {
-                        _viewMode = newSelection.first;
-                        _isEditing =
-                            false; // Exit edit mode when switching views
-                      });
-                    },
                   ),
                 ),
                 Expanded(
@@ -1095,9 +1185,17 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                                           'Moderate',
                                           'Conservative',
                                           'All-Weather',
-                                          'All Equity'
+                                          'All Equity',
+                                          'Inverse-Vol',
+                                          'Risk Parity (ERC)',
                                         ]
-                                      : ['Tech Heavy', 'Balanced', 'Defensive'])
+                                      : [
+                                          'Tech Heavy',
+                                          'Balanced',
+                                          'Defensive',
+                                          'Inverse-Vol',
+                                          'Risk Parity (ERC)',
+                                        ])
                                   .map((preset) => Padding(
                                         padding:
                                             const EdgeInsets.only(right: 8.0),
@@ -1111,7 +1209,11 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      if (!_isEditing) ...[
+                      if (!_isEditing && _analysisMode == 1) ...[
+                        _buildRiskMetricsCard(riskAnalysis, colorScheme),
+                        const SizedBox(height: 20),
+                      ],
+                      if (!_isEditing && _analysisMode == 0) ...[
                         Card(
                           elevation: 2,
                           child: Padding(
@@ -1339,6 +1441,14 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       ...allKeys.map((key) {
                         final currentPct = currentAllocation[key] ?? 0.0;
                         final targetPct = targets[key] ?? 0.0;
+                        if (_analysisMode == 1 && !_isEditing) {
+                          return _buildRiskContributionCard(
+                              key,
+                              currentPct * totalEquity,
+                              currentPct,
+                              riskAnalysis.assetMetrics[key],
+                              getColor(key));
+                        }
                         return _buildAllocationCard(
                             key,
                             currentPct * totalEquity,
@@ -1351,7 +1461,7 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       const SizedBox(height: 20),
                       if (!_isEditing)
                         _buildRecommendations(
-                            currentAllocation, targets, totalEquity),
+                            currentAllocation, targets, totalEquity, stockPositionStore.items),
                     ],
                   ),
                 ),
@@ -1577,8 +1687,355 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     );
   }
 
-  Widget _buildRecommendations(Map<String, double> currentAllocation,
-      Map<String, double> targets, double totalEquity) {
+  Widget _buildRiskMetricsCard(
+      RiskParityAnalysis riskAnalysis, ColorScheme colorScheme) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.shield, color: colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Portfolio Risk Profile',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: riskAnalysis.isWellDiversified
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    riskAnalysis.isWellDiversified
+                        ? 'Well Diversified'
+                        : 'Concentrated Risk',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: riskAnalysis.isWellDiversified
+                          ? Colors.green.shade800
+                          : Colors.amber.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricTile(
+                    'Realized Volatility',
+                    '${(riskAnalysis.portfolioVolatility * 100).toStringAsFixed(1)}%',
+                    Icons.show_chart,
+                    colorScheme.primary,
+                  ),
+                ),
+                Expanded(
+                  child: _buildMetricTile(
+                    'Risk HHI',
+                    '${riskAnalysis.riskConcentrationHhi.toStringAsFixed(1)}/100',
+                    Icons.pie_chart_outline,
+                    colorScheme.secondary,
+                  ),
+                ),
+                Expanded(
+                  child: _buildMetricTile(
+                    'Top Risk Driver',
+                    '${riskAnalysis.topRiskDriver} (${(riskAnalysis.topRiskPercentage * 100).toStringAsFixed(0)}%)',
+                    Icons.warning_amber_rounded,
+                    Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            if (riskAnalysis.provenanceNotices.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 14, color: colorScheme.outline),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Data Provenance: ${riskAnalysis.provenanceNotices.length} categories using benchmark proxies (SPY, TLT, BTC-USD).',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricTile(
+      String label, String value, IconData icon, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRiskContributionCard(
+      String title,
+      double currentAmount,
+      double currentPct,
+      AssetRiskMetrics? riskMetric,
+      Color color) {
+    final pctRisk = riskMetric?.percentRiskContribution ?? 0.0;
+    final riskMultiplier = currentPct > 0 ? (pctRisk / currentPct) : 1.0;
+    final isHighRiskMultiplier = riskMultiplier >= 1.35;
+    final isLowRiskMultiplier = riskMultiplier <= 0.7;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(title,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    if (isHighRiskMultiplier)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${riskMultiplier.toStringAsFixed(1)}x Risk',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      )
+                    else if (isLowRiskMultiplier)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${riskMultiplier.toStringAsFixed(1)}x Risk',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    Text(formatCurrency.format(currentAmount),
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Comparison Bars: Capital Weight vs Risk Contribution
+            Column(
+              children: [
+                // Capital Weight Bar
+                Row(
+                  children: [
+                    SizedBox(
+                        width: 70,
+                        child: Text('Capital',
+                            style: Theme.of(context).textTheme.bodySmall)),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: currentPct.clamp(0.0, 1.0),
+                            child: Container(
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 45,
+                      child: Text(
+                        formatPercentage.format(currentPct),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 12),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Risk Contribution Bar
+                Row(
+                  children: [
+                    SizedBox(
+                        width: 70,
+                        child: Text('Risk MCR',
+                            style: Theme.of(context).textTheme.bodySmall)),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: pctRisk.clamp(0.0, 1.0),
+                            child: Container(
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: isHighRiskMultiplier
+                                    ? Colors.orange.shade700
+                                    : color.withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 45,
+                      child: Text(
+                        formatPercentage.format(pctRisk),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isHighRiskMultiplier
+                              ? Colors.orange.shade900
+                              : null,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (riskMetric != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Annualized Volatility: ${(riskMetric.volatility * 100).toStringAsFixed(1)}%',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                  ),
+                  Text(
+                    riskMetric.proxyLabel ?? 'Holding History',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendations(
+      Map<String, double> currentAllocation,
+      Map<String, double> targets,
+      double totalEquity,
+      List<dynamic>? stockPositions) {
     final recommendations = <Map<String, dynamic>>[];
 
     currentAllocation.forEach((key, currentPct) {
@@ -1619,6 +2076,15 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
       );
     }
 
+    final taxHints = RiskParityService.generateTaxAwareHints(
+      currentAllocation: currentAllocation,
+      targetAllocation: targets,
+      totalEquity: totalEquity,
+      driftThreshold: _driftThreshold,
+      positions: stockPositions,
+    );
+    final taxHintMap = {for (var h in taxHints) h.key: h};
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1647,20 +2113,74 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 ? (key == 'Cash' ? 'Raise' : 'Buy')
                 : (key == 'Cash' ? 'Invest' : 'Sell');
             final color = amount > 0 ? Colors.green : Colors.red;
+            final taxHint = taxHintMap[key];
 
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.1),
-                child:
-                    Icon(amount > 0 ? Icons.add : Icons.remove, color: color),
-              ),
-              title: Text('$action $key',
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Target: ${formatPercentage.format(targetPct)}'),
-              trailing: Text(
-                formatCurrency.format(amount.abs()),
-                style: TextStyle(
-                    color: color, fontWeight: FontWeight.bold, fontSize: 16),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  child:
+                      Icon(amount > 0 ? Icons.add : Icons.remove, color: color),
+                ),
+                title: Text('$action $key',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Target: ${formatPercentage.format(targetPct)}'),
+                    if (taxHint != null) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: taxHint.isTaxAdvantaged
+                              ? Colors.green.withValues(alpha: 0.12)
+                              : Colors.amber.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: taxHint.isTaxAdvantaged
+                                ? Colors.green.withValues(alpha: 0.3)
+                                : Colors.amber.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              taxHint.isTaxAdvantaged
+                                  ? Icons.check_circle_outline
+                                  : Icons.info_outline,
+                              size: 12,
+                              color: taxHint.isTaxAdvantaged
+                                  ? Colors.green.shade800
+                                  : Colors.amber.shade900,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                taxHint.hintMessage,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: taxHint.isTaxAdvantaged
+                                      ? Colors.green.shade800
+                                      : Colors.amber.shade900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                trailing: Text(
+                  formatCurrency.format(amount.abs()),
+                  style: TextStyle(
+                      color: color, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
             );
           }),
