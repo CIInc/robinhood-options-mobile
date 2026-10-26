@@ -125,8 +125,9 @@ class RiskParityService {
     final totalWeight = weights.values.fold(0.0, (a, b) => a + b);
     final normalizedWeights = <String, double>{};
     for (var k in keys) {
-      normalizedWeights[k] =
-          totalWeight > 0 ? (weights[k] ?? 0.0) / totalWeight : 1.0 / keys.length;
+      normalizedWeights[k] = totalWeight > 0
+          ? (weights[k] ?? 0.0) / totalWeight
+          : 1.0 / keys.length;
     }
 
     // 1. Resolve asset volatilities and provenance
@@ -135,8 +136,9 @@ class RiskParityService {
     final proxyLabelMap = <String, String>{};
     final provenanceNotices = <String>[];
 
-    final defaults =
-        isSectorMode ? defaultSectorVolatilities : defaultAssetClassVolatilities;
+    final defaults = isSectorMode
+        ? defaultSectorVolatilities
+        : defaultAssetClassVolatilities;
 
     for (var k in keys) {
       if (customVolatilities != null &&
@@ -157,7 +159,8 @@ class RiskParityService {
         assetVols[k] = defaults[k]!;
         provenanceMap[k] = RiskDataProvenance.defaultFallback;
         proxyLabelMap[k] = 'Category Baseline';
-        provenanceNotices.add('$k: Using historical baseline proxy (${(defaults[k]! * 100).toStringAsFixed(1)}% vol)');
+        provenanceNotices.add(
+            '$k: Using historical baseline proxy (${(defaults[k]! * 100).toStringAsFixed(1)}% vol)');
       } else {
         assetVols[k] = 0.18; // General market baseline
         provenanceMap[k] = RiskDataProvenance.defaultFallback;
@@ -200,12 +203,14 @@ class RiskParityService {
     double portfolioVariance = 0.0;
     for (int i = 0; i < n; i++) {
       for (int j = 0; j < n; j++) {
-        portfolioVariance +=
-            normalizedWeights[keys[i]]! * cov[i][j] * normalizedWeights[keys[j]]!;
+        portfolioVariance += normalizedWeights[keys[i]]! *
+            cov[i][j] *
+            normalizedWeights[keys[j]]!;
       }
     }
 
-    final portfolioVol = portfolioVariance > 0 ? sqrt(portfolioVariance) : 0.001;
+    final portfolioVol =
+        portfolioVariance > 0 ? sqrt(portfolioVariance) : 0.001;
 
     // 4. Compute Marginal Contribution to Risk (MCR) & Total Risk Contribution (TRC)
     // MCR_i = (Cov * w)_i / sigma_p
@@ -227,7 +232,8 @@ class RiskParityService {
 
       final mcr = portfolioVol > 0 ? covWi / portfolioVol : 0.0;
       final trc = w * mcr;
-      final pctRisk = portfolioVariance > 0 ? (w * covWi) / portfolioVariance : (1.0 / n);
+      final pctRisk =
+          portfolioVariance > 0 ? (w * covWi) / portfolioVariance : (1.0 / n);
 
       hhiSum += pow(pctRisk * 100, 2).toDouble();
 
@@ -292,7 +298,9 @@ class RiskParityService {
     for (var k in activeKeys) {
       final vol = volatilities[k] ?? 0.15;
       final safeVol = vol > 0.001 ? vol : 0.001;
-      result[k] = sumInvVol > 0 ? (1.0 / safeVol / sumInvVol) * riskyBudget : (riskyBudget / activeKeys.length);
+      result[k] = sumInvVol > 0
+          ? (1.0 / safeVol / sumInvVol) * riskyBudget
+          : (riskyBudget / activeKeys.length);
     }
 
     if (volatilities.containsKey('Cash')) {
@@ -431,13 +439,15 @@ class RiskParityService {
           key: key,
           amount: amount,
           action: action,
-          hintMessage: 'Tax-neutral: Rebalance with available cash or dividends without selling appreciated lots.',
+          hintMessage:
+              'Tax-neutral: Rebalance with available cash or dividends without selling appreciated lots.',
           isTaxAdvantaged: true,
         ));
       } else {
         // Sell / Outflow recommendation
         final action = key == 'Cash' ? 'Invest' : 'Sell';
-        final assetLots = lots.where((l) => l.symbol == key || l.isSelectable).toList();
+        final assetLots =
+            lots.where((l) => l.symbol == key || l.isSelectable).toList();
 
         double harvestableLoss = 0.0;
         double shortTermGain = 0.0;
@@ -498,7 +508,8 @@ class RiskParityService {
             key: key,
             amount: amount,
             action: action,
-            hintMessage: 'Standard rebalance trim to achieve target risk weighting.',
+            hintMessage:
+                'Standard rebalance trim to achieve target risk weighting.',
             isTaxAdvantaged: false,
           ));
         }

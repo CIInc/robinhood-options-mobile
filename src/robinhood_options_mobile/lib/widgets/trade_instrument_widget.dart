@@ -278,7 +278,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
     List<InstrumentOrder> orders = [];
     try {
-      final orderStore = Provider.of<InstrumentOrderStore>(context, listen: false);
+      final orderStore =
+          Provider.of<InstrumentOrderStore>(context, listen: false);
       orders = orderStore.items;
     } catch (_) {}
 

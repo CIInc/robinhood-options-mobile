@@ -402,8 +402,7 @@ class _AlertEditorPageState extends State<AlertEditorPage> {
   late int _cooldownMinutes;
   late List<String> _channels;
 
-  late final YahooService _yahooService =
-      widget.yahooService ?? YahooService();
+  late final YahooService _yahooService = widget.yahooService ?? YahooService();
   Quote? _currentQuote;
   bool _isLoadingQuote = false;
 
@@ -417,8 +416,9 @@ class _AlertEditorPageState extends State<AlertEditorPage> {
     _priority = alert?.priority ?? 'high';
     _sound = alert?.sound ?? 'default';
     _cooldownMinutes = alert?.cooldownMinutes ?? 60;
-    _channels = List<String>.from(
-        alert?.channels.isNotEmpty == true ? alert!.channels : const ['push', 'in_app']);
+    _channels = List<String>.from(alert?.channels.isNotEmpty == true
+        ? alert!.channels
+        : const ['push', 'in_app']);
 
     if (alert != null && alert.rules.isNotEmpty) {
       _rules = alert.rules

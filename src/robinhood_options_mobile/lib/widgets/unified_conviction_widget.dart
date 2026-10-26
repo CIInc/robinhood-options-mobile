@@ -106,7 +106,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               elevation: 1,
               shape: RoundedRectangleBorder(
@@ -119,7 +120,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                     children: [
                       CircularProgressIndicator(),
                       SizedBox(height: 16),
-                      Text('Synthesizing quantitative factors & AI conviction...'),
+                      Text(
+                          'Synthesizing quantitative factors & AI conviction...'),
                     ],
                   ),
                 ),
@@ -131,7 +133,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
         final rating = snapshot.data;
         if (rating == null) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Card(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
@@ -186,7 +189,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: rating.tierColor.withValues(alpha: 0.15),
+                                  color:
+                                      rating.tierColor.withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(rating.tierIcon,
@@ -198,7 +202,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
                                       spacing: 6,
                                       runSpacing: 2,
                                       children: [
@@ -232,9 +237,11 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                                     if (rating.lastUpdated != null)
                                       Text(
                                         _dateFormat.format(rating.lastUpdated!),
-                                        style: theme.textTheme.bodySmall?.copyWith(
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
                                           fontSize: 10,
-                                          color: theme.textTheme.bodySmall?.color
+                                          color: theme
+                                              .textTheme.bodySmall?.color
                                               ?.withValues(alpha: 0.7),
                                         ),
                                         maxLines: 1,
@@ -284,7 +291,8 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                             children: [
                               CircularProgressIndicator(
                                 value: rating.convictionScore / 100.0,
-                                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerHighest,
                                 color: rating.tierColor,
                                 strokeWidth: 6,
                               ),
@@ -421,8 +429,10 @@ class _UnifiedConvictionWidgetState extends State<UnifiedConvictionWidget> {
                                       MaterialTapTargetSize.shrinkWrap,
                                 )),
                             ...rating.primaryRisks.take(2).map((r) => Chip(
-                                  avatar: const Icon(Icons.warning_amber_rounded,
-                                      size: 14, color: Colors.orange),
+                                  avatar: const Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 14,
+                                      color: Colors.orange),
                                   label: Text(r,
                                       style: const TextStyle(fontSize: 11)),
                                   padding: EdgeInsets.zero,

@@ -241,7 +241,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('MSFT'), findsOneWidget);
-    expect(find.textContaining('Permanent Loss (Rev. Rul. 2008-5)'), findsOneWidget);
+    expect(find.textContaining('Permanent Loss (Rev. Rul. 2008-5)'),
+        findsOneWidget);
     expect(find.textContaining('IRS Rev. Rul. 2008-5'), findsWidgets);
     expect(find.textContaining('Individual → Roth IRA'), findsOneWidget);
   });
@@ -260,7 +261,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Asset Location Optimizer'), findsOneWidget);
-    expect(find.text('Tax-Advantaged Account Placement Efficiency'), findsOneWidget);
+    expect(find.text('Tax-Advantaged Account Placement Efficiency'),
+        findsOneWidget);
     expect(find.text('Taxable'), findsWidgets);
     expect(find.text('Trad IRA'), findsWidgets);
     expect(find.text('Roth IRA'), findsWidgets);

@@ -5,7 +5,8 @@ import 'package:robinhood_options_mobile/services/risk_parity_service.dart';
 
 void main() {
   group('RiskParityService Unit Tests', () {
-    test('calculateRiskContributions verifies Euler identity and 100% risk sum', () {
+    test('calculateRiskContributions verifies Euler identity and 100% risk sum',
+        () {
       final weights = {
         'Stocks': 0.60,
         'Fixed Income': 0.30,
@@ -38,7 +39,9 @@ void main() {
       expect(cryptoMetrics.percentRiskContribution, greaterThan(0.10));
     });
 
-    test('solveInverseVolatility returns weights inversely proportional to volatility', () {
+    test(
+        'solveInverseVolatility returns weights inversely proportional to volatility',
+        () {
       final vols = {
         'AssetA': 0.10,
         'AssetB': 0.20,
@@ -64,7 +67,8 @@ void main() {
         'Cash': 0.001,
       };
 
-      final weights = RiskParityService.solveInverseVolatility(vols, cashTarget: 0.10);
+      final weights =
+          RiskParityService.solveInverseVolatility(vols, cashTarget: 0.10);
 
       expect(weights['Cash']!, equals(0.10));
       // Risky weights should sum to 0.90
@@ -74,11 +78,14 @@ void main() {
       expect(weights['Bonds']!, greaterThan(weights['Stocks']!));
     });
 
-    test('solveEqualRiskContribution converges to equal risk contributions for uncorrelated assets', () {
+    test(
+        'solveEqualRiskContribution converges to equal risk contributions for uncorrelated assets',
+        () {
       final assets = ['A', 'B', 'C'];
       final vols = [0.10, 0.20, 0.40];
       // Diagonal covariance (zero correlation)
-      final cov = List.generate(3, (i) => List.generate(3, (j) => i == j ? vols[i] * vols[i] : 0.0));
+      final cov = List.generate(
+          3, (i) => List.generate(3, (j) => i == j ? vols[i] * vols[i] : 0.0));
 
       final weights = RiskParityService.solveEqualRiskContribution(
         assets: assets,
@@ -86,7 +93,8 @@ void main() {
       );
 
       // For uncorrelated assets, ERC weights should equal Inverse-Vol weights exactly!
-      final invVol = RiskParityService.solveInverseVolatility({'A': 0.10, 'B': 0.20, 'C': 0.40});
+      final invVol = RiskParityService.solveInverseVolatility(
+          {'A': 0.10, 'B': 0.20, 'C': 0.40});
       for (var a in assets) {
         expect(weights[a]!, closeTo(invVol[a]!, 1e-3));
       }
@@ -106,7 +114,9 @@ void main() {
       expect(trc1, closeTo(trc2, 1e-4));
     });
 
-    test('solveEqualRiskContribution converges with non-zero cross-asset correlation', () {
+    test(
+        'solveEqualRiskContribution converges with non-zero cross-asset correlation',
+        () {
       final assets = ['Equity', 'Bond', 'Commodity'];
       final vols = [0.20, 0.08, 0.25];
       final corr = [
@@ -115,7 +125,8 @@ void main() {
         [0.35, -0.05, 1.00],
       ];
 
-      final cov = List.generate(3, (i) => List.generate(3, (j) => corr[i][j] * vols[i] * vols[j]));
+      final cov = List.generate(
+          3, (i) => List.generate(3, (j) => corr[i][j] * vols[i] * vols[j]));
 
       final weights = RiskParityService.solveEqualRiskContribution(
         assets: assets,
@@ -149,7 +160,9 @@ void main() {
       expect(trc[2], closeTo(targetTrc, 1e-3));
     });
 
-    test('generateTaxAwareHints detects tax-loss harvesting and cash-inflow preference', () {
+    test(
+        'generateTaxAwareHints detects tax-loss harvesting and cash-inflow preference',
+        () {
       final currentAllocation = {
         'Stocks': 0.70,
         'Crypto': 0.20,
@@ -171,7 +184,9 @@ void main() {
           openDate: DateTime.now().subtract(const Duration(days: 45)),
         ),
       ];
-      final currentPrices = {'Stocks': 120.0}; // $30 loss per share = $3,000 loss
+      final currentPrices = {
+        'Stocks': 120.0
+      }; // $30 loss per share = $3,000 loss
 
       final hints = RiskParityService.generateTaxAwareHints(
         currentAllocation: currentAllocation,

@@ -280,7 +280,8 @@ class _TradeSignalNotificationSettingsWidgetState
           // Multi-Channel Delivery
           _buildSectionHeader('Delivery Channels'),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Wrap(
               spacing: 8.0,
               runSpacing: 8.0,
@@ -397,7 +398,8 @@ class _TradeSignalNotificationSettingsWidgetState
           // Sound, Priority & Quiet Hours
           _buildSectionHeader('Alert Customization & Priority'),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: DropdownButtonFormField<String>(
               initialValue: _settings.priorityChannel,
               decoration: const InputDecoration(
@@ -425,7 +427,8 @@ class _TradeSignalNotificationSettingsWidgetState
           ),
           const SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: DropdownButtonFormField<String>(
               initialValue: _settings.alertSound,
               decoration: const InputDecoration(
@@ -683,7 +686,8 @@ class _TradeSignalNotificationSettingsWidgetState
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Wrap(
               spacing: 8.0,
               runSpacing: 6.0,
@@ -853,8 +857,8 @@ class _TradeSignalNotificationSettingsWidgetState
     }
 
     final channelId = _settings.androidChannelId;
-    final playSound =
-        _settings.soundForCategory('BUY') != 'silent' && _settings.priorityChannel != 'low';
+    final playSound = _settings.soundForCategory('BUY') != 'silent' &&
+        _settings.priorityChannel != 'low';
 
     final AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -862,9 +866,8 @@ class _TradeSignalNotificationSettingsWidgetState
       _priorityLabel(_settings.priorityChannel),
       channelDescription: 'Notifications for trade signals',
       styleInformation: bigPictureStyleInformation,
-      importance: _settings.priorityChannel == 'low'
-          ? Importance.low
-          : Importance.max,
+      importance:
+          _settings.priorityChannel == 'low' ? Importance.low : Importance.max,
       priority:
           _settings.priorityChannel == 'low' ? Priority.low : Priority.high,
       playSound: playSound,

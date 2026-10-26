@@ -92,7 +92,10 @@ class StreamThrottleTransformer<T> extends StreamTransformerBase<T, T> {
     _ThrottleState<T> state,
     StreamController<T>? controller,
   ) {
-    if (state.pendingEvent != null && trailing && controller != null && !controller.isClosed) {
+    if (state.pendingEvent != null &&
+        trailing &&
+        controller != null &&
+        !controller.isClosed) {
       final event = state.pendingEvent as T;
       state.pendingEvent = null;
       controller.add(event);

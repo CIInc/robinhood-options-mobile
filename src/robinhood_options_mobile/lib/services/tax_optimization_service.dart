@@ -1057,8 +1057,8 @@ class TaxOptimizationService {
               saleAccountId: sellAcct?.accountNumber ?? record.saleAccountId,
               saleAccountType: sellAcct?.displayType ?? record.saleAccountType,
               replacementAccountId: repAcct?.accountNumber ?? rep.account,
-              replacementAccountType: repAcct?.displayType ??
-                  (isPermanentIra ? 'IRA' : 'Taxable'),
+              replacementAccountType:
+                  repAcct?.displayType ?? (isPermanentIra ? 'IRA' : 'Taxable'),
               isPermanentIraDisallowance: isPermanentIra,
             );
           } else if (optionReplacements.isNotEmpty) {
@@ -1106,8 +1106,8 @@ class TaxOptimizationService {
               saleAccountId: sellAcct?.accountNumber ?? record.saleAccountId,
               saleAccountType: sellAcct?.displayType ?? record.saleAccountType,
               replacementAccountId: repAcct?.accountNumber ?? rep.account,
-              replacementAccountType: repAcct?.displayType ??
-                  (isPermanentIra ? 'IRA' : 'Taxable'),
+              replacementAccountType:
+                  repAcct?.displayType ?? (isPermanentIra ? 'IRA' : 'Taxable'),
               isPermanentIraDisallowance: isPermanentIra,
             );
           } else if (now.isAfter(record.windowEndDate)) {
@@ -1218,9 +1218,9 @@ class TaxOptimizationService {
           final repAcct = _resolveAccount(rep.account,
               accountsMap: accountsMap, accounts: accounts);
           final isPermanentIra = (sellAcct != null &&
-                  !sellAcct.isRetirement &&
-                  repAcct != null &&
-                  repAcct.isRetirement);
+              !sellAcct.isRetirement &&
+              repAcct != null &&
+              repAcct.isRetirement);
 
           results.add(WashSaleRecord(
             id: recordId,
@@ -1245,8 +1245,8 @@ class TaxOptimizationService {
             saleAccountId: sellAcct?.accountNumber ?? sellOrder.account,
             saleAccountType: sellAcct?.displayType ?? 'Taxable',
             replacementAccountId: repAcct?.accountNumber ?? rep.account,
-            replacementAccountType: repAcct?.displayType ??
-                (isPermanentIra ? 'IRA' : 'Taxable'),
+            replacementAccountType:
+                repAcct?.displayType ?? (isPermanentIra ? 'IRA' : 'Taxable'),
             isPermanentIraDisallowance: isPermanentIra,
           ));
         } else if (replacementOptionBuys.isNotEmpty) {
@@ -1260,9 +1260,9 @@ class TaxOptimizationService {
           final repAcct = _resolveAccount(rep.account,
               accountsMap: accountsMap, accounts: accounts);
           final isPermanentIra = (sellAcct != null &&
-                  !sellAcct.isRetirement &&
-                  repAcct != null &&
-                  repAcct.isRetirement);
+              !sellAcct.isRetirement &&
+              repAcct != null &&
+              repAcct.isRetirement);
 
           results.add(WashSaleRecord(
             id: recordId,
@@ -1287,8 +1287,8 @@ class TaxOptimizationService {
             saleAccountId: sellAcct?.accountNumber ?? sellOrder.account,
             saleAccountType: sellAcct?.displayType ?? 'Taxable',
             replacementAccountId: repAcct?.accountNumber ?? rep.account,
-            replacementAccountType: repAcct?.displayType ??
-                (isPermanentIra ? 'IRA' : 'Taxable'),
+            replacementAccountType:
+                repAcct?.displayType ?? (isPermanentIra ? 'IRA' : 'Taxable'),
             isPermanentIraDisallowance: isPermanentIra,
           ));
         } else {
@@ -1346,21 +1346,76 @@ class TaxOptimizationService {
 
   /// Known tax-inefficient REIT symbols generating ordinary income.
   static const Set<String> reitSymbols = {
-    'O', 'AMT', 'PLD', 'CCI', 'EQIX', 'PSA', 'SPG', 'WELL', 'DLR', 'AVB',
-    'EQR', 'VICI', 'WY', 'SBAC', 'INVH', 'ARE', 'MAA', 'UDR', 'HST', 'CPT',
-    'VNQ', 'IYR', 'XLRE', 'SCHH', 'RWR', 'USRT'
+    'O',
+    'AMT',
+    'PLD',
+    'CCI',
+    'EQIX',
+    'PSA',
+    'SPG',
+    'WELL',
+    'DLR',
+    'AVB',
+    'EQR',
+    'VICI',
+    'WY',
+    'SBAC',
+    'INVH',
+    'ARE',
+    'MAA',
+    'UDR',
+    'HST',
+    'CPT',
+    'VNQ',
+    'IYR',
+    'XLRE',
+    'SCHH',
+    'RWR',
+    'USRT'
   };
 
   /// Known taxable bond and fixed-income ETFs generating non-qualified ordinary coupon interest.
   static const Set<String> taxableBondSymbols = {
-    'BND', 'AGG', 'HYG', 'JNK', 'TLT', 'IEF', 'SHY', 'LQD', 'VCIT', 'VCSH',
-    'BNDX', 'EMB', 'TIP', 'STIP', 'VGIT', 'VGSH', 'VGLT', 'MBB', 'BSV', 'BIV'
+    'BND',
+    'AGG',
+    'HYG',
+    'JNK',
+    'TLT',
+    'IEF',
+    'SHY',
+    'LQD',
+    'VCIT',
+    'VCSH',
+    'BNDX',
+    'EMB',
+    'TIP',
+    'STIP',
+    'VGIT',
+    'VGSH',
+    'VGLT',
+    'MBB',
+    'BSV',
+    'BIV'
   };
 
   /// Known broad-market core index ETFs with ultra-low turnover and qualified dividend efficiency.
   static const Set<String> coreIndexEtfSymbols = {
-    'SPY', 'VOO', 'IVV', 'VTI', 'QQQ', 'QQQM', 'IWM', 'VXUS', 'VEA', 'VWO',
-    'SCHX', 'ITOT', 'SPLG', 'SCHD', 'DIA', 'VIG'
+    'SPY',
+    'VOO',
+    'IVV',
+    'VTI',
+    'QQQ',
+    'QQQM',
+    'IWM',
+    'VXUS',
+    'VEA',
+    'VWO',
+    'SCHX',
+    'ITOT',
+    'SPLG',
+    'SCHD',
+    'DIA',
+    'VIG'
   };
 
   /// Evaluates an intended trade before execution for IRS Section 1091 wash sale violations
@@ -1378,14 +1433,18 @@ class TaxOptimizationService {
   }) {
     final posTypeLower = positionType.toLowerCase();
     final isBuy = posTypeLower == 'buy' || posTypeLower == 'debit';
-    if (!isBuy) return null; // Pre-trade wash sale risk only triggers on replacement buys
+    if (!isBuy)
+      return null; // Pre-trade wash sale risk only triggers on replacement buys
 
     final sym = symbol.toUpperCase();
     final now = asOf ?? DateTime.now();
 
     // 1. Check existing active wash sale records for this symbol
     final matchingRecord = activeWashSales.cast<WashSaleRecord?>().firstWhere(
-          (w) => w != null && w.symbol.toUpperCase() == sym && w.isWindowActive(now),
+          (w) =>
+              w != null &&
+              w.symbol.toUpperCase() == sym &&
+              w.isWindowActive(now),
           orElse: () => null,
         );
 
@@ -1400,7 +1459,8 @@ class TaxOptimizationService {
         if (state != 'filled' && state != 'confirmed') return false;
         final dt = o.createdAt ?? o.updatedAt;
         if (dt == null) return false;
-        return dt.isAfter(now.subtract(const Duration(days: 30))) && dt.isBefore(now);
+        return dt.isAfter(now.subtract(const Duration(days: 30))) &&
+            dt.isBefore(now);
       }).toList();
 
       for (final sell in filledSells) {
@@ -1458,7 +1518,9 @@ class TaxOptimizationService {
     final isDestRetirement = currentAccount?.isRetirement == true;
     final isSourceTaxable = targetRecord.saleAccountType == null ||
         (!targetRecord.saleAccountType!.toLowerCase().contains('ira') &&
-            !targetRecord.saleAccountType!.toLowerCase().contains('retirement'));
+            !targetRecord.saleAccountType!
+                .toLowerCase()
+                .contains('retirement'));
 
     if (isDestRetirement && isSourceTaxable) {
       // IRS Revenue Ruling 2008-5 Permanent Wash Sale Disallowance Hazard!
@@ -1593,7 +1655,8 @@ class TaxOptimizationService {
 
       holdings.add(AssetLocationHolding(
         symbol: symbol,
-        name: pos.instrumentObj?.simpleName ?? pos.instrumentObj?.name ?? symbol,
+        name:
+            pos.instrumentObj?.simpleName ?? pos.instrumentObj?.name ?? symbol,
         assetType: 'stock',
         marketValue: value,
         accountNumber: acct?.accountNumber ?? pos.accountNumber,
@@ -1688,7 +1751,8 @@ class TaxOptimizationService {
 
     double score = 100.0;
     if (totalPortfolioVal > 0) {
-      score = max(0.0, min(100.0, 100.0 - ((misplacedVal / totalPortfolioVal) * 100.0)));
+      score = max(0.0,
+          min(100.0, 100.0 - ((misplacedVal / totalPortfolioVal) * 100.0)));
     }
 
     String ratingLabel = 'Optimal Tax Placement';
@@ -1700,7 +1764,8 @@ class TaxOptimizationService {
       ratingLabel = 'Good Placement';
     }
 
-    recommendations.sort((a, b) => b.estimatedTaxImpact.compareTo(a.estimatedTaxImpact));
+    recommendations
+        .sort((a, b) => b.estimatedTaxImpact.compareTo(a.estimatedTaxImpact));
 
     return AssetLocationAnalysis(
       efficiencyScore: double.parse(score.toStringAsFixed(1)),

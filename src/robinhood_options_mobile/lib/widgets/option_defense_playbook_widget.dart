@@ -433,8 +433,7 @@ class _OptionDefensePlaybookWidgetState
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.red.shade700,
                   borderRadius: BorderRadius.circular(6),
@@ -465,7 +464,8 @@ class _OptionDefensePlaybookWidgetState
               ),
               icon: const Icon(Icons.sync_alt, size: 18),
               label: const Text('Roll Ahead of Ex-Dividend'),
-              onPressed: () => _navigateToRollAssistant(RollPreset.rollUpAndOut),
+              onPressed: () =>
+                  _navigateToRollAssistant(RollPreset.rollUpAndOut),
             ),
           ] else if (isPin) ...[
             Text(

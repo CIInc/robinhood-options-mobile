@@ -1,0 +1,23 @@
+{
+  "code-formatting": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/auto_format.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./scripts/verify_formatting.sh",
+        "timeout": 15
+      }
+    ]
+  }
+}

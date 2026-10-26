@@ -218,12 +218,18 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
           case 'Risk Parity (ERC)':
             final assets = _assetTargets.keys.toList();
             final n = assets.length;
-            final cov = List.generate(n, (i) => List.generate(n, (j) {
-              final vI = RiskParityService.defaultAssetClassVolatilities[assets[i]] ?? 0.16;
-              final vJ = RiskParityService.defaultAssetClassVolatilities[assets[j]] ?? 0.16;
-              final corr = i == j ? 1.0 : 0.25;
-              return corr * vI * vJ;
-            }));
+            final cov = List.generate(
+                n,
+                (i) => List.generate(n, (j) {
+                      final vI = RiskParityService
+                              .defaultAssetClassVolatilities[assets[i]] ??
+                          0.16;
+                      final vJ = RiskParityService
+                              .defaultAssetClassVolatilities[assets[j]] ??
+                          0.16;
+                      final corr = i == j ? 1.0 : 0.25;
+                      return corr * vI * vJ;
+                    }));
             final erc = RiskParityService.solveEqualRiskContribution(
               assets: assets,
               covarianceMatrix: cov,
@@ -277,12 +283,18 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
           case 'Risk Parity (ERC)':
             final sectors = _standardSectors;
             final n = sectors.length;
-            final cov = List.generate(n, (i) => List.generate(n, (j) {
-              final vI = RiskParityService.defaultSectorVolatilities[sectors[i]] ?? 0.18;
-              final vJ = RiskParityService.defaultSectorVolatilities[sectors[j]] ?? 0.18;
-              final corr = i == j ? 1.0 : 0.40;
-              return corr * vI * vJ;
-            }));
+            final cov = List.generate(
+                n,
+                (i) => List.generate(n, (j) {
+                      final vI = RiskParityService
+                              .defaultSectorVolatilities[sectors[i]] ??
+                          0.18;
+                      final vJ = RiskParityService
+                              .defaultSectorVolatilities[sectors[j]] ??
+                          0.18;
+                      final corr = i == j ? 1.0 : 0.40;
+                      return corr * vI * vJ;
+                    }));
             final ercSector = RiskParityService.solveEqualRiskContribution(
               assets: sectors,
               covarianceMatrix: cov,
@@ -1123,7 +1135,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
             return Column(
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   child: Row(
                     children: [
                       Expanded(
@@ -1460,8 +1473,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                       }),
                       const SizedBox(height: 20),
                       if (!_isEditing)
-                        _buildRecommendations(
-                            currentAllocation, targets, totalEquity, stockPositionStore.items),
+                        _buildRecommendations(currentAllocation, targets,
+                            totalEquity, stockPositionStore.items),
                     ],
                   ),
                 ),
@@ -1771,12 +1784,14 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  color: colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 14, color: colorScheme.outline),
+                    Icon(Icons.info_outline,
+                        size: 14, color: colorScheme.outline),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -1825,12 +1840,8 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
     );
   }
 
-  Widget _buildRiskContributionCard(
-      String title,
-      double currentAmount,
-      double currentPct,
-      AssetRiskMetrics? riskMetric,
-      Color color) {
+  Widget _buildRiskContributionCard(String title, double currentAmount,
+      double currentPct, AssetRiskMetrics? riskMetric, Color color) {
     final pctRisk = riskMetric?.percentRiskContribution ?? 0.0;
     final riskMultiplier = currentPct > 0 ? (pctRisk / currentPct) : 1.0;
     final isHighRiskMultiplier = riskMultiplier >= 1.35;
@@ -2013,7 +2024,10 @@ class _RebalancingWidgetState extends State<RebalancingWidget> {
                 children: [
                   Text(
                     'Annualized Volatility: ${(riskMetric.volatility * 100).toStringAsFixed(1)}%',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(fontSize: 11),
                   ),
                   Text(
                     riskMetric.proxyLabel ?? 'Holding History',

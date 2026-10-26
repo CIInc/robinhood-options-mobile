@@ -572,7 +572,10 @@ void main() {
       expect(alert!.severity, PortfolioAlertSeverity.critical);
       expect(alert.id, contains('opt-pin-risk-'));
       expect(alert.title, contains('MSFT \$300 PUT Margin Shock Pin Risk'));
-      expect(alert.detail, contains('Assignment notional (\$90000) exceeds buying power (\$35000) by \$55000'));
+      expect(
+          alert.detail,
+          contains(
+              'Assignment notional (\$90000) exceeds buying power (\$35000) by \$55000'));
       expect(alert.payload?['isMarginShock'], isTrue);
       expect(alert.payload?['notionalObligation'], 90000.0);
       expect(alert.payload?['marginDeficit'], 55000.0);
@@ -648,14 +651,17 @@ void main() {
       final alerts = PortfolioAlertService.buildAlerts(
         instrumentPositions: const [],
         optionPositions: [exDivPos, pinPos],
-        account: buildAccount(buyingPower: 25000), // Deficit for TSLA: 40000 - 25000 = $15000
+        account: buildAccount(
+            buyingPower: 25000), // Deficit for TSLA: 40000 - 25000 = $15000
         dividendEvents: [divEvent],
         now: fixedNow,
       );
 
-      expect(alerts.any((a) => a.id.startsWith('opt-exdiv-assignment-')), isTrue);
+      expect(
+          alerts.any((a) => a.id.startsWith('opt-exdiv-assignment-')), isTrue);
       expect(alerts.any((a) => a.id.startsWith('opt-pin-risk-')), isTrue);
-      final pinAlert = alerts.firstWhere((a) => a.id.startsWith('opt-pin-risk-'));
+      final pinAlert =
+          alerts.firstWhere((a) => a.id.startsWith('opt-pin-risk-'));
       expect(pinAlert.title, contains('Margin Shock Pin Risk'));
     });
   });

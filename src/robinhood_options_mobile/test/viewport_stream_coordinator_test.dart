@@ -34,31 +34,40 @@ void main() {
       streamerService.dispose();
     });
 
-    test('updateVisibleEquities bounds subscriptions to maxActiveSubscriptions', () {
-      coordinator.updateVisibleEquities(['AAPL', 'MSFT', 'GOOG', 'AMZN', 'TSLA']);
+    test('updateVisibleEquities bounds subscriptions to maxActiveSubscriptions',
+        () {
+      coordinator
+          .updateVisibleEquities(['AAPL', 'MSFT', 'GOOG', 'AMZN', 'TSLA']);
       expect(coordinator.visibleEquities, hasLength(3));
-      expect(coordinator.visibleEquities, containsAll(['AAPL', 'MSFT', 'GOOG']));
-      expect(streamerService.subscribedEquities, containsAll(['AAPL', 'MSFT', 'GOOG']));
+      expect(
+          coordinator.visibleEquities, containsAll(['AAPL', 'MSFT', 'GOOG']));
+      expect(streamerService.subscribedEquities,
+          containsAll(['AAPL', 'MSFT', 'GOOG']));
       expect(streamerService.subscribedEquities.contains('AMZN'), isFalse);
     });
 
     test('updateVisibleEquities handles viewport scrolling delta', () {
       coordinator.updateVisibleEquities(['AAPL', 'MSFT', 'GOOG']);
-      expect(coordinator.visibleEquities, containsAll(['AAPL', 'MSFT', 'GOOG']));
+      expect(
+          coordinator.visibleEquities, containsAll(['AAPL', 'MSFT', 'GOOG']));
 
       // Scroll down: AAPL scrolled off, NVDA scrolled into view
       coordinator.updateVisibleEquities(['MSFT', 'GOOG', 'NVDA']);
-      expect(coordinator.visibleEquities, containsAll(['MSFT', 'GOOG', 'NVDA']));
+      expect(
+          coordinator.visibleEquities, containsAll(['MSFT', 'GOOG', 'NVDA']));
       expect(coordinator.visibleEquities.contains('AAPL'), isFalse);
 
-      expect(streamerService.subscribedEquities, containsAll(['MSFT', 'GOOG', 'NVDA']));
+      expect(streamerService.subscribedEquities,
+          containsAll(['MSFT', 'GOOG', 'NVDA']));
       expect(streamerService.subscribedEquities.contains('AAPL'), isFalse);
     });
 
     test('updateVisibleOptions, Futures, and Forex work correctly', () {
-      coordinator.updateVisibleOptions(['AAPL  260116C00200000', 'MSFT  260116C00400000']);
+      coordinator.updateVisibleOptions(
+          ['AAPL  260116C00200000', 'MSFT  260116C00400000']);
       expect(coordinator.visibleOptions, hasLength(2));
-      expect(streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
+      expect(
+          streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
 
       coordinator.updateVisibleFutures(['/ES', '/NQ']);
       expect(coordinator.visibleFutures, hasLength(2));

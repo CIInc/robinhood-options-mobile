@@ -114,7 +114,8 @@ void main() {
   });
 
   group('TradeSignalNotificationSettingsWidget UI tests', () {
-    testWidgets('renders multi-channel, priority, sound, and indicator controls',
+    testWidgets(
+        'renders multi-channel, priority, sound, and indicator controls',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1200, 3200);
       tester.view.devicePixelRatio = 1.0;
@@ -164,8 +165,8 @@ void main() {
       expect(find.text('Critical-Only External Routing'), findsOneWidget);
       expect(find.text('Alert Customization & Priority'), findsOneWidget);
       expect(find.text('Quiet Hours (Do Not Disturb)'), findsOneWidget);
-      expect(find.text('Bypass Quiet Hours for Critical Alerts'),
-          findsOneWidget);
+      expect(
+          find.text('Bypass Quiet Hours for Critical Alerts'), findsOneWidget);
       expect(find.text('Per-Signal & Category Triggers'), findsOneWidget);
       expect(find.text('Price & Technical Breakout Triggers'), findsOneWidget);
       expect(find.text('GEX Regime & Wall Triggers'), findsOneWidget);

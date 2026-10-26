@@ -85,7 +85,8 @@ void main() {
       expect(rating.symbol, 'TSLA');
       expect(rating.stressPenalty, greaterThan(10.0));
       expect(rating.convictionScore, lessThan(60.0));
-      expect(rating.primaryRisks.any((r) => r.contains('stress penalty')), isTrue);
+      expect(
+          rating.primaryRisks.any((r) => r.contains('stress penalty')), isTrue);
     });
 
     test('evaluates gamma exposure tilt', () {

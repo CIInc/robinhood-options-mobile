@@ -50,7 +50,8 @@ void main() {
       stressPenalty: 4.0,
       keyCatalysts: const ['Institutional call sweep', 'Golden cross break'],
       primaryRisks: const ['Tech sector rotation'],
-      actionableGuidance: 'Strong institutional alignment. Recommended standard size.',
+      actionableGuidance:
+          'Strong institutional alignment. Recommended standard size.',
       summary: 'Very high conviction bullish synthesis.',
       lastUpdated: DateTime(2026, 10, 26, 12, 0),
     );
@@ -80,9 +81,12 @@ void main() {
       expect(find.text('Volatility & Squeeze'), findsOneWidget);
       expect(find.text('Options Flow & GEX'), findsOneWidget);
       expect(find.text('Adversarial Resilience'), findsOneWidget);
-      expect(find.text('Strong institutional alignment. Recommended standard size.'),
+      expect(
+          find.text(
+              'Strong institutional alignment. Recommended standard size.'),
           findsOneWidget);
-      expect(find.text('-4 pt Devil\'s Advocate hazard penalty'), findsOneWidget);
+      expect(
+          find.text('-4 pt Devil\'s Advocate hazard penalty'), findsOneWidget);
       expect(find.text('Institutional call sweep'), findsOneWidget);
     });
 

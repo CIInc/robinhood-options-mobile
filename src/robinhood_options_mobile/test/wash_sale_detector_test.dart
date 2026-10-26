@@ -446,8 +446,7 @@ void main() {
       );
 
       expect(alerts.any((a) => a.id == 'wash-sale-permanent-ira'), isTrue);
-      final alert =
-          alerts.firstWhere((a) => a.id == 'wash-sale-permanent-ira');
+      final alert = alerts.firstWhere((a) => a.id == 'wash-sale-permanent-ira');
       expect(alert.severity, PortfolioAlertSeverity.critical);
       expect(alert.title, contains('Permanent IRA Wash Sale'));
       expect(alert.detail, contains('Rev. Rul. 2008-5'));
@@ -526,7 +525,9 @@ void main() {
       return order;
     }
 
-    test('flags permanent loss disallowance under Rev. Rul. 2008-5 when repurchased in IRA', () {
+    test(
+        'flags permanent loss disallowance under Rev. Rul. 2008-5 when repurchased in IRA',
+        () {
       final buyInitial = makeOrder(
         id: 'ord_buy_taxable',
         symbol: 'NVDA',
@@ -623,7 +624,9 @@ void main() {
       saleAccountType: 'Individual',
     );
 
-    test('returns critical Rev. Rul. 2008-5 risk when buying in IRA during active taxable wash window', () {
+    test(
+        'returns critical Rev. Rul. 2008-5 risk when buying in IRA during active taxable wash window',
+        () {
       final risk = TaxOptimizationService.evaluatePreTradeWashSale(
         symbol: 'TSLA',
         positionType: 'Buy',
@@ -641,7 +644,9 @@ void main() {
       expect(risk.potentialDisallowedLoss, 350.0);
     });
 
-    test('returns warning risk when buying in taxable account during active wash window', () {
+    test(
+        'returns warning risk when buying in taxable account during active wash window',
+        () {
       final risk = TaxOptimizationService.evaluatePreTradeWashSale(
         symbol: 'TSLA',
         positionType: 'Buy',
@@ -658,7 +663,8 @@ void main() {
       expect(risk.details, contains('added to your replacement cost basis'));
     });
 
-    test('returns null when positionType is Sell or symbol has no wash risk', () {
+    test('returns null when positionType is Sell or symbol has no wash risk',
+        () {
       final sellRisk = TaxOptimizationService.evaluatePreTradeWashSale(
         symbol: 'TSLA',
         positionType: 'Sell',
@@ -757,7 +763,9 @@ void main() {
 
     final accounts = [taxableAccount, tradIraAccount];
 
-    test('identifies misplaced REIT in taxable account and generates relocation recommendation', () {
+    test(
+        'identifies misplaced REIT in taxable account and generates relocation recommendation',
+        () {
       // Misplaced REIT in taxable (100 shares @ $55 = $5,500)
       final oPosition = buildTestPosition(
         symbol: 'O',
@@ -794,7 +802,8 @@ void main() {
       final oHolding = analysis.holdings.firstWhere((h) => h.symbol == 'O');
       expect(oHolding.isMisplaced, isTrue);
       expect(oHolding.taxEfficiencyTier, TaxEfficiencyTier.low);
-      expect(oHolding.idealAccountClassification, AccountTaxClassification.traditionalIra);
+      expect(oHolding.idealAccountClassification,
+          AccountTaxClassification.traditionalIra);
 
       final vooHolding = analysis.holdings.firstWhere((h) => h.symbol == 'VOO');
       expect(vooHolding.isMisplaced, isFalse);

@@ -58,7 +58,8 @@ class WashSaleRecord {
   final String? saleAccountType; // 'taxable', 'traditional_ira', 'roth_ira'
   final String? replacementAccountId;
   final String? replacementAccountType;
-  final bool isPermanentIraDisallowance; // True if taxable sale + IRA purchase (permanent loss)
+  final bool
+      isPermanentIraDisallowance; // True if taxable sale + IRA purchase (permanent loss)
 
   const WashSaleRecord({
     required this.id,
@@ -210,8 +211,9 @@ class WashSaleRecord {
           json['replacementAccountId']?.toString(),
       replacementAccountType: json['replacement_account_type']?.toString() ??
           json['replacementAccountType']?.toString(),
-      isPermanentIraDisallowance: json['is_permanent_ira_disallowance'] == true ||
-          json['isPermanentIraDisallowance'] == true,
+      isPermanentIraDisallowance:
+          json['is_permanent_ira_disallowance'] == true ||
+              json['isPermanentIraDisallowance'] == true,
     );
   }
 }

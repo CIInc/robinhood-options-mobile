@@ -294,26 +294,22 @@ class OptionDefensePlaybook {
       level = OptionDefenseThreatLevel.critical;
       final exDivStr = DateFormat.yMd().format(exDividendDate!);
       final daysToExDiv = exDividendDate.difference(effectiveNow).inDays;
-      reasons.insert(
-          0,
+      reasons.insert(0,
           'Ex-Dividend Early Assignment Hazard: Remaining extrinsic value (\$${remainingExtrinsic!.toStringAsFixed(2)}) <= 1.25x upcoming dividend (\$${upcomingDividendAmount!.toStringAsFixed(2)}) with ex-div in $daysToExDiv day${daysToExDiv == 1 ? '' : 's'} ($exDivStr). Call holders capture higher yield by exercising early.');
     }
 
     if (isPinRisk) {
       level = OptionDefenseThreatLevel.critical;
-      reasons.insert(
-          0,
+      reasons.insert(0,
           'Pin Risk: Spot (\$${spot.toStringAsFixed(2)}) is within ${pinProximity!.toStringAsFixed(2)}% of short strike (\$${strike.toStringAsFixed(2)}) at $dte DTE. After-hours unhedged assignment hazard.');
       if (isMarginShock) {
-        reasons.insert(
-            0,
+        reasons.insert(0,
             'MARGIN SHOCK DEFICIT: Potential assignment obligation (\$${notionalObligation!.toStringAsFixed(2)}) exceeds available buying power (\$${availableBuyingPower!.toStringAsFixed(2)}) by \$${marginDeficit!.toStringAsFixed(2)}! Immediate liquidation/margin call risk.');
       }
     }
 
-    final isTested = level != OptionDefenseThreatLevel.safe ||
-        isExDivRisk ||
-        isPinRisk;
+    final isTested =
+        level != OptionDefenseThreatLevel.safe || isExDivRisk || isPinRisk;
 
     String statusTitle;
     String statusDesc;

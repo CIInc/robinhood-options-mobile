@@ -66,10 +66,12 @@ void main() {
       streamerService.dispose();
     });
 
-    test('Instance is registered in activeInstances and removed on dispose', () {
+    test('Instance is registered in activeInstances and removed on dispose',
+        () {
       expect(SchwabStreamerService.activeInstances, contains(streamerService));
       streamerService.dispose();
-      expect(SchwabStreamerService.activeInstances, isNot(contains(streamerService)));
+      expect(SchwabStreamerService.activeInstances,
+          isNot(contains(streamerService)));
     });
 
     test('pauseStreaming sends UNSUBS for active subscriptions and caches them',
@@ -96,7 +98,8 @@ void main() {
       streamerService.subscribeForex(['EUR/USD']);
 
       expect(streamerService.subscribedEquities, containsAll(['AAPL', 'MSFT']));
-      expect(streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
+      expect(
+          streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
       expect(streamerService.subscribedFutures, contains('/ES'));
       expect(streamerService.subscribedForex, contains('EUR/USD'));
 
@@ -141,7 +144,8 @@ void main() {
       streamerService.resumeStreaming();
       expect(streamerService.isPaused, isFalse);
       expect(streamerService.subscribedEquities, containsAll(['AAPL', 'MSFT']));
-      expect(streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
+      expect(
+          streamerService.subscribedOptions, contains('AAPL  260116C00200000'));
       expect(streamerService.subscribedFutures, contains('/ES'));
       expect(streamerService.subscribedForex, contains('EUR/USD'));
 
@@ -152,7 +156,8 @@ void main() {
       expect(resubCommands, contains('SUBS'));
     });
 
-    test('pauseAll and resumeAll toggle all active streamer instances', () async {
+    test('pauseAll and resumeAll toggle all active streamer instances',
+        () async {
       final mockChannel2 = MockStreamerChannel();
       final streamer2 = SchwabStreamerService(
         streamerInfo: streamerInfo,

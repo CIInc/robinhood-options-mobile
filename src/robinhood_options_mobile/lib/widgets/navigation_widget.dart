@@ -234,8 +234,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     // Request permissions for local notifications on Android 13+ and register priority channels
     if (Platform.isAndroid) {
-      final androidPlugin = flutterLocalNotificationsPlugin
-          .resolvePlatformSpecificImplementation<
+      final androidPlugin =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
       await androidPlugin?.requestNotificationsPermission();
 
@@ -393,8 +393,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
     final String channelId =
         (message.data['channelId'] as String?) ?? 'trade_signals';
-    final String priorityStr =
-        (message.data['priority'] as String?) ?? 'high';
+    final String priorityStr = (message.data['priority'] as String?) ?? 'high';
     final String soundStr = (message.data['sound'] as String?) ?? 'default';
     final bool isSilent = soundStr == 'silent' || priorityStr == 'low';
 

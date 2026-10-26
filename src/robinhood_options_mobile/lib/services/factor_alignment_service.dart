@@ -139,7 +139,8 @@ class FactorAlignmentService {
     ];
 
     final catalysts = <String>[];
-    if (trendScore >= 65) catalysts.add('Strong moving average trend alignment');
+    if (trendScore >= 65)
+      catalysts.add('Strong moving average trend alignment');
     if (momentumScore >= 65) {
       catalysts.add('Positive oscillator acceleration and MACD crossover');
     }
@@ -149,7 +150,8 @@ class FactorAlignmentService {
 
     final risks = <String>[];
     if (stressPenalty > 10) {
-      risks.add('Adversarial stress penalty (-${stressPenalty.toStringAsFixed(1)} pts) due to identified downside risks');
+      risks.add(
+          'Adversarial stress penalty (-${stressPenalty.toStringAsFixed(1)} pts) due to identified downside risks');
     }
     if (volatilityScore < 40) {
       risks.add('Elevated volatility compression / potential false breakout');

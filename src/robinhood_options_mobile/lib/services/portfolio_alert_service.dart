@@ -503,7 +503,9 @@ class PortfolioAlertService {
         );
       }
 
-      final disallowed = washSales.where((w) => w.isDisallowed && !w.isPermanentIraDisallowance).toList();
+      final disallowed = washSales
+          .where((w) => w.isDisallowed && !w.isPermanentIraDisallowance)
+          .toList();
       if (disallowed.isNotEmpty) {
         final totalDisallowed = disallowed.fold<double>(
             0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));
@@ -2729,8 +2731,7 @@ class PortfolioAlertService {
       'CALL',
     ].join(' ');
 
-    final id =
-        'opt-exdiv-assignment-${pos.id.isNotEmpty ? pos.id : symbol}';
+    final id = 'opt-exdiv-assignment-${pos.id.isNotEmpty ? pos.id : symbol}';
     final daysToEx = upcomingDiv.daysUntilExDividend(now) ?? 0;
     final exDivDateStr = upcomingDiv.exDividendDate != null
         ? '${upcomingDiv.exDividendDate!.month}/${upcomingDiv.exDividendDate!.day}'
@@ -2837,9 +2838,7 @@ class PortfolioAlertService {
     return PortfolioAlert(
       id: id,
       severity: PortfolioAlertSeverity.critical,
-      icon: isMarginShock
-          ? Icons.warning_rounded
-          : Icons.crisis_alert_outlined,
+      icon: isMarginShock ? Icons.warning_rounded : Icons.crisis_alert_outlined,
       title: isMarginShock
           ? '$contractDesc Margin Shock Pin Risk'
           : '$contractDesc 0DTE/1DTE Pin Risk',
@@ -2890,7 +2889,8 @@ class PortfolioAlertService {
       if (daysToExpiration < 0) continue;
 
       // 1. Evaluate Ex-Dividend Early Assignment Hazard
-      final exDivAlert = evaluateOptionEarlyAssignmentAlert(pos, now, dividendEvents);
+      final exDivAlert =
+          evaluateOptionEarlyAssignmentAlert(pos, now, dividendEvents);
       if (exDivAlert != null) {
         alerts.add(exDivAlert);
       }

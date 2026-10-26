@@ -123,13 +123,11 @@ class UnifiedConvictionRating {
       pillars = (json['pillar_scores'] as List<dynamic>)
           .map((e) => FactorPillarScore.fromJson(Map<String, dynamic>.from(e)))
           .toList();
-    } else if (json['pillar_scores'] != null &&
-        json['pillar_scores'] is Map) {
+    } else if (json['pillar_scores'] != null && json['pillar_scores'] is Map) {
       final map = json['pillar_scores'] as Map<String, dynamic>;
       map.forEach((k, v) {
         if (v is Map) {
-          pillars.add(
-              FactorPillarScore.fromJson(Map<String, dynamic>.from(v)));
+          pillars.add(FactorPillarScore.fromJson(Map<String, dynamic>.from(v)));
         } else if (v is num) {
           pillars.add(FactorPillarScore(
             key: k,
@@ -143,8 +141,7 @@ class UnifiedConvictionRating {
     return UnifiedConvictionRating(
       symbol: (json['symbol'] ?? '').toString().toUpperCase(),
       direction: json['direction'] ?? 'Bullish',
-      convictionScore:
-          (json['conviction_score'] as num?)?.toDouble() ?? 50.0,
+      convictionScore: (json['conviction_score'] as num?)?.toDouble() ?? 50.0,
       convictionTier: json['conviction_tier'] ?? 'MODERATE',
       pillarScores: pillars,
       stressPenalty: (json['stress_penalty'] as num?)?.toDouble() ?? 0.0,

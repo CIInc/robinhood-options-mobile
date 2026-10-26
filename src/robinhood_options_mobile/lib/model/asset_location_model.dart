@@ -144,7 +144,8 @@ class AssetLocationRecommendation {
   final AccountTaxClassification toAccount;
   final String priority; // 'high', 'medium', 'low'
   final String rationale;
-  final double estimatedTaxImpact; // Estimated annual tax drag reduction in dollars
+  final double
+      estimatedTaxImpact; // Estimated annual tax drag reduction in dollars
 
   const AssetLocationRecommendation({
     required this.symbol,
@@ -188,7 +189,8 @@ class AssetLocationRecommendation {
 /// Comprehensive multi-account asset location optimization analysis.
 class AssetLocationAnalysis {
   final double efficiencyScore; // 0.0 to 100.0
-  final String ratingLabel; // 'Optimal', 'Good', 'Suboptimal', 'Needs Rebalancing'
+  final String
+      ratingLabel; // 'Optimal', 'Good', 'Suboptimal', 'Needs Rebalancing'
   final double totalTaxableValue;
   final double totalTraditionalIraValue;
   final double totalRothIraValue;
@@ -218,8 +220,8 @@ class AssetLocationAnalysis {
       ? (misplacedValue / totalPortfolioValue) * 100
       : 0.0;
 
-  double get potentialAnnualTaxSavings => recommendations.fold(
-      0.0, (sum, r) => sum + r.estimatedTaxImpact);
+  double get potentialAnnualTaxSavings =>
+      recommendations.fold(0.0, (sum, r) => sum + r.estimatedTaxImpact);
 
   Map<String, dynamic> toJson() => {
         'efficiency_score': efficiencyScore,

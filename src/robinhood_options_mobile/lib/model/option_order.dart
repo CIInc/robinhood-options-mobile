@@ -69,7 +69,8 @@ class OptionOrder {
         chainId = json['chain_id'],
         chainSymbol = json['chain_symbol'],
         cancelUrl = json['cancel_url'],
-        account = json['account']?.toString() ?? json['accountNumber']?.toString(),
+        account =
+            json['account']?.toString() ?? json['accountNumber']?.toString(),
         canceledQuantity = parseDouble(json['canceled_quantity']),
         direction = json['direction'],
         legs = OptionLeg.fromJsonArray(json['legs']),

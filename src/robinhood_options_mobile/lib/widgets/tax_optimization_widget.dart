@@ -3475,8 +3475,8 @@ class _TaxOptimizationWidgetState extends State<TaxOptimizationWidget> {
           ),
           const SizedBox(width: 8),
           ChoiceChip(
-            avatar: const Icon(Icons.error_outline,
-                size: 16, color: Colors.purple),
+            avatar:
+                const Icon(Icons.error_outline, size: 16, color: Colors.purple),
             label: Text(
                 'Tax-Inefficient (${analysis.holdings.where((h) => h.taxEfficiencyTier == TaxEfficiencyTier.low).length})'),
             selected: _assetLocationFilter == 'low',

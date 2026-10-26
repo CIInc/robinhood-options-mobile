@@ -79,7 +79,9 @@ void main() {
       expect(firestoreMap['cooldownMinutes'], 60);
     });
 
-    test('CustomAlert custom priority, sound, channels, and cooldown serialization', () {
+    test(
+        'CustomAlert custom priority, sound, channels, and cooldown serialization',
+        () {
       final now = DateTime(2026, 8, 27, 10, 0);
       final alert = CustomAlert(
         id: 'alert-custom',

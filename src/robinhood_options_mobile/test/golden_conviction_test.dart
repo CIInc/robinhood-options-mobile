@@ -54,7 +54,8 @@ void main() {
     primaryRisks: const ['Semi sector beta volatility'],
     actionableGuidance:
         'Strong multi-factor institutional alignment. Consider standard sizing with trailing stops.',
-    summary: 'High-conviction bullish synthesis across technicals, gamma regime, and order flow.',
+    summary:
+        'High-conviction bullish synthesis across technicals, gamma regime, and order flow.',
     lastUpdated: DateTime(2026, 10, 26, 9, 30),
   );
 

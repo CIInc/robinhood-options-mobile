@@ -396,7 +396,8 @@ void main() {
           appUser: null,
           userDocRef: null,
           exDividendDate: now.add(const Duration(days: 3)),
-          upcomingDividendAmount: 0.25, // Extrinsic 0.20 <= 1.25 * 0.25 = 0.3125
+          upcomingDividendAmount:
+              0.25, // Extrinsic 0.20 <= 1.25 * 0.25 = 0.3125
         ),
       ),
     );
@@ -499,7 +500,8 @@ void main() {
           generativeService: MockGenerativeService(),
           appUser: null,
           userDocRef: null,
-          availableBuyingPower: 45000.0, // Notional $100,000 > $45,000 -> Deficit $55,000
+          availableBuyingPower:
+              45000.0, // Notional $100,000 > $45,000 -> Deficit $55,000
         ),
       ),
     );

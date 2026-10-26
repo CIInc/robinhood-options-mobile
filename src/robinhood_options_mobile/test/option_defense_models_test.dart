@@ -473,11 +473,10 @@ void main() {
       expect(playbook.threat.upcomingDividendAmount, 0.25);
       expect(playbook.threat.exDividendDate, exDivDate);
       expect(playbook.actions.first.badge, 'EX-DIV HAZARD');
+      expect(playbook.actions.first.suggestedPreset, RollPreset.rollUpAndOut);
       expect(
-          playbook.actions.first.suggestedPreset, RollPreset.rollUpAndOut);
-      expect(
-          playbook.threat.threatReasons.any(
-              (r) => r.contains('Ex-Dividend Early Assignment Hazard')),
+          playbook.threat.threatReasons
+              .any((r) => r.contains('Ex-Dividend Early Assignment Hazard')),
           isTrue);
     });
 
@@ -606,15 +605,15 @@ void main() {
       expect(playbook.threat.notionalAssignmentObligation, 100000.0);
       expect(playbook.threat.marginShockDeficit, 60000.0);
       expect(playbook.actions.first.badge, 'MARGIN SHOCK');
-      expect(playbook.actions.first.actionType, DefenseActionType.closePosition);
+      expect(
+          playbook.actions.first.actionType, DefenseActionType.closePosition);
       expect(
           playbook.threat.threatReasons
               .any((r) => r.contains('MARGIN SHOCK DEFICIT')),
           isTrue);
     });
 
-    test(
-        '0DTE Pin Risk without Margin Shock when buying power is sufficient',
+    test('0DTE Pin Risk without Margin Shock when buying power is sufficient',
         () {
       final expToday = now;
       final putInstr = createInstrument(
