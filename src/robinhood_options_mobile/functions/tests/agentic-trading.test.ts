@@ -70,14 +70,29 @@ describe("agentic-trading callable functions auth checks", () => {
     expect(response).toEqual({ status: "success" });
   });
 
-  test("seedAgenticTrading allows authenticated request", async () => {
-    const authenticatedRequest = {
-      auth: { uid: "user123", token: {} },
+  test("seedAgenticTrading rejects non-admin user", async () => {
+    const nonAdminRequest = {
+      auth: { uid: "user123", token: { role: "user" } },
+      data: { symbols: ["AAPL"] },
+    };
+
+    const callFn = () =>
+      (seedAgenticTrading as any).run(nonAdminRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+  });
+
+  test("seedAgenticTrading allows authenticated admin request", async () => {
+    const adminRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
       data: { symbols: ["AAPL"] },
     };
 
     const response = await (seedAgenticTrading as any).run(
-      authenticatedRequest
+      adminRequest
     );
     expect(response).toMatchObject({
       status: "success",
