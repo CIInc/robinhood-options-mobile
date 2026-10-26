@@ -13,6 +13,7 @@ on:
     # paths-ignore: ['README.md', 'src/ios/**', 'src/test/**', '.github/**']
     paths:
       - "src/robinhood_options_mobile/lib/**"
+      - "src/robinhood_options_mobile/test/**"
       - "src/robinhood_options_mobile/android/**"
       - "src/robinhood_options_mobile/ios/**"
       - "src/robinhood_options_mobile/pubspec.yaml"
