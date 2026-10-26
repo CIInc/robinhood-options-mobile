@@ -6,6 +6,7 @@
 - **[Price Targets](price-targets.md):** AI-driven price target recommendations with confidence scoring and rationale.
 - **[AI Devil's Advocate & Trade Thesis Stress Tester](devils-advocate.md):** Automated adversarial critique generating objective Bear vs. Bull counter-arguments, skew traps, and event hazards before entering trades.
 - **[Unified AI Conviction & Factor Alignment](unified-ai-conviction.md):** Synthesizes multi-factor quantitative models, options flow dynamics, and adversarial stress tests into a single institutional-grade conviction score (0-100).
+- **[Real-Time Stream Throttling & Battery Conservation](streaming-performance-and-battery.md):** High-frequency market data throttling (250ms leading/trailing), lifecycle pause/resume, and viewport-bounded stream subscriptions.
 - **[AI Trade Post-Mortem & Behavioral Journal Auto-Tagger](trade-post-mortem.md):** Automated diagnostic review upon position exit analyzing cognitive biases, execution flaws, and psychological antidotes with 1-tap emotion journal tagging.
 - Enhanced portfolio management with advanced analytics.
 - Simplified trading for beginners with guided workflows.

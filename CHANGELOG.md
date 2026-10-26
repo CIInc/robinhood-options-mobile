@@ -3,7 +3,14 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.59.0] - 2026-10-26
-**Unified AI Conviction, Risk Parity Rebalancing, Pin Risk & Wash Sale Compliance ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271), [#272](https://github.com/CIInc/robinhood-options-mobile/issues/272), [#277](https://github.com/CIInc/robinhood-options-mobile/issues/277))**
+**Unified AI Conviction, Stream Throttling & Battery Conservation, Risk Parity Rebalancing, Pin Risk & Wash Sale Compliance ([docs](docs/unified-ai-conviction.md), [docs](docs/streaming-performance-and-battery.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271), [#272](https://github.com/CIInc/robinhood-options-mobile/issues/272), [#277](https://github.com/CIInc/robinhood-options-mobile/issues/277))**
+
+- **Real-Time Stream Throttling, Memory Optimization & Battery Conservation ([docs](docs/streaming-performance-and-battery.md), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)):**
+  - **Key-Partitioned Stream Throttle Transformer**: Created `StreamThrottleTransformer<T>` and `.throttleLatest(...)` extension delivering immediate 0ms response on leading ticks and debouncing subsequent ticks to a configurable window (250ms default) partitioned by symbol to prevent cross-ticker starvation.
+  - **Schwab Streamer Throttled Channels**: Added `throttledEquityQuotes`, `throttledOptionQuotes`, `throttledFuturesQuotes`, and `throttledForexQuotes` to `SchwabStreamerService`.
+  - **App Lifecycle Pausing & Resuming**: Integrated `pauseAll()` and `resumeAll()` in `NavigationStatefulWidget` responding to `AppLifecycleState.paused` and `resumed`, sending remote `UNSUBS` to save battery/cellular bandwidth in background, and automatically resubscribing upon return to foreground.
+  - **Viewport-Bounded Stream Coordinator**: Implemented `ViewportStreamCoordinator` capping active streaming feeds to the visible viewport (max 15 items) and computing set differences ($\Delta_{\text{unsub}}$, $\Delta_{\text{sub}}$) to eliminate redundant network traffic during fast scrolling.
+  - **Automated Test Coverage**: Added unit tests in `test/stream_throttle_transformer_test.dart`, `test/schwab_streamer_service_lifecycle_test.dart`, and `test/viewport_stream_coordinator_test.dart`.
 
 - **Unified AI Conviction & Factor Alignment ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
   - **Deterministic Factor Alignment Engine**: Implemented `FactorAlignmentService` evaluating quantitative alignment across 5 core pillars: Trend & Moving Averages (25%), Momentum & Oscillators (25%), Volatility Compression / Squeeze (15%), Options Flow & GEX (20%), and Adversarial Resilience (15%).

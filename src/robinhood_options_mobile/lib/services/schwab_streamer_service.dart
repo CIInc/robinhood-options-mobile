@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/schwab_streamer_info.dart';
 import 'package:robinhood_options_mobile/model/schwab_streamer_models.dart';
+import 'package:robinhood_options_mobile/utils/stream_throttle_transformer.dart';
 
 abstract class IStreamerChannel {
   Stream<dynamic> get stream;
@@ -98,6 +99,48 @@ class SchwabStreamerService {
   Set<String> get subscribedFutures => Set.unmodifiable(_subscribedFutures);
   Set<String> get subscribedForex => Set.unmodifiable(_subscribedForex);
 
+  // Background paused subscriptions
+  bool _isPaused = false;
+  bool get isPaused => _isPaused;
+
+  final Set<String> _pausedEquities = <String>{};
+  final Set<String> _pausedOptions = <String>{};
+  final Set<String> _pausedAccounts = <String>{};
+  final Set<String> _pausedCharts = <String>{};
+  final Set<String> _pausedFutures = <String>{};
+  final Set<String> _pausedForex = <String>{};
+
+  Duration throttleWindow = const Duration(milliseconds: 250);
+
+  /// Throttled equity quotes rate-limited to [throttleWindow] (default 250ms)
+  /// to preserve UI frame rates and battery.
+  Stream<SchwabEquityQuoteUpdate> get throttledEquityQuotes =>
+      equityQuotes.throttleLatest(
+        throttleWindow,
+        keySelector: (q) => q.symbol,
+      );
+
+  /// Throttled options quotes rate-limited to [throttleWindow].
+  Stream<SchwabOptionQuoteUpdate> get throttledOptionQuotes =>
+      optionQuotes.throttleLatest(
+        throttleWindow,
+        keySelector: (q) => q.symbol,
+      );
+
+  /// Throttled futures quotes rate-limited to [throttleWindow].
+  Stream<SchwabFuturesQuoteUpdate> get throttledFuturesQuotes =>
+      futuresQuotes.throttleLatest(
+        throttleWindow,
+        keySelector: (q) => q.symbol,
+      );
+
+  /// Throttled forex quotes rate-limited to [throttleWindow].
+  Stream<SchwabForexQuoteUpdate> get throttledForexQuotes =>
+      forexQuotes.throttleLatest(
+        throttleWindow,
+        keySelector: (q) => q.symbol,
+      );
+
   int _requestIdCounter = 1;
   String _nextRequestId() => (_requestIdCounter++).toString();
 
@@ -110,12 +153,32 @@ class SchwabStreamerService {
   bool _disposed = false;
   bool _shouldReconnect = true;
 
+  static final List<SchwabStreamerService> _activeInstances = [];
+  static List<SchwabStreamerService> get activeInstances =>
+      List.unmodifiable(_activeInstances);
+
+  /// Pauses all currently active streamer instances across the application.
+  static void pauseAll() {
+    for (final instance in _activeInstances) {
+      instance.pauseStreaming();
+    }
+  }
+
+  /// Resumes all currently active streamer instances across the application.
+  static void resumeAll() {
+    for (final instance in _activeInstances) {
+      instance.resumeStreaming();
+    }
+  }
+
   SchwabStreamerService({
     required this.streamerInfo,
     required this.getAccessToken,
     StreamerChannelFactory? channelFactory,
   }) : channelFactory =
-            channelFactory ?? WebSocketStreamerChannel.defaultConnect;
+            channelFactory ?? WebSocketStreamerChannel.defaultConnect {
+    _activeInstances.add(this);
+  }
 
   void _setState(SchwabStreamerState newState) {
     if (_state != newState) {
@@ -246,6 +309,7 @@ class SchwabStreamerService {
   }
 
   void _handleDataPacket(Map<String, dynamic> packet) {
+    if (_isPaused) return;
     final service = packet['service'];
     final content = packet['content'];
 
@@ -493,6 +557,44 @@ class SchwabStreamerService {
     }
   }
 
+  void unsubscribeFutures(List<String> symbols) {
+    final filtered = symbols
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (filtered.isEmpty) return;
+
+    _subscribedFutures.removeAll(filtered);
+
+    if (_state == SchwabStreamerState.connected) {
+      _sendSubscription(
+        service: 'LEVELONE_FUTURES',
+        command: 'UNSUBS',
+        keys: filtered.join(','),
+        fields: '0',
+      );
+    }
+  }
+
+  void unsubscribeForex(List<String> pairs) {
+    final filtered = pairs
+        .map((s) => s.trim().toUpperCase())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (filtered.isEmpty) return;
+
+    _subscribedForex.removeAll(filtered);
+
+    if (_state == SchwabStreamerState.connected) {
+      _sendSubscription(
+        service: 'LEVELONE_FOREX',
+        command: 'UNSUBS',
+        keys: filtered.join(','),
+        fields: '0',
+      );
+    }
+  }
+
   void _sendSubscription({
     required String service,
     required String command,
@@ -613,6 +715,91 @@ class SchwabStreamerService {
     });
   }
 
+  /// Pauses active stream subscriptions to preserve battery and cellular data
+  /// when the application is backgrounded or in low-power state.
+  void pauseStreaming() {
+    if (_isPaused || _disposed) return;
+    _isPaused = true;
+
+    // Cache current subscriptions
+    _pausedEquities.addAll(_subscribedEquities);
+    _pausedOptions.addAll(_subscribedOptions);
+    _pausedAccounts.addAll(_subscribedAccounts);
+    _pausedCharts.addAll(_subscribedCharts);
+    _pausedFutures.addAll(_subscribedFutures);
+    _pausedForex.addAll(_subscribedForex);
+
+    // Unsubscribe from active feeds if currently connected
+    if (_state == SchwabStreamerState.connected) {
+      if (_subscribedEquities.isNotEmpty) {
+        _sendSubscription(
+          service: 'LEVELONE_EQUITIES',
+          command: 'UNSUBS',
+          keys: _subscribedEquities.join(','),
+          fields: '0',
+        );
+      }
+      if (_subscribedOptions.isNotEmpty) {
+        _sendSubscription(
+          service: 'LEVELONE_OPTIONS',
+          command: 'UNSUBS',
+          keys: _subscribedOptions.join(','),
+          fields: '0',
+        );
+      }
+      if (_subscribedFutures.isNotEmpty) {
+        _sendSubscription(
+          service: 'LEVELONE_FUTURES',
+          command: 'UNSUBS',
+          keys: _subscribedFutures.join(','),
+          fields: '0',
+        );
+      }
+      if (_subscribedForex.isNotEmpty) {
+        _sendSubscription(
+          service: 'LEVELONE_FOREX',
+          command: 'UNSUBS',
+          keys: _subscribedForex.join(','),
+          fields: '0',
+        );
+      }
+    }
+
+    _subscribedEquities.clear();
+    _subscribedOptions.clear();
+    _subscribedAccounts.clear();
+    _subscribedCharts.clear();
+    _subscribedFutures.clear();
+    _subscribedForex.clear();
+  }
+
+  /// Resumes previously paused stream subscriptions when the application returns
+  /// to the foreground.
+  void resumeStreaming() {
+    if (!_isPaused || _disposed) return;
+    _isPaused = false;
+
+    _subscribedEquities.addAll(_pausedEquities);
+    _subscribedOptions.addAll(_pausedOptions);
+    _subscribedAccounts.addAll(_pausedAccounts);
+    _subscribedCharts.addAll(_pausedCharts);
+    _subscribedFutures.addAll(_pausedFutures);
+    _subscribedForex.addAll(_pausedForex);
+
+    _pausedEquities.clear();
+    _pausedOptions.clear();
+    _pausedAccounts.clear();
+    _pausedCharts.clear();
+    _pausedFutures.clear();
+    _pausedForex.clear();
+
+    if (_state == SchwabStreamerState.connected) {
+      _resubscribeAll();
+    } else if (_state == SchwabStreamerState.disconnected && _shouldReconnect) {
+      connect();
+    }
+  }
+
   Future<void> disconnect() async {
     _shouldReconnect = false;
     _watchdogTimer?.cancel();
@@ -624,6 +811,7 @@ class SchwabStreamerService {
   }
 
   void dispose() {
+    _activeInstances.remove(this);
     _disposed = true;
     disconnect();
     _stateController.close();

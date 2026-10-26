@@ -35,6 +35,7 @@ import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_streamer_service.dart';
 import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/services/subscription_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
@@ -699,9 +700,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      SchwabStreamerService.resumeAll();
       _removeBadge();
       _authIfNeeded(); // Re-authenticate resume
     } else if (state == AppLifecycleState.paused) {
+      SchwabStreamerService.pauseAll();
       // Logic to require auth again if we want to be strict on resume
       // For now we rely on _authIfNeeded checking the variable,
       // but strictly we should set _isAuthenticated to false if we want re-auth on resume.
