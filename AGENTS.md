@@ -54,6 +54,12 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
    - Consolidate complex financial rows (options flow items, retirement projections, slippage cards, animated prices) into natural spoken screen-reader announcements using `Semantics` and `semanticsLabel`.
    - Maintain responsive layouts down to `320px`–`360px` viewports without `RenderFlex` overflows.
 
+7. **Zero Compile Errors & Strict Model Integrity**
+   - Always verify exact data model class names, enum values, and field types (e.g., `GammaExposureData` using `DealerPositioning`, `int signalStrength`, and `int updatedAt` millisecond timestamps).
+   - Verify all touched and referencing files with static analysis (`analyze_files` tool or `dart analyze`) to ensure zero compile errors, undefined types, or parameter type mismatches.
+   - Cloud Functions must build cleanly with TypeScript `tsc` and conform strictly to Google ESLint rules (`max-len <= 80`).
+
+
 ---
 
 ## 3. Build, Test & Verification Commands

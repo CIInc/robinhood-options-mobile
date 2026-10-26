@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.59.0] - 2026-10-26
+**Unified AI Conviction, Risk Parity Rebalancing, Pin Risk & Wash Sale Compliance ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271), [#272](https://github.com/CIInc/robinhood-options-mobile/issues/272), [#277](https://github.com/CIInc/robinhood-options-mobile/issues/277))**
+
+- **Unified AI Conviction & Factor Alignment ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Deterministic Factor Alignment Engine**: Implemented `FactorAlignmentService` evaluating quantitative alignment across 5 core pillars: Trend & Moving Averages (25%), Momentum & Oscillators (25%), Volatility Compression / Squeeze (15%), Options Flow & GEX (20%), and Adversarial Resilience (15%).
+  - **Adversarial Hazard Penalty Haircut**: Deducts stress penalty points dynamically based on identified Devil's Advocate skew traps, fragile resilience scores, and upcoming event hazards.
+  - **Cloud Function Synthesis (`generateUnifiedConviction`)**: Added callable Cloud Function in `functions/src/gemini.ts` powered by Gemini 3.1 Flash-Lite (with 2.5 Flash-Lite fallback), strict input validation, `request.auth` enforcement, and 24-hour Firestore caching (`ai_conviction/{symbol}_{direction}`).
+  - **Interactive UI & Order Ticket Integration**: Built `UnifiedConvictionWidget` featuring radial conviction gauges, 5-pillar breakdown bars, guidance advice, and 1-tap modal launch directly on stock (`TradeInstrumentWidget`) and option (`TradeOptionWidget`) order entry sheets.
+  - **Screen Reader Semantics**: Consolidated announcement detailing score, tier, stress haircut, and actionable trade guidance.
+  - **Automated Test Coverage**: Added unit and widget tests in `test/unified_conviction_model_test.dart`, `test/factor_alignment_service_test.dart`, `test/unified_conviction_widget_test.dart`, and `functions/tests/gemini.test.ts`.
+
 ## [0.58.3] - 2026-10-22
 **Feature Access, Validation, Performance & Accessibility Hardening**
 

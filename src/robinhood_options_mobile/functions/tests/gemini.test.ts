@@ -21,6 +21,7 @@ import {
   analyzePriceTargets,
   stressTestTradeThesis,
   analyzeTradePostMortem,
+  generateUnifiedConviction,
 } from "../src/gemini";
 
 describe("Gemini Cloud Functions Security Checks", () => {
@@ -146,6 +147,57 @@ describe("Gemini Cloud Functions Security Checks", () => {
       };
       process.env.GEMINI_API_KEY = "dummy-key";
       const callFn = () => (analyzeTradePostMortem as any).run(authReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+  });
+
+  describe("generateUnifiedConviction", () => {
+    test("rejects unauthenticated requests (null auth)", async () => {
+      const unauthReq = {
+        auth: null,
+        data: { symbol: "AAPL", direction: "Bullish" },
+      };
+      const callFn = () => (generateUnifiedConviction as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects unauthenticated requests (undefined auth)", async () => {
+      const unauthReq = {
+        data: { symbol: "AAPL" },
+      };
+      const callFn = () => (generateUnifiedConviction as any).run(unauthReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "unauthenticated",
+      });
+    });
+
+    test("rejects missing or invalid symbol when authenticated", async () => {
+      const authReq = {
+        auth: { uid: "test-user-123" },
+        data: { symbol: "INVALID$$$SYMBOL" },
+      };
+      process.env.GEMINI_API_KEY = "dummy-key";
+      const callFn = () => (generateUnifiedConviction as any).run(authReq);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    });
+
+    test("rejects non-positive currentPrice when authenticated", async () => {
+      const authReq = {
+        auth: { uid: "test-user-123" },
+        data: { symbol: "NVDA", currentPrice: -150.0 },
+      };
+      process.env.GEMINI_API_KEY = "dummy-key";
+      const callFn = () => (generateUnifiedConviction as any).run(authReq);
       await expect(callFn()).rejects.toThrow(HttpsError);
       await expect(callFn()).rejects.toMatchObject({
         code: "invalid-argument",

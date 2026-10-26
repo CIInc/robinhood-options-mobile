@@ -30,6 +30,7 @@ import 'package:robinhood_options_mobile/widgets/schwab_order_preview_card.dart'
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 import 'package:robinhood_options_mobile/widgets/tax_lot_selection_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/devils_advocate_widget.dart';
+import 'package:robinhood_options_mobile/widgets/unified_conviction_widget.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
@@ -430,6 +431,44 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUnifiedConvictionSheet() {
+    final symbol = widget.instrument?.symbol ?? '';
+    if (symbol.isEmpty) return;
+    GenerativeService? generativeService;
+    try {
+      generativeService =
+          Provider.of<GenerativeService?>(context, listen: false);
+    } catch (_) {}
+    final direction = positionType == "Sell" ? "Bearish" : "Bullish";
+    final price = widget.instrument?.quoteObj?.lastTradePrice;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: UnifiedConvictionWidget(
+              symbol: symbol,
+              generativeService: generativeService,
+              initialDirection: direction,
+              currentPrice: price,
+            ),
           ),
         ),
       ),
@@ -889,6 +928,14 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // AI Conviction & Factor Alignment
+          OutlinedButton.icon(
+            icon: const Icon(Icons.verified_outlined),
+            label: const Text("AI Conviction (Factor Alignment)"),
+            onPressed: _showUnifiedConvictionSheet,
+          ),
+          const SizedBox(height: 8),
 
           // Devil's Advocate Stress Test
           OutlinedButton.icon(

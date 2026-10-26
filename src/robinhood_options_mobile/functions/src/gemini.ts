@@ -700,4 +700,195 @@ export const analyzeTradePostMortem = https.onCall(
     };
   });
 
+export const generateUnifiedConviction = https.onCall(
+  { secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    if (!request.auth) {
+      throw new https.HttpsError(
+        "unauthenticated",
+        "Authentication is required to generate unified conviction.",
+      );
+    }
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError(
+        "unavailable", "GEMINI_API_KEY not found.");
+    }
+    const symbol = request.data.symbol;
+    if (!symbol || typeof symbol !== "string" ||
+        !/^[A-Za-z0-9.]{1,10}$/.test(symbol.trim())) {
+      throw new https.HttpsError(
+        "invalid-argument",
+        "The function must be called with a valid 'symbol' argument.");
+    }
+    const cleanSymbol = symbol.trim().toUpperCase();
+    const direction = (request.data.direction || "Bullish").trim();
+    const currentPrice = request.data.currentPrice != null ?
+      Number(request.data.currentPrice) : null;
+    if (currentPrice != null &&
+        (!Number.isFinite(currentPrice) || currentPrice <= 0)) {
+      throw new https.HttpsError(
+        "invalid-argument",
+        "The 'currentPrice' must be a positive finite number.",
+      );
+    }
+    const factorScores = request.data.factorScores || {};
 
+    const cacheKey = `${cleanSymbol}_${direction.toLowerCase()}`;
+    const db = getFirestore();
+    const docRef = db.collection("ai_conviction").doc(cacheKey);
+    const doc = await docRef.get();
+
+    if (doc.exists) {
+      const data = doc.data();
+      if (data && data.last_updated) {
+        const lastUpdated = new Date(data.last_updated);
+        const now = new Date();
+        const diffHours =
+          Math.abs(now.getTime() - lastUpdated.getTime()) / 36e5;
+        if (diffHours < 24) {
+          logger.info(`Returning cached conviction for ${cacheKey}`);
+          return {
+            candidates: [{
+              content: {
+                parts: [{
+                  text: JSON.stringify(data),
+                }],
+              },
+            }],
+          };
+        }
+      }
+    }
+
+    const priceContext = currentPrice ?
+      ` Reference spot price: $${currentPrice.toFixed(2)}.` : "";
+    const factorsContext = Object.keys(factorScores).length > 0 ?
+      ` Quantitative factor signals: ${JSON.stringify(factorScores)}.` : "";
+
+    const prompt = `
+    You are an institutional Chief Investment Officer and quantitative factor
+    synthesizer for RealizeAlpha.
+    Your mission is to formulate a high-conviction trade rating and factor
+    alignment synthesis for ${cleanSymbol} with a ${direction} bias.
+    ${priceContext}${factorsContext}
+
+    Synthesize across 5 pillars:
+    1. Trend & Moving Averages
+    2. Momentum & Oscillators
+    3. Volatility Compression / Squeeze
+    4. Options Flow & Gamma Exposure (GEX)
+    5. Adversarial Resilience (Devil's Advocate stress haircut)
+
+    Return a valid JSON object matching this schema:
+    {
+      "symbol": "${cleanSymbol}",
+      "direction": "${direction}",
+      "conviction_score": number,
+      "conviction_tier": "VERY_HIGH" | "HIGH" | "MODERATE" |
+        "LOW" | "CONFLICTED",
+      "pillar_scores": [
+        {
+          "key": "trend",
+          "label": "Trend & Moving Avgs",
+          "score": number,
+          "weight": 0.25,
+          "status": "Bullish" | "Bearish" | "Neutral"
+        },
+        {
+          "key": "momentum",
+          "label": "Momentum & Oscillators",
+          "score": number,
+          "weight": 0.25,
+          "status": "Bullish" | "Bearish" | "Neutral"
+        },
+        {
+          "key": "volatility",
+          "label": "Volatility & Squeeze",
+          "score": number,
+          "weight": 0.15,
+          "status": "Bullish" | "Bearish" | "Neutral"
+        },
+        {
+          "key": "flow_gex",
+          "label": "Options Flow & GEX",
+          "score": number,
+          "weight": 0.20,
+          "status": "Bullish" | "Bearish" | "Neutral"
+        },
+        {
+          "key": "resilience",
+          "label": "Adversarial Resilience",
+          "score": number,
+          "weight": 0.15,
+          "status": "Bullish" | "Bearish" | "Neutral"
+        }
+      ],
+      "stress_penalty": number,
+      "key_catalysts": string[],
+      "primary_risks": string[],
+      "actionable_guidance": string,
+      "summary": string,
+      "last_updated": string
+    }
+    Do not include markdown code blocks. Just the raw JSON.
+    `;
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+    const primaryModel = process.env.AI_MODEL_NAME || "gemini-3.1-flash-lite";
+
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: primaryModel,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          maxOutputTokens: 1400,
+          temperature: 0.2,
+        },
+      });
+    } catch (modelErr) {
+      if (primaryModel !== "gemini-2.5-flash-lite") {
+        logger.warn(
+          `Model ${primaryModel} failed in generateUnifiedConviction, ` +
+          "falling back to gemini-2.5-flash-lite",
+          modelErr,
+        );
+        response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-lite",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            maxOutputTokens: 1400,
+            temperature: 0.2,
+          },
+        });
+      } else {
+        throw modelErr;
+      }
+    }
+
+    const textContent = response.text ||
+      response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (textContent) {
+      try {
+        let text = textContent;
+        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+        const json = JSON.parse(text);
+        json.last_updated = new Date().toISOString();
+        await docRef.set(json);
+      } catch (e) {
+        logger.error("Failed to parse or save conviction AI response", e);
+      }
+    }
+
+    return {
+      candidates: response.candidates,
+      text: response.text,
+      modelVersion: response.modelVersion,
+    };
+  });

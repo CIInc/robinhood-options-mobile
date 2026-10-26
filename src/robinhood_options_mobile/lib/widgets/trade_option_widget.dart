@@ -30,6 +30,7 @@ import 'package:robinhood_options_mobile/services/risk_circuit_breaker_service.d
 import 'package:robinhood_options_mobile/widgets/schwab_order_preview_card.dart';
 import 'package:robinhood_options_mobile/widgets/slide_to_confirm_widget.dart';
 import 'package:robinhood_options_mobile/widgets/devils_advocate_widget.dart';
+import 'package:robinhood_options_mobile/widgets/unified_conviction_widget.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 
 class TradeOptionWidget extends StatefulWidget {
@@ -369,6 +370,47 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUnifiedConvictionSheet() {
+    final symbol = widget.optionInstrument?.chainSymbol ?? '';
+    if (symbol.isEmpty) return;
+    GenerativeService? generativeService;
+    try {
+      generativeService =
+          Provider.of<GenerativeService?>(context, listen: false);
+    } catch (_) {}
+    final isCall = widget.optionInstrument?.type.toLowerCase() == 'call';
+    final isBuy = positionType == 'Buy';
+    final direction =
+        (isCall && isBuy) || (!isCall && !isBuy) ? 'Bullish' : 'Bearish';
+    final price = widget.optionInstrument?.strikePrice;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: UnifiedConvictionWidget(
+              symbol: symbol,
+              generativeService: generativeService,
+              initialDirection: direction,
+              currentPrice: price,
+            ),
           ),
         ),
       ),
@@ -961,6 +1003,14 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // AI Conviction & Factor Alignment
+          OutlinedButton.icon(
+            icon: const Icon(Icons.verified_outlined),
+            label: const Text("AI Conviction (Factor Alignment)"),
+            onPressed: _showUnifiedConvictionSheet,
+          ),
+          const SizedBox(height: 8),
 
           // Devil's Advocate Stress Test
           OutlinedButton.icon(
