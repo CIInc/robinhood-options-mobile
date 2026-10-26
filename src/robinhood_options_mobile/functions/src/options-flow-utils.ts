@@ -117,6 +117,9 @@ const CACHE_CONFIG = {
 
 /**
  * Checks whether an options chain has open-interest depth on both sides.
+ * Performance optimization: Sums call and put open interest in-place via
+ * direct nested loops, eliminating intermediate array allocations from
+ * `.flatMap().reduce()`.
  * @param {YahooOptionsResult | null} result Options-chain result.
  * @return {boolean} Whether the chain can support structural GEX levels.
  */
@@ -124,10 +127,25 @@ export function hasUsableOptionsOpenInterest(
   result: YahooOptionsResult | null
 ): boolean {
   const options = result?.options || [];
-  const callOpenInterest = options.flatMap((item) => item.calls || [])
-    .reduce((sum, option) => sum + (option.openInterest || 0), 0);
-  const putOpenInterest = options.flatMap((item) => item.puts || [])
-    .reduce((sum, option) => sum + (option.openInterest || 0), 0);
+  let callOpenInterest = 0;
+  let putOpenInterest = 0;
+
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    const calls = opt.calls;
+    if (calls) {
+      for (let j = 0; j < calls.length; j++) {
+        callOpenInterest += calls[j].openInterest || 0;
+      }
+    }
+    const puts = opt.puts;
+    if (puts) {
+      for (let j = 0; j < puts.length; j++) {
+        putOpenInterest += puts[j].openInterest || 0;
+      }
+    }
+  }
+
   return callOpenInterest > 0 && putOpenInterest > 0;
 }
 

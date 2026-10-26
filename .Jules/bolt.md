@@ -65,3 +65,7 @@
 ## 2026-04-03 - Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
+
+## 2026-04-03 - Direct Scalar Net GEX and Loop-Based Open Interest Evaluation
+**Learning:** `computeTotalNetGexAtSpot` in `gamma-exposure.ts` delegated to `computeGEXByStrike` 4 times per evaluation bar for spot price sensitivity checks (-2%, -1%, +1%, +2%), instantiating 40+ transient Map objects, allocating hundreds of `GexStrikeLevel` objects, and performing 40 array sorts per call. Similarly, `hasUsableOptionsOpenInterest` allocated intermediate arrays via `.flatMap().reduce()`.
+**Action:** Refactor `computeTotalNetGexAtSpot` to compute scalar net GEX directly over call and put options in O(N) time and O(1) space, and replace `.flatMap().reduce()` in `hasUsableOptionsOpenInterest` with direct index loops.
