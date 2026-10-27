@@ -65,3 +65,7 @@
 ## 2026-04-03 - Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
+
+## 2026-04-03 - Zero-Allocation Scalar GEX Spot-Shift Stress Testing
+**Learning:** `computeTotalNetGexAtSpot` in Gamma Exposure analysis called `computeGEXByStrike` for every expiration across 4 spot-shift sensitivity evaluations (-2%, -1%, +1%, +2%). Each call allocated strike Maps, built `GexStrikeLevel` array objects, and sorted strike level arrays—even though spot-shifting sensitivity only requires scalar total net GEX.
+**Action:** Compute scalar option GEX directly in `computeTotalNetGexAtSpot` via lightweight `computeOptionGEX` accumulator helper, and bypass array cloning/sorting in `computeGammaFlipLevel`/`findFlipStrikes` when strike levels are already sorted.

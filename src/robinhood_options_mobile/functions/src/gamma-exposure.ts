@@ -262,8 +262,25 @@ export function aggregateGEXByStrike(
 }
 
 /**
+ * Fast-path helper to ensure an array of strike levels is sorted by strike.
+ * Avoids cloning/sorting when the array is already sorted.
+ * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
+ * @return {GexStrikeLevel[]} Sorted array.
+ */
+function ensureSortedByStrike(gexByStrike: GexStrikeLevel[]): GexStrikeLevel[] {
+  for (let i = 1; i < gexByStrike.length; i++) {
+    if (gexByStrike[i].strike < gexByStrike[i - 1].strike) {
+      return [...gexByStrike].sort((a, b) => a.strike - b.strike);
+    }
+  }
+  return gexByStrike;
+}
+
+/**
  * Find the gamma flip point — the strike where cumulative GEX
  * transitions from positive to negative (or vice versa) nearest to spot price.
+ * Performance optimization: Bypasses array cloning and sorting when
+ * `gexByStrike` is already sorted by strike from `aggregateGEXByStrike`.
  * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
  * @param {number} spotPrice - Spot price.
  * @return {number | null} Gamma flip level.
@@ -274,8 +291,7 @@ export function computeGammaFlipLevel(
 ): number | null {
   if (gexByStrike.length < 2) return null;
 
-  // Sort by strike and look for sign change in netGEX
-  const sorted = [...gexByStrike].sort((a, b) => a.strike - b.strike);
+  const sorted = ensureSortedByStrike(gexByStrike);
 
   // Find strikes closest to spot price where sign changes
   let flipStrike: number | null = null;
@@ -305,12 +321,14 @@ export function computeGammaFlipLevel(
 
 /**
  * Find all strike levels where GEX transitions between positive and negative.
+ * Performance optimization: Bypasses array cloning and sorting when
+ * `gexByStrike` is already sorted by strike from `aggregateGEXByStrike`.
  * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
  * @return {number[]} Array of transition strikes.
  */
 function findFlipStrikes(gexByStrike: GexStrikeLevel[]): number[] {
   if (gexByStrike.length < 2) return [];
-  const sorted = [...gexByStrike].sort((a, b) => a.strike - b.strike);
+  const sorted = ensureSortedByStrike(gexByStrike);
   const flips: number[] = [];
 
   for (let i = 1; i < sorted.length; i++) {
@@ -330,6 +348,7 @@ function findFlipStrikes(gexByStrike: GexStrikeLevel[]): number[] {
 
 /**
  * Find the strike with the highest absolute net GEX (strongest gravity well).
+ * Performance optimization: Uses index loop to eliminate closure allocation.
  * @param {GexStrikeLevel[]} gexByStrike - GEX levels.
  * @return {number | null} Strike with highest absolute net GEX.
  */
@@ -337,40 +356,110 @@ export function findMaxGammaStrike(
   gexByStrike: GexStrikeLevel[]
 ): number | null {
   if (gexByStrike.length === 0) return null;
-  return gexByStrike.reduce((maxLevel, level) =>
-    Math.abs(level.netGEX) > Math.abs(maxLevel.netGEX) ? level : maxLevel
-  ).strike;
+  let maxLevel = gexByStrike[0];
+  let maxAbsGEX = Math.abs(maxLevel.netGEX);
+  for (let i = 1; i < gexByStrike.length; i++) {
+    const absGEX = Math.abs(gexByStrike[i].netGEX);
+    if (absGEX > maxAbsGEX) {
+      maxAbsGEX = absGEX;
+      maxLevel = gexByStrike[i];
+    }
+  }
+  return maxLevel.strike;
+}
+
+/**
+ * Compute dollar GEX for an option contract without allocating strike levels.
+ * Safely parses Date objects, timestamps, or date strings.
+ * @param {object} opt - Option contract object.
+ * @param {Date} [defaultExpiration] - Fallback expiration date from chain.
+ * @param {number} now - Current timestamp in ms.
+ * @param {number} spotPrice - Spot price.
+ * @param {number} riskFreeRate - Risk-free rate.
+ * @return {number} Scaled GEX for option.
+ */
+function computeOptionGEX(
+  opt: {
+    strike: number;
+    impliedVolatility?: number;
+    openInterest?: number;
+    expiration?: Date | number | string;
+  },
+  defaultExpiration: Date | undefined,
+  now: number,
+  spotPrice: number,
+  riskFreeRate: number
+): number {
+  const strike = opt.strike;
+  if (!strike || strike <= 0) return 0;
+
+  const rawExp = opt.expiration ?? defaultExpiration;
+  let expirationMs: number | null = null;
+
+  if (rawExp) {
+    if (rawExp instanceof Date) {
+      expirationMs = rawExp.getTime();
+    } else if (typeof rawExp === "number") {
+      expirationMs = rawExp;
+    } else if (typeof rawExp === "string") {
+      const parsed = Date.parse(rawExp);
+      expirationMs = Number.isFinite(parsed) ? parsed : null;
+    }
+  }
+
+  const T = expirationMs ?
+    Math.max((expirationMs - now) / (365 * 24 * 60 * 60 * 1000), 0.001) :
+    0.05;
+
+  const sigma = opt.impliedVolatility || 0;
+  const effectiveSigma = sigma > 0 ? sigma : 0.3;
+
+  const gamma = computeBlackScholesGamma(
+    spotPrice, strike, T, riskFreeRate, effectiveSigma
+  );
+  const oi = opt.openInterest || 0;
+
+  return scaleGammaExposure(gamma, oi, spotPrice);
 }
 
 /**
  * Helper to compute total Net GEX at a specific hypothetical spot price.
+ * Performance optimization: Computes scalar total net GEX directly across
+ * calls and puts without allocating temporary Map objects, GexStrikeLevel
+ * array objects, or sorting arrays for every expiration during spot-shifting
+ * stress tests.
  * @param {any} optionsChain - Options chain object.
  * @param {number} spotPrice - Spot price to evaluate at.
  * @param {number} riskFreeRate - Risk-free interest rate.
  * @return {number} The computed GEX value.
  */
 function computeTotalNetGexAtSpot(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   optionsChain: any,
   spotPrice: number,
   riskFreeRate: number
 ): number {
+  if (!spotPrice || spotPrice <= 0) return 0;
+  const now = Date.now();
   let totalCallGEX = 0;
   let totalPutGEX = 0;
+
   for (const expiration of optionsChain.options || []) {
-    const levels = computeGEXByStrike(
-      {
-        calls: expiration.calls || [],
-        puts: expiration.puts || [],
-        expirationDate: expiration.expirationDate,
-      },
-      spotPrice,
-      riskFreeRate
-    );
-    for (const level of levels) {
-      totalCallGEX += level.callGEX;
-      totalPutGEX += level.putGEX;
+    const defaultExpiration = expiration.expirationDate;
+
+    for (const call of expiration.calls || []) {
+      totalCallGEX += computeOptionGEX(
+        call, defaultExpiration, now, spotPrice, riskFreeRate
+      );
+    }
+
+    for (const put of expiration.puts || []) {
+      totalPutGEX += computeOptionGEX(
+        put, defaultExpiration, now, spotPrice, riskFreeRate
+      );
     }
   }
+
   return totalCallGEX - totalPutGEX;
 }
 
