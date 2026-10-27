@@ -516,27 +516,41 @@ class _PortfolioGreeksCardState extends State<PortfolioGreeksCard> {
     final color = deltaShares > 0
         ? Colors.green
         : (deltaShares < 0 ? theme.colorScheme.error : null);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
-          Text(label, style: theme.textTheme.labelSmall),
-          const SizedBox(width: 4),
-          Text(
-            '${deltaShares >= 0 ? '+' : ''}${deltaShares.toStringAsFixed(1)} Δ',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+    final formattedDelta =
+        '${deltaShares >= 0 ? '+' : ''}${deltaShares.toStringAsFixed(1)}';
+    final tooltipText =
+        '$label delta contribution: $formattedDelta $_selectedBenchmark shares';
+    final semanticsText = '$label: $formattedDelta delta shares';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticsText,
+      child: Tooltip(
+        message: tooltipText,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(6),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: theme.colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(label, style: theme.textTheme.labelSmall),
+              const SizedBox(width: 4),
+              Text(
+                '$formattedDelta Δ',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
