@@ -99,7 +99,9 @@ void main() async {
   }
 
   if (!kIsWeb) {
-    await GoogleSignIn.instance.initialize();
+    await GoogleSignIn.instance.initialize(
+      serverClientId: Constants.googleServerClientId,
+    );
   }
 
   await RemoteConfigService.initialize();

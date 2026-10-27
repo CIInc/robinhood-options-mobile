@@ -44,6 +44,9 @@ class Constants {
   static const String deepLinkScheme = 'realizealpha://';
   static const String initialLinkLoginCallback =
       '${deepLinkScheme}login-callback\\?(\\?)?code=';
+  // Google Sign-In Web / Server Client ID (from google-services.json client_type: 3)
+  static const String googleServerClientId =
+      '409452439863-tdgrupu6hbncnppfkovb6jqq2a1idumi.apps.googleusercontent.com';
   // Other constants
   static const String preferencesUserKey = 'user.json';
   static const flexibleSpaceBarBackground =
