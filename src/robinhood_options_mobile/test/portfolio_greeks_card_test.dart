@@ -188,6 +188,16 @@ void main() {
       expect(find.text('Stocks'), findsOneWidget);
       expect(find.text('Options'), findsOneWidget);
 
+      // Verify semantics and tooltip on asset class chips
+      expect(
+        find.bySemanticsLabel(RegExp(r'Stocks: .* delta shares')),
+        findsOneWidget,
+      );
+      expect(
+        find.byTooltip(RegExp(r'Stocks delta contribution: .* SPY shares')),
+        findsOneWidget,
+      );
+
       // Check Top Delta Drivers
       expect(find.text('Top Delta Drivers'), findsOneWidget);
       expect(find.text('AAPL'), findsOneWidget);
