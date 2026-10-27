@@ -52,6 +52,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   var passCtl = TextEditingController();
   var smsCtl = TextEditingController();
   var mfaCtl = TextEditingController();
+  var apiKeyCtl = TextEditingController();
 
   final clipboardContentStream = StreamController<String>.broadcast();
   Timer? clipboardTriggerTime;
@@ -87,6 +88,13 @@ class _LoginWidgetState extends State<LoginWidget> {
       'label': 'Robinhood',
       'subtitle': 'Live login',
       'icon': Icons.account_balance_wallet_rounded,
+      'accent': Color(0xFF00C805),
+    },
+    {
+      'source': BrokerageSource.robinhoodCrypto,
+      'label': 'RH Crypto',
+      'subtitle': 'Crypto API',
+      'icon': Icons.currency_bitcoin_rounded,
       'accent': Color(0xFF00C805),
     },
     {
@@ -206,6 +214,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
     _stopMonitoringClipboard();
     _promptPollTimer?.cancel();
+    apiKeyCtl.dispose();
 
     // _streamEvent?.cancel();
     // _streamExit?.cancel();
@@ -788,6 +797,59 @@ class _LoginWidgetState extends State<LoginWidget> {
                       ],
                       const SizedBox(height: 24),
                       action,
+                    ] else if (source == BrokerageSource.robinhoodCrypto) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00C805)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.currency_bitcoin,
+                                color: Color(0xFF00C805), size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Robinhood Crypto',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: apiKeyCtl,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'API Key',
+                          hintText: 'Enter your Robinhood Crypto API key',
+                          prefixIcon: const Icon(Icons.key_outlined),
+                          filled: true,
+                          fillColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerLowest,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant)),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                        style: const TextStyle(fontSize: 16.0),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Create your API key at robinhood.com/us/en/support/articles/crypto-api/',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      action,
                     ] else if (source == BrokerageSource.schwab) ...[
                       Row(
                         children: [
@@ -1099,6 +1161,31 @@ class _LoginWidgetState extends State<LoginWidget> {
         if (mounted) {
           Navigator.pop(context, user);
         }
+      }
+    } else if (source == BrokerageSource.robinhoodCrypto) {
+      if (apiKeyCtl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Please enter your Robinhood Crypto API key'),
+            behavior: SnackBarBehavior.floating,
+          ));
+        return;
+      }
+      var user = BrokerageUser(
+        source,
+        'Crypto Account',
+        null,
+        null,
+        apiKey: apiKeyCtl.text.trim(),
+      );
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+      widget.analytics.logLogin(loginMethod: 'Robinhood Crypto');
+      if (mounted) {
+        Navigator.pop(context, user);
       }
     } else if (source == BrokerageSource.fidelity) {
       var user = BrokerageUser(source, "Fidelity Manual", null, null);

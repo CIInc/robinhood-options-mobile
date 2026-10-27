@@ -309,6 +309,7 @@ void main() {
       '{"accessToken":"private-access-token"}',
       null,
       secureCredentialsKey: 'local-key-reference',
+      apiKey: 'private-crypto-api-key',
     );
     final user = User(
       devices: [],
@@ -320,10 +321,31 @@ void main() {
         (user.toJson()['brokerageUsers'] as List).single as Map;
     expect(persistedBrokerageUser.containsKey('credentials'), isFalse);
     expect(persistedBrokerageUser.containsKey('secureCredentialsKey'), isFalse);
+    expect(persistedBrokerageUser.containsKey('apiKey'), isFalse);
     expect(
       jsonEncode(persistedBrokerageUser),
       isNot(contains('private-access-token')),
     );
+    expect(
+      jsonEncode(persistedBrokerageUser),
+      isNot(contains('private-crypto-api-key')),
+    );
+  });
+
+  test('Robinhood Crypto API keys persist in the local brokerage user cache',
+      () {
+    final brokerageUser = BrokerageUser(
+      BrokerageSource.robinhoodCrypto,
+      'crypto-account',
+      null,
+      null,
+      apiKey: 'crypto-api-key',
+    );
+
+    final reloadedUser = BrokerageUser.fromJson(brokerageUser.toJson());
+
+    expect(reloadedUser.source, BrokerageSource.robinhoodCrypto);
+    expect(reloadedUser.apiKey, 'crypto-api-key');
   });
 }
 

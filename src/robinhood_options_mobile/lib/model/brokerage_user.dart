@@ -28,6 +28,7 @@ class BrokerageUser {
   Future<void> _pendingCredentialWrite = Future<void>.value();
   bool _credentialsDeleted = false;
   oauth2.Client? oauth2Client;
+  String? apiKey;
   // bool defaultUser = true;
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
@@ -40,6 +41,7 @@ class BrokerageUser {
 
   BrokerageUser(this.source, this.userName, this.credentials, this.oauth2Client,
       {this.accounts = const [],
+      this.apiKey,
       String? secureCredentialsKey,
       SecureTokenStorage? secureTokenStorage})
       : secureCredentialsKey = secureCredentialsKey ?? const Uuid().v4(),
@@ -51,6 +53,7 @@ class BrokerageUser {
       : source = _parseSource(json['source']),
         userName = json['userName'],
         credentials = json['credentials'],
+        apiKey = json['apiKey'],
         secureCredentialsKey =
             json['secureCredentialsKey'] as String? ?? const Uuid().v4(),
         _secureTokenStorage =
@@ -100,6 +103,8 @@ class BrokerageUser {
           return BrokerageSource.demo;
         case 'paper':
           return BrokerageSource.paper;
+        case 'robinhoodcrypto':
+          return BrokerageSource.robinhoodCrypto;
       }
     }
     if (raw is int) {
@@ -113,6 +118,7 @@ class BrokerageUser {
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
         'userName': userName,
+        'apiKey': apiKey,
         if (credentials != null && credentials!.isNotEmpty)
           'secureCredentialsKey': secureCredentialsKey,
         'refreshEnabled': refreshEnabled,
@@ -126,7 +132,9 @@ class BrokerageUser {
       };
 
   Map<String, dynamic> toFirestoreJson() {
-    final json = toJson()..remove('secureCredentialsKey');
+    final json = toJson()
+      ..remove('secureCredentialsKey')
+      ..remove('apiKey');
     return json;
   }
 
