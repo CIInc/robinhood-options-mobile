@@ -21,6 +21,15 @@ export const syncInstrumentOrders = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "orders must be an array.");
   }
 
+  // SECURITY: Cap maximum batch length to prevent DoS / memory exhaustion
+  const MAX_ORDERS_PER_SYNC = 5000;
+  if (orders.length > MAX_ORDERS_PER_SYNC) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Exceeded max orders limit (${MAX_ORDERS_PER_SYNC}).`
+    );
+  }
+
   const orderCollection = db.collection("user").doc(uid)
     .collection("instrumentOrder");
   let written = 0;

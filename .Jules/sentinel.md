@@ -1,3 +1,8 @@
+## 2025-03-19 - Missing Input Array Length Bounds on Order Synchronization Callable
+**Vulnerability:** `syncInstrumentOrders` in `instrument-order-sync.ts` accepted `request.data.orders` array without enforcing a maximum element limit. An authenticated user could supply an arbitrarily large array (e.g. hundreds of thousands of order objects), leading to excessive memory allocation, repeated Firestore batch iterations, function timeout, and potential Denial of Service (DoS) / Denial of Wallet.
+**Learning:** Callable functions performing batch Firestore updates over incoming array payloads must set explicit upper bounds on array length (`orders.length <= 5000`) to cap compute and memory usage per invocation.
+**Prevention:** Always enforce a hard maximum count constant (`MAX_ORDERS_PER_SYNC = 5000`) on array parameters before processing batch document writes in Cloud Functions.
+
 ## 2025-03-18 - Missing Input Array Bounds and Object Type Validation on Heavy Analysis Callable
 **Vulnerability:** `discoverAlphaFactors` in `alpha-factor-discovery.ts` was an `onCall` Cloud Function with 512MiB memory and 300s timeout that accepted `request.data.factors` and `request.data.symbols` without bounds checking or array validation. Passing non-array values caused unhandled `TypeError` exceptions, while passing arbitrarily large arrays caused CPU/Memory exhaustion and Denial of Service (DoS) / Denial of Wallet.
 **Learning:** High-memory computation functions accepting complex nested arrays must strictly validate array types (`Array.isArray`), non-emptiness, and cap element limits (e.g. `factors.length <= 50`, `symbols.length <= 50`).
