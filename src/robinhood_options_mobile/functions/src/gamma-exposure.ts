@@ -274,10 +274,18 @@ export function computeGammaFlipLevel(
 ): number | null {
   if (gexByStrike.length < 2) return null;
 
-  // Sort by strike and look for sign change in netGEX
-  const sorted = [...gexByStrike].sort((a, b) => a.strike - b.strike);
+  // Defensive check: Only clone and sort if not already in sorted order
+  let isSorted = true;
+  for (let i = 1; i < gexByStrike.length; i++) {
+    if (gexByStrike[i].strike < gexByStrike[i - 1].strike) {
+      isSorted = false;
+      break;
+    }
+  }
+  const sorted = isSorted ?
+    gexByStrike :
+    [...gexByStrike].sort((a, b) => a.strike - b.strike);
 
-  // Find strikes closest to spot price where sign changes
   let flipStrike: number | null = null;
   let closestDistance = Infinity;
 
@@ -310,7 +318,18 @@ export function computeGammaFlipLevel(
  */
 function findFlipStrikes(gexByStrike: GexStrikeLevel[]): number[] {
   if (gexByStrike.length < 2) return [];
-  const sorted = [...gexByStrike].sort((a, b) => a.strike - b.strike);
+
+  let isSorted = true;
+  for (let i = 1; i < gexByStrike.length; i++) {
+    if (gexByStrike[i].strike < gexByStrike[i - 1].strike) {
+      isSorted = false;
+      break;
+    }
+  }
+  const sorted = isSorted ?
+    gexByStrike :
+    [...gexByStrike].sort((a, b) => a.strike - b.strike);
+
   const flips: number[] = [];
 
   for (let i = 1; i < sorted.length; i++) {
@@ -344,6 +363,9 @@ export function findMaxGammaStrike(
 
 /**
  * Helper to compute total Net GEX at a specific hypothetical spot price.
+ * Performance Optimization: Directly computes net GEX scalar sum across
+ * options contracts without instantiating strike Map objects, per-strike
+ * level records, or array sorting.
  * @param {any} optionsChain - Options chain object.
  * @param {number} spotPrice - Spot price to evaluate at.
  * @param {number} riskFreeRate - Risk-free interest rate.
@@ -354,24 +376,58 @@ function computeTotalNetGexAtSpot(
   spotPrice: number,
   riskFreeRate: number
 ): number {
-  let totalCallGEX = 0;
-  let totalPutGEX = 0;
-  for (const expiration of optionsChain.options || []) {
-    const levels = computeGEXByStrike(
-      {
-        calls: expiration.calls || [],
-        puts: expiration.puts || [],
-        expirationDate: expiration.expirationDate,
-      },
-      spotPrice,
-      riskFreeRate
-    );
-    for (const level of levels) {
-      totalCallGEX += level.callGEX;
-      totalPutGEX += level.putGEX;
+  if (!spotPrice || spotPrice <= 0 || !optionsChain?.options) return 0;
+
+  const now = Date.now();
+  let totalNetGEX = 0;
+
+  for (const expiration of optionsChain.options) {
+    const defaultExp = expiration.expirationDate;
+
+    for (const side of ["calls", "puts"] as const) {
+      const opts = expiration[side];
+      if (!opts) continue;
+      const isCall = side === "calls";
+
+      for (let i = 0; i < opts.length; i++) {
+        const opt = opts[i];
+        const strike = opt.strike;
+        if (!strike || strike <= 0) continue;
+
+        let expirationMs: number | null = null;
+        const rawExp = opt.expiration ?? defaultExp;
+        if (rawExp) {
+          expirationMs = rawExp instanceof Date ?
+            rawExp.getTime() :
+            (typeof rawExp === "number" ?
+              rawExp :
+              new Date(rawExp as string).getTime());
+        }
+        const T = expirationMs && !isNaN(expirationMs) ?
+          Math.max((expirationMs - now) / (365 * 24 * 60 * 60 * 1000), 0.001) :
+          0.05;
+
+        const sigma = opt.impliedVolatility || 0;
+        const effectiveSigma = sigma > 0 ? sigma : 0.3;
+
+        const gamma = computeBlackScholesGamma(
+          spotPrice, strike, T, riskFreeRate, effectiveSigma
+        );
+        const oi = opt.openInterest || 0;
+
+        if (gamma > 0 && oi > 0) {
+          const dollarGex = scaleGammaExposure(gamma, oi, spotPrice);
+          if (isCall) {
+            totalNetGEX += dollarGex;
+          } else {
+            totalNetGEX -= dollarGex;
+          }
+        }
+      }
     }
   }
-  return totalCallGEX - totalPutGEX;
+
+  return totalNetGEX;
 }
 
 /**
