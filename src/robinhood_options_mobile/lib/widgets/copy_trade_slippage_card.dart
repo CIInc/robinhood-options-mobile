@@ -187,41 +187,47 @@ class CopyTradeSlippageCard extends StatelessWidget {
             // Return Divergence Banner (if paired data available)
             if (summary.netReturnDivergencePct != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: (summary.netReturnDivergencePct! >= 0
-                          ? Colors.green
-                          : Colors.red)
-                      .withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
+              Semantics(
+                container: true,
+                excludeSemantics: true,
+                label:
+                    'Net Return Divergence vs Leader: ${summary.netReturnDivergencePct! >= 0 ? "+" : ""}${(summary.netReturnDivergencePct! * 100).toStringAsFixed(2)}%',
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
                     color: (summary.netReturnDivergencePct! >= 0
                             ? Colors.green
                             : Colors.red)
-                        .withAlpha(80),
+                        .withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: (summary.netReturnDivergencePct! >= 0
+                              ? Colors.green
+                              : Colors.red)
+                          .withAlpha(80),
+                    ),
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Net Return Divergence vs Leader:',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Net Return Divergence vs Leader:',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${summary.netReturnDivergencePct! >= 0 ? "+" : ""}${(summary.netReturnDivergencePct! * 100).toStringAsFixed(2)}%',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: summary.netReturnDivergencePct! >= 0
-                            ? Colors.green
-                            : Colors.red,
+                      Text(
+                        '${summary.netReturnDivergencePct! >= 0 ? "+" : ""}${(summary.netReturnDivergencePct! * 100).toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: summary.netReturnDivergencePct! >= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -283,37 +289,43 @@ class CopyTradeSlippageCard extends StatelessWidget {
                 final shortId = t.traderId.length > 8
                     ? t.traderId.substring(0, 8)
                     : t.traderId;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Trader: $shortId... (${t.totalTrades} trades)',
-                          style: theme.textTheme.bodySmall),
-                      Row(
-                        children: [
-                          Text(
-                            '${t.averageLatencyMs.toStringAsFixed(0)}ms',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w500,
+                return Semantics(
+                  container: true,
+                  excludeSemantics: true,
+                  label:
+                      'Trader $shortId, ${t.totalTrades} trades: average latency ${t.averageLatencyMs.toStringAsFixed(0)} milliseconds, average slippage ${t.averageSlippageBps >= 0 ? "+" : ""}${t.averageSlippageBps.toStringAsFixed(1)} basis points',
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Trader: $shortId... (${t.totalTrades} trades)',
+                            style: theme.textTheme.bodySmall),
+                        Row(
+                          children: [
+                            Text(
+                              '${t.averageLatencyMs.toStringAsFixed(0)}ms',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${t.averageSlippageBps >= 0 ? "+" : ""}${t.averageSlippageBps.toStringAsFixed(1)} bps',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: t.averageSlippageBps > 0
-                                  ? Colors.orange
-                                  : (t.averageSlippageBps < 0
-                                      ? Colors.green
-                                      : Colors.grey),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${t.averageSlippageBps >= 0 ? "+" : ""}${t.averageSlippageBps.toStringAsFixed(1)} bps',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: t.averageSlippageBps > 0
+                                    ? Colors.orange
+                                    : (t.averageSlippageBps < 0
+                                        ? Colors.green
+                                        : Colors.grey),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 );
               }),
@@ -332,37 +344,42 @@ class CopyTradeSlippageCard extends StatelessWidget {
     required Color color,
   }) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.dividerColor.withAlpha(50),
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $value. $subtitle',
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: theme.dividerColor.withAlpha(50),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: color,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 11,
-              color: Colors.grey,
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
