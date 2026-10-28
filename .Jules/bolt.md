@@ -65,3 +65,7 @@
 ## 2026-04-03 - Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
+
+## 2026-04-03 - Scalar Net GEX Sensitivity and Defensive Sorted Check in Gamma Exposure
+**Learning:** `computeTotalNetGexAtSpot` (called 4 times per GEX evaluation for sensitivity stress testing) delegated to `computeGEXByStrike`, which built strike Maps, allocated per-strike level objects, converted map values to arrays, and sorted strikes 4 times per symbol evaluation. Additionally, `computeGammaFlipLevel` and `findFlipStrikes` unconditionally cloned and re-sorted `gexByStrike` even though `aggregateGEXByStrike` already outputs pre-sorted arrays.
+**Action:** Refactor `computeTotalNetGexAtSpot` to aggregate net GEX as a scalar sum directly across options contracts without Map or array allocations, and use an O(N) defensive order check before cloning/sorting in flip level functions.
