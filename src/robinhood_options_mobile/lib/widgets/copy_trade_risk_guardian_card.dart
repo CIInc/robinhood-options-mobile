@@ -47,216 +47,244 @@ class CopyTradeRiskGuardianCard extends StatelessWidget {
         ? 'Active (DD: ${settings?.maxLeaderDrawdownPct?.toStringAsFixed(0) ?? 15}%, Div: ${settings?.maxReturnDivergencePct?.toStringAsFixed(0) ?? 5}%)'
         : 'Off';
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isTripped
-            ? BorderSide(color: theme.colorScheme.error, width: 1.5)
-            : BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row
-            Row(
-              children: [
-                Icon(
-                  isTripped ? Icons.gpp_bad : Icons.gpp_good,
-                  color: isTripped
-                      ? theme.colorScheme.error
-                      : (theme.brightness == Brightness.dark
-                          ? Colors.tealAccent
-                          : Colors.teal),
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Risk Guardian',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Follower Capital & Execution Protection',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.hintColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isTripped
-                        ? theme.colorScheme.errorContainer
-                        : (theme.brightness == Brightness.dark
-                            ? Colors.teal.withValues(alpha: 0.25)
-                            : Colors.teal.shade50),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isTripped
-                          ? theme.colorScheme.error
-                          : Colors.teal.shade300,
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    isTripped ? 'CIRCUIT TRIPPED' : 'PROTECTING',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isTripped
-                          ? theme.colorScheme.onErrorContainer
-                          : (theme.brightness == Brightness.dark
-                              ? Colors.tealAccent
-                              : Colors.teal.shade800),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+    final statusText = isTripped ? 'Circuit Tripped' : 'Protecting';
+    final alertText = isTripped
+        ? 'Copy trading auto-disconnected. ${tripReason ?? 'Circuit breaker tripped.'}${trippedAt != null ? ' Tripped on ${DateFormat('MMM dd, yyyy HH:mm').format(trippedAt)}.' : ''}'
+        : '';
+    final protectedText = abortedTrades.isNotEmpty
+        ? 'Protected from ${abortedTrades.length} adverse orders (${slippageAborted > 0 ? '$slippageAborted slippage' : ''}${slippageAborted > 0 && allocAborted > 0 ? ', ' : ''}${allocAborted > 0 ? '$allocAborted capital cap' : ''}${guardianTrippedAborted > 0 ? ', $guardianTrippedAborted circuit trip' : ''}).'
+        : '';
 
-            // Tripped Alert Banner
-            if (isTripped) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color:
-                      theme.colorScheme.errorContainer.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+    final semanticLabel =
+        'Risk Guardian, Follower Capital & Execution Protection. Status: $statusText. $alertText Max Allocation: $maxAllocationText. Max Slippage: $slippageText. Auto-Disconnect: ${autoDisconnectEnabled ? 'Enabled' : 'Disabled'} ($autoDisconnectText). $protectedText'
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+
+    return Semantics(
+      container: true,
+      excludeSemantics: false,
+      label: semanticLabel,
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: isTripped
+              ? BorderSide(color: theme.colorScheme.error, width: 1.5)
+              : BorderSide.none,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                children: [
+                  Icon(
+                    isTripped ? Icons.gpp_bad : Icons.gpp_good,
+                    color: isTripped
+                        ? theme.colorScheme.error
+                        : (theme.brightness == Brightness.dark
+                            ? Colors.tealAccent
+                            : Colors.teal),
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: theme.colorScheme.error, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Copy Trading Auto-Disconnected',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onErrorContainer,
-                            ),
+                        Text(
+                          'Risk Guardian',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Follower Capital & Execution Protection',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.hintColor,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tripReason ?? 'Circuit breaker tripped by Risk Guardian.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onErrorContainer,
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isTripped
+                          ? theme.colorScheme.errorContainer
+                          : (theme.brightness == Brightness.dark
+                              ? Colors.teal.withValues(alpha: 0.25)
+                              : Colors.teal.shade50),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isTripped
+                            ? theme.colorScheme.error
+                            : Colors.teal.shade300,
+                        width: 1,
                       ),
                     ),
-                    if (trippedAt != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tripped: ${DateFormat('MMM dd, yyyy HH:mm').format(trippedAt)}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer
-                              .withValues(alpha: 0.8),
-                        ),
+                    child: Text(
+                      isTripped ? 'CIRCUIT TRIPPED' : 'PROTECTING',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isTripped
+                            ? theme.colorScheme.onErrorContainer
+                            : (theme.brightness == Brightness.dark
+                                ? Colors.tealAccent
+                                : Colors.teal.shade800),
                       ),
-                    ],
-                    if (onReset != null) ...[
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton.icon(
-                          onPressed: onReset,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.colorScheme.error,
-                            foregroundColor: theme.colorScheme.onError,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          icon: const Icon(Icons.restart_alt, size: 16),
-                          label: const Text('Reset Guardian & Reconnect'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
-            ],
 
-            // Guardrail Metric Chips
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    title: 'Max Allocation',
-                    value: maxAllocationText,
-                    subtitle: 'Cap per trade',
-                    icon: Icons.account_balance_wallet_outlined,
+              // Tripped Alert Banner
+              if (isTripped) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.errorContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: theme.colorScheme.error, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Copy Trading Auto-Disconnected',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        tripReason ??
+                            'Circuit breaker tripped by Risk Guardian.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                      if (trippedAt != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Tripped: ${DateFormat('MMM dd, yyyy HH:mm').format(trippedAt)}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onErrorContainer
+                                .withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                      if (onReset != null) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Semantics(
+                            container: true,
+                            button: true,
+                            enabled: true,
+                            label: 'Reset Guardian & Reconnect',
+                            hint:
+                                'Resets the circuit breaker and reconnects copy trading',
+                            excludeSemantics: true,
+                            child: ElevatedButton.icon(
+                              onPressed: onReset,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.error,
+                                foregroundColor: theme.colorScheme.onError,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              icon: const Icon(Icons.restart_alt, size: 16),
+                              label: const Text('Reset Guardian & Reconnect'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    title: 'Max Slippage',
-                    value: slippageText,
-                    subtitle: 'Abort threshold',
-                    icon: Icons.price_check,
+                const SizedBox(height: 14),
+              ],
+
+              // Guardrail Metric Chips
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricTile(
+                      context,
+                      title: 'Max Allocation',
+                      value: maxAllocationText,
+                      subtitle: 'Cap per trade',
+                      icon: Icons.account_balance_wallet_outlined,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildMetricTile(
-                    context,
-                    title: 'Auto-Disconnect',
-                    value: autoDisconnectEnabled ? 'Enabled' : 'Disabled',
-                    subtitle: autoDisconnectText,
-                    icon: Icons.link_off,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricTile(
+                      context,
+                      title: 'Max Slippage',
+                      value: slippageText,
+                      subtitle: 'Abort threshold',
+                      icon: Icons.price_check,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricTile(
+                      context,
+                      title: 'Auto-Disconnect',
+                      value: autoDisconnectEnabled ? 'Enabled' : 'Disabled',
+                      subtitle: autoDisconnectText,
+                      icon: Icons.link_off,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Aborted Orders Protected Banner
+              if (abortedTrades.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.shield,
+                          size: 18, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Protected from ${abortedTrades.length} adverse orders (${slippageAborted > 0 ? '$slippageAborted slippage' : ''}${slippageAborted > 0 && allocAborted > 0 ? ', ' : ''}${allocAborted > 0 ? '$allocAborted capital cap' : ''}${guardianTrippedAborted > 0 ? ', $guardianTrippedAborted circuit trip' : ''})',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-
-            // Aborted Orders Protected Banner
-            if (abortedTrades.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.shield,
-                        size: 18, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Protected from ${abortedTrades.length} adverse orders (${slippageAborted > 0 ? '$slippageAborted slippage' : ''}${slippageAborted > 0 && allocAborted > 0 ? ', ' : ''}${allocAborted > 0 ? '$allocAborted capital cap' : ''}${guardianTrippedAborted > 0 ? ', $guardianTrippedAborted circuit trip' : ''})',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );
