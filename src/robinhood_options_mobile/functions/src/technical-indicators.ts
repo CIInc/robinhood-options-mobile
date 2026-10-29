@@ -1967,6 +1967,9 @@ export function evaluateMomentum(
 
 /**
  * Evaluate overall market direction using SPY or QQQ
+ * Performance optimization: Computes scalar `computeSMA` for trailing
+ * current and previous bars directly in O(slowPeriod) time and O(1) space,
+ * avoiding `computeSMAArray` full-series array allocations.
  * @param {number[]} marketPrices - Array of market index prices.
  * @param {number} fastPeriod - Fast moving average period (default 10).
  * @param {number} slowPeriod - Slow moving average period (default 30).
@@ -1979,8 +1982,9 @@ export function evaluateMarketDirection(
   slowPeriod = 30,
   endIndex = marketPrices ? marketPrices.length : 0
 ): IndicatorResult {
-  if (!marketPrices || endIndex < slowPeriod ||
-    marketPrices.length < endIndex) {
+  const actualEndIndex = endIndex ?? (marketPrices ? marketPrices.length : 0);
+  if (!marketPrices || actualEndIndex < slowPeriod ||
+    marketPrices.length < actualEndIndex) {
     return {
       value: null,
       signal: "HOLD",
@@ -1988,15 +1992,14 @@ export function evaluateMarketDirection(
     };
   }
 
-  const fastMAs = computeSMAArray(marketPrices, fastPeriod, endIndex);
-  const slowMAs = computeSMAArray(marketPrices, slowPeriod, endIndex);
-
-  const fastMA = fastMAs[fastMAs.length - 1];
-  const slowMA = slowMAs[slowMAs.length - 1];
+  const fastMA = computeSMA(marketPrices, fastPeriod, actualEndIndex);
+  const slowMA = computeSMA(marketPrices, slowPeriod, actualEndIndex);
 
   // Previous MAs for crossover detection
-  const fastPrevMA = fastMAs.length >= 2 ? fastMAs[fastMAs.length - 2] : null;
-  const slowPrevMA = slowMAs.length >= 2 ? slowMAs[slowMAs.length - 2] : null;
+  const fastPrevMA = actualEndIndex > fastPeriod ?
+    computeSMA(marketPrices, fastPeriod, actualEndIndex - 1) : null;
+  const slowPrevMA = actualEndIndex > slowPeriod ?
+    computeSMA(marketPrices, slowPeriod, actualEndIndex - 1) : null;
 
   if (fastMA === null || slowMA === null) {
     return {
