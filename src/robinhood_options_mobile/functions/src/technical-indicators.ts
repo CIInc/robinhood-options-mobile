@@ -1967,9 +1967,9 @@ export function evaluateMomentum(
 
 /**
  * Evaluate overall market direction using SPY or QQQ
- * Performance optimization: Computes scalar `computeSMA` for trailing current
- * and previous bars directly in O(slowPeriod) time and O(1) space, avoiding
- * `computeSMAArray` full-series array allocations (~fastMAs and slowMAs arrays).
+ * Performance optimization: Computes scalar `computeSMA` for trailing
+ * current and previous bars directly in O(slowPeriod) time and O(1) space,
+ * avoiding `computeSMAArray` full-series array allocations.
  * @param {number[]} marketPrices - Array of market index prices.
  * @param {number} fastPeriod - Fast moving average period (default 10).
  * @param {number} slowPeriod - Slow moving average period (default 30).

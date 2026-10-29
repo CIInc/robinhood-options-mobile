@@ -364,7 +364,7 @@ describe("Technical Indicators", () => {
       expect(result.reason).toContain("Insufficient market data");
     });
 
-    it("should detect strong uptrend with fast MA significantly above slow MA", () => {
+    it("should detect strong uptrend when fast MA is above slow MA", () => {
       // 40 bars of steady price increases
       const marketPrices = Array.from({ length: 40 }, (_, i) => 100 + i * 2);
       const result = evaluateMarketDirection(marketPrices, 10, 30);
@@ -373,7 +373,7 @@ describe("Technical Indicators", () => {
       expect(result.value).toBeGreaterThan(2);
     });
 
-    it("should detect strong downtrend with fast MA significantly below slow MA", () => {
+    it("should detect strong downtrend when fast MA is below slow MA", () => {
       // 40 bars of steady price decreases
       const marketPrices = Array.from({ length: 40 }, (_, i) => 200 - i * 2);
       const result = evaluateMarketDirection(marketPrices, 10, 30);
@@ -382,10 +382,10 @@ describe("Technical Indicators", () => {
       expect(result.value).toBeLessThan(-2);
     });
 
-    it("should detect bullish crossover when fast MA crosses above slow MA", () => {
+    it("should detect bullish crossover when fast MA crosses slow MA", () => {
       // 30 bars equal to 100, then 1 bar jump to 105
       const marketPrices = [...Array.from({ length: 30 }, () => 100), 105];
-      // Test without passing explicit endIndex to verify default parameter handling
+      // Test without default parameter issues
       const result = evaluateMarketDirection(marketPrices, 10, 30);
       expect(result.metadata?.crossover).toBe("bullish");
       expect(result.signal).toBe("BUY");
