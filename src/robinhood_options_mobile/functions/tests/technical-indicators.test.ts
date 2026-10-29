@@ -10,6 +10,7 @@ import {
   computeSMA,
   computeMACD,
   evaluateMACD,
+  evaluateMarketDirection,
   evaluateMacroAssessment,
   computeStochastic,
   computeStochasticArray,
@@ -352,6 +353,54 @@ describe("Technical Indicators", () => {
           expect(parseFloat(display2Dec)).toBeCloseTo(value, 2);
         }
       });
+    });
+  });
+
+  describe("evaluateMarketDirection", () => {
+    it("should return HOLD for insufficient market data", () => {
+      const marketPrices = [100, 101, 102];
+      const result = evaluateMarketDirection(marketPrices, 10, 30);
+      expect(result.signal).toBe("HOLD");
+      expect(result.reason).toContain("Insufficient market data");
+    });
+
+    it("should detect strong uptrend with fast MA significantly above slow MA", () => {
+      // 40 bars of steady price increases
+      const marketPrices = Array.from({ length: 40 }, (_, i) => 100 + i * 2);
+      const result = evaluateMarketDirection(marketPrices, 10, 30);
+      expect(result.signal).toBe("BUY");
+      expect(result.reason).toContain("strong uptrend");
+      expect(result.value).toBeGreaterThan(2);
+    });
+
+    it("should detect strong downtrend with fast MA significantly below slow MA", () => {
+      // 40 bars of steady price decreases
+      const marketPrices = Array.from({ length: 40 }, (_, i) => 200 - i * 2);
+      const result = evaluateMarketDirection(marketPrices, 10, 30);
+      expect(result.signal).toBe("SELL");
+      expect(result.reason).toContain("strong downtrend");
+      expect(result.value).toBeLessThan(-2);
+    });
+
+    it("should detect bullish crossover when fast MA crosses above slow MA", () => {
+      // 30 bars equal to 100, then 1 bar jump to 105
+      const marketPrices = [...Array.from({ length: 30 }, () => 100), 105];
+      // Test without passing explicit endIndex to verify default parameter handling
+      const result = evaluateMarketDirection(marketPrices, 10, 30);
+      expect(result.metadata?.crossover).toBe("bullish");
+      expect(result.signal).toBe("BUY");
+    });
+
+    it("should respect custom endIndex parameter", () => {
+      const marketPrices = Array.from({ length: 50 }, (_, i) => 100 + i * 2);
+      const resultAt40 = evaluateMarketDirection(marketPrices, 10, 30, 40);
+      const slicedResult = evaluateMarketDirection(
+        marketPrices.slice(0, 40),
+        10,
+        30
+      );
+      expect(resultAt40.signal).toBe(slicedResult.signal);
+      expect(resultAt40.value).toBeCloseTo(slicedResult.value!, 5);
     });
   });
 
