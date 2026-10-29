@@ -72,20 +72,33 @@ describe("changeUserRole Security & Input Validation", () => {
     });
   });
 
+  test("rejects invalid role string", async () => {
+    const invalidRoleRequest = {
+      auth: { uid: "adminUser", token: { role: "admin" } },
+      data: { uid: "targetUser", role: "invalid_role" },
+    };
+
+    const callFn = () => (changeUserRole as any).run(invalidRoleRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
   test("allows admin to successfully change user role", async () => {
     const validAdminRequest = {
       auth: { uid: "adminUser", token: { role: "admin" } },
-      data: { uid: "targetUser", role: "editor" },
+      data: { uid: "targetUser", role: "user" },
     };
 
     const result = await (changeUserRole as any).run(validAdminRequest);
 
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith("targetUser", {
-      role: "editor",
+      role: "user",
     });
     expect(mockGetUser).toHaveBeenCalledWith("targetUser");
     const expectedStr =
-      "targetUser Test User <test@example.com> role: editor";
+      "targetUser Test User <test@example.com> role: user";
     expect(result).toBe(expectedStr);
   });
 });
