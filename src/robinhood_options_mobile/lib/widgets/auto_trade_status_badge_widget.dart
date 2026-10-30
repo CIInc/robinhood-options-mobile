@@ -89,12 +89,16 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
             style: TextButton.styleFrom(
               foregroundColor: isEmergencyStop ? Colors.green : Colors.red,
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
               if (isEmergencyStop) {
-                provider.deactivateEmergencyStop();
+                await provider.deactivateEmergencyStop(
+                  userDocRef: widget.userDocRef,
+                );
               } else {
-                provider.activateEmergencyStop(userDocRef: widget.userDocRef);
+                await provider.activateEmergencyStop(
+                  userDocRef: widget.userDocRef,
+                );
               }
             },
             child: Text(isEmergencyStop ? 'Resume' : 'STOP TRADING'),

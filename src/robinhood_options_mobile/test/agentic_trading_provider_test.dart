@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
@@ -68,6 +69,27 @@ class ApprovingTradeSignalsProvider {
   }
 }
 
+class EmergencyStopDuringProposalProvider {
+  final AgenticTradingProvider provider;
+
+  EmergencyStopDuringProposalProvider(this.provider);
+
+  Future<Map<String, dynamic>> initiateTradeProposal({
+    required String symbol,
+    required double currentPrice,
+    required Map<String, dynamic> portfolioState,
+    required dynamic config,
+    String? interval,
+    bool skipSignalUpdate = false,
+  }) async {
+    await provider.activateEmergencyStop();
+    return {
+      'status': 'approved',
+      'proposal': {'action': 'BUY', 'quantity': 1},
+    };
+  }
+}
+
 class FakeQuote {
   final double? lastTradePrice;
   final double? lastExtendedHoursTradePrice = null;
@@ -103,6 +125,118 @@ void main() {
       expect(provider.autoTradeHistory, isEmpty);
     });
 
+    test('paper auto-trading requires Robinhood live quote access', () {
+      expect(
+        AgenticTradingProvider.paperTradingHasLiveQuoteSource(
+            BrokerageSource.robinhood),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.paperTradingHasLiveQuoteSource(
+            BrokerageSource.paper),
+        isFalse,
+      );
+      expect(
+        AgenticTradingProvider.paperTradingHasLiveQuoteSource(null),
+        isFalse,
+      );
+    });
+
+    test('market-close date helpers handle DST, weekends, and exit deadline',
+        () {
+      final springClose = DateTime.utc(2026, 3, 9, 20);
+      final fallClose = DateTime.utc(2026, 11, 2, 21);
+      final beforeSpringClose = DateTime.utc(2026, 3, 9, 17);
+      final saturday = DateTime.utc(2026, 10, 24, 16);
+
+      expect(MarketHours.easternDateKey(springClose), '2026-03-09');
+      expect(MarketHours.easternDateKey(fallClose), '2026-11-02');
+      expect(
+        MarketHours.mostRecentCompletedTradingDate(beforeSpringClose),
+        DateTime.utc(2026, 3, 6),
+      );
+      expect(
+        MarketHours.mostRecentCompletedTradingDate(saturday),
+        DateTime.utc(2026, 10, 23),
+      );
+      expect(
+        MarketHours.marketCloseDeadlineUtc(DateTime.utc(2026, 3, 9), 15),
+        DateTime.utc(2026, 3, 9, 19, 45),
+      );
+      expect(
+        MarketHours.marketCloseDeadlineUtc(DateTime.utc(2026, 11, 2), 15),
+        DateTime.utc(2026, 11, 2, 20, 45),
+      );
+    });
+
+    test('market calendar handles holidays and early-close EOD timing', () {
+      try {
+        MarketHours.testTime = DateTime.utc(2026, 7, 3, 14);
+        expect(MarketHours.getCurrentTradingSession(), TradingSession.closed);
+        expect(MarketHours.isMarketHoliday(DateTime.utc(2026, 7, 3)), isTrue);
+
+        MarketHours.testTime = DateTime.utc(2026, 4, 3, 14);
+        expect(MarketHours.getCurrentTradingSession(), TradingSession.closed);
+        expect(MarketHours.isMarketHoliday(DateTime.utc(2026, 4, 3)), isTrue);
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+        expect(MarketHours.getCurrentTradingSession(), TradingSession.regular);
+        expect(MarketHours.minutesUntilMarketClose(), 15);
+        expect(
+          MarketHours.marketCloseDeadlineUtc(DateTime.utc(2026, 11, 27), 15),
+          DateTime.utc(2026, 11, 27, 17, 45),
+        );
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 27, 18, 15);
+        expect(
+            MarketHours.getCurrentTradingSession(), TradingSession.afterHours);
+        expect(
+          MarketHours.mostRecentCompletedTradingDate(MarketHours.testTime!),
+          DateTime.utc(2026, 11, 27),
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('extended-hours toggles only allow their selected session', () {
+      try {
+        MarketHours.testTime = DateTime.utc(2026, 10, 26, 12);
+        expect(
+          MarketHours.isTradingSessionAllowed(
+            allowPreMarket: true,
+            allowAfterHours: false,
+          ),
+          isTrue,
+        );
+        expect(
+          MarketHours.isTradingSessionAllowed(
+            allowPreMarket: false,
+            allowAfterHours: true,
+          ),
+          isFalse,
+        );
+
+        MarketHours.testTime = DateTime.utc(2026, 10, 26, 21);
+        expect(
+          MarketHours.isTradingSessionAllowed(
+            allowPreMarket: false,
+            allowAfterHours: true,
+          ),
+          isTrue,
+        );
+        expect(
+          MarketHours.isTradingSessionAllowed(
+            allowPreMarket: true,
+            allowAfterHours: false,
+          ),
+          isFalse,
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
     test('loadConfigFromUser should load configuration correctly', () {
       // Load with null config (should use defaults)
       provider.loadConfigFromUser(null);
@@ -116,7 +250,7 @@ void main() {
           equals(0.5));
     });
 
-    test('activateEmergencyStop should set emergency stop flag', () {
+    test('activateEmergencyStop should set emergency stop flag', () async {
       var notified = false;
       provider.addListener(() {
         notified = true;
@@ -124,15 +258,15 @@ void main() {
 
       expect(provider.emergencyStopActivated, equals(false));
 
-      provider.activateEmergencyStop();
+      await provider.activateEmergencyStop();
 
       expect(provider.emergencyStopActivated, equals(true));
       expect(notified, equals(true));
     });
 
-    test('deactivateEmergencyStop should clear emergency stop flag', () {
+    test('deactivateEmergencyStop should clear emergency stop flag', () async {
       // First activate
-      provider.activateEmergencyStop();
+      await provider.activateEmergencyStop();
       expect(provider.emergencyStopActivated, equals(true));
 
       var notified = false;
@@ -141,10 +275,42 @@ void main() {
       });
 
       // Then deactivate
-      provider.deactivateEmergencyStop();
+      await provider.deactivateEmergencyStop();
 
       expect(provider.emergencyStopActivated, equals(false));
       expect(notified, equals(true));
+    });
+
+    test('emergency stop persists and is restored before trading', () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final restoredProvider =
+          AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
+
+      await provider.activateEmergencyStop(userDocRef: userRef);
+      expect(
+          (await userRef.get()).data()?['agenticTradingEmergencyStop'], true);
+
+      expect(await restoredProvider.refreshEmergencyStopState(userRef), isTrue);
+      expect(restoredProvider.emergencyStopActivated, isTrue);
+
+      await restoredProvider.deactivateEmergencyStop(userDocRef: userRef);
+      expect(
+          (await userRef.get()).data()?['agenticTradingEmergencyStop'], false);
+      restoredProvider.dispose();
+    });
+
+    test('emergency stop sync retries before trusting a later Firestore read',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+
+      await provider.activateEmergencyStop();
+
+      expect(await provider.refreshEmergencyStopState(userRef), isTrue);
+      expect(
+          (await userRef.get()).data()?['agenticTradingEmergencyStop'], true);
+      expect(provider.emergencyStopActivated, isTrue);
     });
 
     test('indicatorDocumentation should return correct info for all indicators',
@@ -219,7 +385,7 @@ void main() {
       provider.config.autoTradeEnabled = true;
 
       // Activate emergency stop
-      provider.activateEmergencyStop();
+      await provider.activateEmergencyStop();
 
       final result = await provider.autoTrade(
         tradeSignals: [],
@@ -487,6 +653,43 @@ void main() {
       expect(AgenticTradingProvider.isEntryPriceStale(100.0, 0), isFalse);
     });
 
+    test('background quote freshness rejects stale, future, or invalid quotes',
+        () {
+      final now = DateTime.utc(2026, 10, 26, 15);
+      expect(
+        AgenticTradingProvider.isQuoteFresh(
+          updatedAt: now.subtract(const Duration(minutes: 5)),
+          price: 100,
+          now: now,
+        ),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.isQuoteFresh(
+          updatedAt: now.subtract(const Duration(minutes: 6)),
+          price: 100,
+          now: now,
+        ),
+        isFalse,
+      );
+      expect(
+        AgenticTradingProvider.isQuoteFresh(
+          updatedAt: now.add(const Duration(seconds: 1)),
+          price: 100,
+          now: now,
+        ),
+        isFalse,
+      );
+      expect(
+        AgenticTradingProvider.isQuoteFresh(
+          updatedAt: now,
+          price: 0,
+          now: now,
+        ),
+        isFalse,
+      );
+    });
+
     test('approveOrder refuses and drops a BUY priced far from the live quote',
         () async {
       provider.loadConfigFromUser(null);
@@ -508,6 +711,30 @@ void main() {
 
       expect(approved, isFalse);
       expect(provider.pendingOrders, isEmpty);
+      expect(provider.autoTradeHistory, isEmpty);
+    });
+
+    test('approveOrder is blocked while emergency stop is active', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      await provider.activateEmergencyStop();
+
+      final approved = await provider.approveOrder(
+        provider.pendingOrders.first,
+        brokerageUser: 'user',
+        account: null,
+        brokerageService: FakeQuoteService(100),
+        quoteStore: 'store',
+      );
+
+      expect(approved, isFalse);
+      expect(provider.pendingOrders, hasLength(1));
       expect(provider.autoTradeHistory, isEmpty);
     });
 
@@ -585,6 +812,227 @@ void main() {
       expect(ids, [AgenticTradingProvider.automatedTradeDocId(trade)]);
     });
 
+    test('market-close exit claims and missed status are idempotent', () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 3,
+        'entryPrice': 100.0,
+        'timestamp': '2026-10-20T14:00:00.000Z',
+        'paperMode': true,
+      };
+      final tradingDate = DateTime.utc(2026, 10, 23);
+
+      expect(
+        await provider.claimMarketCloseExitAttempt(
+          userDocRef: userRef,
+          trade: trade,
+          tradingDate: tradingDate,
+          quantity: 3,
+        ),
+        isTrue,
+      );
+      expect(
+        await provider.claimMarketCloseExitAttempt(
+          userDocRef: userRef,
+          trade: trade,
+          tradingDate: tradingDate,
+          quantity: 3,
+        ),
+        isFalse,
+      );
+      expect(
+        await provider.markMarketCloseExitMissed(
+          userDocRef: userRef,
+          trade: trade,
+          tradingDate: tradingDate,
+        ),
+        isTrue,
+      );
+      expect(
+        await provider.markMarketCloseExitMissed(
+          userDocRef: userRef,
+          trade: trade,
+          tradingDate: tradingDate,
+        ),
+        isFalse,
+      );
+
+      final id = AgenticTradingProvider.marketCloseExitStatusDocId(
+        trade,
+        tradingDate,
+      );
+      final status =
+          await userRef.collection('agentic_trading_exit_status').doc(id).get();
+      expect(status.data()?['status'], 'missed');
+      expect(provider.latestMarketCloseExitStatus?['status'], 'missed');
+    });
+
+    test('signal execution claim is idempotent across cycles', () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final signal = {
+        'symbol': 'AAPL',
+        'timestamp': 1792843200000,
+        'interval': '15m',
+      };
+
+      expect(
+        await provider.claimSignalExecution(
+          userDocRef: userRef,
+          signal: signal,
+        ),
+        isTrue,
+      );
+      expect(
+        await provider.claimSignalExecution(
+          userDocRef: userRef,
+          signal: signal,
+        ),
+        isFalse,
+      );
+
+      await provider.updateSignalExecutionClaim(
+        userDocRef: userRef,
+        signal: signal,
+        status: 'failed',
+      );
+      expect(
+        await provider.claimSignalExecution(
+          userDocRef: userRef,
+          signal: signal,
+        ),
+        isTrue,
+      );
+
+      await provider.updateSignalExecutionClaim(
+        userDocRef: userRef,
+        signal: signal,
+        status: 'unknown',
+      );
+      expect(
+        await provider.claimSignalExecution(
+          userDocRef: userRef,
+          signal: signal,
+        ),
+        isFalse,
+      );
+
+      await provider.updateSignalExecutionClaim(
+        userDocRef: userRef,
+        signal: signal,
+        status: 'completed',
+      );
+      expect(
+        await provider.claimSignalExecution(
+          userDocRef: userRef,
+          signal: signal,
+        ),
+        isFalse,
+      );
+
+      final claims =
+          await userRef.collection('agentic_trading_execution_claims').get();
+      expect(claims.docs, hasLength(1));
+      expect(claims.docs.single.data()['status'], 'completed');
+      expect(claims.docs.single.data()['attemptCount'], 2);
+    });
+
+    test('cycle lease excludes concurrent runs and releases after completion',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+
+      final firstLease = await provider.claimAutoTradeCycleLease(userRef);
+      expect(firstLease, isNotNull);
+      expect(await provider.claimAutoTradeCycleLease(userRef), isNull);
+
+      await provider.releaseAutoTradeCycleLease(userRef, firstLease!);
+
+      final nextLease = await provider.claimAutoTradeCycleLease(userRef);
+      expect(nextLease, isNotNull);
+      await provider.releaseAutoTradeCycleLease(userRef, nextLease!);
+    });
+
+    test('execution safeguards fail closed without a user document', () async {
+      expect(await provider.claimAutoTradeCycleLease(null), isNull);
+    });
+
+    test('execution limits restore from persisted trade history', () {
+      final now = DateTime(2026, 10, 26, 12);
+      provider.autoTradeHistory.addAll([
+        {'timestamp': DateTime(2026, 10, 26, 10).toIso8601String()},
+        {'timestamp': DateTime(2026, 10, 25, 15).toIso8601String()},
+      ]);
+
+      provider.restoreExecutionLimitsFromHistory(now: now);
+
+      expect(provider.dailyTradeCount, 1);
+      expect(provider.lastAutoTradeTime, DateTime(2026, 10, 26, 10));
+    });
+
+    test('latest market-close status loads for paused strategy settings',
+        () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      await userRef.collection('agentic_trading_exit_status').doc('latest').set(
+        {
+          'status': 'missed',
+          'symbol': 'AAPL',
+          'tradingDate': '2026-10-23',
+          'updatedAt': DateTime.utc(2026, 10, 23, 21),
+        },
+      );
+
+      await provider.loadLatestMarketCloseExitStatus(userRef);
+
+      expect(provider.latestMarketCloseExitStatus?['status'], 'missed');
+      expect(provider.latestMarketCloseExitStatus?['symbol'], 'AAPL');
+    });
+
+    test('completed market-close exit is never downgraded to missed', () async {
+      final firestore = FakeFirebaseFirestore();
+      final userRef = firestore.collection('user').doc('u1');
+      final trade = {
+        'symbol': 'MSFT',
+        'quantity': 2,
+        'entryPrice': 300.0,
+        'timestamp': '2026-10-20T14:00:00.000Z',
+        'paperMode': false,
+      };
+      final tradingDate = DateTime.utc(2026, 10, 23);
+      await provider.claimMarketCloseExitAttempt(
+        userDocRef: userRef,
+        trade: trade,
+        tradingDate: tradingDate,
+        quantity: 2,
+      );
+      await provider.updateMarketCloseExitStatus(
+        userDocRef: userRef,
+        trade: trade,
+        tradingDate: tradingDate,
+        status: 'completed',
+        message: 'Order accepted.',
+      );
+
+      expect(
+        await provider.markMarketCloseExitMissed(
+          userDocRef: userRef,
+          trade: trade,
+          tradingDate: tradingDate,
+        ),
+        isFalse,
+      );
+      final id = AgenticTradingProvider.marketCloseExitStatusDocId(
+        trade,
+        tradingDate,
+      );
+      final status =
+          await userRef.collection('agentic_trading_exit_status').doc(id).get();
+      expect(status.data()?['status'], 'completed');
+    });
+
     test('autoTrade logs a rejected trade proposal once', () async {
       provider.loadConfigFromUser(null);
       provider.config.autoTradeEnabled = true;
@@ -660,7 +1108,7 @@ void main() {
       provider.config.autoTradeEnabled = true;
 
       // Activate emergency stop
-      provider.activateEmergencyStop();
+      await provider.activateEmergencyStop();
 
       // Attempt to auto-trade
       final result = await provider.autoTrade(
@@ -676,6 +1124,39 @@ void main() {
       // Verify trade was blocked
       expect(result['success'], equals(false));
       expect(provider.emergencyStopActivated, equals(true));
+    });
+
+    test('emergency stop activated during proposal blocks its order', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2026, 10, 26, 15);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'AAPL',
+              'signal': 'BUY',
+              'currentPrice': 100.0,
+              'timestamp': 1793026800000,
+              'interval': '15m',
+            },
+          ],
+          portfolioState: {'buyingPower': 1000.0},
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+          tradeSignalsProvider: EmergencyStopDuringProposalProvider(provider),
+        );
+
+        expect(result['tradesExecuted'], 0);
+        expect(provider.emergencyStopActivated, isTrue);
+      } finally {
+        MarketHours.testTime = null;
+      }
     });
 
     test('Daily trade limit should prevent excessive trading', () async {

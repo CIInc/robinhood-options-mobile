@@ -27,6 +27,7 @@ interface NotificationRequest {
   | "take_profit"
   | "stop_loss"
   | "emergency_stop"
+  | "missed_exit"
   | "daily_summary";
   symbol?: string;
   quantity?: number;
@@ -173,6 +174,7 @@ export const sendAgenticTradeNotification = onCall(async (request) => {
     else if (
       data.type === "take_profit" ||
       data.type === "stop_loss" ||
+      data.type === "missed_exit" ||
       data.type === "emergency_stop"
     ) {
       signalType = "SELL";
@@ -252,6 +254,8 @@ function checkNotificationPreference(
     return config.notifyOnStopLoss !== false;
   case "emergency_stop":
     return config.notifyOnEmergencyStop !== false;
+  case "missed_exit":
+    return config.notifyOnMissedExit !== false;
   case "daily_summary":
     return config.notifyDailySummary === true;
   default:
@@ -267,6 +271,7 @@ interface AgenticTradingConfigPrefs {
   notifyOnTakeProfit?: boolean;
   notifyOnStopLoss?: boolean;
   notifyOnEmergencyStop?: boolean;
+  notifyOnMissedExit?: boolean;
   notifyDailySummary?: boolean;
 }
 
@@ -355,6 +360,15 @@ function buildNotificationContent(data: NotificationRequest): {
     };
   }
 
+  case "missed_exit": {
+    return {
+      title: `${prefix}⚠️ Missed Market-Close Exit: ${symbol}`,
+      body:
+        `No confirmed ${symbol} exit was recorded before the close. ` +
+        "Review the position and manage it manually.",
+    };
+  }
+
   case "daily_summary": {
     if (dailyStats) {
       const { totalTrades, wins, losses, totalPnL } = dailyStats;
@@ -399,6 +413,8 @@ function getNotificationColor(type: string): string {
     return "#F44336"; // Red
   case "emergency_stop":
     return "#FF9800"; // Orange
+  case "missed_exit":
+    return "#F44336"; // Red
   case "daily_summary":
     return "#9C27B0"; // Purple
   default:

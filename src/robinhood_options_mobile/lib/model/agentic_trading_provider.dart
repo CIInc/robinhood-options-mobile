@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +21,50 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+class AgenticTradingCycleDependencies {
+  final BrokerageUserStore userStore;
+  final AccountStore accountStore;
+  final InstrumentStore instrumentStore;
+  final PortfolioStore portfolioStore;
+  final TradeSignalsProvider tradeSignalsProvider;
+  final InstrumentPositionStore instrumentPositionStore;
+  final OptionPositionStore optionPositionStore;
+  final PaperTradingStore paperTradingStore;
+  final QuoteStore quoteStore;
+  final bool requireFreshQuotes;
+
+  const AgenticTradingCycleDependencies({
+    required this.userStore,
+    required this.accountStore,
+    required this.instrumentStore,
+    required this.portfolioStore,
+    required this.tradeSignalsProvider,
+    required this.instrumentPositionStore,
+    required this.optionPositionStore,
+    required this.paperTradingStore,
+    required this.quoteStore,
+    this.requireFreshQuotes = false,
+  });
+
+  factory AgenticTradingCycleDependencies.fromContext(BuildContext context) =>
+      AgenticTradingCycleDependencies(
+        userStore: Provider.of<BrokerageUserStore>(context, listen: false),
+        accountStore: Provider.of<AccountStore>(context, listen: false),
+        instrumentStore: Provider.of<InstrumentStore>(context, listen: false),
+        portfolioStore: Provider.of<PortfolioStore>(context, listen: false),
+        tradeSignalsProvider:
+            Provider.of<TradeSignalsProvider>(context, listen: false),
+        instrumentPositionStore:
+            Provider.of<InstrumentPositionStore>(context, listen: false),
+        optionPositionStore:
+            Provider.of<OptionPositionStore>(context, listen: false),
+        paperTradingStore:
+            Provider.of<PaperTradingStore>(context, listen: false),
+        quoteStore: Provider.of<QuoteStore>(context, listen: false),
+      );
+}
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics;
@@ -81,6 +126,9 @@ class AgenticTradingProvider with ChangeNotifier {
   int _dailyTradeCount = 0;
   DateTime? _dailyTradeCountResetDate;
   bool _emergencyStopActivated = false;
+  bool _emergencyStopWritePending = false;
+  final Set<String> _claimedMarketCloseExitIds = {};
+  Map<String, dynamic>? _latestMarketCloseExitStatus;
   final List<Map<String, dynamic>> _autoTradeHistory = [];
   String? _loadingAutoTradeHistoryPath;
   String? _loadedAutoTradeHistoryPath;
@@ -267,6 +315,8 @@ class AgenticTradingProvider with ChangeNotifier {
   /// Bumps for every order the auto-trader executes (entries, approvals, exits) so screens can refetch orders.
   int get executedOrderCount => _executedOrderCount;
   bool get emergencyStopActivated => _emergencyStopActivated;
+  Map<String, dynamic>? get latestMarketCloseExitStatus =>
+      _latestMarketCloseExitStatus;
   List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
   List<Map<String, dynamic>> get pendingOrders => _pendingOrders;
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
@@ -275,6 +325,10 @@ class AgenticTradingProvider with ChangeNotifier {
   Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
   List<Map<String, dynamic>> get signalProcessingHistory =>
       _signalProcessingHistory;
+
+  @visibleForTesting
+  static bool paperTradingHasLiveQuoteSource(BrokerageSource? source) =>
+      source == BrokerageSource.robinhood;
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
@@ -353,6 +407,8 @@ class AgenticTradingProvider with ChangeNotifier {
   }) {
     // The timer outlives the first call, which can happen before the user doc loads.
     _autoTradeUserDocRef = userDocRef;
+    unawaited(refreshEmergencyStopState(userDocRef));
+    unawaited(loadLatestMarketCloseExitStatus(userDocRef));
 
     // Prevent duplicate timers
     if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
@@ -381,32 +437,38 @@ class AgenticTradingProvider with ChangeNotifier {
 
   /// Manually triggers an auto-trade cycle
   Future<void> runAutoTradeCycle({
-    required BuildContext context,
+    BuildContext? context,
     required dynamic brokerageService,
     DocumentReference? userDocRef,
+    AgenticTradingCycleDependencies? dependencies,
   }) async {
     if (_isAutoTrading) {
       _log('⚠️ Auto-trade cycle already in progress');
       return;
     }
 
+    final cycleLeaseId = await claimAutoTradeCycleLease(userDocRef);
+    if (cycleLeaseId == null) return;
+
     try {
       _log('🤖 Starting auto-trade cycle...');
-      // Gather required providers from context lazily
-      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-      final accountStore = Provider.of<AccountStore>(context, listen: false);
-      final instrumentStore =
-          Provider.of<InstrumentStore>(context, listen: false);
-      final portfolioStore =
-          Provider.of<PortfolioStore>(context, listen: false);
-      final tradeSignalsProvider =
-          Provider.of<TradeSignalsProvider>(context, listen: false);
-      final instrumentPositionStore =
-          Provider.of<InstrumentPositionStore>(context, listen: false);
-      final optionPositionStore =
-          Provider.of<OptionPositionStore>(context, listen: false);
-      final paperTradingStore =
-          Provider.of<PaperTradingStore>(context, listen: false);
+      if (await _shouldHaltForEmergencyStop(userDocRef)) return;
+      final cycleDependencies = dependencies ??
+          (context == null
+              ? null
+              : AgenticTradingCycleDependencies.fromContext(context));
+      if (cycleDependencies == null) {
+        _log('⚠️ Auto-trade cycle requires dependencies or a BuildContext');
+        return;
+      }
+      final userStore = cycleDependencies.userStore;
+      final accountStore = cycleDependencies.accountStore;
+      final instrumentStore = cycleDependencies.instrumentStore;
+      final portfolioStore = cycleDependencies.portfolioStore;
+      final tradeSignalsProvider = cycleDependencies.tradeSignalsProvider;
+      final instrumentPositionStore = cycleDependencies.instrumentPositionStore;
+      final optionPositionStore = cycleDependencies.optionPositionStore;
+      final paperTradingStore = cycleDependencies.paperTradingStore;
 
       // Check auto-trade enabled
       final autoTradeEnabled = _config.autoTradeEnabled;
@@ -417,7 +479,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       final isPaperMode = _config.paperTradingMode;
       final executedBeforeCycle = _executedOrderCount;
-      final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+      final quoteStore = cycleDependencies.quoteStore;
 
       // Validate user/account
       if (!isPaperMode &&
@@ -429,10 +491,20 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       final currentUser = userStore.currentUser;
-      final firstAccount =
-          accountStore.items.isNotEmpty ? accountStore.items.first : null;
+      final selectedAccount = accountStore.selectedAccount;
       if (!isPaperMode && currentUser == null) {
         _log('❌ Auto-trade check: currentUser is null');
+        return;
+      }
+      if (isPaperMode && !paperTradingHasLiveQuoteSource(currentUser?.source)) {
+        _log('⏭️ Paper auto-trading requires a linked Robinhood quote source');
+        updateLastAutoTradeResult({
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'Paper auto-trading requires a linked Robinhood account.',
+          'trades': <dynamic>[],
+          'blocked': true,
+        });
         return;
       }
 
@@ -449,8 +521,8 @@ class AgenticTradingProvider with ChangeNotifier {
               'portfolioValue': portfolioStore.items.isNotEmpty
                   ? portfolioStore.items.first.equity
                   : 0.0,
-              'buyingPower': firstAccount?.buyingPower ?? 0.0,
-              'cashAvailable': firstAccount?.portfolioCash ?? 0.0,
+              'buyingPower': selectedAccount?.buyingPower ?? 0.0,
+              'cashAvailable': selectedAccount?.portfolioCash ?? 0.0,
               'positions': portfolioStore.items.length,
             };
 
@@ -607,12 +679,13 @@ class AgenticTradingProvider with ChangeNotifier {
         tradeSignalsProvider: tradeSignalsProvider,
         portfolioState: portfolioState,
         brokerageUser: currentUser,
-        account: firstAccount,
+        account: selectedAccount,
         brokerageService: brokerageService,
         instrumentStore: instrumentStore,
         paperTradingStore: paperTradingStore,
         userDocRef: userDocRef,
         quoteStore: quoteStore,
+        requireFreshQuotes: cycleDependencies.requireFreshQuotes,
       );
 
       // A blocked cycle (market closed, daily limit, cooldown) never evaluated
@@ -653,7 +726,7 @@ class AgenticTradingProvider with ChangeNotifier {
         final tpSlResult = await monitorTakeProfitStopLoss(
           positions: positionsToMonitor,
           brokerageUser: currentUser,
-          account: firstAccount,
+          account: selectedAccount,
           brokerageService: brokerageService,
           instrumentStore: instrumentStore,
           paperTradingStore: paperTradingStore,
@@ -700,6 +773,66 @@ class AgenticTradingProvider with ChangeNotifier {
       _log('✅ Auto-trade cycle complete.');
     } catch (e) {
       _log('❌ Auto-trade error: $e');
+    } finally {
+      await releaseAutoTradeCycleLease(userDocRef, cycleLeaseId);
+    }
+  }
+
+  @visibleForTesting
+  Future<String?> claimAutoTradeCycleLease(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) return null;
+    final owner = const Uuid().v4();
+    final leaseRef =
+        userDocRef.collection('agentic_trading_cycles').doc('active');
+    try {
+      final claimed = await userDocRef.firestore.runTransaction<bool>(
+        (transaction) async {
+          final snapshot = await transaction.get(leaseRef);
+          final expiresAt = snapshot.data()?['expiresAt'];
+          final expiration = expiresAt is Timestamp
+              ? expiresAt.toDate()
+              : expiresAt is DateTime
+                  ? expiresAt
+                  : null;
+          if (expiration != null && expiration.isAfter(DateTime.now())) {
+            return false;
+          }
+          transaction.set(leaseRef, {
+            'owner': owner,
+            'expiresAt': DateTime.now().add(const Duration(minutes: 10)),
+          });
+          return true;
+        },
+      );
+      return claimed ? owner : null;
+    } catch (error) {
+      _log('Could not claim auto-trade cycle lease; skipping: $error');
+      return null;
+    }
+  }
+
+  @visibleForTesting
+  Future<void> releaseAutoTradeCycleLease(
+    DocumentReference? userDocRef,
+    String owner,
+  ) async {
+    if (userDocRef == null || owner.isEmpty) return;
+    final leaseRef =
+        userDocRef.collection('agentic_trading_cycles').doc('active');
+    try {
+      await userDocRef.firestore.runTransaction<void>((transaction) async {
+        final snapshot = await transaction.get(leaseRef);
+        if (snapshot.data()?['owner'] == owner) {
+          transaction.set(
+            leaseRef,
+            {'expiresAt': DateTime.fromMillisecondsSinceEpoch(0)},
+            SetOptions(merge: true),
+          );
+        }
+      });
+    } catch (error) {
+      _log('Could not release auto-trade cycle lease: $error');
     }
   }
 
@@ -835,6 +968,312 @@ class AgenticTradingProvider with ChangeNotifier {
         '${trade['initialQuantity'] ?? trade['quantity']}_${trade['entryPrice']}';
     return raw.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
   }
+
+  @visibleForTesting
+  static String signalExecutionClaimDocId(Map<String, dynamic> signal) {
+    final raw = '${signal['symbol']}_${signal['timestamp']}_'
+        '${signal['interval'] ?? 'unknown'}';
+    return raw.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+  }
+
+  Future<bool> claimSignalExecution({
+    required DocumentReference? userDocRef,
+    required Map<String, dynamic> signal,
+  }) async {
+    if (userDocRef == null) return true;
+    final claimRef = userDocRef
+        .collection('agentic_trading_execution_claims')
+        .doc(signalExecutionClaimDocId(signal));
+    try {
+      return await userDocRef.firestore.runTransaction<bool>(
+        (transaction) async {
+          final snapshot = await transaction.get(claimRef);
+          final existing = snapshot.data();
+          final status = existing?['status'];
+          if (status == 'attempted' ||
+              status == 'completed' ||
+              status == 'unknown') return false;
+          transaction.set(
+            claimRef,
+            {
+              'symbol': signal['symbol'],
+              'timestamp': signal['timestamp'],
+              'interval': signal['interval'],
+              'status': 'attempted',
+              'attemptedAt': FieldValue.serverTimestamp(),
+              'attemptCount': ((existing?['attemptCount'] as num?) ?? 0) + 1,
+              if (!snapshot.exists) 'createdAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+          return true;
+        },
+      );
+    } catch (error) {
+      _log('Failed to claim signal execution; skipping order: $error');
+      return false;
+    }
+  }
+
+  @visibleForTesting
+  Future<void> updateSignalExecutionClaim({
+    required DocumentReference? userDocRef,
+    required Map<String, dynamic> signal,
+    required String status,
+    String? message,
+  }) async {
+    if (userDocRef == null) return;
+    try {
+      await userDocRef
+          .collection('agentic_trading_execution_claims')
+          .doc(signalExecutionClaimDocId(signal))
+          .set(
+        {
+          'status': status,
+          'updatedAt': FieldValue.serverTimestamp(),
+          if (status == 'completed')
+            'completedAt': FieldValue.serverTimestamp(),
+          if (message != null) 'message': message,
+        },
+        SetOptions(merge: true),
+      );
+    } catch (error) {
+      _log('Failed to update signal execution claim: $error');
+    }
+  }
+
+  @visibleForTesting
+  static String marketCloseExitStatusDocId(
+    Map<String, dynamic> trade,
+    DateTime tradingDate,
+  ) {
+    final date = MarketHours.calendarDateKey(tradingDate);
+    return '${date}_${automatedTradeDocId(trade)}';
+  }
+
+  Future<void> loadLatestMarketCloseExitStatus(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) return;
+    try {
+      final snapshot = await userDocRef
+          .collection('agentic_trading_exit_status')
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+      _latestMarketCloseExitStatus =
+          snapshot.docs.isEmpty ? null : snapshot.docs.first.data();
+      notifyListeners();
+    } catch (error) {
+      _log('Failed to load market-close exit status: $error');
+    }
+  }
+
+  Future<bool> claimMarketCloseExitAttempt({
+    required DocumentReference? userDocRef,
+    required Map<String, dynamic> trade,
+    required DateTime tradingDate,
+    required int quantity,
+  }) async {
+    final id = marketCloseExitStatusDocId(trade, tradingDate);
+    final record = <String, dynamic>{
+      'symbol': trade['symbol'],
+      'tradeId': automatedTradeDocId(trade),
+      'tradingDate': MarketHours.calendarDateKey(tradingDate),
+      'status': 'attempted',
+      'quantity': quantity,
+      'paperMode': trade['paperMode'] == true,
+      'attemptedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (userDocRef == null) {
+      if (!_claimedMarketCloseExitIds.add(id)) return false;
+      _latestMarketCloseExitStatus = {
+        ...record,
+        'status': 'attempted',
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      notifyListeners();
+      return true;
+    }
+    try {
+      final statusRef =
+          userDocRef.collection('agentic_trading_exit_status').doc(id);
+      final claimed = await userDocRef.firestore.runTransaction<bool>(
+        (transaction) async {
+          final snapshot = await transaction.get(statusRef);
+          if (snapshot.exists) return false;
+          transaction.set(statusRef, record);
+          return true;
+        },
+      );
+      if (!claimed) return false;
+      _claimedMarketCloseExitIds.add(id);
+      _latestMarketCloseExitStatus = {
+        ...record,
+        'status': 'attempted',
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      notifyListeners();
+      return true;
+    } on FirebaseException catch (error) {
+      if (error.code == 'already-exists' || error.code == '6') return false;
+      _log('Failed to claim market-close exit attempt: $error');
+      return false;
+    } catch (error) {
+      _log('Failed to claim market-close exit attempt: $error');
+      return false;
+    }
+  }
+
+  Future<void> updateMarketCloseExitStatus({
+    required DocumentReference? userDocRef,
+    required Map<String, dynamic> trade,
+    required DateTime tradingDate,
+    required String status,
+    String? message,
+  }) async {
+    final id = marketCloseExitStatusDocId(trade, tradingDate);
+    final data = <String, dynamic>{
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+      if (status == 'completed') 'completedAt': FieldValue.serverTimestamp(),
+      if (message != null) 'message': message,
+    };
+    if (userDocRef != null) {
+      try {
+        await userDocRef
+            .collection('agentic_trading_exit_status')
+            .doc(id)
+            .set(data, SetOptions(merge: true));
+      } catch (error) {
+        _log('Failed to update market-close exit status: $error');
+      }
+    }
+    _latestMarketCloseExitStatus = {
+      ...?_latestMarketCloseExitStatus,
+      ...data,
+      'status': status,
+      'symbol': trade['symbol'],
+      'tradingDate': MarketHours.calendarDateKey(tradingDate),
+      if (message != null) 'message': message,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  Future<bool> markMarketCloseExitMissed({
+    required DocumentReference? userDocRef,
+    required Map<String, dynamic> trade,
+    required DateTime tradingDate,
+  }) async {
+    final id = marketCloseExitStatusDocId(trade, tradingDate);
+    if (userDocRef == null) return false;
+    final statusRef =
+        userDocRef.collection('agentic_trading_exit_status').doc(id);
+    try {
+      final changed = await userDocRef.firestore.runTransaction<bool>(
+        (transaction) async {
+          final snapshot = await transaction.get(statusRef);
+          final currentStatus = snapshot.data()?['status'];
+          if (currentStatus == 'completed' || currentStatus == 'missed') {
+            return false;
+          }
+          transaction.set(
+              statusRef,
+              {
+                'symbol': trade['symbol'],
+                'tradeId': automatedTradeDocId(trade),
+                'tradingDate': MarketHours.calendarDateKey(tradingDate),
+                'status': 'missed',
+                'quantity': trade['quantity'],
+                'paperMode': trade['paperMode'] == true,
+                'message': currentStatus == 'attempted'
+                    ? 'An exit was attempted but not confirmed before market close.'
+                    : 'No exit cycle was confirmed before market close.',
+                'updatedAt': FieldValue.serverTimestamp(),
+              },
+              SetOptions(merge: true));
+          return true;
+        },
+      );
+      if (!changed) return false;
+      final message = 'No confirmed market-close exit was recorded.';
+      _latestMarketCloseExitStatus = {
+        'symbol': trade['symbol'],
+        'tradeId': automatedTradeDocId(trade),
+        'tradingDate': MarketHours.calendarDateKey(tradingDate),
+        'status': 'missed',
+        'quantity': trade['quantity'],
+        'paperMode': trade['paperMode'] == true,
+        'message': message,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      notifyListeners();
+      if (_config.notifyOnMissedExit) {
+        _sendTradeNotification(
+          userDocRef,
+          'missed_exit',
+          symbol: trade['symbol'] as String?,
+          quantity: (trade['quantity'] as num?)?.toInt(),
+        );
+      }
+      return true;
+    } catch (error) {
+      _log('Failed to mark market-close exit missed: $error');
+      return false;
+    }
+  }
+
+  Future<void> _reconcileMissedMarketCloseExits({
+    required List<InstrumentPosition> positions,
+    required DocumentReference? userDocRef,
+    required DateTime now,
+  }) async {
+    if (userDocRef == null || !_config.strategyConfig.marketCloseExitEnabled) {
+      return;
+    }
+    final tradingDate = MarketHours.mostRecentCompletedTradingDate(now);
+    final openSymbols = positions
+        .where((position) => (position.quantity ?? 0) > 0)
+        .map((position) => position.instrumentObj?.symbol)
+        .whereType<String>()
+        .toSet();
+    for (final trade in List<Map<String, dynamic>>.of(_automatedBuyTrades)) {
+      final symbol = trade['symbol'] as String?;
+      if (symbol == null || !openSymbols.contains(symbol)) continue;
+      final tradePaperMode = trade['paperMode'] as bool?;
+      if (tradePaperMode != null &&
+          tradePaperMode != _config.paperTradingMode) {
+        continue;
+      }
+      final timestamp = trade['timestamp'] as String?;
+      final entryTime = timestamp == null ? null : DateTime.tryParse(timestamp);
+      if (entryTime == null ||
+          entryTime.toUtc().isAfter(MarketHours.marketCloseDeadlineUtc(
+                tradingDate,
+                _config.strategyConfig.marketCloseExitMinutes,
+              ))) {
+        continue;
+      }
+      await markMarketCloseExitMissed(
+        userDocRef: userDocRef,
+        trade: trade,
+        tradingDate: tradingDate,
+      );
+    }
+  }
+
+  Future<void> reconcileMissedMarketCloseExits({
+    required List<InstrumentPosition> positions,
+    required DocumentReference? userDocRef,
+    DateTime? now,
+  }) =>
+      _reconcileMissedMarketCloseExits(
+        positions: positions,
+        userDocRef: userDocRef,
+        now: now ?? DateTime.now(),
+      );
 
   List<Map<String, dynamic>> get automatedBuyTrades => _automatedBuyTrades;
 
@@ -980,6 +1419,7 @@ class AgenticTradingProvider with ChangeNotifier {
       _autoTradeHistory.addAll(
         snapshot.docs.map((doc) => withDerivedProfitLoss(doc.data())),
       );
+      restoreExecutionLimitsFromHistory();
 
       _loadedAutoTradeHistoryPath = userPath;
       _log('📖 Loaded ${_autoTradeHistory.length} trade history records');
@@ -1157,19 +1597,72 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Public getter for market status (delegates to utility)
   bool get isMarketOpen {
-    final allowPreMarket = _config.allowPreMarketTrading;
-    final allowAfterHours = _config.allowAfterHoursTrading;
-    final includeExtended = allowPreMarket || allowAfterHours;
-    return MarketHours.isMarketOpen(includeExtendedHours: includeExtended);
+    return MarketHours.isTradingSessionAllowed(
+      allowPreMarket: _config.allowPreMarketTrading,
+      allowAfterHours: _config.allowAfterHoursTrading,
+    );
   }
 
-  /// Activates emergency stop to halt all auto-trading
-  void activateEmergencyStop({DocumentReference? userDocRef}) {
+  /// Loads the persisted kill switch before a cycle is allowed to trade.
+  Future<bool> refreshEmergencyStopState(DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      return true;
+    }
+    try {
+      final rawUserRef = userDocRef.firestore.doc(userDocRef.path);
+      if (_emergencyStopWritePending) {
+        await rawUserRef.set(
+          {'agenticTradingEmergencyStop': true},
+          SetOptions(merge: true),
+        );
+        _emergencyStopWritePending = false;
+      }
+      final snapshot =
+          await rawUserRef.get(const GetOptions(source: Source.server));
+      final data = snapshot.data();
+      _emergencyStopActivated = data is Map<String, dynamic> &&
+          data['agenticTradingEmergencyStop'] == true;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _log('Failed to load persisted emergency stop: $error');
+      return false;
+    }
+  }
+
+  Future<bool> _shouldHaltForEmergencyStop(
+      DocumentReference? userDocRef) async {
+    if (!await refreshEmergencyStopState(userDocRef)) return true;
+    if (!_emergencyStopActivated) return false;
+    _log('🛑 Emergency stop activated; blocking order submission');
+    return true;
+  }
+
+  Future<void> _persistEmergencyStop(
+      DocumentReference? userDocRef, bool activated) async {
+    if (userDocRef == null) return;
+    final rawUserRef = userDocRef.firestore.doc(userDocRef.path);
+    await rawUserRef.set(
+      {'agenticTradingEmergencyStop': activated},
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Activates emergency stop to halt all auto-trading.
+  Future<void> activateEmergencyStop({DocumentReference? userDocRef}) async {
     _emergencyStopActivated = true;
     _analytics.logEvent(
       name: 'agentic_trading_emergency_stop',
       parameters: {'reason': 'manual_activation'},
     );
+    try {
+      await _persistEmergencyStop(userDocRef, true);
+      _emergencyStopWritePending = userDocRef == null;
+    } catch (error) {
+      _emergencyStopWritePending = true;
+      _log(
+          'Failed to persist emergency stop; it remains active in this app: $error');
+    }
     // Send push notification if enabled
     if (_config.notifyOnEmergencyStop) {
       _sendTradeNotification(userDocRef, 'emergency_stop');
@@ -1177,8 +1670,17 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Deactivates emergency stop to resume auto-trading
-  void deactivateEmergencyStop() {
+  /// Deactivates emergency stop to resume auto-trading.
+  Future<void> deactivateEmergencyStop({DocumentReference? userDocRef}) async {
+    try {
+      await _persistEmergencyStop(userDocRef, false);
+      _emergencyStopWritePending = false;
+    } catch (error) {
+      _emergencyStopWritePending = true;
+      _log(
+          'Failed to clear persisted emergency stop; trading remains halted: $error');
+      return;
+    }
     _emergencyStopActivated = false;
     _analytics.logEvent(name: 'agentic_trading_emergency_stop_deactivated');
     notifyListeners();
@@ -1294,6 +1796,33 @@ class AgenticTradingProvider with ChangeNotifier {
     return count;
   }
 
+  @visibleForTesting
+  void restoreExecutionLimitsFromHistory({DateTime? now}) {
+    final referenceTime = now ?? DateTime.now();
+    _dailyTradeCount = countTradesOn(_autoTradeHistory, referenceTime);
+    _dailyTradeCountResetDate = DateTime(
+      referenceTime.year,
+      referenceTime.month,
+      referenceTime.day,
+    );
+
+    DateTime? latestTrade;
+    for (final trade in _autoTradeHistory) {
+      final rawTimestamp = trade['timestamp'];
+      final timestamp = switch (rawTimestamp) {
+        String value => DateTime.tryParse(value)?.toLocal(),
+        int value => DateTime.fromMillisecondsSinceEpoch(value),
+        Timestamp value => value.toDate(),
+        _ => null,
+      };
+      if (timestamp != null &&
+          (latestTrade == null || timestamp.isAfter(latestTrade))) {
+        latestTrade = timestamp;
+      }
+    }
+    _lastAutoTradeTime = latestTrade;
+  }
+
   /// Older exit records stored only prices; derive their dollar P&L.
   static Map<String, dynamic> withDerivedProfitLoss(
       Map<String, dynamic> trade) {
@@ -1337,13 +1866,10 @@ class AgenticTradingProvider with ChangeNotifier {
       return 'Emergency stop is activated';
     }
 
-    // Check if market is open (including extended hours if enabled)
-    final allowPreMarket = _config.allowPreMarketTrading;
-    final allowAfterHours = _config.allowAfterHoursTrading;
-    final includeExtended = allowPreMarket || allowAfterHours;
-
-    if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
-      // _log('🏦 Market is closed (Extended hours enabled: $includeExtended)');
+    if (!MarketHours.isTradingSessionAllowed(
+      allowPreMarket: _config.allowPreMarketTrading,
+      allowAfterHours: _config.allowAfterHoursTrading,
+    )) {
       return 'Market is closed';
     }
 
@@ -1399,6 +1925,17 @@ class AgenticTradingProvider with ChangeNotifier {
       livePrice > 0 &&
       (price - livePrice).abs() / livePrice > maxEntryPriceDeviation;
 
+  @visibleForTesting
+  static bool isQuoteFresh({
+    required DateTime? updatedAt,
+    required double? price,
+    DateTime? now,
+  }) {
+    if (updatedAt == null || price == null || price <= 0) return false;
+    final age = (now ?? DateTime.now()).difference(updatedAt);
+    return age >= Duration.zero && age <= const Duration(minutes: 5);
+  }
+
   /// Returns the live price to enter at, or null when the entry must be skipped.
   /// Without a quote source the stored [price] is returned unchanged.
   Future<double?> _confirmEntryPrice({
@@ -1407,17 +1944,25 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic quoteStore,
     required String symbol,
     required double price,
+    bool requireFreshQuote = false,
   }) async {
     if (brokerageService == null ||
         brokerageUser == null ||
         quoteStore == null) {
-      return price;
+      return requireFreshQuote ? null : price;
     }
     double? live;
     try {
-      final quote =
-          await brokerageService.getQuote(brokerageUser, quoteStore, symbol);
+      final quote = requireFreshQuote
+          ? await brokerageService.refreshQuote(
+              brokerageUser, quoteStore, symbol)
+          : await brokerageService.getQuote(brokerageUser, quoteStore, symbol);
       live = quote.lastTradePrice ?? quote.lastExtendedHoursTradePrice;
+      if (requireFreshQuote &&
+          !isQuoteFresh(updatedAt: quote.updatedAt, price: live)) {
+        _log('⏭️ Skipping BUY for $symbol: quote is stale or has no timestamp');
+        return null;
+      }
     } catch (e) {
       _log('⏭️ Skipping BUY for $symbol: could not confirm live price ($e)');
       return null;
@@ -1505,6 +2050,7 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
     dynamic quoteStore,
+    bool requireFreshQuotes = false,
   }) async {
     _isAutoTrading = true;
     _showAutoTradingVisual = true;
@@ -1531,6 +2077,21 @@ class AgenticTradingProvider with ChangeNotifier {
           'tradesExecuted': 0,
           'message':
               'Missing required parameters (brokerageUser, account, service, or store)',
+          'trades': [],
+          'blocked': true,
+          'processedSignals': processedSignals,
+        };
+      }
+
+      if (await _shouldHaltForEmergencyStop(userDocRef)) {
+        _isAutoTrading = false;
+        _scheduleVisualStateReset();
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message':
+              'Auto-trade conditions not met: Emergency stop is activated or unavailable',
           'trades': [],
           'blocked': true,
           'processedSignals': processedSignals,
@@ -1833,6 +2394,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       for (final item in validProposals) {
         if (item == null) continue;
+        if (await _shouldHaltForEmergencyStop(userDocRef)) break;
 
         // Check if we've hit the limit
         if (_dailyTradeCount >= dailyLimit) {
@@ -1901,6 +2463,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 quoteStore: quoteStore,
                 symbol: symbol,
                 price: currentPrice,
+                requireFreshQuote: requireFreshQuotes,
               );
               if (confirmedPrice == null) continue;
               currentPrice = confirmedPrice;
@@ -1944,6 +2507,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
               final isPaperMode = _config.paperTradingMode;
               final requireApproval = _config.requireApproval;
+
+              if (await _shouldHaltForEmergencyStop(userDocRef)) break;
 
               if (requireApproval) {
                 final strength = signal['signalStrength'];
@@ -2039,6 +2604,25 @@ class AgenticTradingProvider with ChangeNotifier {
                 continue;
               }
 
+              if (!await claimSignalExecution(
+                userDocRef: userDocRef,
+                signal: signal,
+              )) {
+                _log(
+                    '⏭️ Skipping $symbol: this signal was already attempted or completed; check brokerage orders before any manual retry.');
+                continue;
+              }
+
+              if (await _shouldHaltForEmergencyStop(userDocRef)) {
+                await updateSignalExecutionClaim(
+                  userDocRef: userDocRef,
+                  signal: signal,
+                  status: 'failed',
+                  message: 'Emergency stop activated before order submission.',
+                );
+                break;
+              }
+
               _log(
                   '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
 
@@ -2060,6 +2644,11 @@ class AgenticTradingProvider with ChangeNotifier {
               const httpCreated = 201;
               if (orderResponse.statusCode == httpOk ||
                   orderResponse.statusCode == httpCreated) {
+                await updateSignalExecutionClaim(
+                  userDocRef: userDocRef,
+                  signal: signal,
+                  status: 'completed',
+                );
                 final tradeRecord = {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
@@ -2135,6 +2724,15 @@ class AgenticTradingProvider with ChangeNotifier {
                 _log(
                     '✅ Order executed for $symbol: $action $quantity shares at \$$currentPrice ($_dailyTradeCount/$dailyLimit today)');
               } else {
+                await updateSignalExecutionClaim(
+                  userDocRef: userDocRef,
+                  signal: signal,
+                  status: orderResponse.statusCode >= 400 &&
+                          orderResponse.statusCode < 500
+                      ? 'failed'
+                      : 'unknown',
+                  message: 'Order response ${orderResponse.statusCode}',
+                );
                 _log(
                     '❌ Order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
                 _analytics.logEvent(
@@ -2147,6 +2745,12 @@ class AgenticTradingProvider with ChangeNotifier {
                 );
               }
             } catch (e) {
+              await updateSignalExecutionClaim(
+                userDocRef: userDocRef,
+                signal: signal,
+                status: 'unknown',
+                message: e.toString(),
+              );
               _log('❌ Error placing order for $symbol: $e');
               _analytics.logEvent(
                 name: 'agentic_trading_order_error',
@@ -2263,6 +2867,7 @@ class AgenticTradingProvider with ChangeNotifier {
       _log('❌ Order not found in pending list');
       return false;
     }
+    if (await _shouldHaltForEmergencyStop(userDocRef)) return false;
 
     if ((order['action'] as String?)?.toUpperCase() == 'BUY' &&
         (heldQuantity ?? 0) > 0) {
@@ -2310,6 +2915,7 @@ class AgenticTradingProvider with ChangeNotifier {
         _log('❌ Cannot approve real order without brokerage service');
         return false;
       }
+      if (await _shouldHaltForEmergencyStop(userDocRef)) return false;
 
       _log(
           '${isPaperMode ? '📝 PAPER' : '📤'} Approving order: $action $quantity shares of $symbol at \$$price');
@@ -2432,6 +3038,15 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
   }) async {
+    if (await _shouldHaltForEmergencyStop(userDocRef)) {
+      return {
+        'success': false,
+        'exitsExecuted': 0,
+        'message': 'Emergency stop is activated or unavailable',
+        'exits': [],
+      };
+    }
+
     // Overlapping runs would both see the same tracked trade and exit it twice.
     if (_isMonitoringExits) {
       _log('⏭️ Exit monitor already running, skipping');
@@ -2487,6 +3102,12 @@ class AgenticTradingProvider with ChangeNotifier {
       // Create a map for faster position lookup
       final positionMap = {for (var p in positions) p.instrumentObj?.symbol: p};
 
+      await _reconcileMissedMarketCloseExits(
+        positions: positions,
+        userDocRef: userDocRef,
+        now: MarketHours.testTime ?? DateTime.now(),
+      );
+
       // Pre-fetch signals for all relevant symbols in parallel to avoid sequential waits
       final technicalExitEnabled = _config.strategyConfig.rsiExitEnabled ||
           _config.strategyConfig.signalStrengthExitEnabled ||
@@ -2528,6 +3149,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // Check each automated buy trade (copy: other cycles add trades while this awaits)
       for (final buyTrade in List.of(_automatedBuyTrades)) {
+        if (await _shouldHaltForEmergencyStop(userDocRef)) break;
         try {
           final symbol = buyTrade['symbol'] as String?;
           final buyQuantity = buyTrade['quantity'] as int?;
@@ -2581,9 +3203,11 @@ class AgenticTradingProvider with ChangeNotifier {
               '📈 $symbol (automated): Entry=\$$entryPrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
 
           bool shouldExit = false;
+          bool isMarketCloseExit = false;
           String exitReason = '';
           int quantityToSell = buyQuantity;
           int? stageIndexToMark;
+          DateTime? marketCloseTradingDate;
 
           final signalData = fetchedSignals[symbol];
           final gexData =
@@ -2809,6 +3433,14 @@ class AgenticTradingProvider with ChangeNotifier {
                 minutesUntilClose <= exitMinutes &&
                 minutesUntilClose > 0) {
               shouldExit = true;
+              isMarketCloseExit = true;
+              final now = MarketHours.testTime ?? DateTime.now();
+              final easternNow = MarketHours.easternWallTime(now);
+              marketCloseTradingDate = DateTime.utc(
+                easternNow.year,
+                easternNow.month,
+                easternNow.day,
+              );
               exitReason =
                   'Market Close Exit ($minutesUntilClose min remaining)';
               quantityToSell = buyQuantity;
@@ -2909,16 +3541,51 @@ class AgenticTradingProvider with ChangeNotifier {
             }
             if (quantityToSell > heldQuantity) quantityToSell = heldQuantity;
 
+            if (isMarketCloseExit && marketCloseTradingDate != null) {
+              final claimed = await claimMarketCloseExitAttempt(
+                userDocRef: userDocRef,
+                trade: buyTrade,
+                tradingDate: marketCloseTradingDate,
+                quantity: quantityToSell,
+              );
+              if (!claimed) {
+                _log(
+                    '⏭️ Market-close exit already attempted for $symbol today');
+                continue;
+              }
+            }
+
             // Get instrument data
             final instrument = await _getInstrument(
                 brokerageService, brokerageUser, instrumentStore, symbol);
 
             if (instrument == null) {
               _log('⚠️ Could not find instrument for $symbol, skipping exit');
+              if (isMarketCloseExit && marketCloseTradingDate != null) {
+                await updateMarketCloseExitStatus(
+                  userDocRef: userDocRef,
+                  trade: buyTrade,
+                  tradingDate: marketCloseTradingDate,
+                  status: 'attempted',
+                  message: 'No instrument was available to submit the exit.',
+                );
+              }
               continue;
             }
 
             // Execute sell order for the automated buy quantity
+            if (await _shouldHaltForEmergencyStop(userDocRef)) {
+              if (isMarketCloseExit && marketCloseTradingDate != null) {
+                await updateMarketCloseExitStatus(
+                  userDocRef: userDocRef,
+                  trade: buyTrade,
+                  tradingDate: marketCloseTradingDate,
+                  status: 'attempted',
+                  message: 'Emergency stop activated before exit submission.',
+                );
+              }
+              break;
+            }
             try {
               final isPaperMode = _config.paperTradingMode;
               _log(
@@ -2942,6 +3609,16 @@ class AgenticTradingProvider with ChangeNotifier {
               const httpCreated = 201;
               if (orderResponse.statusCode == httpOk ||
                   orderResponse.statusCode == httpCreated) {
+                if (isMarketCloseExit && marketCloseTradingDate != null) {
+                  await updateMarketCloseExitStatus(
+                    userDocRef: userDocRef,
+                    trade: buyTrade,
+                    tradingDate: marketCloseTradingDate,
+                    status: 'completed',
+                    message:
+                        'Exit order was accepted; this does not confirm a fill.',
+                  );
+                }
                 final exitRecord = {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
@@ -3047,6 +3724,16 @@ class AgenticTradingProvider with ChangeNotifier {
                 _log(
                     '✅ Exit order executed for $symbol: $exitReason, P/L: ${profitLossPercent.toStringAsFixed(2)}%');
               } else {
+                if (isMarketCloseExit && marketCloseTradingDate != null) {
+                  await updateMarketCloseExitStatus(
+                    userDocRef: userDocRef,
+                    trade: buyTrade,
+                    tradingDate: marketCloseTradingDate,
+                    status: 'attempted',
+                    message:
+                        'Exit order was not accepted (${orderResponse.statusCode}).',
+                  );
+                }
                 _log(
                     '❌ Exit order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
                 _analytics.logEvent(
@@ -3059,6 +3746,15 @@ class AgenticTradingProvider with ChangeNotifier {
                 );
               }
             } catch (e) {
+              if (isMarketCloseExit && marketCloseTradingDate != null) {
+                await updateMarketCloseExitStatus(
+                  userDocRef: userDocRef,
+                  trade: buyTrade,
+                  tradingDate: marketCloseTradingDate,
+                  status: 'attempted',
+                  message: 'Exit order result was not confirmed: $e',
+                );
+              }
               _log('❌ Error placing exit order for $symbol: $e');
               _analytics.logEvent(
                 name: 'agentic_trading_exit_error',

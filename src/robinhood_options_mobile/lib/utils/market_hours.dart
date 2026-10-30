@@ -2,7 +2,7 @@
 enum TradingSession {
   preMarket, // 4:00 AM - 9:30 AM ET
   regular, // 9:30 AM - 4:00 PM ET
-  afterHours, // 4:00 PM - 8:00 PM ET
+  afterHours, // Regular close - 8:00 PM ET
   closed, // Market closed
 }
 
@@ -10,6 +10,92 @@ enum TradingSession {
 class MarketHours {
   /// Test-only override for current time
   static DateTime? testTime;
+
+  static bool isMarketHoliday(DateTime easternDate) {
+    final year = easternDate.year;
+    final date = DateTime.utc(year, easternDate.month, easternDate.day);
+    final holidays = <DateTime>{
+      _observedHoliday(year, 1, 1),
+      _nthWeekdayOfMonth(year, 1, DateTime.monday, 3),
+      _nthWeekdayOfMonth(year, 2, DateTime.monday, 3),
+      _easterSunday(year).subtract(const Duration(days: 2)),
+      _lastWeekdayOfMonth(year, 5, DateTime.monday),
+      _observedHoliday(year, 7, 4),
+      _nthWeekdayOfMonth(year, 9, DateTime.monday, 1),
+      _nthWeekdayOfMonth(year, 11, DateTime.thursday, 4),
+      _observedHoliday(year, 12, 25),
+    };
+    if (year >= 2022) {
+      holidays.add(_observedHoliday(year, 6, 19));
+    }
+    final nextNewYear = _observedHoliday(year + 1, 1, 1);
+    if (nextNewYear.year == year) holidays.add(nextNewYear);
+    return holidays.contains(date);
+  }
+
+  static DateTime _observedHoliday(int year, int month, int day) {
+    final date = DateTime.utc(year, month, day);
+    if (date.weekday == DateTime.saturday) {
+      return date.subtract(const Duration(days: 1));
+    }
+    if (date.weekday == DateTime.sunday) {
+      return date.add(const Duration(days: 1));
+    }
+    return date;
+  }
+
+  static DateTime _nthWeekdayOfMonth(
+    int year,
+    int month,
+    int weekday,
+    int occurrence,
+  ) {
+    final first = DateTime.utc(year, month, 1);
+    final daysUntilWeekday = (weekday - first.weekday + 7) % 7;
+    return first.add(Duration(days: daysUntilWeekday + (occurrence - 1) * 7));
+  }
+
+  static DateTime _lastWeekdayOfMonth(int year, int month, int weekday) {
+    final last = DateTime.utc(year, month + 1, 0);
+    final daysSinceWeekday = (last.weekday - weekday + 7) % 7;
+    return last.subtract(Duration(days: daysSinceWeekday));
+  }
+
+  static DateTime _easterSunday(int year) {
+    final a = year % 19;
+    final b = year ~/ 100;
+    final c = year % 100;
+    final d = b ~/ 4;
+    final e = b % 4;
+    final f = (b + 8) ~/ 25;
+    final g = (b - f + 1) ~/ 3;
+    final h = (19 * a + b - d - g + 15) % 30;
+    final i = c ~/ 4;
+    final k = c % 4;
+    final l = (32 + 2 * e + 2 * i - h - k) % 7;
+    final m = (a + 11 * h + 22 * l) ~/ 451;
+    final easterMonth = (h + l - 7 * m + 114) ~/ 31;
+    final easterDay = (h + l - 7 * m + 114) % 31 + 1;
+    return DateTime.utc(year, easterMonth, easterDay);
+  }
+
+  static bool _isTradingDate(DateTime date) =>
+      date.weekday != DateTime.saturday &&
+      date.weekday != DateTime.sunday &&
+      !isMarketHoliday(date);
+
+  static int _regularCloseMinutes(DateTime date) =>
+      _isEarlyClose(date) ? 13 * 60 : 16 * 60;
+
+  static bool _isEarlyClose(DateTime date) {
+    if (!_isTradingDate(date)) return false;
+    final thanksgiving =
+        _nthWeekdayOfMonth(date.year, 11, DateTime.thursday, 4);
+    final dayAfterThanksgiving = thanksgiving.add(const Duration(days: 1));
+    return date == dayAfterThanksgiving ||
+        (date.month == 12 && date.day == 24) ||
+        (date.month == 7 && date.day == 3);
+  }
 
   /// Checks if the market is currently open (9:30 AM - 4:00 PM ET, Monday-Friday)
   /// Optionally includes extended hours (pre-market and after-hours)
@@ -21,6 +107,78 @@ class MarketHours {
     } else {
       return session == TradingSession.regular;
     }
+  }
+
+  static bool isTradingSessionAllowed({
+    required bool allowPreMarket,
+    required bool allowAfterHours,
+  }) {
+    return switch (getCurrentTradingSession()) {
+      TradingSession.regular => true,
+      TradingSession.preMarket => allowPreMarket,
+      TradingSession.afterHours => allowAfterHours,
+      TradingSession.closed => false,
+    };
+  }
+
+  /// Converts an instant to Eastern wall-clock components using the US DST
+  /// rules already used by the market-session helpers.
+  static DateTime easternWallTime(DateTime instant) {
+    final utc = instant.toUtc();
+    final offset = _isDaylightSavingTime(utc, utc.year) ? 4 : 5;
+    return utc.subtract(Duration(hours: offset));
+  }
+
+  /// Returns the most recent trading date whose regular session has ended.
+  static DateTime mostRecentCompletedTradingDate(DateTime instant) {
+    final eastern = easternWallTime(instant);
+    final date = DateTime.utc(eastern.year, eastern.month, eastern.day);
+    final minutes = eastern.hour * 60 + eastern.minute;
+    if (_isTradingDate(date) && minutes >= _regularCloseMinutes(date)) {
+      return date;
+    }
+    return previousTradingDate(date);
+  }
+
+  /// Returns the prior weekday before an Eastern calendar date.
+  static DateTime previousTradingDate(DateTime easternDate) {
+    var date = DateTime.utc(
+      easternDate.year,
+      easternDate.month,
+      easternDate.day,
+    );
+    do {
+      date = DateTime.utc(date.year, date.month, date.day - 1);
+    } while (!_isTradingDate(date));
+    return date;
+  }
+
+  /// Returns the UTC instant of a configured pre-close exit deadline.
+  static DateTime marketCloseDeadlineUtc(
+    DateTime tradingDate,
+    int exitMinutes,
+  ) {
+    final year = tradingDate.year;
+    final month = tradingDate.month;
+    final day = tradingDate.day;
+    final dstProbe = DateTime.utc(year, month, day, 18);
+    final offset = _isDaylightSavingTime(dstProbe, year) ? 4 : 5;
+    final closeMinutes = _regularCloseMinutes(tradingDate);
+    return DateTime.utc(year, month, day, closeMinutes ~/ 60 + offset)
+        .subtract(Duration(minutes: exitMinutes));
+  }
+
+  /// Formats an instant as YYYY-MM-DD in Eastern Time.
+  static String easternDateKey(DateTime instant) {
+    final eastern = easternWallTime(instant);
+    return calendarDateKey(eastern);
+  }
+
+  /// Formats an Eastern calendar date represented by its wall-clock fields.
+  static String calendarDateKey(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   /// Gets the current trading session
@@ -50,10 +208,8 @@ class MarketHours {
     //   'Sun'
     // ][etTime.weekday]})');
 
-    // Market is closed on weekends
-    if (etTime.weekday == DateTime.saturday ||
-        etTime.weekday == DateTime.sunday) {
-      // debugPrint('   ❌ Weekend - market closed');
+    final easternDate = DateTime.utc(etTime.year, etTime.month, etTime.day);
+    if (!_isTradingDate(easternDate)) {
       return TradingSession.closed;
     }
 
@@ -65,10 +221,10 @@ class MarketHours {
 
     // Regular market: 9:30 AM - 4:00 PM ET
     final regularOpen = 9 * 60 + 30; // 570 minutes
-    final regularClose = 16 * 60; // 960 minutes
+    final regularClose = _regularCloseMinutes(easternDate);
 
-    // After-hours: 4:00 PM - 8:00 PM ET
-    final afterHoursOpen = 16 * 60; // 960 minutes
+    // After-hours begins at the regular close, including early-close days.
+    final afterHoursOpen = regularClose;
     final afterHoursClose = 20 * 60; // 1200 minutes
 
     // debugPrint(
@@ -96,20 +252,18 @@ class MarketHours {
   /// Returns the number of minutes until the regular market closes (4:00 PM ET).
   /// Returns null if the market is not in the regular session.
   static int? minutesUntilMarketClose() {
-    final now = DateTime.now().toUtc();
+    final now = (testTime ?? DateTime.now()).toUtc();
     final year = now.year;
     final isDST = _isDaylightSavingTime(now, year);
     final offset = isDST ? 4 : 5;
     final etTime = now.subtract(Duration(hours: offset));
 
-    if (etTime.weekday == DateTime.saturday ||
-        etTime.weekday == DateTime.sunday) {
-      return null;
-    }
+    final easternDate = DateTime.utc(etTime.year, etTime.month, etTime.day);
+    if (!_isTradingDate(easternDate)) return null;
 
     final currentTimeInMinutes = etTime.hour * 60 + etTime.minute;
     final regularOpen = 9 * 60 + 30; // 570 minutes
-    final regularClose = 16 * 60; // 960 minutes
+    final regularClose = _regularCloseMinutes(easternDate);
 
     if (currentTimeInMinutes >= regularOpen &&
         currentTimeInMinutes < regularClose) {
@@ -128,7 +282,7 @@ class MarketHours {
       case TradingSession.regular:
         return 'Regular Market (9:30 AM - 4:00 PM ET)';
       case TradingSession.afterHours:
-        return 'After-Hours (4:00 PM - 8:00 PM ET)';
+        return 'After-Hours (regular close - 8:00 PM ET)';
       case TradingSession.closed:
         return 'Market Closed';
     }
@@ -162,17 +316,15 @@ class MarketHours {
     final offset = isDST ? 4 : 5;
     final etTime = checkTime.subtract(Duration(hours: offset));
 
-    if (etTime.weekday == DateTime.saturday ||
-        etTime.weekday == DateTime.sunday) {
-      return TradingSession.closed;
-    }
+    final easternDate = DateTime.utc(etTime.year, etTime.month, etTime.day);
+    if (!_isTradingDate(easternDate)) return TradingSession.closed;
 
     final currentTimeInMinutes = etTime.hour * 60 + etTime.minute;
     const preMarketOpen = 240; // 4:00 AM
     const preMarketClose = 570; // 9:30 AM
     const regularOpen = 570; // 9:30 AM
-    const regularClose = 960; // 4:00 PM
-    const afterHoursOpen = 960; // 4:00 PM
+    final regularClose = _regularCloseMinutes(easternDate);
+    final afterHoursOpen = regularClose;
     const afterHoursClose = 1200; // 8:00 PM
 
     if (currentTimeInMinutes >= preMarketOpen &&

@@ -9,7 +9,9 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
@@ -90,6 +92,60 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify widget renders without errors
+      expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
+      expect(
+        find.textContaining('Market-close exits are not guaranteed'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Link a brokerage to enable automated execution.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<SwitchListTile>(
+                find.byKey(const ValueKey('auto-trading-toggle')))
+            .onChanged,
+        isNull,
+      );
+      expect(find.text('Automated Paper Tests'), findsOneWidget);
+      expect(find.text('Paper Trading Mode'), findsNothing);
+    });
+
+    testWidgets('Auto-save should trigger when stop loss is changed',
+        (WidgetTester tester) async {
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
               ChangeNotifierProvider<BacktestingProvider>(
                   create: (_) => MockBacktestingProvider()),
@@ -109,8 +165,10 @@ void main() {
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
     });
 
-    testWidgets('Auto-save should trigger when stop loss is changed',
+    testWidgets('Systematic auto-trading waits for active entry indicators',
         (WidgetTester tester) async {
+      testUser.agenticTradingConfig =
+          AgenticTradingConfig(strategyConfig: TradeStrategyConfig());
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
           .doc('test_user_123')
@@ -125,6 +183,12 @@ void main() {
           home: MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
               ChangeNotifierProvider<BacktestingProvider>(
                   create: (_) => MockBacktestingProvider()),
@@ -140,8 +204,128 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify widget renders without errors
-      expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
+      expect(
+        find.text(
+            'Choose at least one entry indicator to enable Systematic mode.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<SwitchListTile>(
+                find.byKey(const ValueKey('auto-trading-toggle')))
+            .onChanged,
+        isNull,
+      );
+    });
+
+    testWidgets(
+        'switching active paper auto-trading to live requires confirmation',
+        (WidgetTester tester) async {
+      testUser.agenticTradingConfig = AgenticTradingConfig(
+        autoTradeEnabled: true,
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          enabledIndicators: {'priceMovement': true},
+        ),
+      );
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final paperSwitch = find.byKey(const ValueKey('paperTradingMode'));
+      await tester.ensureVisible(paperSwitch);
+      await tester.tap(paperSwitch);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Switch to real-money trading?'), findsOneWidget);
+      expect(find.text('Switch to Live'), findsOneWidget);
+      expect(testUser.agenticTradingConfig!.paperTradingMode, isTrue);
+    });
+
+    testWidgets('emergency stop disables pending order approval',
+        (WidgetTester tester) async {
+      final agenticTradingProvider = AgenticTradingProvider();
+      agenticTradingProvider.loadConfigFromUser(null);
+      agenticTradingProvider.pendingOrders.add({
+        'id': 'pending-1',
+        'timestamp': DateTime.now().toIso8601String(),
+        'symbol': 'AAPL',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      await agenticTradingProvider.activateEmergencyStop();
+
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AgenticTradingProvider>.value(
+                  value: agenticTradingProvider),
+              ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+            'Emergency stop is active. Pending orders cannot be approved.'),
+        findsOneWidget,
+      );
+      final approveButton = find.widgetWithText(FilledButton, 'Approve');
+      expect(tester.widget<FilledButton>(approveButton).onPressed, isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      agenticTradingProvider.dispose();
     });
 
     testWidgets('balanced setup activates core entry indicators only',
@@ -163,6 +347,7 @@ void main() {
             providers: [
               ChangeNotifierProvider<AgenticTradingProvider>.value(
                   value: agenticTradingProvider),
+              ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
               ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
               ChangeNotifierProvider<BacktestingProvider>(
                   create: (_) => MockBacktestingProvider()),

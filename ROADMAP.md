@@ -43,12 +43,12 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** October 26, 2026 · **Current app version:** 0.59.0
+**Last reviewed:** October 30, 2026 · **Current app version:** 0.60.0
 
 ### Quick Stats
 - **Completed checklist items:** 437
-- **Planned checklist items:** 62
-- **GitHub issues:** 125 total — 32 open and 93 closed (as of October 26, 2026)
+- **Planned checklist items:** 63
+- **GitHub issues:** 129 total — 38 open and 91 closed (as of October 30, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
@@ -58,8 +58,9 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - ✅ **v0.58.1 Shipped:** Added a live-quote guard for auto-trade BUYs and queued approvals: mismatches above 3% are skipped, acceptable entries use the live quote, and quote-fetch failures block execution. When quote context is unavailable, the stored price remains the fallback ([docs](docs/multi-indicator-trading.md)).
 - ✅ **v0.58.2 Shipped:** Reasoning-mode auto-trades now use the configured Trade Quantity when Dynamic Sizing is off; agent-suggested quantity remains active when enabled ([docs](docs/multi-indicator-trading.md)).
 - ✅ **v0.58.3 Shipped:** Corrected feature-access precedence and preference synchronization, hardened group-watchlist callable validation, reduced technical-indicator allocations, and improved screen-reader labels ([docs](docs/feature-access-and-beta-gating.md), [docs](docs/group-watchlists.md), [docs](docs/multi-indicator-trading.md)).
-- **Next proposed milestone:** **v0.60.0 (target: Q2 2027)** — Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway.
-- **Later candidates (v0.60.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
+- **In progress (v0.60.0):** On-device auto-trading execution modes and EOD exit reporting ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)); physical-device lifecycle verification remains pending.
+- **Next proposed milestone:** **v0.61.0 (target: Q2 2027)** — Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway.
+- **Later candidates (v0.61.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
 - **Longer-term exploration:** Biometric health tracking, paid strategy marketplace royalties, desktop workflows, zero-knowledge proofs, wearable clients, and spatial interfaces remain exploratory until scoped and validated.
 
 ## Release Versions & Timeline
@@ -543,7 +544,7 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Chart Pattern & Momentum Allocation Reduction:** Avoid temporary array slicing during pattern and momentum evaluation ([#259](https://github.com/CIInc/robinhood-options-mobile/pull/259)).
 - ✅ **Screen Reader Semantics:** Provide unified announcements for retirement projections and portfolio publication statistics ([#258](https://github.com/CIInc/robinhood-options-mobile/pull/258), [#261](https://github.com/CIInc/robinhood-options-mobile/pull/261)).
 
-### v0.59.0 (Target: Q1 2027)
+### v0.59.0 ✅ (Released October 26, 2026)
 **SEC EDGAR Expansion, Alerts & Streamlined AI Conviction**
 - ✅ **SEC EDGAR Filing Expansion (Phase 2):** 10-K/10-Q financial statements parsing, real-time insider filing alerts, and 8-K material catalyst notifications ([docs](docs/sec-edgar-integration.md), [Tracking: #143](https://github.com/CIInc/robinhood-options-mobile/issues/143)).
 - ✅ **Alert Customization & Multi-Channel Delivery:** Multi-channel routing (Push, In-App, Email, SMS, Webhook with critical-only gating), custom sounds with per-category overrides, 5 dedicated Android/APNs priority notification channels, quiet hours with critical bypass, and granular per-signal/per-indicator alert triggers for price, GEX, and options flow ([docs](docs/custom-alerts.md), [Tracking: #115](https://github.com/CIInc/robinhood-options-mobile/issues/115)).
@@ -553,7 +554,11 @@ Mapping features to specific versions helps users anticipate releases and unders
 - ✅ **Unified AI Conviction & Factor Alignment:** Lightweight synthesis combining Gemini 3.1 Flash-Lite reasoning with quantitative factor scores and Devil's Advocate stress tests (streamlined from speculative multi-LLM consensus) ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)).
 - ✅ **Performance, Memory & Stream Throttling:** Viewport-aware streaming subscriptions, memory optimization, and background stream pausing for mobile battery efficiency ([docs](docs/streaming-performance-and-battery.md), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)).
 
-### v0.60.0+ (Target: Q2 2027+)
+### v0.60.0 (In progress; physical-device verification pending)
+**On-Device Auto-Trading Execution Modes & EOD Exit Safety**
+- **Reliable Auto-Trading Execution Modes and EOD Exit Behavior ([docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):** Implemented foreground execution plus best-effort Workmanager checks on iOS and Android, local brokerage-token use, Paper-by-default for new configurations, persistent attempted/completed/missed EOD statuses, missed-exit notifications, and fail-closed cycle leasing when the user document is unavailable. Device lifecycle, network/retry, duplicate-delivery, daylight-saving, and market-calendar acceptance testing remains open; background timing and EOD execution are not guaranteed.
+
+### v0.61.0+ (Target: Q2 2027+)
 **Smart Order Routing, Cross-Broker Optimizers & Developer APIs**
 - **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer:** Dynamically evaluate and route equity/option orders between connected brokerages (Robinhood and Schwab) to minimize margin requirements and borrow rates ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108), v0.57.0+).
 - **Local OpenAPI & Quant Webhook Gateway:** Local WebSocket and REST API server embedded in the app allowing quant traders to stream market data, Greeks, and signals to Python/Node.js scripts.
@@ -1082,9 +1087,10 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [x] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Track execution latency (ms), fill price delta vs. leader, and performance drift - **Small** (1-2 weeks)
 - [x] **Automated Copy-Trading Risk Guardian** (v0.52.0, [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort - **Medium** (2-3 weeks)
 - [ ] **Server-Side Auto-Execute**: Secure server-side execution to reduce latency and remove client dependency (requires secure key management) - **Large** (4-6 weeks)
-- [ ] **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading** (v0.60.0+, [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Block naked short option generation in inverse copy mode by mapping to defined-risk opposite-direction contracts/spreads, and suggest delta/DTE-matched strikes or vertical spreads when a single contract exceeds the follower's per-trade allocation cap - **Medium** (2-3 weeks)
+- [ ] **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading** (v0.61.0+, [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Block naked short option generation in inverse copy mode by mapping to defined-risk opposite-direction contracts/spreads, and suggest delta/DTE-matched strikes or vertical spreads when a single contract exceeds the follower's per-trade allocation cap - **Medium** (2-3 weeks)
 
 #### Strategy Automation
+- [ ] **Reliable Auto-Trading Execution Modes and EOD Exit Behavior** (v0.60.0, [docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)): Document lifecycle guarantees, use best-effort on-device scheduling without sending brokerage credentials to a server, and distinguish attempted/completed/missed market-close exits. Implementation and unit tests are present; physical-device lifecycle and market-calendar acceptance verification remains pending.
 - [x] **Options Strategy Roll Assistant** (v0.49.0, [#157](https://github.com/CIInc/robinhood-options-mobile/issues/157)): 1-tap rolling wizard for covered calls, cash-secured puts, and credit spreads with automated net credit/debit calculation and new breakeven projections - **Small** (1-2 weeks)
 - [x] **Multi-Leg Options Defense & Roll Playbook** (v0.50.0, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)): Automated defensive action recommendations when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) - **Small** (1-2 weeks)
 - [x] **Multi-Leg Order Templates & Spread Builder** (v0.55.1): Quick-entry templates for complex spreads (Vertical Spreads, Straddles, Strangles, Iron Condors, Calendar Spreads) across Schwab and Robinhood - **Small** (1-2 weeks)
@@ -1094,7 +1100,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [x] **Options Pin Risk, Ex-Dividend Early Assignment & Expiration Exercise Guard** (v0.59.0, [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271)): Detect ITM short call early-assignment risk ahead of ex-dividend dates ($\text{Extrinsic Value} \le 1.25 \times \text{Dividend}$), score 0DTE/1DTE expiration pin risk ($\pm 1.0\%$ of strike), and project post-assignment buying-power margin shocks with 1-tap roll/close defense actions - **Medium** (2-3 weeks)
 - [ ] **Futures Contract Roll Assistant, Term Structure & Contango/Backwardation Analyzer** (v0.59.0, [#103](https://github.com/CIInc/robinhood-options-mobile/issues/103), [#104](https://github.com/CIInc/robinhood-options-mobile/issues/104), [#105](https://github.com/CIInc/robinhood-options-mobile/issues/105)): Expiration and First Notice countdown alerts, front-to-back contract term-structure curve (contango/backwardation roll yield), contract specifications, and guided calendar roll assistant - **Medium** (2-3 weeks)
 - [ ] **Futures SPAN Margin Health, Liquidation Distance & Intraday Seasonality Analytics** (v0.59.0, [#67](https://github.com/CIInc/robinhood-options-mobile/issues/67), [#106](https://github.com/CIInc/robinhood-options-mobile/issues/106), [#111](https://github.com/CIInc/robinhood-options-mobile/issues/111)): Per-contract and aggregate futures Initial/Maintenance Margin utilization, effective notional leverage, estimated liquidation price / ATR shock cushion, Action Center low-buffer alerts, and seasonal volatility overlays - **Medium** (2-3 weeks)
-- [ ] **Bracket (OTOCO) & One-Cancels-Other (OCO) Exit Protection Orders** (v0.60.0+, [#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)): Attach simultaneous Take-Profit Limit and Stop-Loss exit brackets at order entry or pair existing position exits as OCO orders with live Risk:Reward preview and native Schwab conditional order routing - **Medium** (2-3 weeks)
+- [ ] **Bracket (OTOCO) & One-Cancels-Other (OCO) Exit Protection Orders** (v0.61.0+, [#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)): Attach simultaneous Take-Profit Limit and Stop-Loss exit brackets at order entry or pair existing position exits as OCO orders with live Risk:Reward preview and native Schwab conditional order routing - **Medium** (2-3 weeks)
 
 #### Behavioral & Tilt Guardrails ([Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142))
 - [x] **Autonomous Risk Circuit Breakers & Cooling-Off Lock** (v0.48.5, [Tracking: #142](https://github.com/CIInc/robinhood-options-mobile/issues/142)): Daily max loss, portfolio drawdown, and consecutive loss guardrails

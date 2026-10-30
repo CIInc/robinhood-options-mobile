@@ -4,7 +4,37 @@
 
 The Agentic Trading system provides autonomous, AI-powered trading capabilities for RealizeAlpha. It combines multi-indicator technical analysis with risk management controls to execute trades automatically based on qualified trading signals.
 
-**Auto-Execution:** The system includes a built-in timer that automatically checks for trading opportunities every 5 minutes when auto-trading is enabled. No manual intervention is required - simply enable auto-trading in settings and the system will monitor and execute trades autonomously.
+**Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled with a Robinhood account selected. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
+
+## Execution Modes and Lifecycle Guarantees
+
+User-specific strategy cycles and brokerage orders run on-device in the foreground or through an OS-managed background worker. Brokerage credentials remain in platform-secure local storage; there is no server-side strategy executor or server-side use of brokerage tokens. Existing server jobs generate shared signals and evaluate resting paper stock orders, but do not execute a user's agentic strategy.
+
+| App or network state | iOS | Android | Behavior |
+| --- | --- | --- | --- |
+| App open and connected | Supported | Supported | The foreground timer attempts cycles at the configured interval (5 minutes by default). |
+| App backgrounded or suspended | Best effort | Best effort | Workmanager requests periodic checks about every 15 minutes. Android's periodic-work minimum is 15 minutes; iOS schedules opportunistically and may delay or skip work. Neither platform guarantees exact cadence or an EOD run. |
+| App force-quit | Not supported | Not supported | The operating system may stop background execution until the app is opened again. |
+| Offline or fresh quote unavailable | Skipped | Skipped | Background BUYs fail closed unless a Robinhood quote has a valid timestamp and is no more than 5 minutes old. There is no delayed-data or stored-price fallback for background orders. |
+| App restarted | Best effort | Best effort | Scheduling is restored when the signed-in user, enabled configuration, and selected Robinhood account qualify. Missed entry cycles are not replayed. |
+
+Scheduling follows the existing auto-trading toggle and is canceled when the selected brokerage is not Robinhood. The worker uses the saved brokerage and account selections. Paper strategy execution requires a linked Robinhood quote source; its orders still go through the simulated paper ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
+
+### Scheduling Scope and Market Data
+
+The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.
+
+Background BUY validation refreshes the Robinhood quote and accepts only a positive price with a timestamp no older than 5 minutes. If the check fails, the order is skipped. The signal-generation providers and their fallback data are not used as substitutes for a background execution quote. For paper auto-trading, Robinhood supplies the quote while the paper ledger simulates fills. Robinhood API cost, rate-limit headroom, and background reliability need production monitoring; no exact daily lookup allowance is assumed here.
+
+### Market-Close Exit Limitations
+
+Market-close exits can be evaluated by a foreground cycle or a background check that runs during the configured pre-close window. Background scheduling is best effort, so an exit can still be missed and the position may remain open overnight. After the market closes, the next eligible worker checks current positions without requesting quotes or submitting orders and reconciles overdue status. Each tracked trade/session records one of these states:
+
+- **Attempted:** The app claimed the session's exit record before submitting the order. The claim prevents a duplicate cycle from submitting the same EOD exit twice. A rejected or unconfirmed submission remains attempted until reconciliation.
+- **Completed:** The brokerage accepted the order request. This confirms submission, not a fill or a closed position.
+- **Missed:** No accepted submission was recorded after the market-close window while the tracked position remains open. The next eligible foreground or background reconciliation records the status; if enabled, it requests a missed-exit push. A force-quit or paused worker can delay reconciliation. Inspect the position and manage it manually.
+
+The session date uses Eastern Time and handles DST, standard NYSE holidays, and recurring 1:00 p.m. early closes on July 3, Christmas Eve, and the day after Thanksgiving. Unscheduled exchange closures are not represented and require manual verification. Status records are stored per user, tracked trade, and session date. Missed exits are not retried after the market closes. The emergency stop is stored on the user document and checked before each order submission; if its state cannot be loaded or the user-document reference is unavailable, the auto-trade cycle fails closed. A request already submitted to a brokerage cannot be recalled by activating the stop.
 
 ## Architecture
 
@@ -186,6 +216,7 @@ To ensure reliability and prevent duplicate trades, the system implements robust
 
 - **Local Persistence:** The IDs of processed signals are saved locally to the device. This ensures that even if the app is restarted, the system remembers which signals have already been acted upon (or rejected) for the current day.
 - **Server-Side Safety:** Routine auto-trading checks use `skipSignalUpdate` so checking an opportunity does not regenerate its signal. Scheduled calculation runs update calculation freshness even when the recommendation is unchanged.
+- **Order Submission Claims:** Signal claims are persisted per user to prevent duplicate submissions across cycles. A submission with an ambiguous result is not automatically retried because the brokerage may have accepted it; inspect brokerage orders before relying on a later refreshed signal.
 - **Detailed Inspection:** You can view the history of processed signals in the **Agentic Trading Settings**. Tapping on any processed signal reveals a detailed dialog showing:
   - The full AI reasoning for the decision.
   - Specific rejection reasons (if applicable).
@@ -198,6 +229,8 @@ Instrument signal details expose backend calculation metadata for a recommendati
 On a successful unchanged calculation, the backend refreshes the top-level `timestamp`, `date`, `currentPrice`, and `diagnostics.lastSuccessfulCalculationAt`. It preserves `diagnostics.signalChangedAt`, which is the authoritative time at which the recommendation content last changed. Notification triggers compare signal values, so this diagnostic-only freshness update does not create a new actionable-signal notification.
 
 ### Paper Trading Mode
+
+New configurations default to Paper execution. Existing saved configurations keep their stored execution mode.
 
 The system includes a fully functional **Paper Trading Mode** for risk-free strategy testing and validation.
 
@@ -401,7 +434,7 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
 
 - **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%). This allows locking in profits while keeping a portion of the position open for potential further gains.
 - **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met. This helps free up capital from stagnant trades.
-- **Market Close Exits:** Automatically liquidate positions a set number of minutes before the market closes to avoid overnight risk (gap risk).
+- **Market Close Exits:** A foreground cycle attempts to exit positions a configured number of minutes before the market closes. If the app cannot run a cycle in that window, the exit can be missed and the position may remain open overnight; see [Execution Modes and Lifecycle Guarantees](#execution-modes-and-lifecycle-guarantees).
 - **5-Tier Sequential Exit Stop Priority Queue:** Institutional-grade multi-tier exit framework evaluated sequentially in real time:
   1. **Tier 1 (GEX Structural Stop):** Closes positions when dealer positioning flips into negative gamma acceleration (`enableGexStructuralStops`).
   2. **Tier 2 (Trailing Peak Stop):** High-water mark trailing stop that locks in profits when price pulls back by a set percentage from peak unrealized gains (`enableTrailingPeakStop`, default 15%).

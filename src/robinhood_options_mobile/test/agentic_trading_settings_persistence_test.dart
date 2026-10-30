@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -70,6 +71,7 @@ void main() {
           providers: [
             ChangeNotifierProvider<AgenticTradingProvider>.value(
                 value: provider),
+            ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
             ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
             ChangeNotifierProvider<BacktestingProvider>(
                 create: (_) => _MockBacktestingProvider()),

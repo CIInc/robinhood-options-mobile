@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
@@ -16,6 +18,7 @@ import 'package:robinhood_options_mobile/widgets/shared/exit_strategies_widget.d
 import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -110,6 +113,8 @@ class _AgenticTradingSettingsWidgetState
     final provider =
         Provider.of<AgenticTradingProvider>(context, listen: false);
     _configProvider = provider..addListener(_syncUserConfig);
+    unawaited(provider.refreshEmergencyStopState(widget.userDocRef));
+    unawaited(provider.loadLatestMarketCloseExitStatus(widget.userDocRef));
     // Other screens pass a possibly stale User; a loaded provider config is newer.
     final providerHasConfig = provider.hasLoadedConfig;
     final initialConfig =
@@ -386,7 +391,7 @@ class _AgenticTradingSettingsWidgetState
     double? titleFontSize,
     double? subtitleFontSize = 13,
     EdgeInsetsGeometry? contentPadding,
-    required ValueChanged<bool> onChanged,
+    required ValueChanged<bool>? onChanged,
     required bool value,
     Color? activeColor,
     Color? activeTrackColor,
@@ -415,6 +420,7 @@ class _AgenticTradingSettingsWidgetState
       child: Column(
         children: [
           SwitchListTile(
+            key: ValueKey(key),
             title: titleWidget ??
                 Text(
                   title,
@@ -663,6 +669,7 @@ class _AgenticTradingSettingsWidgetState
       notifyOnTakeProfit: configSource.notifyOnTakeProfit,
       notifyOnStopLoss: configSource.notifyOnStopLoss,
       notifyOnEmergencyStop: configSource.notifyOnEmergencyStop,
+      notifyOnMissedExit: configSource.notifyOnMissedExit,
       notifyDailySummary: configSource.notifyDailySummary,
       paperTradingMode: configSource.paperTradingMode,
       requireApproval: configSource.requireApproval,
@@ -1236,8 +1243,13 @@ class _AgenticTradingSettingsWidgetState
         onTap: () {
           FocusScope.of(context).unfocus();
         },
-        child: Consumer<AgenticTradingProvider>(
-          builder: (context, agenticTradingProvider, child) {
+        child: Consumer2<AgenticTradingProvider, BrokerageUserStore>(
+          builder:
+              (context, agenticTradingProvider, brokerageUserStore, child) {
+            final selectedBrokerage = brokerageUserStore.currentUser;
+            final hasBrokerage = selectedBrokerage != null;
+            final hasRobinhood =
+                selectedBrokerage?.source == BrokerageSource.robinhood;
             return Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -1246,6 +1258,11 @@ class _AgenticTradingSettingsWidgetState
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
+                    if (!hasRobinhood)
+                      _buildBrokeragePrerequisite(
+                        context,
+                        hasBrokerage: hasBrokerage,
+                      ),
                     _buildStatusHeader(context, agenticTradingProvider),
                     _buildEntryReadiness(context, agenticTradingProvider),
                     const SizedBox(height: 16),
@@ -1266,6 +1283,59 @@ class _AgenticTradingSettingsWidgetState
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrokeragePrerequisite(
+    BuildContext context, {
+    required bool hasBrokerage,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.link, size: 18, color: colorScheme.onSecondaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              hasBrokerage
+                  ? 'Background checks and automated paper tests require a selected Robinhood account. Paper fills are simulated; foreground live support depends on the selected brokerage.'
+                  : 'Link a brokerage to enable automated execution. Robinhood is required for background checks and automated paper tests, which use RH quotes with simulated fills. You can still configure your strategy now.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSecondaryContainer,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaperModeUnavailable(
+    BuildContext context, {
+    required bool hasBrokerage,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(Icons.lock_outline, color: colorScheme.onSurfaceVariant),
+        title: const Text('Automated Paper Tests'),
+        subtitle: Text(
+          hasBrokerage
+              ? 'Requires a selected Robinhood account for quotes. The selected brokerage can still be used for live foreground execution.'
+              : 'Link Robinhood to test an automated strategy with RH quotes and simulated fills.',
         ),
       ),
     );
@@ -1992,7 +2062,44 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildStatusHeader(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedBrokerage =
+        Provider.of<BrokerageUserStore>(context, listen: false).currentUser;
+    final hasBrokerage = selectedBrokerage != null;
+    final hasRobinhood = selectedBrokerage?.source == BrokerageSource.robinhood;
+    final config = agenticTradingProvider.config;
+    final strategy = config.strategyConfig;
+    final executionModeLabel =
+        config.paperTradingMode ? 'Paper orders' : 'Live orders';
+    final hasEntryCriteria = config.tradingMode == TradingMode.reasoning ||
+        strategy.enabledIndicators.values.any((enabled) => enabled) ||
+        strategy.customIndicators.isNotEmpty;
+    final canRunAutoTrading = hasEntryCriteria &&
+        (config.paperTradingMode
+            ? hasRobinhood
+            : hasBrokerage && (hasRobinhood || widget.service != null));
+    final executionBlockReason = !hasBrokerage
+        ? 'Link a brokerage to enable automated execution.'
+        : config.paperTradingMode && !hasRobinhood
+            ? 'Automated paper tests require a selected Robinhood quote feed. Paper orders remain simulated.'
+            : !hasEntryCriteria
+                ? 'Choose at least one entry indicator to enable Systematic mode.'
+                : !hasRobinhood && widget.service == null
+                    ? 'Reconnect the selected brokerage to enable live execution.'
+                    : null;
     final isEnabled = agenticTradingProvider.config.autoTradeEnabled;
+    final exitStatus = agenticTradingProvider.latestMarketCloseExitStatus;
+    final exitStatusValue = exitStatus?['status'] as String?;
+    final exitStatusColor = exitStatusValue == 'missed'
+        ? colorScheme.error
+        : exitStatusValue == 'completed'
+            ? Colors.green
+            : Colors.orange;
+    final exitStatusLabel = switch (exitStatusValue) {
+      'completed' => 'Order submitted',
+      'missed' => 'Missed',
+      'attempted' => 'Attempted, not confirmed',
+      _ => null,
+    };
 
     // Determine strategy display name
     String strategyDisplay =
@@ -2062,88 +2169,103 @@ class _AgenticTradingSettingsWidgetState
             children: [
               // Main Toggle Switch
               SwitchListTile(
+                key: const ValueKey('auto-trading-toggle'),
                 value: isEnabled,
-                onChanged: (bool value) async {
-                  // Safety Check when Enabling
-                  if (value && !isEnabled) {
-                    final isPaperMode =
-                        agenticTradingProvider.config.paperTradingMode;
+                onChanged: !canRunAutoTrading && !isEnabled
+                    ? null
+                    : (bool value) async {
+                        // Safety Check when Enabling
+                        if (value && !isEnabled) {
+                          final isPaperMode =
+                              agenticTradingProvider.config.paperTradingMode;
 
-                    if (!isPaperMode) {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Enable Real-Money Trading?'),
-                          content: const Text(
-                              'WARNING: You are about to enable automated trading with REAL MONEY.\n\nEnsure you have tested your strategy in Paper Trading mode first.\n\nThe application is provided "as is" and assumes \nNO RESPONSIBILITY for financial losses.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.pop(context, false), // Cancel
-                              child: const Text('Cancel'),
-                            ),
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
+                          if (!isPaperMode) {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Enable Real-Money Trading?'),
+                                content: const Text(
+                                    'WARNING: You are about to enable automated trading with REAL MONEY.\n\nEnsure you have tested your strategy in Paper Trading mode first.\n\nThe application is provided "as is" and assumes \nNO RESPONSIBILITY for financial losses.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false), // Cancel
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.pop(context, true), // Confirm
+                                    child: const Text('Enable Risks'),
+                                  ),
+                                ],
                               ),
-                              onPressed: () =>
-                                  Navigator.pop(context, true), // Confirm
-                              child: const Text('Enable Risks'),
+                            );
+                            if (confirm != true) return;
+                          }
+                        }
+
+                        if (!context.mounted) return;
+
+                        // Confirm before stopping
+                        if (!value && isEnabled) {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Stop Auto-Trading?'),
+                              content: const Text(
+                                  'This will stop all automated trading activities. Open positions will still need to be managed manually.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false), // Cancel
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, true), // Confirm
+                                  child: const Text('Stop'),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                      if (confirm != true) return;
-                    }
-                  }
+                          );
+                          if (confirm != true) return;
+                        }
 
-                  if (!context.mounted) return;
+                        if (value) {
+                          final checkInterval =
+                              int.tryParse(_checkIntervalController.text) ?? 5;
+                          final nextTradeTime = DateTime.now()
+                              .add(Duration(minutes: checkInterval));
+                          final countdownSeconds = checkInterval * 60;
+                          agenticTradingProvider.updateAutoTradeCountdown(
+                              nextTradeTime, countdownSeconds);
+                        }
 
-                  // Confirm before stopping
-                  if (!value && isEnabled) {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Stop Auto-Trading?'),
-                        content: const Text(
-                            'This will stop all automated trading activities. Open positions will still need to be managed manually.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(context, false), // Cancel
-                            child: const Text('Cancel'),
-                          ),
-                          FilledButton(
-                            onPressed: () =>
-                                Navigator.pop(context, true), // Confirm
-                            child: const Text('Stop'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm != true) return;
-                  }
-
-                  if (value) {
-                    final checkInterval =
-                        int.tryParse(_checkIntervalController.text) ?? 5;
-                    final nextTradeTime =
-                        DateTime.now().add(Duration(minutes: checkInterval));
-                    final countdownSeconds = checkInterval * 60;
-                    agenticTradingProvider.updateAutoTradeCountdown(
-                        nextTradeTime, countdownSeconds);
-                  }
-
-                  final newConfig = _createFullConfigFromSettings(
-                      agenticTradingProvider,
-                      baseConfig: agenticTradingProvider.config
-                          .copyWith(autoTradeEnabled: value));
-                  agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
-                },
+                        final newConfig = _createFullConfigFromSettings(
+                            agenticTradingProvider,
+                            baseConfig: agenticTradingProvider.config
+                                .copyWith(autoTradeEnabled: value));
+                        await agenticTradingProvider.updateConfig(
+                            newConfig, widget.userDocRef);
+                        final brokerageUserStore =
+                            Provider.of<BrokerageUserStore>(context,
+                                listen: false);
+                        await AgenticTradingBackgroundService.syncScheduling(
+                          enabled: value &&
+                              brokerageUserStore.currentUser?.source ==
+                                  BrokerageSource.robinhood,
+                        );
+                      },
                 title: Text(
-                  'Auto-Trading${isEnabled ? ' Active' : ' Paused'}',
+                  isEnabled
+                      ? canRunAutoTrading
+                          ? 'Auto-Trading Active'
+                          : 'Auto-Trading Waiting'
+                      : 'Auto-Trading Paused',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -2151,7 +2273,8 @@ class _AgenticTradingSettingsWidgetState
                   ),
                 ),
                 subtitle: Text(
-                  strategyDisplay,
+                  executionBlockReason ??
+                      '$executionModeLabel • $strategyDisplay',
                   // isEnabled ? 'Currently Active • $strategyDisplay' : 'Paused',
                   style: TextStyle(
                     fontSize: 13,
@@ -2160,7 +2283,7 @@ class _AgenticTradingSettingsWidgetState
                         : colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 secondary: Container(
@@ -2186,6 +2309,53 @@ class _AgenticTradingSettingsWidgetState
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 18, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Foreground checks use the configured ${config.checkIntervalMinutes}-minute interval. '
+                        'Background checks are best-effort: Android requests about 15 minutes, '
+                        'while iOS timing is opportunistic. Force-quit, network loss, or stale quotes '
+                        'can prevent execution. Market-close exits are not guaranteed; manage open positions manually.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (exitStatus != null && exitStatusLabel != null)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.schedule, size: 18, color: exitStatusColor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Last market-close exit: $exitStatusLabel'
+                          '${exitStatus['symbol'] == null ? '' : ' · ${exitStatus['symbol']}'}'
+                          '${exitStatus['tradingDate'] == null ? '' : ' · ${exitStatus['tradingDate']}'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: exitStatusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               // Trading Mode Selector
               Padding(
                 padding:
@@ -2194,7 +2364,7 @@ class _AgenticTradingSettingsWidgetState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Trading Mode',
+                      'Strategy Style',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -2362,8 +2532,11 @@ class _AgenticTradingSettingsWidgetState
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: () {
-                            agenticTradingProvider.deactivateEmergencyStop();
+                          onPressed: () async {
+                            await agenticTradingProvider
+                                .deactivateEmergencyStop(
+                              userDocRef: widget.userDocRef,
+                            );
                           },
                           icon: const Icon(Icons.play_arrow),
                           label: const Text('Resume Trading'),
@@ -2648,9 +2821,11 @@ class _AgenticTradingSettingsWidgetState
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: FilledButton.icon(
-                                    onPressed: () {
-                                      agenticTradingProvider
-                                          .activateEmergencyStop();
+                                    onPressed: () async {
+                                      await agenticTradingProvider
+                                          .activateEmergencyStop(
+                                        userDocRef: widget.userDocRef,
+                                      );
                                     },
                                     icon: const Icon(Icons.stop, size: 16),
                                     label: const Text('Stop'),
@@ -2822,6 +2997,18 @@ class _AgenticTradingSettingsWidgetState
           ],
         ),
         const SizedBox(height: 12),
+        if (agenticTradingProvider.emergencyStopActivated)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Emergency stop is active. Pending orders cannot be approved.',
+              style: TextStyle(
+                color: colorScheme.error,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ...agenticTradingProvider.pendingOrders.map((order) {
           final symbol = order['symbol'] as String;
           final action = order['action'] as String;
@@ -3182,7 +3369,8 @@ class _AgenticTradingSettingsWidgetState
                       ),
                       const SizedBox(width: 8),
                       FilledButton(
-                        onPressed: _busyOrders.contains(_orderKey(order))
+                        onPressed: _busyOrders.contains(_orderKey(order)) ||
+                                agenticTradingProvider.emergencyStopActivated
                             ? null
                             : () => _approveOrder(
                                 context, agenticTradingProvider, order),
@@ -3323,74 +3511,110 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildExecutionSettings(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
     final colorScheme = Theme.of(context).colorScheme;
+    final selectedBrokerage =
+        Provider.of<BrokerageUserStore>(context, listen: false).currentUser;
+    final hasBrokerage = selectedBrokerage != null;
+    final hasRobinhood = selectedBrokerage?.source == BrokerageSource.robinhood;
+    final canChangePaperMode = hasRobinhood ||
+        (hasBrokerage &&
+            widget.service != null &&
+            agenticTradingProvider.config.paperTradingMode);
     return _buildSection(
       context: context,
       title: 'Execution Settings',
       icon: Icons.settings,
       initiallyExpanded: true,
       children: [
-        // Paper Trading Mode
-        _buildSwitchListTile(
-          'paperTradingMode',
-          'Paper Trading Mode',
-          widget.service == null
-              ? 'Brokerage not linked. Paper trading only.'
-              : 'Simulate trades without real money - Test strategies risk-free',
-          agenticTradingProvider,
-          value: widget.service == null
-              ? true
-              : (agenticTradingProvider.config.paperTradingMode),
-          onChanged: widget.service == null
-              ? (_) {}
-              : (value) {
-                  final newConfig = _createFullConfigFromSettings(
+        if (!hasRobinhood &&
+            (!hasBrokerage || !agenticTradingProvider.config.paperTradingMode))
+          _buildPaperModeUnavailable(
+            context,
+            hasBrokerage: hasBrokerage,
+          )
+        else
+          _buildSwitchListTile(
+            'paperTradingMode',
+            'Paper Trading Mode',
+            hasRobinhood
+                ? 'Use Robinhood quotes to test strategies with simulated fills. No real orders are placed.'
+                : 'Select Robinhood to run this automated paper strategy test. Paper orders remain simulated.',
+            agenticTradingProvider,
+            value: agenticTradingProvider.config.paperTradingMode,
+            onChanged: !canChangePaperMode
+                ? null
+                : (value) async {
+                    if (value && !hasRobinhood) return;
+                    if (!value &&
+                        agenticTradingProvider.config.autoTradeEnabled) {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Switch to real-money trading?'),
+                          content: const Text(
+                            'Auto-trading is enabled. The next eligible cycle may submit real orders through your selected brokerage.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Switch to Live'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                    }
+                    final newConfig = _createFullConfigFromSettings(
                       agenticTradingProvider,
                       baseConfig: agenticTradingProvider.config
-                          .copyWith(paperTradingMode: value));
-                  agenticTradingProvider.updateConfig(
-                      newConfig, widget.userDocRef);
-                },
-          activeColor: Colors.blue,
-          titleWidget: Row(
-            children: [
-              Text(
-                'Paper Trading Mode',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: colorScheme.onSurface,
+                          .copyWith(paperTradingMode: value),
+                    );
+                    await agenticTradingProvider.updateConfig(
+                        newConfig, widget.userDocRef);
+                  },
+            activeColor: Colors.blue,
+            titleWidget: Row(
+              children: [
+                Text(
+                  'Paper Trading Mode',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (widget.service == null ||
-                  (agenticTradingProvider.config.paperTradingMode))
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'PAPER',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                const SizedBox(width: 8),
+                if (agenticTradingProvider.config.paperTradingMode)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'PAPER',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
 
         // Require Approval
         _buildSwitchListTile(
           'requireApproval',
           'Require Approval',
-          'Review trades before execution',
+          'Orders wait for your review in the app and will not execute unattended.',
           agenticTradingProvider,
           value: agenticTradingProvider.config.requireApproval,
           onChanged: (value) {
@@ -3499,8 +3723,9 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         _buildNumberField(
           controller: _checkIntervalController,
-          label: 'Check Frequency (minutes)',
-          helperText: 'How often to analyze market',
+          label: 'Foreground Check Frequency (minutes)',
+          helperText:
+              'Controls foreground checks only; background checks are OS scheduled about every 15 minutes.',
           icon: Icons.update,
           min: 1,
           suffixText: 'min',
@@ -3547,7 +3772,7 @@ class _AgenticTradingSettingsWidgetState
               _buildSimpleSwitch(
                 context,
                 'After-Hours',
-                '4:00 PM - 8:00 PM ET',
+                'Regular close - 8:00 PM ET; starts earlier on early-close days',
                 agenticTradingProvider.config.allowAfterHoursTrading,
                 (val) {
                   final newConfig = _createFullConfigFromSettings(
@@ -3578,7 +3803,7 @@ class _AgenticTradingSettingsWidgetState
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Regular market hours: 9:30 AM - 4:00 PM ET (Mon-Fri)',
+                  'Regular market: 9:30 AM - 4:00 PM ET on trading days; scheduled early closes apply',
                   style: TextStyle(
                     fontSize: 12,
                     color: colorScheme.onSurfaceVariant,
@@ -4164,6 +4389,20 @@ class _AgenticTradingSettingsWidgetState
                 agenticTradingProvider,
                 baseConfig: agenticTradingProvider.config
                     .copyWith(notifyOnEmergencyStop: value));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+        ),
+        _buildSwitchListTile(
+          'notifyOnMissedExit',
+          'Notify on Missed Market-Close Exit',
+          'Get notified when an exit was not confirmed before the market closed',
+          agenticTradingProvider,
+          value: agenticTradingProvider.config.notifyOnMissedExit,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config
+                    .copyWith(notifyOnMissedExit: value));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
         ),
