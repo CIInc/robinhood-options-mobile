@@ -65,7 +65,3 @@
 ## 2026-04-03 - Scalar On-Balance Volume (OBV) Evaluation in O(1) Space
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
-
-## 2026-04-03 - Scalar Wilder's Smoothed ADX Array Computation without Intermediate Allocations
-**Learning:** Local ADX array generation (`computeADXArrayLocal`) in alpha factor discovery created 8+ temporary intermediate arrays (`plusDM`, `minusDM`, `tr`, `dx`, `smPlusDM`, `smMinusDM`, `smTR`, `adxRaw`, `adxNormalized`) and invoked `.slice().reduce()` initial sum passes for every factor evaluation across thousands of historical price bars.
-**Action:** Refactor `computeADXArrayLocal` to calculate Wilder's smoothed directional indicators (+DM, -DM, TR) and DX/ADX directly in running scalar variables and single-pass loops, reducing execution time by ~6.2x (~1,055ms down to 170ms per 2,000 iterations over 2,500 bars) and eliminating transient array allocations.
