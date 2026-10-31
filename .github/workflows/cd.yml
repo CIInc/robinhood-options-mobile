@@ -191,6 +191,18 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v5
 
+      - name: Free disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell
+          if [ -n "${ANDROID_HOME:-}" ]; then
+            sudo rm -rf "$ANDROID_HOME/system-images"
+          fi
+          sudo docker image prune --all --force || true
+          echo "Disk after cleanup:"
+          df -h /
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.1] - 2026-10-31
+**iOS Background Scheduling Stability & Android Build Validation**
+
+- **iOS Workmanager Registration:** Register the periodic background task identifier during app launch before the first task submission, preventing iOS from aborting when scheduling a previously unknown task. Background execution remains best effort.
+- **Android Build Validation:** Added a manual workflow that frees runner disk space, builds signed APK/AAB artifacts, and does not publish to an app store.
+- **Physical-Device Verification:** The iOS simulator build passes; physical-device lifecycle verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains pending.
+
 ## [0.60.0] - 2026-10-30
 **On-Device Auto-Trading Execution Modes & EOD Exit Safety ([docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282))**
 

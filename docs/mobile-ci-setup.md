@@ -106,7 +106,14 @@ the CD workflow publishes the generated App Bundle as a completed release on
 the Google Play internal track, including localized release notes (`whatsnew-en-US`)
 automatically formatted and truncated to adhere to Google Play's 500-character limit.
 A Play publication failure fails the Android build job so a GitHub release is not
-created for an unpublished Android build.
+created for an unpublished Android build. Before installing Flutter and building,
+the job frees disk space from the GitHub-hosted runner to reduce build failures from
+runner storage exhaustion.
+
+For signed Android build validation without publishing to Google Play, manually run
+the **Android Build Validation** workflow from the GitHub Actions tab. It uses the
+same Android signing secrets, builds both APK and App Bundle artifacts, and uploads
+them as `android-validation-builds`.
 
 ### How to encode Android secrets
 

@@ -20,6 +20,8 @@ User-specific strategy cycles and brokerage orders run on-device in the foregrou
 
 Scheduling follows the existing auto-trading toggle and is canceled when the selected brokerage is not Robinhood. The worker uses the saved brokerage and account selections. Paper strategy execution requires a linked Robinhood quote source; its orders still go through the simulated paper ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
 
+On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier with `BGTaskScheduler` before Dart submits the first request. The identifier must match `BGTaskSchedulerPermittedIdentifiers` in `ios/Runner/Info.plist` and `AgenticTradingBackgroundService.taskName`; registering only previously scheduled handlers is insufficient on a fresh install.
+
 ### Scheduling Scope and Market Data
 
 The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.
