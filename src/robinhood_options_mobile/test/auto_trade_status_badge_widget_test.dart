@@ -29,13 +29,13 @@ class MockAgenticTradingProvider extends ChangeNotifier
   int autoTradeCountdownSeconds = 300;
 
   @override
-  void activateEmergencyStop({DocumentReference? userDocRef}) {
+  Future<void> activateEmergencyStop({DocumentReference? userDocRef}) async {
     emergencyStopActivated = true;
     notifyListeners();
   }
 
   @override
-  void deactivateEmergencyStop() {
+  Future<void> deactivateEmergencyStop({DocumentReference? userDocRef}) async {
     emergencyStopActivated = false;
     notifyListeners();
   }
