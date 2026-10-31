@@ -1,0 +1,74 @@
+name: Android Build Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build_android:
+    name: Android Build (No Store Publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Free disk space
+        run: |
+          echo "Disk before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/powershell
+          if [ -n "${ANDROID_HOME:-}" ]; then
+            sudo rm -rf "$ANDROID_HOME/system-images"
+          fi
+          sudo docker image prune --all --force || true
+          echo "Disk after cleanup:"
+          df -h /
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: "17"
+          cache: gradle
+
+      - name: Setup Android Signing
+        env:
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEY_PROPERTIES" ] || [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "Android signing secrets are required for release validation." >&2
+            exit 1
+          fi
+          printf '%s' "$ANDROID_KEY_PROPERTIES" > android/key.properties
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Build Android AppBundle
+        run: flutter build appbundle --release
+
+      - name: Upload Android build artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: android-validation-builds
+          path: |
+            src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+            src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
