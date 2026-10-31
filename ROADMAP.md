@@ -43,12 +43,12 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 **RealizeAlpha** is a mobile trading platform for multi-account investing, trading, and options analytics. This roadmap separates delivered work from planned milestones and longer-term ideas. Check marks indicate implementation status; future dates are targets and may change. GitHub issues hold detailed requirements and discussion.
 
-**Last reviewed:** October 31, 2026 · **Current app version:** 0.60.1
+**Last reviewed:** October 31, 2026 · **Current app version:** 0.60.2
 
 ### Quick Stats
 - **Completed checklist items:** 437
 - **Planned checklist items:** 63
-- **GitHub issues:** 129 total — 38 open and 91 closed (as of October 30, 2026)
+- **GitHub issues:** 129 total — 38 open and 91 closed (as of October 31, 2026)
 - **Planning focus:** Keep reliability, release scope control, and test coverage ahead of feature breadth; prioritize brokerage expansion and execution improvements only when they meet the product's stability bar.
 
 ### Key Highlights
@@ -58,7 +58,7 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - ✅ **v0.58.1 Shipped:** Added a live-quote guard for auto-trade BUYs and queued approvals: mismatches above 3% are skipped, acceptable entries use the live quote, and quote-fetch failures block execution. When quote context is unavailable, the stored price remains the fallback ([docs](docs/multi-indicator-trading.md)).
 - ✅ **v0.58.2 Shipped:** Reasoning-mode auto-trades now use the configured Trade Quantity when Dynamic Sizing is off; agent-suggested quantity remains active when enabled ([docs](docs/multi-indicator-trading.md)).
 - ✅ **v0.58.3 Shipped:** Corrected feature-access precedence and preference synchronization, hardened group-watchlist callable validation, reduced technical-indicator allocations, and improved screen-reader labels ([docs](docs/feature-access-and-beta-gating.md), [docs](docs/group-watchlists.md), [docs](docs/multi-indicator-trading.md)).
-- **In progress (v0.60.1):** On-device auto-trading execution modes and EOD exit reporting ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)); the iOS first-schedule registration abort is fixed, while physical-device lifecycle verification remains pending.
+- **In progress (v0.60.2):** On-device auto-trading execution modes and EOD exit reporting ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)); Robinhood and Schwab are supported, while physical-device lifecycle and Schwab-account verification remain pending.
 - **Next proposed milestone:** **v0.61.0 (target: Q2 2027)** — Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway.
 - **Later candidates (v0.61.0+):** Smart Order Routing and Cross-Broker Margin & Borrow Optimizer ([#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)), Local OpenAPI & Quant Webhook Gateway, Desktop & iPad Floating Workspace.
 - **Longer-term exploration:** Biometric health tracking, paid strategy marketplace royalties, desktop workflows, zero-knowledge proofs, wearable clients, and spatial interfaces remain exploratory until scoped and validated.
@@ -562,6 +562,10 @@ Mapping features to specific versions helps users anticipate releases and unders
 **iOS Background Scheduling Stability & Android Build Validation**
 - **iOS Workmanager Registration:** Pre-register the periodic task identifier during app launch so the first `BGTaskScheduler` submission has a handler. Physical-device lifecycle verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
 - **Android Build Validation:** Add a manual disk-cleanup build workflow that produces signed APK/AAB artifacts without publishing to Google Play.
+
+### v0.60.2 (In progress; physical-device verification pending)
+**Schwab Auto-Trading Support**
+- **Selected-Broker Auto-Trading:** Extend the device-local background worker and paper-mode quote source to Schwab alongside Robinhood; live orders route through the selected brokerage service. Background timing and EOD exits remain best effort. Physical-device and Schwab-account verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
 
 ### v0.61.0+ (Target: Q2 2027+)
 **Smart Order Routing, Cross-Broker Optimizers & Developer APIs**
@@ -1095,7 +1099,7 @@ Improve copy-trade transparency and follower controls before increasing automati
 - [ ] **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading** (v0.61.0+, [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Block naked short option generation in inverse copy mode by mapping to defined-risk opposite-direction contracts/spreads, and suggest delta/DTE-matched strikes or vertical spreads when a single contract exceeds the follower's per-trade allocation cap - **Medium** (2-3 weeks)
 
 #### Strategy Automation
-- [ ] **Reliable Auto-Trading Execution Modes and EOD Exit Behavior** (v0.60.1, [docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)): Document lifecycle guarantees, use best-effort on-device scheduling without sending brokerage credentials to a server, and distinguish attempted/completed/missed market-close exits. Implementation and unit tests are present, including iOS first-schedule BGTask registration; physical-device lifecycle and market-calendar acceptance verification remains pending.
+- [ ] **Reliable Auto-Trading Execution Modes and EOD Exit Behavior** (v0.60.2, [docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)): Document lifecycle guarantees, use best-effort on-device scheduling without sending brokerage credentials to a server, and distinguish attempted/completed/missed market-close exits. Implementation and unit tests support Robinhood and Schwab, including iOS first-schedule BGTask registration; physical-device, Schwab-account, and market-calendar acceptance verification remains pending.
 - [x] **Options Strategy Roll Assistant** (v0.49.0, [#157](https://github.com/CIInc/robinhood-options-mobile/issues/157)): 1-tap rolling wizard for covered calls, cash-secured puts, and credit spreads with automated net credit/debit calculation and new breakeven projections - **Small** (1-2 weeks)
 - [x] **Multi-Leg Options Defense & Roll Playbook** (v0.50.0, [#158](https://github.com/CIInc/robinhood-options-mobile/issues/158)): Automated defensive action recommendations when short legs are tested (e.g. rolling out in time, widening spreads, inverted strangles, converting to iron condors) - **Small** (1-2 weeks)
 - [x] **Multi-Leg Order Templates & Spread Builder** (v0.55.1): Quick-entry templates for complex spreads (Vertical Spreads, Straddles, Strangles, Iron Condors, Calendar Spreads) across Schwab and Robinhood - **Small** (1-2 weeks)

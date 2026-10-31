@@ -925,7 +925,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
 
             unawaited(AgenticTradingBackgroundService.syncScheduling(
               enabled: userDoc != null &&
-                  userStore.currentUser?.source == BrokerageSource.robinhood &&
+                  AgenticTradingProvider.supportsAutoTradingBrokerage(
+                      userStore.currentUser?.source) &&
                   agenticProvider.config.autoTradeEnabled,
             ));
 

@@ -326,9 +326,8 @@ class AgenticTradingProvider with ChangeNotifier {
   List<Map<String, dynamic>> get signalProcessingHistory =>
       _signalProcessingHistory;
 
-  @visibleForTesting
-  static bool paperTradingHasLiveQuoteSource(BrokerageSource? source) =>
-      source == BrokerageSource.robinhood;
+  static bool supportsAutoTradingBrokerage(BrokerageSource? source) =>
+      source == BrokerageSource.robinhood || source == BrokerageSource.schwab;
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
@@ -496,12 +495,14 @@ class AgenticTradingProvider with ChangeNotifier {
         _log('❌ Auto-trade check: currentUser is null');
         return;
       }
-      if (isPaperMode && !paperTradingHasLiveQuoteSource(currentUser?.source)) {
-        _log('⏭️ Paper auto-trading requires a linked Robinhood quote source');
+      if (isPaperMode && !supportsAutoTradingBrokerage(currentUser?.source)) {
+        _log(
+            '⏭️ Paper auto-trading requires a linked Robinhood or Schwab quote source');
         updateLastAutoTradeResult({
           'success': false,
           'tradesExecuted': 0,
-          'message': 'Paper auto-trading requires a linked Robinhood account.',
+          'message':
+              'Paper auto-trading requires a linked Robinhood or Schwab account.',
           'trades': <dynamic>[],
           'blocked': true,
         });

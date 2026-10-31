@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.2] - 2026-10-31
+**Schwab Auto-Trading Support & Physical-Device Verification**
+
+- **Selected-Broker Auto-Trading:** Extend supported auto-trading account selection and device-local background service routing to Schwab alongside Robinhood. Schwab supplies quotes and live orders through its brokerage service; paper mode keeps fills in the simulated ledger.
+- **Safety and Scheduling:** Background BUYs still require a fresh quote, and OS-managed background execution remains best effort with no guaranteed cadence or market-close exit.
+- **Verification:** Add coverage for brokerage eligibility, background service selection, and Schwab paper-mode settings. Physical-device lifecycle and Schwab-account verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remain pending.
+
 ## [0.60.1] - 2026-10-31
 **iOS Background Scheduling Stability & Android Build Validation**
 
@@ -14,7 +21,7 @@ All notable changes to this project will be documented in this file.
 
 - **OS-Managed Background Execution:** Added Workmanager checks on iOS and Android while keeping user strategy evaluation, broker credentials, and order submission on-device. Background checks are best effort, run no more frequently than the platform permits, and do not guarantee an exact cadence or market-close exit.
 - **EOD Exit Reconciliation:** Persist attempted, completed, and missed market-close exit states by user, trade, and Eastern session date. Added an opt-in missed-exit push notification; late reconciliation reports missed exits without submitting stale after-hours orders.
-- **Execution Safeguards:** New auto-trading configurations default to Paper while existing saved execution modes are preserved. A cycle without a user document cannot acquire its execution lease. Automated Paper mode still requires a Robinhood quote source, and background BUYs require a fresh Robinhood quote.
+- **Execution Safeguards:** New auto-trading configurations default to Paper while existing saved execution modes are preserved. A cycle without a user document cannot acquire its execution lease. At this release, automated Paper mode required a Robinhood quote source, and background BUYs required a fresh Robinhood quote.
 - **Google Sign-In Initialization:** Added the server client ID configuration to the Google Sign-In startup path.
 - **Automated Coverage:** Added market-calendar, EOD status, quote freshness, kill-switch, execution-claim, and settings tests. Physical-device lifecycle testing remains pending; OS scheduling and EOD execution are not guaranteed.
 

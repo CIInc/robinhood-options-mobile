@@ -4,7 +4,7 @@
 
 The Agentic Trading system provides autonomous, AI-powered trading capabilities for RealizeAlpha. It combines multi-indicator technical analysis with risk management controls to execute trades automatically based on qualified trading signals.
 
-**Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled with a Robinhood account selected. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
+**Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled with a supported Robinhood or Schwab account selected. The selected brokerage supplies quotes and live orders; paper fills remain simulated. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
 
 ## Execution Modes and Lifecycle Guarantees
 
@@ -15,10 +15,10 @@ User-specific strategy cycles and brokerage orders run on-device in the foregrou
 | App open and connected | Supported | Supported | The foreground timer attempts cycles at the configured interval (5 minutes by default). |
 | App backgrounded or suspended | Best effort | Best effort | Workmanager requests periodic checks about every 15 minutes. Android's periodic-work minimum is 15 minutes; iOS schedules opportunistically and may delay or skip work. Neither platform guarantees exact cadence or an EOD run. |
 | App force-quit | Not supported | Not supported | The operating system may stop background execution until the app is opened again. |
-| Offline or fresh quote unavailable | Skipped | Skipped | Background BUYs fail closed unless a Robinhood quote has a valid timestamp and is no more than 5 minutes old. There is no delayed-data or stored-price fallback for background orders. |
-| App restarted | Best effort | Best effort | Scheduling is restored when the signed-in user, enabled configuration, and selected Robinhood account qualify. Missed entry cycles are not replayed. |
+| Offline or fresh quote unavailable | Skipped | Skipped | Background BUYs fail closed unless the selected Robinhood or Schwab quote has a valid timestamp and is no more than 5 minutes old. There is no delayed-data or stored-price fallback for background orders. |
+| App restarted | Best effort | Best effort | Scheduling is restored when the signed-in user, enabled configuration, and selected supported brokerage account qualify. Missed entry cycles are not replayed. |
 
-Scheduling follows the existing auto-trading toggle and is canceled when the selected brokerage is not Robinhood. The worker uses the saved brokerage and account selections. Paper strategy execution requires a linked Robinhood quote source; its orders still go through the simulated paper ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
+Scheduling follows the existing auto-trading toggle and is canceled when the selected brokerage is neither Robinhood nor Schwab. The worker uses the saved brokerage and account selections. Paper strategy execution uses the selected Robinhood or Schwab quote source; orders go through the simulated paper ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
 
 On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier with `BGTaskScheduler` before Dart submits the first request. The identifier must match `BGTaskSchedulerPermittedIdentifiers` in `ios/Runner/Info.plist` and `AgenticTradingBackgroundService.taskName`; registering only previously scheduled handlers is insufficient on a fresh install.
 
@@ -26,7 +26,7 @@ On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier wit
 
 The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.
 
-Background BUY validation refreshes the Robinhood quote and accepts only a positive price with a timestamp no older than 5 minutes. If the check fails, the order is skipped. The signal-generation providers and their fallback data are not used as substitutes for a background execution quote. For paper auto-trading, Robinhood supplies the quote while the paper ledger simulates fills. Robinhood API cost, rate-limit headroom, and background reliability need production monitoring; no exact daily lookup allowance is assumed here.
+Background BUY validation refreshes the selected Robinhood or Schwab quote and accepts only a positive price with a timestamp no older than 5 minutes. If the check fails, the order is skipped. The signal-generation providers and their fallback data are not used as substitutes for a background execution quote. For paper auto-trading, the selected brokerage supplies the quote while the paper ledger simulates fills. Brokerage API cost, rate-limit headroom, and background reliability need production monitoring; no exact daily lookup allowance is assumed here.
 
 ### Market-Close Exit Limitations
 

@@ -21,13 +21,28 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:workmanager/workmanager.dart';
 
 class AgenticTradingBackgroundService {
   static const taskName = 'com.cidevelop.robinhoodOptionsMobile.agenticTrading';
   static const frequency = Duration(minutes: 15);
+
+  @visibleForTesting
+  static IBrokerageService? brokerageServiceForSource(
+    BrokerageSource source, {
+    IBrokerageService Function()? robinhoodFactory,
+    IBrokerageService Function()? schwabFactory,
+  }) =>
+      switch (source) {
+        BrokerageSource.robinhood =>
+          (robinhoodFactory ?? RobinhoodService.new)(),
+        BrokerageSource.schwab => (schwabFactory ?? SchwabService.new)(),
+        _ => null,
+      };
 
   static Future<void> initialize() async {
     if (!_isSupportedPlatform) return;
@@ -96,15 +111,18 @@ class AgenticTradingBackgroundService {
     final brokerageUserStore = BrokerageUserStore([], 0);
     await brokerageUserStore.load();
     final brokerageUser = brokerageUserStore.currentUser;
-    if (brokerageUser?.source != BrokerageSource.robinhood) {
+    if (brokerageUser == null) {
       await syncScheduling(enabled: false);
       return true;
     }
-    if (brokerageUser == null) return true;
+    final brokerageService = brokerageServiceForSource(brokerageUser.source);
+    if (brokerageService == null) {
+      await syncScheduling(enabled: false);
+      return true;
+    }
     brokerageUser.ensureOAuth2Client();
     if (brokerageUser.oauth2Client == null) return false;
 
-    final brokerageService = RobinhoodService();
     final accountStore = AccountStore();
     final portfolioStore = PortfolioStore();
     final instrumentStore = InstrumentStore();
@@ -155,14 +173,24 @@ class AgenticTradingBackgroundService {
           await paperStore.ensureLoaded(firebaseUser);
           positions = paperStore.positions;
         } else {
-          await brokerageService.getStockPositionStore(
-            brokerageUser,
-            instrumentPositionStore,
-            instrumentStore,
-            quoteStore,
-            fetchQuotes: false,
-            userDoc: userDocRef,
-          );
+          if (brokerageService is RobinhoodService) {
+            await brokerageService.getStockPositionStore(
+              brokerageUser,
+              instrumentPositionStore,
+              instrumentStore,
+              quoteStore,
+              fetchQuotes: false,
+              userDoc: userDocRef,
+            );
+          } else {
+            await brokerageService.getStockPositionStore(
+              brokerageUser,
+              instrumentPositionStore,
+              instrumentStore,
+              quoteStore,
+              userDoc: userDocRef,
+            );
+          }
           positions = instrumentPositionStore.items;
         }
         await provider.reconcileMissedMarketCloseExits(
@@ -183,7 +211,9 @@ class AgenticTradingBackgroundService {
       return true;
     }
 
-    await brokerageService.getPortfolios(brokerageUser, portfolioStore);
+    if (brokerageUser.source == BrokerageSource.robinhood) {
+      await brokerageService.getPortfolios(brokerageUser, portfolioStore);
+    }
     await brokerageService.getOptionPositionStore(
       brokerageUser,
       optionPositionStore,
