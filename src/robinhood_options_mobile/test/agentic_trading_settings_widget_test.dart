@@ -263,7 +263,7 @@ void main() {
       );
       expect(
           find.textContaining('Use selected brokerage quotes'), findsOneWidget);
-        expect(find.textContaining('separate Paper account'), findsOneWidget);
+      expect(find.textContaining('separate Paper account'), findsOneWidget);
       expect(find.text('Automated Paper Tests'), findsNothing);
     });
 
