@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -1903,6 +1902,7 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
     InstrumentStore instrumentStore,
     QuoteStore quoteStore, {
     bool nonzero = true,
+    bool fetchQuotes = true,
     DocumentReference? userDoc,
   }) async {
     store.setLoading(true);
@@ -1933,31 +1933,33 @@ https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-a
             store.update(position);
           }
         }
-        var symbols = store.items
-            .where((e) =>
-                e.instrumentObj !=
-                null) // Figure out why in certain conditions, instrumentObj is null
-            .map((e) => e.instrumentObj!.symbol)
-            .toList();
-        // Remove old quotes (that would be returned from cache) to get current ones
-        quoteStore.removeAll();
-        var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-        for (var quoteObj in quoteObjs) {
-          // Update Position
-          var position = store.items.firstWhereOrNull(
-              (element) => element.instrumentObj?.symbol == quoteObj.symbol);
-          if (position == null) continue;
-          if (position.instrumentObj!.quoteObj == null ||
-              position.instrumentObj!.quoteObj!.updatedAt!
-                  .isBefore(quoteObj.updatedAt!)) {
-            position.instrumentObj!.quoteObj = quoteObj;
-            store.update(position);
-            // Update Instrument
-            instrumentStore.update(position.instrumentObj!);
-            if (userDoc != null) {
-              _firestoreService.upsertInstrument(position.instrumentObj!);
-              debugPrint(
-                  'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+        if (fetchQuotes) {
+          var symbols = store.items
+              .where((e) =>
+                  e.instrumentObj !=
+                  null) // Figure out why in certain conditions, instrumentObj is null
+              .map((e) => e.instrumentObj!.symbol)
+              .toList();
+          // Remove old quotes (that would be returned from cache) to get current ones
+          quoteStore.removeAll();
+          var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+          for (var quoteObj in quoteObjs) {
+            // Update Position
+            var position = store.items.firstWhereOrNull(
+                (element) => element.instrumentObj?.symbol == quoteObj.symbol);
+            if (position == null) continue;
+            if (position.instrumentObj!.quoteObj == null ||
+                position.instrumentObj!.quoteObj!.updatedAt!
+                    .isBefore(quoteObj.updatedAt!)) {
+              position.instrumentObj!.quoteObj = quoteObj;
+              store.update(position);
+              // Update Instrument
+              instrumentStore.update(position.instrumentObj!);
+              if (userDoc != null) {
+                _firestoreService.upsertInstrument(position.instrumentObj!);
+                debugPrint(
+                    'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+              }
             }
           }
         }

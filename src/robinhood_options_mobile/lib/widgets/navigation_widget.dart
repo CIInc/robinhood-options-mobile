@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/biometric_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
@@ -921,6 +922,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
             if (reloadConfigs) {
               agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
             }
+
+            unawaited(AgenticTradingBackgroundService.syncScheduling(
+              enabled: userDoc != null &&
+                  AgenticTradingProvider.supportsAutoTradingBrokerage(
+                      userStore.currentUser?.source) &&
+                  agenticProvider.config.autoTradeEnabled,
+            ));
 
             // The first build pass runs before the user document reference exists.
             if (userDoc != null) {
