@@ -375,6 +375,7 @@ void main() {
         instrumentPositions: [],
         optionPositions: [],
         washSales: [disallowedRecord],
+        now: now,
       );
 
       expect(alerts.any((a) => a.id == 'wash-sale-disallowed'), isTrue);
@@ -407,6 +408,7 @@ void main() {
         instrumentPositions: [],
         optionPositions: [],
         washSales: [activeRecord],
+        now: now,
       );
 
       expect(alerts.any((a) => a.id == 'wash-sale-window'), isTrue);
@@ -443,6 +445,7 @@ void main() {
         instrumentPositions: [],
         optionPositions: [],
         washSales: [permanentIraRecord],
+        now: now,
       );
 
       expect(alerts.any((a) => a.id == 'wash-sale-permanent-ira'), isTrue);
