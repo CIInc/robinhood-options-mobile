@@ -140,6 +140,9 @@ function calculateForwardReturns(
 
 /**
  * Computes ADX array locally since library only returns last value.
+ * Performance Optimization: Computes Wilder's smoothed directional indicators
+ * (+DM, -DM, TR) and DX/ADX in running scalar variables and a single pass,
+ * eliminating 8+ intermediate array allocations and .slice().reduce() passes.
  * @param {number[]} highs High prices
  * @param {number[]} lows Low prices
  * @param {number[]} closes Close prices
@@ -152,70 +155,95 @@ function computeADXArrayLocal(
   closes: number[],
   period: number
 ): (number | null)[] {
-  if (highs.length < period * 2) return Array(closes.length).fill(null);
+  const len = closes.length;
+  if (len < period * 2) return Array(len).fill(null);
 
-  const plusDM: number[] = [];
-  const minusDM: number[] = [];
-  const tr: number[] = [];
+  // Initial sum of +DM, -DM, TR over first 'period' bars (indices 1 to period)
+  let sumPlusDM = 0;
+  let sumMinusDM = 0;
+  let sumTR = 0;
 
-  // 1. Calculate +DM, -DM, TR
-  for (let i = 1; i < highs.length; i++) {
+  for (let i = 1; i <= period; i++) {
     const highDiff = highs[i] - highs[i - 1];
     const lowDiff = lows[i - 1] - lows[i];
 
-    plusDM.push((highDiff > lowDiff && highDiff > 0) ? highDiff : 0);
-    minusDM.push((lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0);
-
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
     const trueRange = Math.max(
       highs[i] - lows[i],
       Math.abs(highs[i] - closes[i - 1]),
       Math.abs(lows[i] - closes[i - 1])
     );
-    tr.push(trueRange);
+
+    sumPlusDM += pDM;
+    sumMinusDM += mDM;
+    sumTR += trueRange;
   }
 
-  // 2. Wilder's Smoothing
-  const smooth = (src: number[]) => {
-    const output: number[] = [];
-    let sum = src.slice(0, period).reduce((a, b) => a + b, 0);
-    output.push(sum);
-    for (let i = period; i < src.length; i++) {
-      sum = sum - (sum / period) + src[i];
-      output.push(sum);
-    }
-    return output;
-  };
+  // Compute DX at index 'period'
+  let pdi = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+  let mdi = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+  let diSum = pdi + mdi;
+  let dxVal = diSum === 0 ? 0 : (Math.abs(pdi - mdi) / diSum) * 100;
+  let sumDX = dxVal;
 
-  const smPlusDM = smooth(plusDM);
-  const smMinusDM = smooth(minusDM);
-  const smTR = smooth(tr);
+  // Compute remaining (period - 1) DX values to seed initial ADX
+  for (let i = period + 1; i < 2 * period; i++) {
+    const highDiff = highs[i] - highs[i - 1];
+    const lowDiff = lows[i - 1] - lows[i];
 
-  // 3. DX and ADX
-  const dx: number[] = [];
-  for (let i = 0; i < smTR.length; i++) {
-    if (smTR[i] === 0) {
-      dx.push(0);
-    } else {
-      const pdi = (smPlusDM[i] / smTR[i]) * 100;
-      const mdi = (smMinusDM[i] / smTR[i]) * 100;
-      const sum = pdi + mdi;
-      dx.push(sum === 0 ? 0 : (Math.abs(pdi - mdi) / sum) * 100);
-    }
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
+    const trueRange = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+
+    sumPlusDM = sumPlusDM - (sumPlusDM / period) + pDM;
+    sumMinusDM = sumMinusDM - (sumMinusDM / period) + mDM;
+    sumTR = sumTR - (sumTR / period) + trueRange;
+
+    pdi = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+    mdi = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+    diSum = pdi + mdi;
+    dxVal = diSum === 0 ? 0 : (Math.abs(pdi - mdi) / diSum) * 100;
+
+    sumDX += dxVal;
   }
 
-  const adxRaw = smooth(dx);
+  // Initial padding: (2 * period - 1) nulls
+  const result: (number | null)[] = Array(2 * period - 1).fill(null);
+  let adxSum = sumDX;
+  result.push(adxSum / period);
 
-  // Create final array aligned with input size
-  // Steps lost data:
-  // - 1 index lost at step 1 (diffs)
-  // - (period - 1) indices lost at step 2 (first smoothing)
-  // - (period - 1) indices lost at step 3 (final adx smoothing)
+  // Calculate smoothed ADX for remaining bars
+  for (let i = 2 * period; i < len; i++) {
+    const highDiff = highs[i] - highs[i - 1];
+    const lowDiff = lows[i - 1] - lows[i];
 
-  // Total padding = N - ADX length = 2*period - 1.
-  const padding = closes.length - adxRaw.length;
-  // Normalize ADX (Wilder's Smoothing is a Sum in this impl, need Average)
-  const adxNormalized = adxRaw.map((v) => v / period);
-  return [...Array(padding).fill(null), ...adxNormalized];
+    const pDM = (highDiff > lowDiff && highDiff > 0) ? highDiff : 0;
+    const mDM = (lowDiff > highDiff && lowDiff > 0) ? lowDiff : 0;
+    const trueRange = Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    );
+
+    sumPlusDM = sumPlusDM - (sumPlusDM / period) + pDM;
+    sumMinusDM = sumMinusDM - (sumMinusDM / period) + mDM;
+    sumTR = sumTR - (sumTR / period) + trueRange;
+
+    pdi = sumTR === 0 ? 0 : (sumPlusDM / sumTR) * 100;
+    mdi = sumTR === 0 ? 0 : (sumMinusDM / sumTR) * 100;
+    diSum = pdi + mdi;
+    dxVal = diSum === 0 ? 0 : (Math.abs(pdi - mdi) / diSum) * 100;
+
+    adxSum = adxSum - (adxSum / period) + dxVal;
+    result.push(adxSum / period);
+  }
+
+  return result;
 }
 
 /**

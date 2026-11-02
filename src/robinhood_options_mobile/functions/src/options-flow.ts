@@ -21,17 +21,35 @@ export const getOptionsFlow = onCall({
     );
   }
 
-  let symbols: string[] = [];
+  let rawSymbols: unknown[] = [];
 
-  if (request.data.symbol) {
-    symbols = [request.data.symbol];
-  } else if (request.data.symbols && Array.isArray(request.data.symbols)) {
-    symbols = request.data.symbols;
+  if (request.data?.symbol) {
+    rawSymbols = [request.data.symbol];
+  } else if (Array.isArray(request.data?.symbols)) {
+    rawSymbols = request.data.symbols;
   } else {
     throw new HttpsError(
       "invalid-argument",
-      "Symbol or symbols list is required"
+      "Symbol or symbols list is required."
     );
+  }
+
+  if (rawSymbols.length === 0 || rawSymbols.length > 100) {
+    throw new HttpsError(
+      "invalid-argument",
+      "symbols length must be between 1 and 100."
+    );
+  }
+
+  const symbols: string[] = [];
+  for (const s of rawSymbols) {
+    if (typeof s !== "string" || s.trim().length === 0 || s.length > 20) {
+      throw new HttpsError(
+        "invalid-argument",
+        "All symbols must be non-empty strings up to 20 characters."
+      );
+    }
+    symbols.push(s.trim().toUpperCase());
   }
 
   try {

@@ -5,7 +5,9 @@ import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_analytics_controller.dart';
+import 'package:robinhood_options_mobile/model/return_attribution.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/home/full_screen_performance_chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home/performance_chart_widget.dart';
@@ -16,6 +18,7 @@ import 'package:robinhood_options_mobile/widgets/portfolio/analytics/daily_stats
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/monthly_returns_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/performance_overview_card.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/analytics/return_attribution_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_context.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/portfolio_section_scaffold.dart';
 import 'package:robinhood_options_mobile/services/csv_import_service.dart';
@@ -39,6 +42,11 @@ class PerformanceSectionPage extends StatefulWidget {
 
 class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
   bool _showAllBenchmarks = true;
+
+  /// Latest attribution reported by [ReturnAttributionCard], read at export
+  /// time. Deliberately not part of build state, so updates don't rebuild.
+  BrinsonAttributionResult? _brinsonAttribution;
+  OptionsAttributionResult? _optionsAttribution;
 
   @override
   void initState() {
@@ -96,6 +104,8 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
                     context,
                     metrics,
                     benchmarkSymbol: controller.selectedBenchmark,
+                    brinsonAttribution: _brinsonAttribution,
+                    optionsAttribution: _optionsAttribution,
                     sharePositionOrigin: box == null
                         ? null
                         : box.localToGlobal(Offset.zero) & box.size,
@@ -163,6 +173,7 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
                 data: metrics,
                 benchmarkSymbol: controller.selectedBenchmark,
               ),
+              _attributionCard(context, controller.selectedBenchmark),
               MonthlyReturnsCard(data: metrics),
               DailyStatsCard(data: metrics),
             ],
@@ -190,6 +201,35 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
               ),
           ],
         );
+      },
+    );
+  }
+
+  /// Watches [T] when it is provided; some hosts (and tests) omit stores that
+  /// only the attribution card needs.
+  T? _maybeWatch<T>(BuildContext context) {
+    try {
+      return Provider.of<T>(context);
+    } on ProviderNotFoundException {
+      return null;
+    }
+  }
+
+  Widget _attributionCard(BuildContext context, String benchmarkSymbol) {
+    final ctx = widget.sectionContext;
+    return ReturnAttributionCard(
+      benchmarkSymbol: benchmarkSymbol,
+      instrumentPositions:
+          _maybeWatch<InstrumentPositionStore>(context)?.items.toList() ??
+              const [],
+      optionPositions:
+          _maybeWatch<OptionPositionStore>(context)?.items.toList() ?? const [],
+      cashBalance: ctx.account?.portfolioCash ?? 0,
+      dividends: _maybeWatch<DividendStore>(context)?.items ?? const [],
+      interest: _maybeWatch<InterestStore>(context)?.items ?? const [],
+      onAttributionComputed: (brinson, options) {
+        _brinsonAttribution = brinson;
+        _optionsAttribution = options;
       },
     );
   }
