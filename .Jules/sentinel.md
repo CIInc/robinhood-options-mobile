@@ -1,3 +1,8 @@
+## 2025-03-19 - Missing Input Constraints and Authorization Error Masking on Options Flow Alert Callables
+**Vulnerability:** In `options-flow.ts`, callable functions `createOptionAlert`, `toggleOptionAlert`, and `deleteOptionAlert` lacked input sanitization (allowing arbitrary symbols, negative/non-finite alert thresholds, non-string IDs, and non-boolean toggle states). Furthermore, catch blocks intercepted all errors and re-threw generic `internal` `HttpsError`s, masking `not-found` and `permission-denied` authorization status codes.
+**Learning:** Catch-all exception handling in Firebase callable Cloud Functions inadvertently converts intentional security status codes (`permission-denied`, `not-found`, `invalid-argument`) into `internal` 500 errors, obfuscating access control violations from client audit logs.
+**Prevention:** Strictly validate string formats/lengths, positive finite numbers, and primitive types prior to Firestore interactions, and always re-throw `if (error instanceof HttpsError)` in callable exception blocks.
+
 ## 2025-03-19 - Missing Admin Authorization on Administrative Chart Seeding Callable
 **Vulnerability:** `seedAgenticTrading` in `agentic-trading.ts` was an `onCall` Cloud Function that verified `request.auth` but lacked admin custom claim authorization (`role === "admin"`). Authenticated non-admin callers could trigger batch document creations in the top-level `/charts` collection and force chart document re-seeding across popular stock symbols.
 **Learning:** Administrative utility callables that perform batch collection modifications or seed system resources must verify `request.auth.token?.role === "admin"` in addition to basic authentication (`request.auth`).
