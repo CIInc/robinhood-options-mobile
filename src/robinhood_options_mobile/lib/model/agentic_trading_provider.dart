@@ -496,13 +496,15 @@ class AgenticTradingProvider with ChangeNotifier {
         return;
       }
       if (isPaperMode && !supportsAutoTradingBrokerage(currentUser?.source)) {
+        final selectedSource = currentUser?.source.name ?? 'none';
         _log(
-            '⏭️ Paper auto-trading requires a linked Robinhood or Schwab quote source');
+            '⏭️ Paper auto-trading requires Robinhood or Schwab to be selected '
+            'as the active quote source (current selection: $selectedSource)');
         updateLastAutoTradeResult({
           'success': false,
           'tradesExecuted': 0,
-          'message':
-              'Paper auto-trading requires a linked Robinhood or Schwab account.',
+          'message': 'Paper auto-trading requires Robinhood or Schwab selected '
+              'as the active quote source (current selection: $selectedSource).',
           'trades': <dynamic>[],
           'blocked': true,
         });

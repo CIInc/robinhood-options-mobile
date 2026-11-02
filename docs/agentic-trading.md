@@ -6,6 +6,8 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 
 **Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled with a supported Robinhood or Schwab account selected. The selected brokerage supplies quotes and live orders; paper fills remain simulated. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
 
+Brokerage eligibility uses `BrokerageUserStore.currentUser`, the active selection, rather than checking whether any supported brokerage is linked. Select Robinhood or Schwab as the active brokerage for auto-trading. The store normalizes stale saved selections after loading or removing brokerage accounts; a blocked-cycle diagnostic includes the current selection.
+
 ## Execution Modes and Lifecycle Guarantees
 
 User-specific strategy cycles and brokerage orders run on-device in the foreground or through an OS-managed background worker. Brokerage credentials remain in platform-secure local storage; there is no server-side strategy executor or server-side use of brokerage tokens. Existing server jobs generate shared signals and evaluate resting paper stock orders, but do not execute a user's agentic strategy.

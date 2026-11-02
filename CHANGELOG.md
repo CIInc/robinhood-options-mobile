@@ -3,11 +3,18 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-**Return Attribution ([#278](https://github.com/CIInc/robinhood-options-mobile/issues/278))**
+
+## [0.60.3] - 2026-11-02
+**Active Brokerage Selection Recovery, Return Attribution & Platform Hardening**
 
 - **Brinson-Fachler Sector Attribution:** The Performance section adds a Return Attribution card that splits today's active return vs. the selected benchmark into Allocation, Selection, and Interaction effects. The three effects always sum to the active return. Benchmark sector returns come from SPDR sector ETF quotes, and benchmark sector weights are approximate; custom benchmarks fall back to SPY weights and are labeled.
 - **Options Greeks & Income:** Estimates option P&L from Delta, Gamma, and Theta with a second-order Taylor approximation. Vega P&L is inferred from the remainder because prior implied volatility is not stored. Dividends and interest paid today are listed separately, and the UI discloses the approximation.
 - **Privacy, Export & Accessibility:** Dollar amounts follow balance masking while percentages stay visible. CSV export includes sector and Greek attribution tables. Rows have combined screen-reader labels, and the layout fits 320px screens. All calculations run on-device.
+- **Active Brokerage Selection Recovery ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):** Normalize the selected brokerage index after loading or removing linked accounts, preserve the active account when an earlier entry is removed, and report the active quote source when paper auto-trading is blocked. Physical-device lifecycle verification remains open.
+- **Security & Input Validation:** Require admin authorization for agentic-data seeding, validate role and market-data/order-sync inputs, and preserve authentication errors ([#281](https://github.com/CIInc/robinhood-options-mobile/issues/281), [#287](https://github.com/CIInc/robinhood-options-mobile/issues/287), [#291](https://github.com/CIInc/robinhood-options-mobile/issues/291), [#293](https://github.com/CIInc/robinhood-options-mobile/issues/293), [#300](https://github.com/CIInc/robinhood-options-mobile/issues/300)).
+- **Testability:** Pass the effective timestamp into wash-sale alert calculations for deterministic tests.
+- **Performance & Accessibility:** Reduce temporary allocations in rolling statistics, market-direction, ADX and GEX calculations, and add unified screen-reader semantics across portfolio, income, short-interest, and copy-trading cards ([#274](https://github.com/CIInc/robinhood-options-mobile/issues/274), [#276](https://github.com/CIInc/robinhood-options-mobile/issues/276), [#283](https://github.com/CIInc/robinhood-options-mobile/issues/283), [#286](https://github.com/CIInc/robinhood-options-mobile/issues/286), [#288](https://github.com/CIInc/robinhood-options-mobile/issues/288), [#289](https://github.com/CIInc/robinhood-options-mobile/issues/289), [#292](https://github.com/CIInc/robinhood-options-mobile/issues/292), [#294](https://github.com/CIInc/robinhood-options-mobile/issues/294), [#295](https://github.com/CIInc/robinhood-options-mobile/issues/295), [#296](https://github.com/CIInc/robinhood-options-mobile/issues/296), [#297](https://github.com/CIInc/robinhood-options-mobile/issues/297), [#299](https://github.com/CIInc/robinhood-options-mobile/issues/299)).
+- **Open Acceptance:** Return Attribution issue [#278](https://github.com/CIInc/robinhood-options-mobile/issues/278) remains open for completing and verifying its full income/yield scope; auto-trading issue [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open for physical-device and market-calendar acceptance.
 
 ## [0.60.2] - 2026-10-31
 **Schwab Auto-Trading Support & Physical-Device Verification**
