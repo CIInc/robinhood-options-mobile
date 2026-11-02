@@ -188,7 +188,8 @@ describe("evaluateStockPendingOrders", () => {
   });
 
   it("expires GFD orders after their Eastern trading day", () => {
-    const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const orderDate = new Date("2026-10-15T14:30:00Z");
+    const nextDay = new Date("2026-10-16T14:30:00Z");
     const data = account({
       pendingOrders: [
         order({
@@ -197,11 +198,11 @@ describe("evaluateStockPendingOrders", () => {
           limitPrice: 140,
           quantity: 10,
           timeInForce: "gfd",
-          createdAt: yesterday,
+          createdAt: orderDate.toISOString(),
         }),
       ],
     });
-    const result = evaluateStockPendingOrders(data, { AAPL: 139 });
+    const result = evaluateStockPendingOrders(data, { AAPL: 139 }, nextDay);
     expect(result.fills).toBe(0);
     expect(result.data.pendingOrders).toHaveLength(0);
     expect(result.data.history[0].state).toBe("cancelled");
