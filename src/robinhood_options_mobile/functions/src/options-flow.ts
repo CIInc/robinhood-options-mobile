@@ -72,33 +72,51 @@ export const createOptionAlert = onCall(async (request) => {
     priority,
     sound,
     channels,
-  } = request.data;
+  } = request.data || {};
 
-  if (!symbol || typeof symbol !== "string") {
+  // SECURITY: Validate symbol format and length to prevent abuse
+  const cleanSymbol = typeof symbol === "string" ? symbol.trim() : "";
+  if (!cleanSymbol || !/^[A-Za-z0-9.-]{1,10}$/.test(cleanSymbol)) {
     throw new HttpsError(
       "invalid-argument",
-      "Symbol is required and must be a string"
+      "Symbol is required and must be a valid stock symbol (1-10 characters)."
     );
   }
 
-  if (targetPremium && typeof targetPremium !== "number") {
+  // SECURITY: Validate numeric fields to prevent NaN, Infinity, or negatives
+  if (
+    targetPremium !== undefined &&
+    (typeof targetPremium !== "number" ||
+      !Number.isFinite(targetPremium) ||
+      targetPremium < 0)
+  ) {
     throw new HttpsError(
       "invalid-argument",
-      "Target premium must be a number"
+      "Target premium must be a positive finite number."
     );
   }
 
-  if (minPremium && typeof minPremium !== "number") {
+  if (
+    minPremium !== undefined &&
+    (typeof minPremium !== "number" ||
+      !Number.isFinite(minPremium) ||
+      minPremium < 0)
+  ) {
     throw new HttpsError(
       "invalid-argument",
-      "Min premium must be a number"
+      "Min premium must be a positive finite number."
     );
   }
 
-  if (minVolume && typeof minVolume !== "number") {
+  if (
+    minVolume !== undefined &&
+    (typeof minVolume !== "number" ||
+      !Number.isFinite(minVolume) ||
+      minVolume < 0)
+  ) {
     throw new HttpsError(
       "invalid-argument",
-      "Min volume must be a number"
+      "Min volume must be a positive finite number."
     );
   }
 
@@ -125,7 +143,7 @@ export const createOptionAlert = onCall(async (request) => {
     const alertRef = admin.firestore().collection("options_flow_alerts").doc();
     await alertRef.set({
       uid,
-      symbol: symbol.toUpperCase(),
+      symbol: cleanSymbol.toUpperCase(),
       minPremium: minPremium || targetPremium || 50000,
       targetPremium: minPremium || targetPremium || 50000,
       minVolume: minVolume || null,
@@ -144,6 +162,9 @@ export const createOptionAlert = onCall(async (request) => {
 
     return { success: true, id: alertRef.id };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error creating option alert", error);
     throw new HttpsError("internal", "Failed to create alert");
   }
@@ -157,20 +178,28 @@ export const toggleOptionAlert = onCall(async (request) => {
     );
   }
 
-  const { alertId, isActive } = request.data;
+  const { alertId, isActive } = request.data || {};
   const uid = request.auth.uid;
 
-  if (!alertId) {
+  // SECURITY: Validate alertId and isActive boolean
+  if (typeof alertId !== "string" || !alertId.trim()) {
     throw new HttpsError(
       "invalid-argument",
-      "Alert ID is required"
+      "Alert ID is required and must be a valid string."
+    );
+  }
+
+  if (typeof isActive !== "boolean") {
+    throw new HttpsError(
+      "invalid-argument",
+      "isActive must be a boolean."
     );
   }
 
   try {
     const alertRef = admin.firestore()
       .collection("options_flow_alerts")
-      .doc(alertId);
+      .doc(alertId.trim());
 
     const doc = await alertRef.get();
     if (!doc.exists) {
@@ -191,6 +220,9 @@ export const toggleOptionAlert = onCall(async (request) => {
 
     return { success: true };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error toggling option alert", error);
     throw new HttpsError("internal", "Failed to toggle alert");
   }
@@ -220,6 +252,9 @@ export const getOptionAlerts = onCall(async (request) => {
 
     return { alerts };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error fetching option alerts", error);
     throw new HttpsError("internal", "Failed to fetch alerts");
   }
@@ -233,13 +268,21 @@ export const deleteOptionAlert = onCall(async (request) => {
     );
   }
 
-  const { alertId } = request.data;
+  const { alertId } = request.data || {};
   const uid = request.auth.uid;
+
+  // SECURITY: Validate alertId string
+  if (typeof alertId !== "string" || !alertId.trim()) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Alert ID is required and must be a valid string."
+    );
+  }
 
   try {
     const alertRef = admin.firestore()
       .collection("options_flow_alerts")
-      .doc(alertId);
+      .doc(alertId.trim());
 
     const doc = await alertRef.get();
     if (!doc.exists) {
@@ -256,6 +299,9 @@ export const deleteOptionAlert = onCall(async (request) => {
     await alertRef.delete();
     return { success: true };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error deleting option alert", error);
     throw new HttpsError("internal", "Failed to delete alert");
   }
