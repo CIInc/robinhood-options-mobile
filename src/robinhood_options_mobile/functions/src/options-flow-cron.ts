@@ -3,6 +3,12 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { fetchOptionsFlowForSymbols } from "./options-flow-utils";
 import { getMessaging } from "firebase-admin/messaging";
+import {
+  UserNotificationCustomizationSettings,
+  isWithinQuietHours,
+  resolveChannelAndSound,
+  dispatchMultiChannelAlert,
+} from "./alert-delivery";
 
 // Ensure Firebase Admin is initialized
 if (admin.apps.length === 0) {
@@ -124,6 +130,26 @@ export const optionsFlowCron = onSchedule(
               .doc(alert.uid)
               .get();
             const userData = userDoc.data();
+            const userSettings:
+              | UserNotificationCustomizationSettings
+              | undefined = userData?.tradeSignalNotificationSettings;
+            if (userSettings?.optionsFlowTriggerEnabled === false) {
+              continue;
+            }
+            const resolvedDelivery = resolveChannelAndSound(
+              "FLOW",
+              userSettings,
+              {
+                priority: alert.priority,
+                sound: alert.sound,
+                channels: alert.channels,
+              }
+            );
+            const quietHoursSuppressed = isWithinQuietHours(
+              userSettings,
+              resolvedDelivery.priority
+            );
+
             const devices: Array<{ fcmToken?: string | null }> =
               userData?.devices || [];
             const fcmTokens: string[] = devices
@@ -131,7 +157,10 @@ export const optionsFlowCron = onSchedule(
               .filter((token): token is string =>
                 token != null && token !== "");
 
-            if (fcmTokens.length > 0) {
+            if (
+              fcmTokens.length > 0 ||
+              resolvedDelivery.channels.includes("in_app")
+            ) {
               const premiumLabel = `$${(item.premium / 1000).toFixed(1)}k`;
               const expLabel = item.expirationDate.split("T")[0];
               const flagLabel = item.flags?.length ?
@@ -152,56 +181,96 @@ export const optionsFlowCron = onSchedule(
                 expirationDate: item.expirationDate,
                 flowType: item.flowType,
                 flags: JSON.stringify(item.flags || []),
+                channelId: resolvedDelivery.channelId,
+                priority: resolvedDelivery.priority,
+                sound: resolvedDelivery.sound || "silent",
               };
 
-              notifications.push(
-                messaging.sendEachForMulticast({
-                  tokens: fcmTokens,
-                  notification: {
-                    title,
-                    body,
-                  },
-                  data: notificationData,
-                  android: {
-                    priority: "high",
+              if (
+                fcmTokens.length > 0 &&
+                resolvedDelivery.channels.includes("push") &&
+                !quietHoursSuppressed
+              ) {
+                notifications.push(
+                  messaging.sendEachForMulticast({
+                    tokens: fcmTokens,
                     notification: {
-                      channelId: "trade_signals",
-                      priority: "high",
-                      sound: "default",
-                      clickAction: "FLUTTER_NOTIFICATION_CLICK",
+                      title,
+                      body,
                     },
-                  },
-                  apns: {
-                    payload: {
-                      aps: {
-                        sound: "default",
-                        badge: 1,
-                        category: "OPTIONS_FLOW_ALERT",
+                    data: notificationData,
+                    android: {
+                      priority: resolvedDelivery.fcmAndroidPriority,
+                      notification: {
+                        channelId: resolvedDelivery.channelId,
+                        priority: resolvedDelivery.priority === "critical" ?
+                          "max" :
+                          resolvedDelivery.priority === "low" ?
+                            "low" :
+                            "high",
+                        ...(resolvedDelivery.sound ?
+                          { sound: resolvedDelivery.sound } :
+                          {}),
+                        clickAction: "FLUTTER_NOTIFICATION_CLICK",
                       },
                     },
-                  },
-                })
-              );
+                    apns: {
+                      payload: {
+                        aps: {
+                          ...(resolvedDelivery.sound ?
+                            { sound: resolvedDelivery.sound } :
+                            {}),
+                          "badge": 1,
+                          "category": "OPTIONS_FLOW_ALERT",
+                          "interruption-level":
+                            resolvedDelivery.apnsInterruptionLevel,
+                        },
+                      },
+                    },
+                  })
+                );
+              }
 
-              await admin.firestore()
-                .collection("user")
-                .doc(alert.uid)
-                .collection("flow_notifications")
-                .add({
+              if (!quietHoursSuppressed) {
+                await dispatchMultiChannelAlert(admin.firestore(), {
+                  userId: alert.uid,
+                  category: "FLOW",
                   symbol: item.symbol,
-                  sentiment: item.sentiment,
-                  premium: item.premium,
-                  volume: item.volume,
-                  expirationDate: item.expirationDate,
-                  type: item.type,
-                  flowType: item.flowType,
-                  flags: item.flags || [],
                   title,
                   body,
-                  read: false,
-                  timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                  data: notificationData,
+                  settings: userSettings,
+                  resolved: resolvedDelivery,
+                  metadata: {
+                    alertId: alert.id,
+                    premium: item.premium,
+                    volume: item.volume,
+                  },
                 });
+              }
+
+              if (resolvedDelivery.channels.includes("in_app")) {
+                await admin.firestore()
+                  .collection("user")
+                  .doc(alert.uid)
+                  .collection("flow_notifications")
+                  .add({
+                    symbol: item.symbol,
+                    sentiment: item.sentiment,
+                    premium: item.premium,
+                    volume: item.volume,
+                    expirationDate: item.expirationDate,
+                    type: item.type,
+                    flowType: item.flowType,
+                    flags: item.flags || [],
+                    title,
+                    body,
+                    read: false,
+                    priority: resolvedDelivery.priority,
+                    channelId: resolvedDelivery.channelId,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    data: notificationData,
+                  });
+              }
 
               logger.info(
                 `Queued notification for alert ${alert.id} on ${item.symbol}`

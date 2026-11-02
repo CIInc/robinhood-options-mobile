@@ -23,7 +23,7 @@ The Custom Alerts feature allows users to set up personalized notifications for 
 #### Portfolio Alerts
 - **Position Size Changes**: Alert on significant changes in position values
 - **P&L Thresholds**: Notify when unrealized P&L reaches specified levels
-- **Options Expiration Alerts**: Action Center alerts for active option contracts approaching expiration (0 DTE, 1 DTE, 2–3 DTE), tracking moneyness (ITM automatic exercise risk vs. OTM worthless expiration) and short-leg assignment exposure with 1-tap navigation to Positions and the Options Roll Assistant.
+- **Options Expiration & Pin Risk Alerts**: Action Center alerts for active option contracts approaching expiration (0 DTE, 1 DTE, 2–3 DTE), tracking moneyness (ITM automatic exercise risk vs. OTM worthless expiration), short-leg assignment exposure, 0DTE/1DTE Pin Risk ($\pm 1.0\%$ strike proximity) with notional margin shock deficit calculations against account buying power, and Ex-Dividend early assignment hazards (remaining extrinsic value $\le 1.25\times$ upcoming dividend) with 1-tap navigation to Positions and the Options Roll Assistant.
 - **Earnings Calendar Alerts**: Action Center alerts for portfolio holdings approaching quarterly earnings announcements (0 DTE Reports Today, 1 DTE Reports Tomorrow, 2–7 DTE Countdown), detailing announcement timing (Before Market Open vs. After Market Close), consensus EPS estimates, and consolidated multi-asset exposure (held shares and option contracts) with 1-tap navigation to the Earnings IV Crush and Straddle Pricing Analyzer.
 - **Dividend Payment Reminders**: Action Center alerts for upcoming ex-dividend dates (0 DTE Ex-Div Today, 1 DTE Ex-Div Tomorrow, 2–7 DTE Countdown) to ensure payout eligibility, and scheduled/completed dividend payment notifications (0 DTE Payable Today, 1–7 DTE Upcoming Payout, Paid with DRIP status) with 1-tap navigation to the Performance and Income portfolio dashboard.
 - **News Alerts**: Action Center alerts for active portfolio holdings affected by high-impact news catalysts (e.g. FDA decisions, regulatory investigations, enterprise partnerships), rapid 24h sentiment shifts (>= 15 pts surge or drop), and extreme sentiment regimes (very bearish or very bullish), detailing held multi-asset exposure (shares and option contracts) with 1-tap navigation to the Insights section and AI news intelligence breakdown.
@@ -36,13 +36,18 @@ The Custom Alerts feature allows users to set up personalized notifications for 
 - **Premium & Expiration Filters**: Set minimum premium thresholds and target short-dated contracts (0DTE, 1DTE).
 - **Notification Center**: Triggered flow alerts are stored in the option flow notifications feed for quick review.
 
-### Alert Configuration
+### Alert Configuration & Customization
 
 Users can configure alerts with:
 - **Instrument Selection**: Choose from portfolio holdings, watchlist items, or any symbol
-- **Condition Settings**: Define trigger conditions (price levels, percentages, etc.)
-- **Frequency Controls**: Set alert frequency to avoid spam (once per day, etc.)
-- **Notification Methods**: Choose push notifications, in-app alerts, or email
+- **Condition Settings**: Define trigger conditions (price levels, percentages, RSI, SMA, ATR dynamic bands, GEX Call/Put Walls, Congressional trades, SEC filings)
+- **Cooldown & Frequency Controls**: Per-alert cooldown windows (`15 minutes`, `1 hour`, `4 hours`, `24 hours`) to prevent notification spam
+- **Multi-Channel Delivery**: Route notifications across **Push**, **In-App**, **Email**, **SMS**, and **Webhook** (Slack/Discord/Custom HTTP) with optional **Critical-Only External Routing** (restricting Email/SMS/Webhook to `critical` priority or $\ge 80\%$ confidence signals)
+- **Priority Notification Channels & Custom Sounds**:
+  - Select priority tiers (`Critical`, `High`, `Standard`, `Low`) mapped to 5 dedicated Android notification channels (`critical_alerts`, `trade_signals`, `custom_alerts`, `options_flow`, `silent_digest`) and iOS APNs interruption levels (`critical`, `time-sensitive`, `active`, `passive`)
+  - Choose alert sounds (`Default`, `Chime`, `Bell`, `Pulse`, `Radar`, `Silent`) and configure per-signal-category sound overrides (`BUY`, `SELL`, `GEX`, `FLOW`)
+  - Configure **Quiet Hours** (UTC start/end hours) with automatic critical-alert bypass
+- **Per-Signal & Indicator Triggers**: Toggle Price/Technical, GEX Regime/Wall, and Options Flow categories independently, and require specific confirming technical indicators (`RSI`, `MACD`, `Price Movement`, `Market Direction`, `Volume`, `Bollinger Bands`, `Stochastic`, `ATR`, `OBV`, `VWAP`, `ADX`, `Williams %R`, `GEX`) before a trade signal triggers an alert
 
 ### Alert Management
 

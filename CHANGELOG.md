@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.60.2] - 2026-10-31
+**Schwab Auto-Trading Support & Physical-Device Verification**
+
+- **Selected-Broker Auto-Trading:** Extend supported auto-trading account selection and device-local background service routing to Schwab alongside Robinhood. Schwab supplies quotes and live orders through its brokerage service; paper mode keeps fills in the simulated ledger.
+- **Safety and Scheduling:** Background BUYs still require a fresh quote, and OS-managed background execution remains best effort with no guaranteed cadence or market-close exit.
+- **Verification:** Add coverage for brokerage eligibility, background service selection, and Schwab paper-mode settings. Physical-device lifecycle and Schwab-account verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remain pending.
+
+## [0.60.1] - 2026-10-31
+**iOS Background Scheduling Stability & Android Build Validation**
+
+- **iOS Workmanager Registration:** Register the periodic background task identifier during app launch before the first task submission, preventing iOS from aborting when scheduling a previously unknown task. Background execution remains best effort.
+- **Android Build Validation:** Added a manual workflow that frees runner disk space, builds signed APK/AAB artifacts, and does not publish to an app store.
+- **Physical-Device Verification:** The iOS simulator build passes; physical-device lifecycle verification for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains pending.
+
+## [0.60.0] - 2026-10-30
+**On-Device Auto-Trading Execution Modes & EOD Exit Safety ([docs](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282))**
+
+- **OS-Managed Background Execution:** Added Workmanager checks on iOS and Android while keeping user strategy evaluation, broker credentials, and order submission on-device. Background checks are best effort, run no more frequently than the platform permits, and do not guarantee an exact cadence or market-close exit.
+- **EOD Exit Reconciliation:** Persist attempted, completed, and missed market-close exit states by user, trade, and Eastern session date. Added an opt-in missed-exit push notification; late reconciliation reports missed exits without submitting stale after-hours orders.
+- **Execution Safeguards:** New auto-trading configurations default to Paper while existing saved execution modes are preserved. A cycle without a user document cannot acquire its execution lease. At this release, automated Paper mode required a Robinhood quote source, and background BUYs required a fresh Robinhood quote.
+- **Google Sign-In Initialization:** Added the server client ID configuration to the Google Sign-In startup path.
+- **Automated Coverage:** Added market-calendar, EOD status, quote freshness, kill-switch, execution-claim, and settings tests. Physical-device lifecycle testing remains pending; OS scheduling and EOD execution are not guaranteed.
+
+## [0.59.0] - 2026-10-26
+**Unified AI Conviction, Stream Throttling & Battery Conservation, Risk Parity Rebalancing, Pin Risk & Wash Sale Compliance ([docs](docs/unified-ai-conviction.md), [docs](docs/streaming-performance-and-battery.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124), [#271](https://github.com/CIInc/robinhood-options-mobile/issues/271), [#272](https://github.com/CIInc/robinhood-options-mobile/issues/272), [#277](https://github.com/CIInc/robinhood-options-mobile/issues/277))**
+
+- **Real-Time Stream Throttling, Memory Optimization & Battery Conservation ([docs](docs/streaming-performance-and-battery.md), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)):**
+  - **Key-Partitioned Stream Throttle Transformer**: Created `StreamThrottleTransformer<T>` and `.throttleLatest(...)` extension delivering immediate 0ms response on leading ticks and debouncing subsequent ticks to a configurable window (250ms default) partitioned by symbol to prevent cross-ticker starvation.
+  - **Schwab Streamer Throttled Channels**: Added `throttledEquityQuotes`, `throttledOptionQuotes`, `throttledFuturesQuotes`, and `throttledForexQuotes` to `SchwabStreamerService`.
+  - **App Lifecycle Pausing & Resuming**: Integrated `pauseAll()` and `resumeAll()` in `NavigationStatefulWidget` responding to `AppLifecycleState.paused` and `resumed`, sending remote `UNSUBS` to save battery/cellular bandwidth in background, and automatically resubscribing upon return to foreground.
+  - **Viewport-Bounded Stream Coordinator**: Implemented `ViewportStreamCoordinator` capping active streaming feeds to the visible viewport (max 15 items) and computing set differences ($\Delta_{\text{unsub}}$, $\Delta_{\text{sub}}$) to eliminate redundant network traffic during fast scrolling.
+  - **Automated Test Coverage**: Added unit tests in `test/stream_throttle_transformer_test.dart`, `test/schwab_streamer_service_lifecycle_test.dart`, and `test/viewport_stream_coordinator_test.dart`.
+
+- **Unified AI Conviction & Factor Alignment ([docs](docs/unified-ai-conviction.md), [Tracking: #118](https://github.com/CIInc/robinhood-options-mobile/issues/118)):**
+  - **Deterministic Factor Alignment Engine**: Implemented `FactorAlignmentService` evaluating quantitative alignment across 5 core pillars: Trend & Moving Averages (25%), Momentum & Oscillators (25%), Volatility Compression / Squeeze (15%), Options Flow & GEX (20%), and Adversarial Resilience (15%).
+  - **Adversarial Hazard Penalty Haircut**: Deducts stress penalty points dynamically based on identified Devil's Advocate skew traps, fragile resilience scores, and upcoming event hazards.
+  - **Cloud Function Synthesis (`generateUnifiedConviction`)**: Added callable Cloud Function in `functions/src/gemini.ts` powered by Gemini 3.1 Flash-Lite (with 2.5 Flash-Lite fallback), strict input validation, `request.auth` enforcement, and 24-hour Firestore caching (`ai_conviction/{symbol}_{direction}`).
+  - **Interactive UI & Order Ticket Integration**: Built `UnifiedConvictionWidget` featuring radial conviction gauges, 5-pillar breakdown bars, guidance advice, and 1-tap modal launch directly on stock (`TradeInstrumentWidget`) and option (`TradeOptionWidget`) order entry sheets.
+  - **Screen Reader Semantics**: Consolidated announcement detailing score, tier, stress haircut, and actionable trade guidance.
+  - **Automated Test Coverage**: Added unit and widget tests in `test/unified_conviction_model_test.dart`, `test/factor_alignment_service_test.dart`, `test/unified_conviction_widget_test.dart`, and `functions/tests/gemini.test.ts`.
+
 ## [0.58.3] - 2026-10-22
 **Feature Access, Validation, Performance & Accessibility Hardening**
 

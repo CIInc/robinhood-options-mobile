@@ -1427,6 +1427,20 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                                               .bodySmall,
                                         ),
                                       ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        '${alert.priority.toUpperCase()} • Sound: ${alert.sound} • ${alert.channels.map((c) => c.toUpperCase()).join(', ')}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outline,
+                                            ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 trailing: Row(
@@ -1466,6 +1480,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
     String sentiment = 'bullish';
     String expirationRange = 'any';
     final Set<String> selectedFlags = {};
+    String priority = 'high';
+    String sound = 'default';
+    final Set<String> selectedChannels = {'push', 'in_app'};
 
     showModalBottomSheet(
       context: context,
@@ -1637,6 +1654,101 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                           ],
                         );
                       }),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Delivery & Customization',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: priority,
+                              decoration: InputDecoration(
+                                labelText: 'Priority',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'critical', child: Text('Critical')),
+                                DropdownMenuItem(
+                                    value: 'high', child: Text('High')),
+                                DropdownMenuItem(
+                                    value: 'standard', child: Text('Standard')),
+                                DropdownMenuItem(
+                                    value: 'low', child: Text('Low')),
+                              ],
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  priority = value;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: sound,
+                              decoration: InputDecoration(
+                                labelText: 'Sound',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'default', child: Text('Default')),
+                                DropdownMenuItem(
+                                    value: 'chime', child: Text('Chime')),
+                                DropdownMenuItem(
+                                    value: 'bell', child: Text('Bell')),
+                                DropdownMenuItem(
+                                    value: 'pulse', child: Text('Pulse')),
+                                DropdownMenuItem(
+                                    value: 'radar', child: Text('Radar')),
+                                DropdownMenuItem(
+                                    value: 'silent', child: Text('Silent')),
+                              ],
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  sound = value;
+                                });
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          for (final channel in const [
+                            ('push', 'Push'),
+                            ('in_app', 'In-App'),
+                            ('email', 'Email'),
+                            ('sms', 'SMS'),
+                          ])
+                            FilterChip(
+                              label: Text(channel.$2),
+                              selected: selectedChannels.contains(channel.$1),
+                              onSelected: (val) {
+                                setState(() {
+                                  if (val) {
+                                    selectedChannels.add(channel.$1);
+                                  } else if (selectedChannels.length > 1) {
+                                    selectedChannels.remove(channel.$1);
+                                  }
+                                });
+                              },
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: 32),
                       SizedBox(
                         width: double.infinity,
@@ -1654,6 +1766,9 @@ class _OptionsFlowWidgetState extends State<OptionsFlowWidget> {
                               sentiment: sentiment,
                               expirationRange: expirationRange,
                               flags: selectedFlags.toList(),
+                              priority: priority,
+                              sound: sound,
+                              channels: selectedChannels.toList(),
                             );
                             Navigator.pop(context);
                           },

@@ -30,7 +30,7 @@ class NotificationResponse {
 }
 
 /// Represents a first-party notification card or announcement from the
-/// Midlands Notification Stack (`/midlands/notifications/stack/`) or Inbox Threads (`/inbox/threads/`).
+/// Robinhood Notification Stack (`/midlands/notifications/stack/`) or Inbox Threads (`/inbox/threads/`).
 class NotificationItem {
   final String cardId;
   final String? loadId;

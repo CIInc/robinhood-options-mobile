@@ -106,7 +106,13 @@ class PortfolioAlertService {
             : null);
     alerts.addAll(_riskCopilotAlerts(copilotReport));
     alerts.addAll(_zeroDteSqueezeAlerts(squeezeRadarResults));
-    alerts.addAll(_optionExpirationAlerts(optionPositions, effectiveNow));
+    alerts.addAll(_optionExpirationAlerts(
+      optionPositions,
+      effectiveNow,
+      account: account,
+      unifiedAccount: unifiedAccount,
+      dividendEvents: dividendEvents,
+    ));
     alerts.addAll(_earningsCalendarAlerts(
       instrumentPositions: instrumentPositions,
       optionPositions: optionPositions,
@@ -151,8 +157,12 @@ class PortfolioAlertService {
         account?.accountNumber == 'paper_account' ||
         (account?.url.contains('paper') ?? false);
     if (!isPaper) {
-      alerts
-          .addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
+      alerts.addAll(_taxAlerts(
+        instrumentPositions,
+        optionPositions,
+        washSales,
+        effectiveNow,
+      ));
     }
     final isAccountToolsEnabled =
         FeatureAccessService.instance.isFeatureEnabled(
@@ -467,12 +477,41 @@ class PortfolioAlertService {
     List<InstrumentPosition> instrumentPositions,
     List<OptionAggregatePosition> optionPositions, [
     List<WashSaleRecord>? washSales,
+    DateTime? now,
   ]) {
+    final effectiveNow = now ?? DateTime.now();
     final alerts = <PortfolioAlert>[];
 
     // 1. Wash Sale Disallowed loss alert (Critical)
     if (washSales != null) {
-      final disallowed = washSales.where((w) => w.isDisallowed).toList();
+      final permanentIra =
+          washSales.where((w) => w.isPermanentIraDisallowance).toList();
+      if (permanentIra.isNotEmpty) {
+        final totalPermanent = permanentIra.fold<double>(
+            0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));
+        final symbols = permanentIra.map((w) => w.symbol).toSet().toList();
+        alerts.add(
+          PortfolioAlert(
+            id: 'wash-sale-permanent-ira',
+            severity: PortfolioAlertSeverity.critical,
+            icon: Icons.error_outline,
+            title:
+                '${permanentIra.length} Permanent IRA Wash ${permanentIra.length == 1 ? 'Sale' : 'Sales'}',
+            detail:
+                '${symbols.join(', ')} tax deduction permanently forfeited under IRS Rev. Rul. 2008-5. Basis cannot adjust in IRA.',
+            metric: _currency.format(totalPermanent),
+            target: PortfolioAlertTarget.taxes,
+            category: 'Taxes',
+            actionLabel: 'Review Wash Sales',
+            symbol: symbols.isNotEmpty ? symbols.first : null,
+            payload: permanentIra,
+          ),
+        );
+      }
+
+      final disallowed = washSales
+          .where((w) => w.isDisallowed && !w.isPermanentIraDisallowance)
+          .toList();
       if (disallowed.isNotEmpty) {
         final totalDisallowed = disallowed.fold<double>(
             0.0, (sum, w) => sum + (w.disallowedLoss ?? w.realizedLoss.abs()));
@@ -497,10 +536,12 @@ class PortfolioAlertService {
       }
 
       // 2. Active Wash Sale Window warning alert
-      final activeWindows = washSales.where((w) => w.isWindowActive()).toList();
+      final activeWindows =
+          washSales.where((w) => w.isWindowActive(effectiveNow)).toList();
       if (activeWindows.isNotEmpty) {
-        final minDays =
-            activeWindows.map((w) => w.getDaysRemaining()).reduce(min);
+        final minDays = activeWindows
+            .map((w) => w.getDaysRemaining(effectiveNow))
+            .reduce(min);
         final symbols = activeWindows.map((w) => w.symbol).toSet().toList();
         alerts.add(
           PortfolioAlert(
@@ -2615,10 +2656,228 @@ class PortfolioAlertService {
     return alerts;
   }
 
+  /// Evaluates whether a short call option position faces high probability of
+  /// early assignment due to an upcoming ex-dividend date.
+  /// Triggered when remaining extrinsic value <= 1.25x upcoming dividend within
+  /// 7 calendar days of ex-dividend date.
+  static PortfolioAlert? evaluateOptionEarlyAssignmentAlert(
+    OptionAggregatePosition pos,
+    DateTime now,
+    List<DividendPaymentEvent>? dividendEvents,
+  ) {
+    final qty = pos.quantity ?? 0.0;
+    if (qty <= 0) return null;
+
+    final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
+    final expDate =
+        pos.optionInstrument?.expirationDate ?? firstLeg?.expirationDate;
+    if (expDate == null) return null;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final expDay = DateTime(expDate.year, expDate.month, expDate.day);
+    final daysToExpiration = expDay.difference(today).inDays;
+    if (daysToExpiration < 0) return null;
+
+    final isShort = pos.direction == 'credit' ||
+        pos.strategy.startsWith('short') ||
+        pos.legs.any((l) => l.positionType == 'short');
+    final optionType =
+        (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+            .toUpperCase();
+
+    // Early assignment on ex-dividend applies to short calls
+    if (!isShort || optionType != 'CALL') return null;
+
+    final symbol = pos.symbol.isNotEmpty
+        ? pos.symbol
+        : (pos.optionInstrument?.chainSymbol ??
+            pos.instrumentObj?.symbol ??
+            'Option');
+
+    // Find upcoming dividend event for symbol within 7 calendar days
+    DividendPaymentEvent? upcomingDiv;
+    if (dividendEvents != null && symbol.isNotEmpty) {
+      for (final div in dividendEvents) {
+        if (div.symbol.toUpperCase() == symbol.toUpperCase() &&
+            div.exDividendDate != null) {
+          final daysToEx = div.daysUntilExDividend(now);
+          if (daysToEx != null && daysToEx >= 0 && daysToEx <= 7) {
+            upcomingDiv = div;
+            break;
+          }
+        }
+      }
+    }
+    if (upcomingDiv == null) return null;
+
+    final divAmount = upcomingDiv.rate ?? upcomingDiv.amount ?? 0.0;
+    if (divAmount <= 0) return null;
+
+    final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+    final spotPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+        pos.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice ??
+        pos.instrumentObj?.quoteObj?.previousClose;
+
+    if (strike == null || spotPrice == null) return null;
+
+    final mark = pos.optionInstrument?.optionMarketData?.adjustedMarkPrice ??
+        pos.optionInstrument?.optionMarketData?.markPrice ??
+        (pos.averageOpenPrice != null ? pos.averageOpenPrice! / 100.0 : null);
+    if (mark == null) return null;
+
+    final intrinsic = max(0.0, spotPrice - strike);
+    final extrinsic = max(0.0, mark - intrinsic);
+
+    // Hazard condition: remaining extrinsic <= 1.25 * upcoming dividend
+    if (extrinsic > 1.25 * divAmount) return null;
+
+    final strikeStr =
+        '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}';
+    final contractDesc = [
+      symbol,
+      strikeStr,
+      'CALL',
+    ].join(' ');
+
+    final id = 'opt-exdiv-assignment-${pos.id.isNotEmpty ? pos.id : symbol}';
+    final daysToEx = upcomingDiv.daysUntilExDividend(now) ?? 0;
+    final exDivDateStr = upcomingDiv.exDividendDate != null
+        ? '${upcomingDiv.exDividendDate!.month}/${upcomingDiv.exDividendDate!.day}'
+        : 'soon';
+
+    return PortfolioAlert(
+      id: id,
+      severity: PortfolioAlertSeverity.critical,
+      icon: Icons.event_busy_outlined,
+      title: '$contractDesc Ex-Div Assignment Hazard',
+      detail:
+          'Extrinsic value (\$${extrinsic.toStringAsFixed(2)}) is <= 1.25x upcoming dividend (\$${divAmount.toStringAsFixed(2)}) with ex-div in $daysToEx day${daysToEx == 1 ? '' : 's'} ($exDivDateStr). Long call holders capture more value by exercising early.',
+      metric:
+          'Extrinsic \$${extrinsic.toStringAsFixed(2)} vs Div \$${divAmount.toStringAsFixed(2)}',
+      target: PortfolioAlertTarget.strategies,
+      symbol: symbol,
+      category: 'Expirations',
+      actionLabel: 'Manage Defense',
+      payload: {
+        'symbol': symbol,
+        'position': pos,
+        'isShort': isShort,
+        'isExDivRisk': true,
+        'extrinsicValue': extrinsic,
+        'dividendAmount': divAmount,
+        'exDividendDate': upcomingDiv.exDividendDate,
+      },
+    );
+  }
+
+  /// Evaluates whether a 0DTE/1DTE short option position is pinned within 1.0%
+  /// of its strike price, creating after-hours unhedged assignment risk and
+  /// potential buying power margin shock.
+  static PortfolioAlert? evaluateOptionPinRiskAlert(
+    OptionAggregatePosition pos,
+    DateTime now, {
+    Account? account,
+    UnifiedAccount? unifiedAccount,
+  }) {
+    final qty = pos.quantity ?? 0.0;
+    if (qty <= 0) return null;
+
+    final firstLeg = pos.legs.isNotEmpty ? pos.legs.first : null;
+    final expDate =
+        pos.optionInstrument?.expirationDate ?? firstLeg?.expirationDate;
+    if (expDate == null) return null;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final expDay = DateTime(expDate.year, expDate.month, expDate.day);
+    final daysToExpiration = expDay.difference(today).inDays;
+
+    // Pin risk evaluates for 0DTE and 1DTE positions
+    if (daysToExpiration < 0 || daysToExpiration > 1) return null;
+
+    final isShort = pos.direction == 'credit' ||
+        pos.strategy.startsWith('short') ||
+        pos.legs.any((l) => l.positionType == 'short');
+    if (!isShort) return null;
+
+    final strike = firstLeg?.strikePrice ?? pos.optionInstrument?.strikePrice;
+    final spotPrice = pos.instrumentObj?.quoteObj?.lastTradePrice ??
+        pos.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice ??
+        pos.instrumentObj?.quoteObj?.previousClose;
+
+    if (strike == null || spotPrice == null || strike <= 0) return null;
+
+    // Pinned within 1.0% of short strike
+    final proximityPct = ((spotPrice - strike).abs() / strike) * 100.0;
+    if (proximityPct > 1.0) return null;
+
+    final symbol = pos.symbol.isNotEmpty
+        ? pos.symbol
+        : (pos.optionInstrument?.chainSymbol ??
+            pos.instrumentObj?.symbol ??
+            'Option');
+    final strikeStr =
+        '\$${strike.toStringAsFixed(strike.truncateToDouble() == strike ? 0 : 2)}';
+    final optionType =
+        (firstLeg?.optionType ?? pos.optionInstrument?.type ?? '')
+            .toUpperCase();
+    final contractDesc = [
+      symbol,
+      strikeStr,
+      if (optionType.isNotEmpty) optionType,
+    ].join(' ');
+
+    final contracts = qty.abs();
+    final notionalObligation = 100.0 * strike * contracts;
+    final availableBuyingPower =
+        unifiedAccount?.buyingPower ?? account?.buyingPower;
+
+    final isMarginShock = availableBuyingPower != null &&
+        notionalObligation > availableBuyingPower;
+    final marginDeficit =
+        isMarginShock ? notionalObligation - availableBuyingPower : 0.0;
+
+    final id =
+        'opt-pin-risk-${pos.id.isNotEmpty ? pos.id : symbol}-$daysToExpiration';
+
+    final detail = isMarginShock
+        ? '$contractDesc is pinned within ${proximityPct.toStringAsFixed(1)}% of strike at $daysToExpiration DTE. Assignment notional (\$${notionalObligation.toStringAsFixed(0)}) exceeds buying power (\$${availableBuyingPower.toStringAsFixed(0)}) by \$${marginDeficit.toStringAsFixed(0)}! Close or roll before market close.'
+        : '$contractDesc is pinned within ${proximityPct.toStringAsFixed(1)}% of strike at $daysToExpiration DTE. After-hours unhedged assignment hazard; close or roll before market close.';
+
+    return PortfolioAlert(
+      id: id,
+      severity: PortfolioAlertSeverity.critical,
+      icon: isMarginShock ? Icons.warning_rounded : Icons.crisis_alert_outlined,
+      title: isMarginShock
+          ? '$contractDesc Margin Shock Pin Risk'
+          : '$contractDesc 0DTE/1DTE Pin Risk',
+      detail: detail,
+      metric: isMarginShock
+          ? 'Deficit -\$${marginDeficit.toStringAsFixed(0)}'
+          : 'Pin ${proximityPct.toStringAsFixed(2)}%',
+      target: PortfolioAlertTarget.strategies,
+      symbol: symbol,
+      category: 'Expirations',
+      actionLabel: isMarginShock ? 'Emergency Close' : 'Manage Defense',
+      payload: {
+        'symbol': symbol,
+        'position': pos,
+        'isShort': isShort,
+        'isPinRisk': true,
+        'isMarginShock': isMarginShock,
+        'notionalObligation': notionalObligation,
+        'marginDeficit': marginDeficit,
+        'availableBuyingPower': availableBuyingPower,
+      },
+    );
+  }
+
   static List<PortfolioAlert> _optionExpirationAlerts(
     List<OptionAggregatePosition> optionPositions,
-    DateTime now,
-  ) {
+    DateTime now, {
+    Account? account,
+    UnifiedAccount? unifiedAccount,
+    List<DividendPaymentEvent>? dividendEvents,
+  }) {
     final alerts = <PortfolioAlert>[];
     final today = DateTime(now.year, now.month, now.day);
 
@@ -2636,6 +2895,24 @@ class PortfolioAlertService {
 
       // Ignore already past/expired contracts (> 0 days in the past)
       if (daysToExpiration < 0) continue;
+
+      // 1. Evaluate Ex-Dividend Early Assignment Hazard
+      final exDivAlert =
+          evaluateOptionEarlyAssignmentAlert(pos, now, dividendEvents);
+      if (exDivAlert != null) {
+        alerts.add(exDivAlert);
+      }
+
+      // 2. Evaluate 0DTE/1DTE Pin Risk & Margin Shock
+      final pinAlert = evaluateOptionPinRiskAlert(
+        pos,
+        now,
+        account: account,
+        unifiedAccount: unifiedAccount,
+      );
+      if (pinAlert != null) {
+        alerts.add(pinAlert);
+      }
 
       // Only alert within the immediate expiration window (<= 3 calendar days)
       if (daysToExpiration > 3) continue;

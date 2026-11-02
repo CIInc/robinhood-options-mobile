@@ -64,6 +64,7 @@ import 'package:robinhood_options_mobile/widgets/pnl_badge.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/price_targets_widget.dart';
 import 'package:robinhood_options_mobile/widgets/devils_advocate_widget.dart';
+import 'package:robinhood_options_mobile/widgets/unified_conviction_widget.dart';
 import 'package:robinhood_options_mobile/widgets/short_interest_widget.dart';
 import 'package:robinhood_options_mobile/widgets/retail_order_flow_widget.dart';
 import 'package:robinhood_options_mobile/widgets/insider_activity_widget.dart';
@@ -2804,11 +2805,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           final strikeStr = firstLeg?.strikePrice != null
               ? '\$${formatCompactNumber.format(firstLeg!.strikePrice)}'
               : '';
-          final title = order.strategy != null
-              ? "${order.direction.isNotEmpty ? '${order.direction[0].toUpperCase()}${order.direction.substring(1)} ' : ''}${order.strategy}"
-              : (firstLeg != null
-                  ? "$sideStr $optTypeStr $strikeStr".trim()
-                  : "Option Order");
+          final title =
+              "${order.direction.isNotEmpty ? '${order.direction[0].toUpperCase()}${order.direction.substring(1)} ' : ''}${order.strategy}";
           final priceStr = order.price != null
               ? formatCurrency.format(order.price)
               : "Market";
@@ -3945,6 +3943,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   List<Widget> _buildResearchSlivers(Instrument instrument) {
     return [
+      SliverToBoxAdapter(
+        child: UnifiedConvictionWidget(
+          symbol: instrument.symbol,
+          generativeService: widget.generativeService,
+          currentPrice: instrument.quoteObj?.lastTradePrice,
+        ),
+      ),
       SliverToBoxAdapter(
         child: PriceTargetsWidget(
           symbol: instrument.symbol,

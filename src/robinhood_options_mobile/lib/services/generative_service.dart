@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/price_target_analysis.dart';
 import 'package:robinhood_options_mobile/model/devils_advocate_model.dart';
+import 'package:robinhood_options_mobile/model/unified_conviction_rating.dart';
 import 'package:robinhood_options_mobile/model/trade_post_mortem_model.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -529,6 +530,52 @@ Follow the table with a strategic breakdown:
       }
     } catch (e) {
       debugPrint("Error stress testing trade thesis: $e");
+    }
+    return null;
+  }
+
+  Future<UnifiedConvictionRating?> getUnifiedConviction(
+    String symbol, {
+    String direction = 'Bullish',
+    double? currentPrice,
+    Map<String, dynamic>? factorScores,
+  }) async {
+    try {
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'generateUnifiedConviction',
+      );
+      final resp = await callable.call(<String, dynamic>{
+        'symbol': symbol,
+        'direction': direction,
+        if (currentPrice != null) 'currentPrice': currentPrice,
+        if (factorScores != null && factorScores.isNotEmpty)
+          'factorScores': factorScores,
+      });
+
+      String? responseText;
+      if (resp.data != null) {
+        if (resp.data is Map && resp.data["candidates"] != null) {
+          responseText =
+              (resp.data["candidates"][0]["content"]["parts"] as List)
+                  .map((e) => e["text"])
+                  .join('  \n');
+        } else if (resp.data is Map && resp.data["response"] != null) {
+          responseText = (resp.data["response"]["candidates"][0]["content"]
+                  ["parts"] as List)
+              .map((e) => e["text"])
+              .join('  \n');
+        }
+      }
+
+      if (responseText != null) {
+        responseText = responseText
+            .replaceAll(RegExp(r'^```json\s*'), '')
+            .replaceAll(RegExp(r'\s*```$'), '');
+        final json = jsonDecode(responseText);
+        return UnifiedConvictionRating.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint("Error generating unified conviction: $e");
     }
     return null;
   }

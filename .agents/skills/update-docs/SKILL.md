@@ -23,6 +23,7 @@ Provide the next version number to base the updates on recent commits since the 
    - `CHANGELOG.md`
    - `README.md`
    - `ROADMAP.md`
+   - `PRODUCT.md`
    - Documentation files (`docs/` directory)
    - Developer instruction files (`.github/` directory, especially `.github/copilot-instructions.md`)
    - Any other `.md` files

@@ -5,7 +5,7 @@ description: "Generate evidence-backed roadmap proposals and, after the user sel
 
 # Roadmap Ideation
 
-Find useful new roadmap candidates for Clinical Assistant by considering both
+Find useful new roadmap candidates for RealizeAlpha by considering both
 the existing `ROADMAP.md` and GitHub issues. Use this workflow when asked to
 brainstorm, identify, or propose future roadmap items. This is a planning task:
 do not implement the proposals.
@@ -34,7 +34,7 @@ do not implement the proposals.
    requests and recurring user problems with existing roadmap entries and
    current behavior, but do not limit ideation to reported problems or known
    gaps. Actively consider useful new capabilities, workflows, and product
-   extensions that advance Clinical Assistant's purpose and principles, even
+   extensions that advance RealizeAlpha's purpose and principles, even
    when no GitHub issue or explicit user request exists. Exclude work already
    shipped, already planned under another name, duplicates, and issues that
    are merely implementation details of an existing item. For a new feature
@@ -49,11 +49,11 @@ do not implement the proposals.
    For issue-independent feature ideas, ground the rationale in the product
    purpose, principles, or verified current capabilities rather than inventing
    user demand. Note dependencies,
-   uncertainty, and material privacy, security, platform, or clinical risks.
+   uncertainty, and material privacy, security, platform, or financial/execution risks.
    Prefer clear outcomes that can be broken into deliverable work; avoid vague
    themes, oversized bundles, arbitrary technical work, and unsupported
-   promises. Keep proposals consistent with patient privacy, provenance, and
-   descriptive non-diagnostic behavior. Present the candidates with stable
+   promises. Keep proposals consistent with account privacy, data provenance, and
+   descriptive non-advisory behavior. Present the candidates with stable
    numbers or identifiers and ask which ones the user wants recorded. Accept a
    selection by identifier, "all", or "none". If the user already specified
    their selection, use it; otherwise do not edit `ROADMAP.md` or create GitHub

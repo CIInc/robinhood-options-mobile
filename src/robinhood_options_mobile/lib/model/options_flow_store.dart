@@ -328,6 +328,9 @@ class OptionsFlowStore extends ChangeNotifier {
     String? condition,
     String? expirationRange,
     List<String>? flags,
+    String priority = 'high',
+    String sound = 'default',
+    List<String> channels = const ['push', 'in_app'],
   }) async {
     try {
       await FirebaseFunctions.instance.httpsCallable('createOptionAlert').call({
@@ -338,6 +341,9 @@ class OptionsFlowStore extends ChangeNotifier {
         'condition': condition,
         'expirationRange': expirationRange,
         'flags': flags,
+        'priority': priority,
+        'sound': sound,
+        'channels': channels,
       });
       await loadAlerts();
     } catch (e) {

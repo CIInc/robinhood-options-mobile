@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/custom_alert.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/custom_alert_service.dart';
+import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_alerts_widget.dart';
 
 class FakeCustomAlertService implements CustomAlertService {
@@ -306,6 +307,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(manageCalled, isTrue);
+    });
+
+    testWidgets(
+        'opens Add Alert as a dedicated AlertEditorPage view instead of a dialog',
+        (WidgetTester tester) async {
+      final fakeService = FakeCustomAlertService();
+      final instrument = createTestInstrument('AAPL');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: InstrumentAlertsWidget(
+              instrument: instrument,
+              userId: 'user_1',
+              customAlertService: fakeService,
+            ),
+          ),
+        ),
+      );
+
+      fakeService.emit([]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Set Alert'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertEditorPage), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Add Alert'), findsOneWidget);
+      expect(find.text('Delivery & Customization'), findsOneWidget);
+      expect(find.text('Create Alert'), findsOneWidget);
     });
   });
 }
