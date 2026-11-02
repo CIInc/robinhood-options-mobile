@@ -3542,7 +3542,7 @@ class _AgenticTradingSettingsWidgetState
             'paperTradingMode',
             'Paper Trading Mode',
             hasSupportedBrokerage
-                ? 'Use selected brokerage quotes to test strategies with simulated fills. No real orders are placed.'
+              ? 'Use selected brokerage quotes; simulated cash, positions and fills stay in your separate Paper account. No real orders are placed.'
                 : 'Select Robinhood or Schwab to run this automated paper strategy test. Paper orders remain simulated.',
             agenticTradingProvider,
             value: agenticTradingProvider.config.paperTradingMode,

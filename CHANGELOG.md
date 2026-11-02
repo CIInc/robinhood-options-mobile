@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.5] - 2026-11-02
+**Paper Trading Account Clarity**
+
+- **Paper Mode Explanation:** Clarify that the selected brokerage supplies market quotes, while simulated cash, positions, and fills belong to the separate per-user Paper account. No real brokerage orders are placed in Paper mode.
+
 ## [0.60.4] - 2026-11-02
 **Live Brokerage Switch Confirmation**
 

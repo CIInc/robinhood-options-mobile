@@ -8,6 +8,8 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
 
 Brokerage eligibility uses `BrokerageUserStore.currentUser`, the active selection, rather than checking whether any supported brokerage is linked. Select Robinhood or Schwab as the active brokerage for auto-trading. The store normalizes stale saved selections after loading or removing brokerage accounts; a blocked-cycle diagnostic includes the current selection. If auto-trading is enabled in Live mode, switching the active brokerage from the account picker or brokerage profile requires confirmation. Switching does not place an order immediately, but future eligible cycles may use the newly selected account; Paper mode and disabled auto-trading do not prompt.
 
+In Paper mode, the active brokerage supplies market quotes only. Simulated cash, positions, and fills stay in the user's separate Paper account, which is not partitioned by brokerage. Paper orders do not execute at the brokerage.
+
 ## Execution Modes and Lifecycle Guarantees
 
 User-specific strategy cycles and brokerage orders run on-device in the foreground or through an OS-managed background worker. Brokerage credentials remain in platform-secure local storage; there is no server-side strategy executor or server-side use of brokerage tokens. Existing server jobs generate shared signals and evaluate resting paper stock orders, but do not execute a user's agentic strategy.
