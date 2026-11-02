@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+**Return Attribution ([#278](https://github.com/CIInc/robinhood-options-mobile/issues/278))**
+
+- **Brinson-Fachler Sector Attribution:** The Performance section adds a Return Attribution card that splits today's active return vs. the selected benchmark into Allocation, Selection, and Interaction effects. The three effects always sum to the active return. Benchmark sector returns come from SPDR sector ETF quotes, and benchmark sector weights are approximate; custom benchmarks fall back to SPY weights and are labeled.
+- **Options Greeks & Income:** Estimates option P&L from Delta, Gamma, and Theta with a second-order Taylor approximation. Vega P&L is inferred from the remainder because prior implied volatility is not stored. Dividends and interest paid today are listed separately, and the UI discloses the approximation.
+- **Privacy, Export & Accessibility:** Dollar amounts follow balance masking while percentages stay visible. CSV export includes sector and Greek attribution tables. Rows have combined screen-reader labels, and the layout fits 320px screens. All calculations run on-device.
+
 ## [0.60.2] - 2026-10-31
 **Schwab Auto-Trading Support & Physical-Device Verification**
 
