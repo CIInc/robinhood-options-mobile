@@ -108,6 +108,22 @@ void main() {
     expect(find.text('FINRA Settlement Date'), findsOneWidget);
     expect(find.text('Understanding Short Squeeze & Borrow Dynamics'),
         findsOneWidget);
+
+    // Verify Semantics for metric cards, banner, and detail rows
+    expect(find.bySemanticsLabel('Short % of Float: 2.85%. Free Float Shorted'),
+        findsOneWidget);
+    expect(find.bySemanticsLabel('Days to Cover: 1.9 d. Short Ratio'),
+        findsOneWidget);
+    expect(find.bySemanticsLabel('Borrow Fee Rate: 0.35%. Annualized Cost'),
+        findsOneWidget);
+    expect(find.bySemanticsLabel('Borrow Inventory: HIGH. Broker Availability'),
+        findsOneWidget);
+    expect(
+        find.bySemanticsLabel(
+            'Short Squeeze Risk: Low Squeeze Risk. Minimal short exposure. Unlikely to trigger a forced short covering squeeze.'),
+        findsOneWidget);
+    expect(
+        find.bySemanticsLabel(RegExp(r'^Total Free Float:')), findsOneWidget);
   });
 
   testWidgets(

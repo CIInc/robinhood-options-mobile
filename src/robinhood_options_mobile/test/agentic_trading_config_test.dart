@@ -3,6 +3,18 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 void main() {
   group('AgenticTradingConfig Tests', () {
+    test('new configs default to paper without changing legacy live configs',
+        () {
+      final newConfig =
+          AgenticTradingConfig(strategyConfig: TradeStrategyConfig());
+      final legacyConfig = AgenticTradingConfig.fromJson({
+        'strategyConfig': <String, dynamic>{},
+      });
+
+      expect(newConfig.paperTradingMode, isTrue);
+      expect(legacyConfig.paperTradingMode, isFalse);
+    });
+
     test('AgenticTradingConfig should serialize and deserialize all fields',
         () {
       // Create a config with all fields set
@@ -51,6 +63,7 @@ void main() {
         autoTradeEnabled: true,
         tradingMode: TradingMode.reasoning,
         autoTradeCooldownMinutes: 30,
+        notifyOnMissedExit: false,
       );
 
       // Convert to JSON
@@ -66,6 +79,7 @@ void main() {
       expect(json['strategyConfig']['rsiPeriod'], equals(14));
       expect(json['strategyConfig']['marketIndexSymbol'], equals('QQQ'));
       expect(json['autoTradeEnabled'], equals(true));
+      expect(json['notifyOnMissedExit'], isFalse);
       expect(json['strategyConfig']['dailyTradeLimit'], equals(10));
       expect(json['autoTradeCooldownMinutes'], equals(30));
       expect(
@@ -112,6 +126,7 @@ void main() {
       expect(
           deserializedConfig.strategyConfig.marketIndexSymbol, equals('QQQ'));
       expect(deserializedConfig.autoTradeEnabled, equals(true));
+      expect(deserializedConfig.notifyOnMissedExit, isFalse);
       expect(deserializedConfig.strategyConfig.dailyTradeLimit, equals(10));
       expect(deserializedConfig.autoTradeCooldownMinutes, equals(30));
       expect(deserializedConfig.strategyConfig.takeProfitPercent, equals(15.0));
@@ -155,6 +170,7 @@ void main() {
       expect(config.strategyConfig.rsiPeriod, equals(14));
       expect(config.strategyConfig.marketIndexSymbol, equals('SPY'));
       expect(config.autoTradeEnabled, equals(false));
+      expect(config.notifyOnMissedExit, isTrue);
       expect(config.strategyConfig.dailyTradeLimit, equals(5));
       expect(config.autoTradeCooldownMinutes, equals(60));
       expect(config.strategyConfig.takeProfitPercent, equals(10.0));

@@ -8,7 +8,10 @@ jest.mock("firebase-admin/firestore", () => ({
         get: jest.fn(async () => ({
           exists: true,
           data: () => ({
-            agenticTradingConfig: { notifyOnBuy: true },
+            agenticTradingConfig: {
+              notifyOnBuy: true,
+              notifyOnMissedExit: true,
+            },
             devices: [{ fcmToken: "fcm_token_123" }],
           }),
         })),
@@ -102,6 +105,24 @@ describe("sendAgenticTradeNotification Security Checks", () => {
     const response = await (sendAgenticTradeNotification as any).run(
       validRequest
     );
+
+    expect(response).toEqual({
+      success: true,
+      successCount: 1,
+      failureCount: 0,
+    });
+  });
+
+  test("sends a missed market-close exit notification", async () => {
+    const response = await (sendAgenticTradeNotification as any).run({
+      auth: { uid: "user1", token: {} },
+      data: {
+        userId: "user1",
+        type: "missed_exit",
+        symbol: "AAPL",
+        isPaperTrade: true,
+      },
+    });
 
     expect(response).toEqual({
       success: true,

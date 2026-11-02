@@ -157,8 +157,12 @@ class PortfolioAlertService {
         account?.accountNumber == 'paper_account' ||
         (account?.url.contains('paper') ?? false);
     if (!isPaper) {
-      alerts
-          .addAll(_taxAlerts(instrumentPositions, optionPositions, washSales));
+      alerts.addAll(_taxAlerts(
+        instrumentPositions,
+        optionPositions,
+        washSales,
+        effectiveNow,
+      ));
     }
     final isAccountToolsEnabled =
         FeatureAccessService.instance.isFeatureEnabled(
@@ -473,7 +477,9 @@ class PortfolioAlertService {
     List<InstrumentPosition> instrumentPositions,
     List<OptionAggregatePosition> optionPositions, [
     List<WashSaleRecord>? washSales,
+    DateTime? now,
   ]) {
+    final effectiveNow = now ?? DateTime.now();
     final alerts = <PortfolioAlert>[];
 
     // 1. Wash Sale Disallowed loss alert (Critical)
@@ -530,10 +536,12 @@ class PortfolioAlertService {
       }
 
       // 2. Active Wash Sale Window warning alert
-      final activeWindows = washSales.where((w) => w.isWindowActive()).toList();
+      final activeWindows =
+          washSales.where((w) => w.isWindowActive(effectiveNow)).toList();
       if (activeWindows.isNotEmpty) {
-        final minDays =
-            activeWindows.map((w) => w.getDaysRemaining()).reduce(min);
+        final minDays = activeWindows
+            .map((w) => w.getDaysRemaining(effectiveNow))
+            .reduce(min);
         final symbols = activeWindows.map((w) => w.symbol).toSet().toList();
         alerts.add(
           PortfolioAlert(

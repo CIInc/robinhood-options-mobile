@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { getAuth } from "firebase-admin/auth";
 
 const auth = getAuth();
+const VALID_ROLES = new Set(["admin", "user", "beta"]);
 
 export const changeUserRole = onCall(async (request) => {
   logger.info(request, { structuredData: true });
@@ -24,6 +25,12 @@ export const changeUserRole = onCall(async (request) => {
     throw new HttpsError(
       "invalid-argument",
       "Parameters 'uid' and 'role' are required and must be strings."
+    );
+  }
+  if (!VALID_ROLES.has(role)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Invalid role '${role}'. Allowed roles: admin, user, beta.`
     );
   }
   await auth.setCustomUserClaims(uid, {
