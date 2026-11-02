@@ -122,5 +122,41 @@ void main() {
           findsOneWidget);
       expect(find.textContaining('1 slippage'), findsOneWidget);
     });
+
+    testWidgets('provides unified semantics label for screen readers',
+        (tester) async {
+      final settings = CopyTradeSettings(
+        enabled: true,
+        maxAllocationPerTrade: 1000.0,
+        maxSlippageBps: 75.0,
+        autoDisconnectOnDivergence: true,
+        maxLeaderDrawdownPct: 15.0,
+        maxReturnDivergencePct: 5.0,
+        isRiskGuardianTripped: false,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: CopyTradeRiskGuardianCard(
+                trades: const [],
+                settings: settings,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.label != null &&
+            widget.properties.label!.contains('Risk Guardian') &&
+            widget.properties.label!.contains('Status: Protecting'),
+      );
+
+      expect(semanticsFinder, findsOneWidget);
+    });
   });
 }

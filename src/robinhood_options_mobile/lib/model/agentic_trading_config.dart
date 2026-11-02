@@ -30,6 +30,7 @@ class AgenticTradingConfig {
   bool notifyOnTakeProfit;
   bool notifyOnStopLoss;
   bool notifyOnEmergencyStop;
+  bool notifyOnMissedExit;
   bool notifyDailySummary;
 
   AgenticTradingConfig({
@@ -44,8 +45,9 @@ class AgenticTradingConfig {
     this.notifyOnTakeProfit = true,
     this.notifyOnStopLoss = true,
     this.notifyOnEmergencyStop = true,
+    this.notifyOnMissedExit = true,
     this.notifyDailySummary = false,
-    this.paperTradingMode = false,
+    this.paperTradingMode = true,
     this.requireApproval = false,
     this.tradeStrategyTemplateId,
   });
@@ -66,6 +68,7 @@ class AgenticTradingConfig {
         notifyOnTakeProfit = json['notifyOnTakeProfit'] as bool? ?? true,
         notifyOnStopLoss = json['notifyOnStopLoss'] as bool? ?? true,
         notifyOnEmergencyStop = json['notifyOnEmergencyStop'] as bool? ?? true,
+        notifyOnMissedExit = json['notifyOnMissedExit'] as bool? ?? true,
         notifyDailySummary = json['notifyDailySummary'] as bool? ?? false,
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
         requireApproval = json['requireApproval'] as bool? ?? false,
@@ -88,6 +91,7 @@ class AgenticTradingConfig {
       'notifyOnTakeProfit': notifyOnTakeProfit,
       'notifyOnStopLoss': notifyOnStopLoss,
       'notifyOnEmergencyStop': notifyOnEmergencyStop,
+      'notifyOnMissedExit': notifyOnMissedExit,
       'notifyDailySummary': notifyDailySummary,
       'paperTradingMode': paperTradingMode,
       'requireApproval': requireApproval,
@@ -116,6 +120,7 @@ class AgenticTradingConfig {
     bool? notifyOnTakeProfit,
     bool? notifyOnStopLoss,
     bool? notifyOnEmergencyStop,
+    bool? notifyOnMissedExit,
     bool? notifyDailySummary,
     bool? paperTradingMode,
     bool? requireApproval,
@@ -137,6 +142,7 @@ class AgenticTradingConfig {
       notifyOnStopLoss: notifyOnStopLoss ?? this.notifyOnStopLoss,
       notifyOnEmergencyStop:
           notifyOnEmergencyStop ?? this.notifyOnEmergencyStop,
+      notifyOnMissedExit: notifyOnMissedExit ?? this.notifyOnMissedExit,
       notifyDailySummary: notifyDailySummary ?? this.notifyDailySummary,
       paperTradingMode: paperTradingMode ?? this.paperTradingMode,
       requireApproval: requireApproval ?? this.requireApproval,

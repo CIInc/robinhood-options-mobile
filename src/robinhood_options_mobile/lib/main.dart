@@ -32,6 +32,7 @@ import 'package:robinhood_options_mobile/model/order_template_store.dart';
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/remote_config_service.dart';
 import 'package:robinhood_options_mobile/services/subscription_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
@@ -115,6 +116,7 @@ void main() async {
   // state event fires. Wait for it so startup reads (user role, Firestore
   // paper account) run with the restored session instead of being denied.
   await auth.authStateChanges().first;
+  await AgenticTradingBackgroundService.initialize();
 
   authUtil = AuthUtil(auth);
   userRole = await authUtil.userRole();

@@ -456,68 +456,73 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
     Color? valueColor,
     double? progressValue,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$title: $value. $subtitle',
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: valueColor,
-                ),
-          ),
-          if (progressValue != null) ...[
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progressValue,
-                minHeight: 4,
-                backgroundColor:
-                    Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  valueColor ?? Theme.of(context).colorScheme.primary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.color
+                        ?.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: valueColor,
+                  ),
+            ),
+            if (progressValue != null) ...[
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progressValue,
+                  minHeight: 4,
+                  backgroundColor:
+                      Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    valueColor ?? Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.color
+                        ?.withValues(alpha: 0.6),
+                  ),
             ),
           ],
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
-                  color: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.color
-                      ?.withValues(alpha: 0.6),
-                ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -526,29 +531,34 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
       BuildContext context, ShortInterestSummary summary) {
     final risk = summary.squeezeRisk;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: risk.color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: risk.color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, color: risk.color, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              risk.description,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: 'Short Squeeze Risk: ${risk.label}. ${risk.description}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: risk.color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: risk.color.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, color: risk.color, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                risk.description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -587,6 +597,7 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
         context,
         'Prior Shares Short',
         '${_compactNumberFormat.format(si!.sharesShortPrior)} shares',
+        semanticExtra: changeText.isNotEmpty ? 'Change: $changeText' : null,
         extraWidget: changeText.isNotEmpty
             ? Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -710,46 +721,56 @@ class _ShortInterestWidgetState extends State<ShortInterestWidget> {
     String label,
     String value, {
     Widget? extraWidget,
+    String? semanticExtra,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.color
-                        ?.withValues(alpha: 0.8),
-                  ),
-              overflow: TextOverflow.ellipsis,
+    final semanticLabel = semanticExtra != null
+        ? '$label: $value, $semanticExtra'
+        : '$label: $value';
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.color
+                          ?.withValues(alpha: 0.8),
+                    ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
-              runSpacing: 2,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+            const SizedBox(width: 8),
+            Flexible(
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 6,
+                runSpacing: 2,
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-                if (extraWidget != null) extraWidget,
-              ],
+                  if (extraWidget != null) extraWidget,
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
