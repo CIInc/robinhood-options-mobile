@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.4] - 2026-11-02
+**Live Brokerage Switch Confirmation**
+
+- **Active Account Safety:** When automated trading is enabled in Live mode, switching the active brokerage from either the app-bar picker or brokerage profile requires explicit confirmation. The dialog explains that switching does not place an order, but future eligible cycles can route live orders through the newly selected account. Cancel keeps the current account selected; Paper mode and disabled auto-trading are unaffected. The underlying auto-trading acceptance work for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
+
 ## [0.60.3] - 2026-11-02
 **Active Brokerage Selection Recovery, Return Attribution & Platform Hardening**
 

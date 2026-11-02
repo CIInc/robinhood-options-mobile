@@ -35,6 +35,7 @@ import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/live_brokerage_switch_confirmation.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/custom_alerts_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
@@ -1291,6 +1292,13 @@ class _UserWidgetState extends State<UserWidget> {
                                                                             .source);
                                                             if (userIndex !=
                                                                 -1) {
+                                                              final confirmed =
+                                                                  await confirmLiveBrokerageSwitch(
+                                                                      context,
+                                                                      brokerageUser);
+                                                              if (!confirmed) {
+                                                                return;
+                                                              }
                                                               Provider.of<AccountStore>(
                                                                       context,
                                                                       listen:
