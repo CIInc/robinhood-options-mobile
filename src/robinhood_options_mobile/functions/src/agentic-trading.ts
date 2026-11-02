@@ -181,13 +181,34 @@ export const seedAgenticTrading = onCall({
       "Authentication is required to seed agentic trading."
     );
   }
-  const inputSymbols = request.data.symbols;
-  const useFullList = request.data.full === true;
+  // SECURITY: Administrative action only
+  if (request.auth.token?.role !== "admin") {
+    throw new HttpsError(
+      "permission-denied",
+      "Only admin users can seed agentic trading."
+    );
+  }
+  const inputSymbols = request.data?.symbols;
+  const useFullList = request.data?.full === true;
 
   let targetSymbols: string[] = [];
 
-  if (inputSymbols && Array.isArray(inputSymbols)) {
-    targetSymbols = inputSymbols;
+  if (inputSymbols !== undefined && inputSymbols !== null) {
+    if (!Array.isArray(inputSymbols)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "symbols must be an array of strings."
+      );
+    }
+    if (inputSymbols.length > 500) {
+      throw new HttpsError(
+        "invalid-argument",
+        "symbols array cannot exceed 500 elements."
+      );
+    }
+    targetSymbols = inputSymbols.filter(
+      (s): s is string => typeof s === "string" && s.trim().length > 0
+    );
   } else if (useFullList) {
     targetSymbols = Array.from(new Set([...POPULAR_SYMBOLS, ...ALL_STOCKS]));
   } else {

@@ -1,3 +1,8 @@
+## 2025-03-19 - Missing Admin Authorization and Input Array Bounds on Global Seeding Callable
+**Vulnerability:** `seedAgenticTrading` in `agentic-trading.ts` allowed any authenticated user (regardless of role) to trigger global chart seeding across thousands of symbols or pass an unbounded array of custom symbols, initiating arbitrary batch writes in the `charts` collection and depleting Firestore write quotas (Denial of Wallet / Resource Exhaustion).
+**Learning:** Admin seeding utilities implemented as `onCall` Cloud Functions must enforce `request.auth.token?.role === "admin"` rather than only verifying basic authentication (`request.auth`). Additionally, custom symbol lists must validate input types and enforce upper bounds (e.g. `symbols.length <= 500`).
+**Prevention:** Enforce custom claim role verification (`token?.role === "admin"`) and input array bounds checking on all administrative setup or seeding callable endpoints.
+
 ## 2025-03-18 - Missing Input Array Bounds and Object Type Validation on Heavy Analysis Callable
 **Vulnerability:** `discoverAlphaFactors` in `alpha-factor-discovery.ts` was an `onCall` Cloud Function with 512MiB memory and 300s timeout that accepted `request.data.factors` and `request.data.symbols` without bounds checking or array validation. Passing non-array values caused unhandled `TypeError` exceptions, while passing arbitrarily large arrays caused CPU/Memory exhaustion and Denial of Service (DoS) / Denial of Wallet.
 **Learning:** High-memory computation functions accepting complex nested arrays must strictly validate array types (`Array.isArray`), non-emptiness, and cap element limits (e.g. `factors.length <= 50`, `symbols.length <= 50`).
