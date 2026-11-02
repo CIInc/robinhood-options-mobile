@@ -13,6 +13,8 @@ import {
   evaluateMacroAssessment,
   computeStochastic,
   computeStochasticArray,
+  computeBollingerBandsArray,
+  computeBollingerBands,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
   computeScalarOBV,
@@ -411,6 +413,41 @@ describe("Technical Indicators", () => {
         score: 0.5,
         reason: "Market is neutral with positive bias",
       });
+    });
+  });
+
+  describe("computeBollingerBandsArray", () => {
+    it("should return array of nulls for insufficient data", () => {
+      const prices = [100, 101, 102];
+      const result = computeBollingerBandsArray(prices, 5);
+      expect(result).toHaveLength(3);
+      expect(result.every((v) => v === null)).toBe(true);
+    });
+
+    it("should compute bands matching computeBollingerBands", () => {
+      const prices = Array.from({ length: 50 }, (_, i) => {
+        return 100 + Math.sin(i / 5) * 10 + i * 0.2;
+      });
+      const period = 20;
+      const stdDev = 2;
+      const arrResult = computeBollingerBandsArray(prices, period, stdDev);
+
+      expect(arrResult).toHaveLength(prices.length);
+      // Check first period - 1 entries are null
+      for (let i = 0; i < period - 1; i++) {
+        expect(arrResult[i]).toBeNull();
+      }
+
+      // Check remaining elements match scalar computeBollingerBands
+      for (let i = period; i <= prices.length; i++) {
+        const scalar = computeBollingerBands(prices, period, stdDev, i);
+        const fromArray = arrResult[i - 1];
+        expect(fromArray).not.toBeNull();
+        expect(scalar).not.toBeNull();
+        expect(fromArray!.middle).toBeCloseTo(scalar!.middle, 5);
+        expect(fromArray!.upper).toBeCloseTo(scalar!.upper, 5);
+        expect(fromArray!.lower).toBeCloseTo(scalar!.lower, 5);
+      }
     });
   });
 
