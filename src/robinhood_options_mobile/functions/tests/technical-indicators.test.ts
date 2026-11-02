@@ -18,6 +18,7 @@ import {
   computeScalarOBV,
   computeOBV,
   evaluateOBV,
+  evaluateMarketDirection,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -352,6 +353,88 @@ describe("Technical Indicators", () => {
           expect(parseFloat(display2Dec)).toBeCloseTo(value, 2);
         }
       });
+    });
+  });
+
+  describe("evaluateMarketDirection", () => {
+    it("should return HOLD for insufficient data", () => {
+      const prices = [100, 101, 102];
+      const result = evaluateMarketDirection(prices, 10, 30);
+      expect(result.signal).toBe("HOLD");
+      expect(result.value).toBeNull();
+      expect(result.reason).toContain("Insufficient market data");
+    });
+
+    it("should detect strong uptrend when fast MA is above slow MA", () => {
+      // 40 bars with strong upward momentum
+      const prices = Array.from({ length: 40 }, (_, i) => 100 + i * 2);
+      const result = evaluateMarketDirection(prices, 10, 30);
+      expect(result.signal).toBe("BUY");
+      expect(result.value).toBeGreaterThan(2);
+      expect(result.metadata?.fastMA).toBeDefined();
+      expect(result.metadata?.slowMA).toBeDefined();
+      expect(result.metadata?.fastMA).toBeGreaterThan(
+        result.metadata?.slowMA as number
+      );
+    });
+
+    it("should detect strong downtrend when fast MA is below slow MA", () => {
+      // 40 bars with strong downward momentum
+      const prices = Array.from({ length: 40 }, (_, i) => 200 - i * 2);
+      const result = evaluateMarketDirection(prices, 10, 30);
+      expect(result.signal).toBe("SELL");
+      expect(result.value).toBeLessThan(-2);
+      expect(result.metadata?.fastMA).toBeDefined();
+      expect(result.metadata?.slowMA).toBeDefined();
+      expect(result.metadata?.fastMA).toBeLessThan(
+        result.metadata?.slowMA as number
+      );
+    });
+
+    it("should detect bullish crossover when fast MA crosses above", () => {
+      // Create price series where prev candle fastMA <= slowMA,
+      // and current candle fastMA > slowMA
+      const prices: number[] = Array(35).fill(100);
+      prices[33] = 95; // fastPrevMA (99) <= slowPrevMA (99.75)
+      prices[34] = 130; // fastMA (105) > slowMA (101.25)
+      const result = evaluateMarketDirection(prices, 5, 20);
+      expect(result.metadata?.crossover).toBe("bullish");
+      expect(result.signal).toBe("BUY");
+      expect(result.reason).toContain("crossed above");
+    });
+
+    it("should detect bearish crossover when fast MA crosses below", () => {
+      const prices: number[] = Array(35).fill(100);
+      prices[33] = 105; // fastPrevMA (101) >= slowPrevMA (100.25)
+      prices[34] = 70; // fastMA (95) < slowMA (98.75)
+      const result = evaluateMarketDirection(prices, 5, 20);
+      expect(result.metadata?.crossover).toBe("bearish");
+      expect(result.signal).toBe("SELL");
+      expect(result.reason).toContain("crossed below");
+    });
+
+    it("should return neutral HOLD when spread is between -2% and 2%", () => {
+      const prices: number[] = Array(35).fill(100);
+      const result = evaluateMarketDirection(prices, 10, 30);
+      expect(result.signal).toBe("HOLD");
+      expect(result.reason).toContain("Market direction neutral");
+      expect(result.value).toBeCloseTo(0, 4);
+    });
+
+    it("should respect custom endIndex parameter", () => {
+      const prices = Array.from({ length: 60 }, (_, i) => 100 + i * 2);
+      const resultAt40 = evaluateMarketDirection(prices, 10, 30, 40);
+      const resultSliced = evaluateMarketDirection(prices.slice(0, 40), 10, 30);
+      expect(resultAt40.signal).toBe(resultSliced.signal);
+      expect(resultAt40.value).toBeCloseTo(resultSliced.value!, 5);
+      expect(resultAt40.metadata?.fastMA).toBeCloseTo(
+        resultSliced.metadata?.fastMA as number,
+        5
+      );
+      expect(resultAt40.metadata?.slowMA).toBeCloseTo(
+        resultSliced.metadata?.slowMA as number,
+        5
+      );
     });
   });
 
