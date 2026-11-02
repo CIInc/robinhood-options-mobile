@@ -11,6 +11,8 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/home/agentic_trading_card_widget.dart';
 
@@ -23,6 +25,8 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
     AnalyticsCallOptions? callOptions,
   }) async {}
 }
+
+class FakeBrokerageService extends Fake implements IBrokerageService {}
 
 class RejectingTradeSignalsProvider {
   Future<Map<String, dynamic>> initiateTradeProposal({
@@ -125,20 +129,49 @@ void main() {
       expect(provider.autoTradeHistory, isEmpty);
     });
 
-    test('paper auto-trading requires Robinhood live quote access', () {
+    test('auto-trading supports Robinhood and Schwab quote sources', () {
       expect(
-        AgenticTradingProvider.paperTradingHasLiveQuoteSource(
+        AgenticTradingProvider.supportsAutoTradingBrokerage(
             BrokerageSource.robinhood),
         isTrue,
       );
       expect(
-        AgenticTradingProvider.paperTradingHasLiveQuoteSource(
+        AgenticTradingProvider.supportsAutoTradingBrokerage(
+            BrokerageSource.schwab),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.supportsAutoTradingBrokerage(
             BrokerageSource.paper),
         isFalse,
       );
       expect(
-        AgenticTradingProvider.paperTradingHasLiveQuoteSource(null),
+        AgenticTradingProvider.supportsAutoTradingBrokerage(null),
         isFalse,
+      );
+    });
+
+    test('background auto-trading selects the matching brokerage service', () {
+      final robinhoodService = FakeBrokerageService();
+      final schwabService = FakeBrokerageService();
+      expect(
+        AgenticTradingBackgroundService.brokerageServiceForSource(
+          BrokerageSource.robinhood,
+          robinhoodFactory: () => robinhoodService,
+        ),
+        same(robinhoodService),
+      );
+      expect(
+        AgenticTradingBackgroundService.brokerageServiceForSource(
+          BrokerageSource.schwab,
+          schwabFactory: () => schwabService,
+        ),
+        same(schwabService),
+      );
+      expect(
+        AgenticTradingBackgroundService.brokerageServiceForSource(
+            BrokerageSource.demo),
+        isNull,
       );
     });
 

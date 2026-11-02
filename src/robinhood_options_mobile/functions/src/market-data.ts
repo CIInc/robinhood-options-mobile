@@ -712,9 +712,29 @@ export const getQuotesCall = onCall({
   }
   const symbols = request.data?.symbols;
   if (!symbols || !Array.isArray(symbols)) {
-    return { error: "Expected 'symbols' as an array of strings." };
+    throw new HttpsError(
+      "invalid-argument",
+      "Expected 'symbols' as an array of strings."
+    );
   }
-  return await getQuotes(symbols);
+  if (symbols.length === 0 || symbols.length > 100) {
+    throw new HttpsError(
+      "invalid-argument",
+      "'symbols' array length must be between 1 and 100."
+    );
+  }
+  const validSymbols: string[] = [];
+  for (const s of symbols) {
+    if (typeof s !== "string" || s.trim().length === 0 || s.length > 20) {
+      throw new HttpsError(
+        "invalid-argument",
+        "All elements in 'symbols' must be non-empty strings up to " +
+          "20 characters."
+      );
+    }
+    validSymbols.push(s.trim());
+  }
+  return await getQuotes(validSymbols);
 });
 
 /**

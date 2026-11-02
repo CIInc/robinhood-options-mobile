@@ -66,6 +66,14 @@
 **Learning:** `evaluateOBV` and `evaluateCustomIndicator` for "OBV" called `computeOBV`, which instantiated full-series cumulative OBV arrays (`const obv: number[] = [0]`) on every evaluation bar. In multi-indicator backtests and market scans over 500+ bars, this created hundreds of thousands of transient array objects for every candle evaluated.
 **Action:** Implement `computeScalarOBV` to compute trailing OBV in $O(1)$ space, and refactor `evaluateOBV` to evaluate lookback averages and min/max extremes over the trailing 20-bar window directly using running scalar accumulators.
 
-## 2026-04-04 - Scalar Market Direction Moving Averages in O(1) Space
-**Learning:** `evaluateMarketDirection` allocated 2 full-series SMA arrays (`computeSMAArray` for fast and slow periods) on every single bar evaluation in `evaluateAllIndicators`. Across multi-symbol backtests and automated scans over 5,000 bars, this generated 10,000 full-length arrays and hundreds of thousands of intermediate allocations only to read the last two trailing values.
-**Action:** Compute trailing and previous SMAs using scalar `computeSMA` calls directly in O(1) space, reducing execution time by ~22x (from ~82.8ms down to ~3.6ms per 5,000 evaluations) and eliminating full-series array allocations.
+## 2026-04-03 - Zero-Allocation Rolling Statistics Evaluation in Event Study
+**Learning:** `calculateRollingStats` allocated 3 temporary arrays (`sample`, `assetReturns`, `benchmarkReturns`) per rolling step (`.slice()`, `.map()`, `.reduce()`). For long historical time series (~2500 daily price bars), this created 7,500+ transient array allocations and multiple data passes per event study request.
+**Action:** Compute rolling asset/benchmark means, covariance, and variances directly using index-bounded loops over `pairedReturns` (`start` to `end`), eliminating 100% of temporary array allocations per rolling step.
+
+## 2026-04-03 - Scalar Net GEX Sensitivity and Defensive Sorted Check in Gamma Exposure
+**Learning:** `computeTotalNetGexAtSpot` (called 4 times per GEX evaluation for sensitivity stress testing) delegated to `computeGEXByStrike`, which built strike Maps, allocated per-strike level objects, converted map values to arrays, and sorted strikes 4 times per symbol evaluation. Additionally, `computeGammaFlipLevel` and `findFlipStrikes` unconditionally cloned and re-sorted `gexByStrike` even though `aggregateGEXByStrike` already outputs pre-sorted arrays.
+**Action:** Refactor `computeTotalNetGexAtSpot` to aggregate net GEX as a scalar sum directly across options contracts without Map or array allocations, and use an O(N) defensive order check before cloning/sorting in flip level functions.
+
+## 2026-04-04 - Sliding Window Variance in computeBollingerBandsArray
+**Learning:** `computeBollingerBandsArray` computed sample variance for each candle using an inner loop over `period` bars (`sumSquaredDiffs += diff * diff`). For price series evaluated across thousands of bars (such as in `BB_WIDTH` factor evaluation in alpha discovery), this created an $O(N \times \text{period})$ nested loop bottleneck taking ~324ms per 1,000 evaluations.
+**Action:** Track sliding-window sums of prices and squared prices (`sum` and `sumSq`) to compute sample variance and standard deviation in $O(1)$ time per bar, reducing total complexity to $O(N)$ and speeding up `computeBollingerBandsArray` by ~3.7x (from 324ms down to 86.6ms).

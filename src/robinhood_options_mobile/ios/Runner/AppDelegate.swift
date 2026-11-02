@@ -10,6 +10,9 @@ import workmanager_apple
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     WorkmanagerPlugin.registerLaunchHandlers()
+    WorkmanagerPlugin.registerPeriodicTask(
+      withIdentifier: "com.cidevelop.robinhoodOptionsMobile.agenticTrading"
+    )
     WorkmanagerPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)
     }
