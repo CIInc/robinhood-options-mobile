@@ -1994,6 +1994,7 @@ class IncomeTransactionTile extends StatelessWidget {
     Widget leading;
     Widget title;
     Widget subtitle;
+    final String semanticLabel;
 
     if (isDividend) {
       final instrument = transaction["instrumentObj"];
@@ -2038,8 +2039,9 @@ class IncomeTransactionTile extends StatelessWidget {
                       overflow: TextOverflow.fade,
                       softWrap: false));
 
+      final symbolOrName = instrument?.symbol ?? "Dividend";
       title = Text(
-        instrument?.symbol ?? "Dividend",
+        symbolOrName,
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       );
 
@@ -2062,13 +2064,21 @@ class IncomeTransactionTile extends StatelessWidget {
           ),
         ],
       );
+
+      semanticLabel =
+          "$symbolOrName dividend, ${formatCurrency.format(amount)}, $state. "
+          "$rateStr per share, ${formatNumber.format(shares)} shares on ${formatDate.format(date)}";
     } else {
       leading = CircleAvatar(
           backgroundColor: Colors.green.withValues(alpha: 0.1),
           foregroundColor: Colors.green,
           child: const Icon(Icons.attach_money));
+      final payoutTitle = transaction["payout_type"]
+          .toString()
+          .replaceAll("_", " ")
+          .capitalize();
       title = Text(
-        transaction["payout_type"].toString().replaceAll("_", " ").capitalize(),
+        payoutTitle,
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       );
       subtitle = Text(
@@ -2076,44 +2086,53 @@ class IncomeTransactionTile extends StatelessWidget {
         style: TextStyle(
             fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
       );
+
+      semanticLabel =
+          "$payoutTitle, ${formatCurrency.format(amount)} on ${formatDate.format(date)}";
     }
 
-    return Card(
-        elevation: 0,
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceContainerHighest
-            .withValues(alpha: 0.3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: leading,
-            title: title,
-            subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4), child: subtitle),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color:
-                          _amountColor(context, amount).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      formatCurrency.format(amount),
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: _amountColor(context, amount)),
-                    )),
-              ],
-            )));
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: semanticLabel,
+      child: Card(
+          elevation: 0,
+          color: Theme.of(context)
+              .colorScheme
+              .surfaceContainerHighest
+              .withValues(alpha: 0.3),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: leading,
+              title: title,
+              subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4), child: subtitle),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _amountColor(context, amount)
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        formatCurrency.format(amount),
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: _amountColor(context, amount)),
+                      )),
+                ],
+              ))),
+    );
   }
 }
 
