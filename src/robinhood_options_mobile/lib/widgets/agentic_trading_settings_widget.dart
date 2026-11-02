@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
-import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
@@ -1248,8 +1247,9 @@ class _AgenticTradingSettingsWidgetState
               (context, agenticTradingProvider, brokerageUserStore, child) {
             final selectedBrokerage = brokerageUserStore.currentUser;
             final hasBrokerage = selectedBrokerage != null;
-            final hasRobinhood =
-                selectedBrokerage?.source == BrokerageSource.robinhood;
+            final hasSupportedBrokerage =
+                AgenticTradingProvider.supportsAutoTradingBrokerage(
+                    selectedBrokerage?.source);
             return Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -1258,7 +1258,7 @@ class _AgenticTradingSettingsWidgetState
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    if (!hasRobinhood)
+                    if (!hasSupportedBrokerage)
                       _buildBrokeragePrerequisite(
                         context,
                         hasBrokerage: hasBrokerage,
@@ -1309,8 +1309,8 @@ class _AgenticTradingSettingsWidgetState
           Expanded(
             child: Text(
               hasBrokerage
-                  ? 'Background checks and automated paper tests require a selected Robinhood account. Paper fills are simulated; foreground live support depends on the selected brokerage.'
-                  : 'Link a brokerage to enable automated execution. Robinhood is required for background checks and automated paper tests, which use RH quotes with simulated fills. You can still configure your strategy now.',
+                  ? 'Background checks and automated paper tests require a selected Robinhood or Schwab account. Paper fills are simulated; foreground live support depends on the selected brokerage.'
+                  : 'Link a brokerage to enable automated execution. Robinhood or Schwab is required for background checks and automated paper tests, which use live brokerage quotes with simulated fills. You can still configure your strategy now.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSecondaryContainer,
                   ),
@@ -1334,8 +1334,8 @@ class _AgenticTradingSettingsWidgetState
         title: const Text('Automated Paper Tests'),
         subtitle: Text(
           hasBrokerage
-              ? 'Requires a selected Robinhood account for quotes. The selected brokerage can still be used for live foreground execution.'
-              : 'Link Robinhood to test an automated strategy with RH quotes and simulated fills.',
+              ? 'Requires a selected Robinhood or Schwab account for quotes. The selected brokerage can still be used for live foreground execution.'
+              : 'Link Robinhood or Schwab to test an automated strategy with live quotes and simulated fills.',
         ),
       ),
     );
@@ -2065,7 +2065,9 @@ class _AgenticTradingSettingsWidgetState
     final selectedBrokerage =
         Provider.of<BrokerageUserStore>(context, listen: false).currentUser;
     final hasBrokerage = selectedBrokerage != null;
-    final hasRobinhood = selectedBrokerage?.source == BrokerageSource.robinhood;
+    final hasSupportedBrokerage =
+        AgenticTradingProvider.supportsAutoTradingBrokerage(
+            selectedBrokerage?.source);
     final config = agenticTradingProvider.config;
     final strategy = config.strategyConfig;
     final executionModeLabel =
@@ -2075,15 +2077,16 @@ class _AgenticTradingSettingsWidgetState
         strategy.customIndicators.isNotEmpty;
     final canRunAutoTrading = hasEntryCriteria &&
         (config.paperTradingMode
-            ? hasRobinhood
-            : hasBrokerage && (hasRobinhood || widget.service != null));
+            ? hasSupportedBrokerage
+            : hasBrokerage &&
+                (hasSupportedBrokerage || widget.service != null));
     final executionBlockReason = !hasBrokerage
         ? 'Link a brokerage to enable automated execution.'
-        : config.paperTradingMode && !hasRobinhood
-            ? 'Automated paper tests require a selected Robinhood quote feed. Paper orders remain simulated.'
+        : config.paperTradingMode && !hasSupportedBrokerage
+            ? 'Automated paper tests require a selected Robinhood or Schwab quote feed. Paper orders remain simulated.'
             : !hasEntryCriteria
                 ? 'Choose at least one entry indicator to enable Systematic mode.'
-                : !hasRobinhood && widget.service == null
+                : !hasSupportedBrokerage && widget.service == null
                     ? 'Reconnect the selected brokerage to enable live execution.'
                     : null;
     final isEnabled = agenticTradingProvider.config.autoTradeEnabled;
@@ -2256,8 +2259,9 @@ class _AgenticTradingSettingsWidgetState
                                 listen: false);
                         await AgenticTradingBackgroundService.syncScheduling(
                           enabled: value &&
-                              brokerageUserStore.currentUser?.source ==
-                                  BrokerageSource.robinhood,
+                              AgenticTradingProvider
+                                  .supportsAutoTradingBrokerage(
+                                      brokerageUserStore.currentUser?.source),
                         );
                       },
                 title: Text(
@@ -3514,8 +3518,10 @@ class _AgenticTradingSettingsWidgetState
     final selectedBrokerage =
         Provider.of<BrokerageUserStore>(context, listen: false).currentUser;
     final hasBrokerage = selectedBrokerage != null;
-    final hasRobinhood = selectedBrokerage?.source == BrokerageSource.robinhood;
-    final canChangePaperMode = hasRobinhood ||
+    final hasSupportedBrokerage =
+        AgenticTradingProvider.supportsAutoTradingBrokerage(
+            selectedBrokerage?.source);
+    final canChangePaperMode = hasSupportedBrokerage ||
         (hasBrokerage &&
             widget.service != null &&
             agenticTradingProvider.config.paperTradingMode);
@@ -3525,7 +3531,7 @@ class _AgenticTradingSettingsWidgetState
       icon: Icons.settings,
       initiallyExpanded: true,
       children: [
-        if (!hasRobinhood &&
+        if (!hasSupportedBrokerage &&
             (!hasBrokerage || !agenticTradingProvider.config.paperTradingMode))
           _buildPaperModeUnavailable(
             context,
@@ -3535,15 +3541,15 @@ class _AgenticTradingSettingsWidgetState
           _buildSwitchListTile(
             'paperTradingMode',
             'Paper Trading Mode',
-            hasRobinhood
-                ? 'Use Robinhood quotes to test strategies with simulated fills. No real orders are placed.'
-                : 'Select Robinhood to run this automated paper strategy test. Paper orders remain simulated.',
+            hasSupportedBrokerage
+                ? 'Use selected brokerage quotes to test strategies with simulated fills. No real orders are placed.'
+                : 'Select Robinhood or Schwab to run this automated paper strategy test. Paper orders remain simulated.',
             agenticTradingProvider,
             value: agenticTradingProvider.config.paperTradingMode,
             onChanged: !canChangePaperMode
                 ? null
                 : (value) async {
-                    if (value && !hasRobinhood) return;
+                    if (value && !hasSupportedBrokerage) return;
                     if (!value &&
                         agenticTradingProvider.config.autoTradeEnabled) {
                       final confirmed = await showDialog<bool>(

@@ -3,6 +3,16 @@
 **Learning:** Catch-all exception handling in Firebase callable Cloud Functions inadvertently converts intentional security status codes (`permission-denied`, `not-found`, `invalid-argument`) into `internal` 500 errors, obfuscating access control violations from client audit logs.
 **Prevention:** Strictly validate string formats/lengths, positive finite numbers, and primitive types prior to Firestore interactions, and always re-throw `if (error instanceof HttpsError)` in callable exception blocks.
 
+## 2025-03-19 - Missing Admin Authorization on Administrative Chart Seeding Callable
+**Vulnerability:** `seedAgenticTrading` in `agentic-trading.ts` was an `onCall` Cloud Function that verified `request.auth` but lacked admin custom claim authorization (`role === "admin"`). Authenticated non-admin callers could trigger batch document creations in the top-level `/charts` collection and force chart document re-seeding across popular stock symbols.
+**Learning:** Administrative utility callables that perform batch collection modifications or seed system resources must verify `request.auth.token?.role === "admin"` in addition to basic authentication (`request.auth`).
+**Prevention:** Always enforce `if (request.auth.token?.role !== "admin")` on administrative seeding and setup callable functions.
+
+## 2025-03-19 - Missing Array Bounds Validation on Order Sync Callable
+**Vulnerability:** `syncInstrumentOrders` in `instrument-order-sync.ts` accepted `request.data.orders` without validating upper bounds on array length. An authenticated user could supply an arbitrarily large array of orders, triggering high memory consumption, long execution times, and excessive batch Firestore write operations (Denial of Service / Resource Exhaustion).
+**Learning:** Callable Cloud Functions accepting arrays of items to write to Firestore in batch operations must bound input array lengths to prevent memory bloat, long execution, and database write exhaustion.
+**Prevention:** Enforce a hard maximum upper bound on array parameters (e.g. `MAX_ORDERS_PER_SYNC = 500`) in callable functions before iterating or processing batch database writes.
+
 ## 2025-03-18 - Missing Input Array Bounds and Object Type Validation on Heavy Analysis Callable
 **Vulnerability:** `discoverAlphaFactors` in `alpha-factor-discovery.ts` was an `onCall` Cloud Function with 512MiB memory and 300s timeout that accepted `request.data.factors` and `request.data.symbols` without bounds checking or array validation. Passing non-array values caused unhandled `TypeError` exceptions, while passing arbitrarily large arrays caused CPU/Memory exhaustion and Denial of Service (DoS) / Denial of Wallet.
 **Learning:** High-memory computation functions accepting complex nested arrays must strictly validate array types (`Array.isArray`), non-emptiness, and cap element limits (e.g. `factors.length <= 50`, `symbols.length <= 50`).

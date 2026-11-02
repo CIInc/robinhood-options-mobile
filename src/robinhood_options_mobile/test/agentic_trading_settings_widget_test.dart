@@ -218,6 +218,54 @@ void main() {
       );
     });
 
+    testWidgets('Schwab quote feed enables automated paper trading',
+        (WidgetTester tester) async {
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.schwab, 'schwab-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final paperSwitch = find.byKey(const ValueKey('paperTradingMode'));
+      expect(paperSwitch, findsOneWidget);
+      expect(
+        tester.widget<SwitchListTile>(paperSwitch).onChanged,
+        isNotNull,
+      );
+      expect(
+          find.textContaining('Use selected brokerage quotes'), findsOneWidget);
+      expect(find.text('Automated Paper Tests'), findsNothing);
+    });
+
     testWidgets(
         'switching active paper auto-trading to live requires confirmation',
         (WidgetTester tester) async {

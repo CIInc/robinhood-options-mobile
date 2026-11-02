@@ -103,26 +103,38 @@ function calculateRollingStats(
   }
 
   const stats: RollingStatistic[] = [];
+  // Performance optimization: Calculate rolling asset/benchmark means,
+  // covariance, and variances directly using index bounds [start..end] over
+  // `pairedReturns`. This eliminates 3 temporary array allocations (`.slice()`,
+  // 2x `.map()`) and multiple reduce passes per rolling step, drastically
+  // reducing GC pressure for long price series (~2500+ bars).
   for (let end = window - 1; end < pairedReturns.length; end++) {
-    const sample = pairedReturns.slice(end - window + 1, end + 1);
-    const assetReturns = sample.map((point) => point.assetReturn);
-    const benchmarkReturns = sample.map((point) => point.benchmarkReturn);
-    const assetMean = assetReturns.reduce((sum, value) => sum + value, 0) /
-      assetReturns.length;
-    const benchmarkMean = benchmarkReturns.reduce(
-      (sum, value) => sum + value, 0,
-    ) / benchmarkReturns.length;
+    const start = end - window + 1;
+    let sumAsset = 0;
+    let sumBenchmark = 0;
+
+    for (let index = start; index <= end; index++) {
+      sumAsset += pairedReturns[index].assetReturn;
+      sumBenchmark += pairedReturns[index].benchmarkReturn;
+    }
+
+    const assetMean = sumAsset / window;
+    const benchmarkMean = sumBenchmark / window;
+
     let covariance = 0;
     let assetVariance = 0;
     let benchmarkVariance = 0;
-    for (let index = 0; index < sample.length; index++) {
-      const assetDiff = assetReturns[index] - assetMean;
-      const benchmarkDiff = benchmarkReturns[index] - benchmarkMean;
+
+    for (let index = start; index <= end; index++) {
+      const assetDiff = pairedReturns[index].assetReturn - assetMean;
+      const benchmarkDiff =
+        pairedReturns[index].benchmarkReturn - benchmarkMean;
       covariance += assetDiff * benchmarkDiff;
       assetVariance += assetDiff * assetDiff;
       benchmarkVariance += benchmarkDiff * benchmarkDiff;
     }
-    const denominator = Math.max(1, sample.length - 1);
+
+    const denominator = Math.max(1, window - 1);
     covariance /= denominator;
     assetVariance /= denominator;
     benchmarkVariance /= denominator;
@@ -135,7 +147,7 @@ function calculateRollingStats(
       beta: benchmarkVariance === 0 ? 0 : covariance / benchmarkVariance,
       correlation: assetVolatility === 0 || benchmarkVolatility === 0 ?
         0 : covariance / (assetVolatility * benchmarkVolatility),
-      sampleSize: sample.length,
+      sampleSize: window,
     });
   }
   return stats;
