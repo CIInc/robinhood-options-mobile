@@ -37,6 +37,7 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
 
 3. **Auto-Trade & Order Execution Safeguards**
    - **Live-Quote BUY Guard:** `AgenticTradingProvider` validates stored signal prices against a fresh live quote before executing automatic or approved BUYs. Price deviations $> 3\%$ or quote-fetch failures block execution.
+   - **Paper Quote Source Isolation:** `AgenticTradingConfig.paperQuoteSource` controls Paper market data independently of `BrokerageUserStore.currentUser` when fixed to Robinhood or Schwab; Paper fills remain simulated, while Live orders use the active account. Keep settings and startup background eligibility aligned through `AgenticTradingProvider.canScheduleBackgroundAutoTrading`.
    - **Authoritative Trade Sizing:** In Reasoning mode, when `enableDynamicPositionSizing` is `false`, the user's configured `tradeQuantity` is authoritative; AI-suggested sizing is used only when dynamic sizing is enabled, and `RiskGuard` limits always apply.
    - **Config Persistence Isolation:** `FirestoreService.updateUser` intentionally omits `agenticTradingConfig` and `futuresTradingConfig` so profile updates never overwrite trading settings with stale in-memory objects. Save trading configs only through their respective providers.
    - **Aggregate View Trading Block:** When viewing aggregated multi-account positions (`disableNavigation: true`), order placement and roll actions must remain disabled with a clear explanatory `SnackBar`.

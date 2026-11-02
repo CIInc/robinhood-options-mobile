@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -149,6 +151,82 @@ void main() {
         AgenticTradingProvider.supportsAutoTradingBrokerage(null),
         isFalse,
       );
+    });
+
+    test('Paper quote source follows the active login or a fixed broker', () {
+      final firstRobinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-first', null, null);
+      final activeRobinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-active', null, null);
+      final schwab =
+          BrokerageUser(BrokerageSource.schwab, 'schwab', null, null);
+      final userStore =
+          BrokerageUserStore([firstRobinhood, activeRobinhood, schwab], 1);
+
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: userStore,
+          source: PaperQuoteSource.selectedBrokerage,
+        ),
+        same(activeRobinhood),
+      );
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: userStore,
+          source: PaperQuoteSource.schwab,
+        ),
+        same(schwab),
+      );
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: userStore,
+          source: PaperQuoteSource.robinhood,
+        ),
+        same(firstRobinhood),
+      );
+      userStore.dispose();
+    });
+
+    test('background scheduling follows Paper source, not active brokerage',
+        () {
+      final robinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-user', null, null);
+      final demo = BrokerageUser(BrokerageSource.demo, 'demo-user', null, null);
+      final userStore = BrokerageUserStore([robinhood, demo], 1);
+
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: true,
+            paperQuoteSource: PaperQuoteSource.robinhood,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: true,
+            paperQuoteSource: PaperQuoteSource.selectedBrokerage,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: false,
+          ),
+        ),
+        isFalse,
+      );
+      userStore.dispose();
     });
 
     test('background auto-trading selects the matching brokerage service', () {

@@ -4,11 +4,11 @@
 
 The Agentic Trading system provides autonomous, AI-powered trading capabilities for RealizeAlpha. It combines multi-indicator technical analysis with risk management controls to execute trades automatically based on qualified trading signals.
 
-**Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled with a supported Robinhood or Schwab account selected. The selected brokerage supplies quotes and live orders; paper fills remain simulated. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
+**Auto-Execution:** Auto-trading uses the configured foreground interval (five minutes by default) and requests a device-local background check about every 15 minutes while enabled and eligible. Live orders use the active account. Paper mode can follow the active brokerage for quotes or use a fixed linked Robinhood or Schwab quote source; simulated fills remain in the separate Paper ledger. The operating system controls background timing; checks may be delayed or skipped. Users remain responsible for monitoring open positions.
 
-Brokerage eligibility uses `BrokerageUserStore.currentUser`, the active selection, rather than checking whether any supported brokerage is linked. Select Robinhood or Schwab as the active brokerage for auto-trading. The store normalizes stale saved selections after loading or removing brokerage accounts; a blocked-cycle diagnostic includes the current selection. If auto-trading is enabled in Live mode, switching the active brokerage from the account picker or brokerage profile requires confirmation. Switching does not place an order immediately, but future eligible cycles may use the newly selected account; Paper mode and disabled auto-trading do not prompt.
+`BrokerageUserStore.currentUser` remains the active account. Live auto-trading requires that active account to be Robinhood or Schwab. Paper auto-trading uses the saved `paperQuoteSource`: `selectedBrokerage` follows the active account, while fixed Robinhood or Schwab selections resolve to a linked account of that brokerage type, independent of the account being viewed. If multiple logins exist for a fixed source, the first linked login is used. An unavailable or unsupported source blocks Paper cycles. The store normalizes stale saved selections after loading or removing brokerage accounts. If auto-trading is enabled in Live mode, switching the active brokerage from the account picker or brokerage profile requires confirmation. Switching does not place an order immediately, but future eligible cycles may use the newly selected account; Paper mode and disabled auto-trading do not prompt.
 
-In Paper mode, the active brokerage supplies market quotes only. Simulated cash, positions, and fills stay in the user's separate Paper account, which is not partitioned by brokerage. Paper orders do not execute at the brokerage.
+In Paper mode, the configured quote-source account supplies market data only. Simulated cash, positions, and fills stay in the user's separate Paper account, which is not partitioned by brokerage. Paper orders do not execute at the brokerage.
 
 ## Execution Modes and Lifecycle Guarantees
 
@@ -20,9 +20,9 @@ User-specific strategy cycles and brokerage orders run on-device in the foregrou
 | App backgrounded or suspended | Best effort | Best effort | Workmanager requests periodic checks about every 15 minutes. Android's periodic-work minimum is 15 minutes; iOS schedules opportunistically and may delay or skip work. Neither platform guarantees exact cadence or an EOD run. |
 | App force-quit | Not supported | Not supported | The operating system may stop background execution until the app is opened again. |
 | Offline or fresh quote unavailable | Skipped | Skipped | Background BUYs fail closed unless the selected Robinhood or Schwab quote has a valid timestamp and is no more than 5 minutes old. There is no delayed-data or stored-price fallback for background orders. |
-| App restarted | Best effort | Best effort | Scheduling is restored when the signed-in user, enabled configuration, and selected supported brokerage account qualify. Missed entry cycles are not replayed. |
+| App restarted | Best effort | Best effort | Scheduling is restored when the signed-in user and enabled configuration qualify; Live uses the active supported account, while Paper uses its configured quote source. Missed entry cycles are not replayed. |
 
-Scheduling follows the existing auto-trading toggle and is canceled when the selected brokerage is neither Robinhood nor Schwab. The worker uses the saved brokerage and account selections. Paper strategy execution uses the selected Robinhood or Schwab quote source; orders go through the simulated paper ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
+Scheduling follows the auto-trading toggle and the same eligibility rule in settings and app startup: Live requires the active Robinhood or Schwab account; Paper requires the configured source to resolve to a linked Robinhood or Schwab account. The worker loads the saved source account for quotes. Paper orders go through the simulated ledger and never reach the broker. Background execution uses network, market-data, and AI services on the device. Provider costs and rate limits must be monitored; execution is not guaranteed. Brokerage credentials are never sent to a server.
 
 On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier with `BGTaskScheduler` before Dart submits the first request. The identifier must match `BGTaskSchedulerPermittedIdentifiers` in `ios/Runner/Info.plist` and `AgenticTradingBackgroundService.taskName`; registering only previously scheduled handlers is insufficient on a fresh install.
 
@@ -30,7 +30,7 @@ On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier wit
 
 The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.
 
-Background BUY validation refreshes the selected Robinhood or Schwab quote and accepts only a positive price with a timestamp no older than 5 minutes. If the check fails, the order is skipped. The signal-generation providers and their fallback data are not used as substitutes for a background execution quote. For paper auto-trading, the selected brokerage supplies the quote while the paper ledger simulates fills. Brokerage API cost, rate-limit headroom, and background reliability need production monitoring; no exact daily lookup allowance is assumed here.
+Background BUY validation refreshes a quote from the configured Robinhood or Schwab source and accepts only a positive price with a timestamp no older than 5 minutes. If the check fails, the order is skipped. The signal-generation providers and their fallback data are not used as substitutes for a background execution quote. For Paper auto-trading, the configured source supplies quotes while the Paper ledger simulates fills. Brokerage API cost, rate-limit headroom, and background reliability need production monitoring; no exact daily lookup allowance is assumed here.
 
 ### Market-Close Exit Limitations
 
@@ -239,6 +239,8 @@ On a successful unchanged calculation, the backend refreshes the top-level `time
 New configurations default to Paper execution. Existing saved configurations keep their stored execution mode.
 
 The system includes a fully functional **Paper Trading Mode** for risk-free strategy testing and validation.
+
+**Paper Quote Source:** The default **Follow selected brokerage** setting uses the active Robinhood or Schwab account for quotes. Users can instead pin Paper quotes to a linked Robinhood or Schwab brokerage; this choice does not switch the active account. Live execution remains tied to the active account. The setting is saved in `AgenticTradingConfig.paperQuoteSource`; older configurations default to following the selected brokerage.
 
 **Key Features:**
 - **Risk-Free Simulation:** Execute trades without using real capital or making broker API calls.

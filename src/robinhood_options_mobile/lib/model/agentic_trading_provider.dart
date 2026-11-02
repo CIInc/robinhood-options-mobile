@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
@@ -19,6 +20,7 @@ import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_brokerage_service_factory.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -329,6 +331,39 @@ class AgenticTradingProvider with ChangeNotifier {
   static bool supportsAutoTradingBrokerage(BrokerageSource? source) =>
       source == BrokerageSource.robinhood || source == BrokerageSource.schwab;
 
+  static BrokerageUser? resolvePaperQuoteUser({
+    required BrokerageUserStore userStore,
+    required PaperQuoteSource source,
+  }) {
+    final activeUser = userStore.currentUser;
+    if (source == PaperQuoteSource.selectedBrokerage) {
+      return supportsAutoTradingBrokerage(activeUser?.source)
+          ? activeUser
+          : null;
+    }
+    final brokerageSource = switch (source) {
+      PaperQuoteSource.selectedBrokerage => null,
+      PaperQuoteSource.robinhood => BrokerageSource.robinhood,
+      PaperQuoteSource.schwab => BrokerageSource.schwab,
+    };
+    if (!supportsAutoTradingBrokerage(brokerageSource)) return null;
+
+    for (final user in userStore.items) {
+      if (user.source == brokerageSource) return user;
+    }
+    return null;
+  }
+
+  static bool canScheduleBackgroundAutoTrading({
+    required BrokerageUserStore userStore,
+    required AgenticTradingConfig config,
+  }) =>
+      config.paperTradingMode
+          ? resolvePaperQuoteUser(
+                  userStore: userStore, source: config.paperQuoteSource) !=
+              null
+          : supportsAutoTradingBrokerage(userStore.currentUser?.source);
+
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {
     final interval = _config.checkIntervalMinutes;
@@ -489,25 +524,41 @@ class AgenticTradingProvider with ChangeNotifier {
         return;
       }
 
-      final currentUser = userStore.currentUser;
-      final selectedAccount = accountStore.selectedAccount;
-      if (!isPaperMode && currentUser == null) {
+      final activeUser = userStore.currentUser;
+      final currentUser = isPaperMode
+          ? resolvePaperQuoteUser(
+              userStore: userStore,
+              source: _config.paperQuoteSource,
+            )
+          : activeUser;
+      final selectedAccount = isPaperMode ? null : accountStore.selectedAccount;
+      if (!isPaperMode && activeUser == null) {
         _log('❌ Auto-trade check: currentUser is null');
         return;
       }
-      if (isPaperMode && !supportsAutoTradingBrokerage(currentUser?.source)) {
-        final selectedSource = currentUser?.source.name ?? 'none';
-        _log(
-            '⏭️ Paper auto-trading requires Robinhood or Schwab to be selected '
-            'as the active quote source (current selection: $selectedSource)');
+      if (isPaperMode && currentUser == null) {
+        final selectedSource = switch (_config.paperQuoteSource) {
+          PaperQuoteSource.selectedBrokerage => 'the selected brokerage',
+          PaperQuoteSource.robinhood => 'Robinhood',
+          PaperQuoteSource.schwab => 'Schwab',
+        };
+        final message = 'Paper quote source $selectedSource is unavailable. '
+            'Choose a linked Robinhood or Schwab source in Execution Settings.';
+        _log('⏭️ $message');
         updateLastAutoTradeResult({
           'success': false,
           'tradesExecuted': 0,
-          'message': 'Paper auto-trading requires Robinhood or Schwab selected '
-              'as the active quote source (current selection: $selectedSource).',
+          'message': message,
           'trades': <dynamic>[],
           'blocked': true,
         });
+        return;
+      }
+      final cycleBrokerageService = isPaperMode && currentUser != null
+          ? AgenticTradingBrokerageServiceFactory.forSource(currentUser.source)
+          : brokerageService;
+      if (isPaperMode && cycleBrokerageService == null) {
+        _log('⏭️ Paper quote source service is unavailable');
         return;
       }
 
@@ -683,7 +734,7 @@ class AgenticTradingProvider with ChangeNotifier {
         portfolioState: portfolioState,
         brokerageUser: currentUser,
         account: selectedAccount,
-        brokerageService: brokerageService,
+        brokerageService: cycleBrokerageService,
         instrumentStore: instrumentStore,
         paperTradingStore: paperTradingStore,
         userDocRef: userDocRef,
@@ -730,7 +781,7 @@ class AgenticTradingProvider with ChangeNotifier {
           positions: positionsToMonitor,
           brokerageUser: currentUser,
           account: selectedAccount,
-          brokerageService: brokerageService,
+          brokerageService: cycleBrokerageService,
           instrumentStore: instrumentStore,
           paperTradingStore: paperTradingStore,
           userDocRef: userDocRef,

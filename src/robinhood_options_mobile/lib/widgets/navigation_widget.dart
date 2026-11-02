@@ -923,10 +923,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
             }
 
+            final canScheduleAutoTrading =
+                AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+              userStore: userStore,
+              config: agenticProvider.config,
+            );
             unawaited(AgenticTradingBackgroundService.syncScheduling(
               enabled: userDoc != null &&
-                  AgenticTradingProvider.supportsAutoTradingBrokerage(
-                      userStore.currentUser?.source) &&
+                  canScheduleAutoTrading &&
                   agenticProvider.config.autoTradeEnabled,
             ));
 

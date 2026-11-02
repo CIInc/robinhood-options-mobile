@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.6] - 2026-11-02
+**Independent Paper Quote Source & Background Scheduling**
+
+- **Paper Quote Source:** Configure Paper mode to follow the active brokerage or use a linked Robinhood or Schwab source independently of the account being viewed. Simulated fills remain in the separate Paper ledger; Live orders continue to use the active account.
+- **Background Scheduling:** Keep best-effort Workmanager checks eligible when the configured Paper quote source is linked, even when another brokerage is active. Auto-trading execution-mode and device-lifecycle acceptance tracked by [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
+
 ## [0.60.5] - 2026-11-02
 **Paper Trading Account Clarity**
 

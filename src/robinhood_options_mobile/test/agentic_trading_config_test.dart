@@ -13,6 +13,25 @@ void main() {
 
       expect(newConfig.paperTradingMode, isTrue);
       expect(legacyConfig.paperTradingMode, isFalse);
+      expect(newConfig.paperQuoteSource, PaperQuoteSource.selectedBrokerage);
+      expect(legacyConfig.paperQuoteSource, PaperQuoteSource.selectedBrokerage);
+    });
+
+    test('paper quote source persists independently of active brokerage', () {
+      final config = AgenticTradingConfig(
+        strategyConfig: TradeStrategyConfig(),
+        paperQuoteSource: PaperQuoteSource.robinhood,
+      );
+
+      final restored = AgenticTradingConfig.fromJson(config.toJson());
+
+      expect(restored.paperQuoteSource, PaperQuoteSource.robinhood);
+      expect(
+        restored
+            .copyWith(paperQuoteSource: PaperQuoteSource.schwab)
+            .paperQuoteSource,
+        PaperQuoteSource.schwab,
+      );
     });
 
     test('AgenticTradingConfig should serialize and deserialize all fields',
