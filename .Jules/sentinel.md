@@ -1,3 +1,8 @@
+## 2025-03-19 - Missing Admin Authorization on Administrative Chart Seeding Callable
+**Vulnerability:** `seedAgenticTrading` in `agentic-trading.ts` was an `onCall` Cloud Function that verified `request.auth` but lacked admin custom claim authorization (`role === "admin"`). Authenticated non-admin callers could trigger batch document creations in the top-level `/charts` collection and force chart document re-seeding across popular stock symbols.
+**Learning:** Administrative utility callables that perform batch collection modifications or seed system resources must verify `request.auth.token?.role === "admin"` in addition to basic authentication (`request.auth`).
+**Prevention:** Always enforce `if (request.auth.token?.role !== "admin")` on administrative seeding and setup callable functions.
+
 ## 2025-03-19 - Missing Array Bounds Validation on Order Sync Callable
 **Vulnerability:** `syncInstrumentOrders` in `instrument-order-sync.ts` accepted `request.data.orders` without validating upper bounds on array length. An authenticated user could supply an arbitrarily large array of orders, triggering high memory consumption, long execution times, and excessive batch Firestore write operations (Denial of Service / Resource Exhaustion).
 **Learning:** Callable Cloud Functions accepting arrays of items to write to Firestore in batch operations must bound input array lengths to prevent memory bloat, long execution, and database write exhaustion.
