@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.7] - 2026-11-03
+**Paper Auto-Trade Exit Monitoring**
+
+- **Paper TP/SL Monitoring:** Fix simulated take-profit/stop-loss monitoring so it does not require a selected Live account. Paper exits still use the Paper ledger and configured quote source; Live monitoring still requires the selected account.
+- **Regression Coverage:** Verify Paper monitoring with no selected account and preserve the Live account requirement.
+
 ## [0.60.6] - 2026-11-02
 **Independent Paper Quote Source & Background Scheduling**
 

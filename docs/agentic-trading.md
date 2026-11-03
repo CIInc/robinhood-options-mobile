@@ -242,6 +242,8 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 **Paper Quote Source:** The default **Follow selected brokerage** setting uses the active Robinhood or Schwab account for quotes. Users can instead pin Paper quotes to a linked Robinhood or Schwab brokerage; this choice does not switch the active account. Live execution remains tied to the active account. The setting is saved in `AgenticTradingConfig.paperQuoteSource`; older configurations default to following the selected brokerage.
 
+**Paper TP/SL Exits:** Exit monitoring reads simulated positions from `PaperTradingStore` and routes triggered exits through the Paper execution path. Paper mode intentionally has no selected Live account, so exit monitoring requires the Paper ledger and configured quote source but not a brokerage account object. Live exit monitoring continues to require the selected account; Paper exits never reach the brokerage.
+
 **Key Features:**
 - **Risk-Free Simulation:** Execute trades without using real capital or making broker API calls.
 - **Realistic Execution:** Simulates realistic order responses, including fills and status updates.

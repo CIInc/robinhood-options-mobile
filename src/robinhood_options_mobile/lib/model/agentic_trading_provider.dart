@@ -3114,10 +3114,12 @@ class AgenticTradingProvider with ChangeNotifier {
     _isMonitoringExits = true;
     try {
       // Validate required parameters
+      final isPaperMode = _config.paperTradingMode;
       if (brokerageUser == null ||
-          account == null ||
+          (!isPaperMode && account == null) ||
           brokerageService == null ||
-          instrumentStore == null) {
+          instrumentStore == null ||
+          (isPaperMode && paperTradingStore == null)) {
         _log(
             '❌ Missing required parameters for take profit/stop loss monitoring');
         return {

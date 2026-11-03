@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -466,6 +467,53 @@ void main() {
       final isOpen = provider.isMarketOpen;
 
       expect(isOpen, isA<bool>());
+    });
+
+    test('Paper TP/SL monitoring does not require a brokerage account',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: <InstrumentPosition>[],
+        brokerageUser: 'mock',
+        account: null,
+        brokerageService: FakeBrokerageService(),
+        instrumentStore: 'mock',
+        paperTradingStore: paperTradingStore,
+      );
+
+      expect(result['message'], 'No exits triggered');
+      expect(
+        provider.activityLog.where(
+          (entry) => entry.contains('Missing required parameters'),
+        ),
+        isEmpty,
+      );
+      paperTradingStore.dispose();
+    });
+
+    test('Live TP/SL monitoring still requires a brokerage account', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = false;
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: <InstrumentPosition>[],
+        brokerageUser: 'mock',
+        account: null,
+        brokerageService: FakeBrokerageService(),
+        instrumentStore: 'mock',
+      );
+
+      expect(result['message'], 'Missing required parameters');
+      expect(
+        provider.activityLog,
+        contains(
+          contains('Missing required parameters for take profit/stop loss'),
+        ),
+      );
     });
 
     test('autoTrade should fail when auto-trade is not enabled', () async {
