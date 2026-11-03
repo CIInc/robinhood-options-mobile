@@ -21,23 +21,59 @@ export const getOptionsFlow = onCall({
     );
   }
 
+  const symbolRegex = /^[A-Za-z0-9.-]{1,10}$/;
   let symbols: string[] = [];
 
-  if (request.data.symbol) {
-    symbols = [request.data.symbol];
-  } else if (request.data.symbols && Array.isArray(request.data.symbols)) {
-    symbols = request.data.symbols;
+  if (typeof request.data?.symbol === "string") {
+    const clean = request.data.symbol.trim().toUpperCase();
+    if (!clean || !symbolRegex.test(clean)) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Symbol must be a valid stock symbol (1-10 characters)."
+      );
+    }
+    symbols = [clean];
+  } else if (Array.isArray(request.data?.symbols)) {
+    if (request.data.symbols.length === 0 ||
+        request.data.symbols.length > 25) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Symbols array must contain between 1 and 25 symbols."
+      );
+    }
+    symbols = request.data.symbols.map((s: unknown) => {
+      const clean = typeof s === "string" ? s.trim().toUpperCase() : "";
+      if (!clean || !symbolRegex.test(clean)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Each symbol must be a valid stock symbol (1-10 characters)."
+        );
+      }
+      return clean;
+    });
   } else {
     throw new HttpsError(
       "invalid-argument",
-      "Symbol or symbols list is required"
+      "Symbol or symbols list is required."
+    );
+  }
+
+  const expiration = request.data?.expiration;
+  if (
+    expiration !== undefined &&
+    (typeof expiration !== "string" ||
+      !["any", "0-7", "8-30", "30+"].includes(expiration))
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Invalid expiration range filter."
     );
   }
 
   try {
     const items = await fetchOptionsFlowForSymbols(
       symbols,
-      request.data.expiration
+      expiration
     );
 
     return {
