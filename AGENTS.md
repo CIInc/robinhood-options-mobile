@@ -47,6 +47,7 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
 
 4. **Balance Visibility & Social Privacy**
    - Respect `AccountStore` balance masking across all portfolio hero numbers, position rows, and chart components (`portfolio_chart_widget.dart` axes, range annotations, tooltips, and summary metrics).
+   - Preserve signed market value and dollar P&L for short stock positions; calculate return percentages against absolute position basis and gross aggregate basis so short losses cannot flip positive.
    - Cross-account tax and wash-sale correlation must run on-device over hydrated stores without leaking private multi-broker tax lots to shared Firestore collections.
 
 5. **Backend Security & Algorithmic Efficiency**

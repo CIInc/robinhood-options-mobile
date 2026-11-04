@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.9] - 2026-11-04
+**Short Position Return Accuracy**
+
+- **Signed Return Percentages:** Preserve the P&L sign for short stock positions and calculate mixed long/short percentages against gross cost basis and prior market value.
+
 ## [0.60.8] - 2026-11-03
 **Automatic Paper Quote Source Selection**
 

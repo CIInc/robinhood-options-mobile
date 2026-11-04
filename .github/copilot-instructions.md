@@ -4,6 +4,7 @@ This file tells AI coding agents how to be immediately productive in the Realize
 Keep guidance concise and actionable. Only change behavior when confident and follow the repository conventions below.
 
 Key facts (quick):
+- Stock market value and dollar P&L remain signed by position quantity; return percentages use absolute position cost/prior value and gross aggregate exposure so short losses retain their negative sign.
 - Auto-trade proposal retries are limited to transient network/unavailable/deadline failures; permanent callable errors are rejected. Never replay a brokerage submission with an unknown outcome; reconcile it through execution claims.
 - Flutter mobile app (Dart) in `src/robinhood_options_mobile/`.
 - Backend helpers and server code live under `src/robinhood_options_mobile/functions/` and `src/robinhood_options_mobile/firebase/` (Firebase Functions + admin tooling).
