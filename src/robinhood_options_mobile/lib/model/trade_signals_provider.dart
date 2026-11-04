@@ -9,6 +9,32 @@ import 'package:robinhood_options_mobile/services/home_widget_service.dart';
 import 'package:robinhood_options_mobile/services/offline_cache_service.dart';
 
 class TradeSignalsProvider with ChangeNotifier {
+  static bool isRetryableProposalFailure(Object error) {
+    if (error is FirebaseFunctionsException) {
+      switch (error.code) {
+        case 'unavailable':
+        case 'deadline-exceeded':
+          return true;
+        case 'unknown':
+          final message =
+              '${error.message ?? ''} ${error.details ?? ''}'.toLowerCase();
+          return _hasTransientNetworkMessage(message);
+        default:
+          return false;
+      }
+    }
+    return _hasTransientNetworkMessage(error.toString().toLowerCase());
+  }
+
+  static bool _hasTransientNetworkMessage(String message) =>
+      message.contains('network connection was lost') ||
+      message.contains('connection reset') ||
+      message.contains('connection timed out') ||
+      message.contains('timed out') ||
+      message.contains('timeout') ||
+      message.contains('socketexception') ||
+      message.contains('network is unreachable');
+
   /// Returns documentation for a given indicator key.
   /// Returns a Map with 'title', 'description', and 'technicalDetails' keys.
   static Map<String, String> indicatorDocumentation(String key) {
@@ -1111,6 +1137,7 @@ class TradeSignalsProvider with ChangeNotifier {
       return {
         'status': 'error',
         'message': e.toString(),
+        'retryable': isRetryableProposalFailure(e),
         'proposal': simulatedTradeProposal
       };
     }

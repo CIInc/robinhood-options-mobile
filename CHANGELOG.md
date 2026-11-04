@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.8] - 2026-11-03
+**Automatic Paper Quote Source Selection**
+
+- **Automatic Quote Feed:** Paper mode prefers the active Robinhood or Schwab account, then falls back to the first linked supported account. A pin override is shown only when multiple supported feeds are linked, or when correcting an unavailable saved pin.
+- **Isolation:** Quote-source selection does not switch the active account; simulated fills and exits remain in the Paper ledger, and Live orders continue to use the active account.
+- **Proposal Retry:** Transient trade-proposal call failures remain eligible for the next cycle and appear as retrying. Permanent callable failures are rejected rather than retried; brokerage submissions with an unknown outcome are not blindly replayed.
+
 ## [0.60.7] - 2026-11-03
 **Paper Auto-Trade Exit Monitoring**
 
