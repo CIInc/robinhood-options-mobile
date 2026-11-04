@@ -99,7 +99,8 @@ function updateStockPosition(
   sign: number,
 ): void {
   const url = instrumentJson?.url ?? "";
-  const index = positions.findIndex((p) => p.instrument === url);
+  const symbol = String(instrumentJson?.symbol ?? "");
+  const index = findStockPositionIndex(positions, symbol, url);
 
   if (index !== -1) {
     const current = positions[index];
@@ -144,6 +145,41 @@ function updateStockPosition(
     updated_at: new Date().toISOString(),
     instrumentObj: instrumentJson,
   });
+}
+
+/**
+ * Finds a stock position by symbol, falling back to URL when metadata is
+ * absent.
+ * @param {any[]} positions Stock positions.
+ * @param {string} symbol Ticker symbol.
+ * @param {string} url Instrument URL.
+ * @return {number} Matching position index, or -1.
+ */
+function findStockPositionIndex(
+  positions: any[],
+  symbol: string,
+  url: string,
+): number {
+  const normalizedSymbol = symbol.trim().toUpperCase();
+  const matches: number[] = [];
+  for (let index = 0; index < positions.length; index++) {
+    const position = positions[index];
+    const positionSymbol = String(position?.instrumentObj?.symbol ?? "")
+      .trim()
+      .toUpperCase();
+    if (normalizedSymbol && positionSymbol) {
+      if (positionSymbol === normalizedSymbol) matches.push(index);
+    } else if (position?.instrument === url) {
+      matches.push(index);
+    }
+  }
+
+  if (matches.length > 1) {
+    throw new Error(
+      `Multiple paper positions exist for ${symbol}; reconcile before trading.`,
+    );
+  }
+  return matches.length === 1 ? matches[0] : -1;
 }
 
 /**
@@ -267,7 +303,7 @@ export function evaluateStockPendingOrders(
     const instrumentJson = order.instrumentJson ?? {};
     const url = instrumentJson.url ?? "";
     const symbol = order.symbol ?? instrumentJson.symbol ?? "";
-    const index = positions.findIndex((p) => p.instrument === url);
+    const index = findStockPositionIndex(positions, symbol, url);
     const heldQty = index >= 0 ? num(positions[index].quantity) : 0;
     const label = String(order.orderType ?? "").replace(/_/g, " ");
 

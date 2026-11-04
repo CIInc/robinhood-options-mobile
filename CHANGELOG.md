@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.60.10] - 2026-11-04
+**Paper Stock Position Identity**
+
+- **Ticker-Based Matching:** Match Paper stock positions by normalized ticker across instrument URLs in client and server fills, preventing alias URLs from splitting one holding into duplicate long and short rows.
+- **Ambiguous Legacy Rows:** Reject orders when multiple stored Paper position rows share a ticker instead of applying a fill to an arbitrary row.
+- **Regression Coverage:** Verify alias-URL buy-to-cover fills and rejection of ambiguous server-side fills.
+
 ## [0.60.9] - 2026-11-04
 **Short Position Return Accuracy**
 
