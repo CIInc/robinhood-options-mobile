@@ -76,6 +76,16 @@ void main() {
     expect(tester.getSize(find.byKey(statsKey)), originalSize);
     expect(find.text(r'$••••••'), findsOneWidget);
     expect(find.text('Cash'), findsOneWidget);
+
+    // Verify Semantics
+    expect(
+      find.bySemanticsLabel('Buying Power: \$••••••'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Cash: 12.5%'),
+      findsOneWidget,
+    );
   });
 
   group('ActionCenterWidget', () {
