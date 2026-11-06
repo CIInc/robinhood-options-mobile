@@ -581,23 +581,44 @@ export const runBacktest = onCall({
   } = config;
 
   try {
-    const symbols = request.data.symbolFilter &&
-      request.data.symbolFilter.length > 0 ?
+    const rawSymbols = Array.isArray(request.data.symbolFilter) ?
       request.data.symbolFilter :
       (symbol ? [symbol] : []);
 
-    // Validate inputs
-    if (symbols.length === 0 || !startDate || !endDate) {
-      throw new Error(
-        "Missing required params: symbol/symbolFilter, startDate, endDate"
+    // SECURITY: Validate and sanitize symbol inputs and cap array bounds
+    const symbols = rawSymbols
+      .filter((s: unknown): s is string => typeof s === "string")
+      .map((s: string) => s.trim().toUpperCase())
+      .filter((s: string) => s.length > 0 && /^[A-Z0-9^=.-]{1,10}$/.test(s));
+
+    if (symbols.length === 0) {
+      throw new HttpsError(
+        "invalid-argument",
+        "At least one valid symbol is required."
+      );
+    }
+    if (symbols.length > 30) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Maximum of 30 symbols allowed per backtest request."
+      );
+    }
+
+    if (typeof startDate !== "string" || typeof endDate !== "string") {
+      throw new HttpsError(
+        "invalid-argument",
+        "startDate and endDate must be valid date strings."
       );
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    if (start >= end) {
-      throw new Error("startDate must be before endDate");
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      throw new HttpsError(
+        "invalid-argument",
+        "startDate must be a valid date before endDate."
+      );
     }
 
     // Calculate range for historical data fetch based
@@ -855,8 +876,11 @@ export const runBacktest = onCall({
 
     return result;
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Backtest error", { error });
-    throw error;
+    throw new HttpsError("internal", "An error occurred during backtesting.");
   }
 });
 

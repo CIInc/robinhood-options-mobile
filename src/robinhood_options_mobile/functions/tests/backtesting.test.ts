@@ -19,6 +19,61 @@ describe("runBacktest authentication", () => {
       code: "unauthenticated",
     });
   });
+
+  it("rejects request with missing or empty symbols", async () => {
+    const authenticatedRequest = {
+      auth: { uid: "user-123" },
+      data: {
+        symbol: "",
+        startDate: "2025-01-01",
+        endDate: "2025-01-10",
+      },
+    };
+
+    const callFn = () => (runBacktest as any).run(authenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  it("rejects request exceeding max symbols limit", async () => {
+    const tooManySymbols = Array.from({ length: 31 }, (_, i) => `SYM${i}`);
+    const authenticatedRequest = {
+      auth: { uid: "user-123" },
+      data: {
+        symbolFilter: tooManySymbols,
+        startDate: "2025-01-01",
+        endDate: "2025-01-10",
+      },
+    };
+
+    const callFn = () => (runBacktest as any).run(authenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  it("rejects request with invalid date range", async () => {
+    const authenticatedRequest = {
+      auth: { uid: "user-123" },
+      data: {
+        symbol: "AAPL",
+        startDate: "2025-01-10",
+        endDate: "2025-01-01",
+      },
+    };
+
+    const callFn = () => (runBacktest as any).run(authenticatedRequest);
+
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
 });
 
 describe("aggregateEquityCurves", () => {
