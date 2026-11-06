@@ -22,6 +22,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auth_widget.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared/live_brokerage_switch_confirmation.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 class ExpandedSliverAppBar extends StatelessWidget {
@@ -185,6 +186,13 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                           Theme.of(context).colorScheme.primary)
                                   : null,
                               onTap: () async {
+                                if ((!isUserSelected ||
+                                        brokerageUserStore
+                                            .aggregateAllAccounts) &&
+                                    !await confirmLiveBrokerageSwitch(
+                                        context, user)) {
+                                  return;
+                                }
                                 Navigator.pop(context);
                                 if (!isUserSelected ||
                                     brokerageUserStore.aggregateAllAccounts) {

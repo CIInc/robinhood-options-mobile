@@ -115,9 +115,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Link a brokerage to enable automated execution.'),
+        find.text(
+          'Link Robinhood or Schwab to provide Paper quotes.',
+        ),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('paperQuoteSource')), findsNothing);
       expect(
         tester
             .widget<SwitchListTile>(
@@ -210,6 +213,11 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.textContaining('Automatically uses Robinhood for Paper quotes'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('paperQuoteSource')), findsNothing);
+      expect(
         tester
             .widget<SwitchListTile>(
                 find.byKey(const ValueKey('auto-trading-toggle')))
@@ -218,7 +226,7 @@ void main() {
       );
     });
 
-    testWidgets('Schwab quote feed enables automated paper trading',
+    testWidgets('Paper quote source can differ from active brokerage',
         (WidgetTester tester) async {
       testUserDocRef = FirebaseFirestore.instance
           .collection('user')
@@ -236,6 +244,8 @@ void main() {
               ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
               ChangeNotifierProvider(
                 create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
                   BrokerageUser(
                       BrokerageSource.schwab, 'schwab-user', null, null),
                 ], 0),
@@ -262,8 +272,38 @@ void main() {
         isNotNull,
       );
       expect(
-          find.textContaining('Use selected brokerage quotes'), findsOneWidget);
+        find.textContaining('Follows the active Robinhood account'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Paper cash, positions and fills stay separate'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('paperQuoteSource')), findsOneWidget);
       expect(find.text('Automated Paper Tests'), findsNothing);
+
+      final paperQuoteSource = find.byKey(const ValueKey('paperQuoteSource'));
+      await tester.ensureVisible(paperQuoteSource);
+      await tester.pumpAndSettle();
+      await tester.tap(paperQuoteSource);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Schwab').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        Provider.of<AgenticTradingProvider>(
+          tester.element(find.byType(AgenticTradingSettingsWidget)),
+          listen: false,
+        ).config.paperQuoteSource,
+        PaperQuoteSource.schwab,
+      );
+      expect(
+        Provider.of<BrokerageUserStore>(
+          tester.element(find.byType(AgenticTradingSettingsWidget)),
+          listen: false,
+        ).currentUser?.source,
+        BrokerageSource.robinhood,
+      );
     });
 
     testWidgets(

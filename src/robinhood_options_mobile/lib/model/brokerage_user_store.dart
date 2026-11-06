@@ -39,6 +39,7 @@ class BrokerageUserStore extends ChangeNotifier {
       await item.deleteCredentials();
     }
     _items.clear();
+    currentUserIndex = 0;
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
   }
@@ -73,6 +74,14 @@ class BrokerageUserStore extends ChangeNotifier {
       final user = _items[index];
       await user.deleteCredentials();
       _items.removeAt(index);
+      if (index < currentUserIndex) {
+        currentUserIndex--;
+      } else if (index == currentUserIndex &&
+          _items.isNotEmpty &&
+          currentUserIndex >= _items.length) {
+        currentUserIndex = _items.length - 1;
+      }
+      _normalizeCurrentUserIndex();
       notifyListeners();
     }
   }
@@ -106,14 +115,24 @@ class BrokerageUserStore extends ChangeNotifier {
     return true;
   }
 
-  BrokerageUser? get currentUser =>
-      _items.isNotEmpty && currentUserIndex < _items.length
-          ? _items[currentUserIndex]
-          : null;
+  BrokerageUser? get currentUser => _items.isNotEmpty &&
+          currentUserIndex >= 0 &&
+          currentUserIndex < _items.length
+      ? _items[currentUserIndex]
+      : null;
 
   void setCurrentUserIndex(int userIndex) {
+    if (userIndex < 0 || userIndex >= _items.length) return;
     currentUserIndex = userIndex;
     notifyListeners();
+  }
+
+  void _normalizeCurrentUserIndex() {
+    if (_items.isEmpty ||
+        currentUserIndex < 0 ||
+        currentUserIndex >= _items.length) {
+      currentUserIndex = 0;
+    }
   }
 
   void setAggregateAllAccounts(bool enabled) {
@@ -202,6 +221,7 @@ class BrokerageUserStore extends ChangeNotifier {
     currentUserIndex = storeData['currentUserIndex'] is int
         ? storeData['currentUserIndex'] as int
         : 0;
+    _normalizeCurrentUserIndex();
     aggregateAllAccounts = storeData['aggregateAllAccounts'] == true;
     notifyListeners();
 

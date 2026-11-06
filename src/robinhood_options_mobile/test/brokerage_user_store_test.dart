@@ -52,6 +52,57 @@ void main() {
     expect(store.currentUser, isNull);
   });
 
+  test('normalizes a stale persisted selection to a linked brokerage',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      Constants.preferencesUserKey: jsonEncode({
+        'currentUserIndex': 1,
+        'users': [
+          {
+            'source': 'BrokerageSource.robinhood',
+            'userName': 'linked-robinhood-user',
+          }
+        ],
+      }),
+    });
+
+    final store = BrokerageUserStore([], 0);
+    await store.load();
+
+    expect(store.currentUserIndex, 0);
+    expect(store.currentUser?.source, BrokerageSource.robinhood);
+  });
+
+  test('removing an earlier brokerage preserves the selected account',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final secureStorage = _FakeSecureTokenStorage();
+    final demoUser = BrokerageUser(
+      BrokerageSource.demo,
+      'demo-user',
+      null,
+      null,
+      secureTokenStorage: secureStorage,
+    );
+    final robinhoodUser = BrokerageUser(
+      BrokerageSource.robinhood,
+      'robinhood-user',
+      null,
+      null,
+      secureTokenStorage: secureStorage,
+    );
+    final store = BrokerageUserStore(
+      [demoUser, robinhoodUser],
+      1,
+      secureTokenStorage: secureStorage,
+    );
+
+    await store.remove(demoUser);
+
+    expect(store.currentUserIndex, 0);
+    expect(store.currentUser, same(robinhoodUser));
+  });
+
   test('migrates legacy brokerage credentials into secure storage', () async {
     final legacyCredentials = oauth2.Credentials(
       'legacy-access-token',

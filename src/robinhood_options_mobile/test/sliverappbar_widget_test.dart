@@ -3,10 +3,18 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -97,6 +105,11 @@ void main() {
         ChangeNotifierProvider<AccountStore>.value(
           value: mockAccountStore,
         ),
+        ChangeNotifierProvider(create: (_) => PortfolioStore()),
+        ChangeNotifierProvider(create: (_) => PortfolioHistoricalsStore()),
+        ChangeNotifierProvider(create: (_) => ForexHoldingStore()),
+        ChangeNotifierProvider(create: (_) => OptionPositionStore()),
+        ChangeNotifierProvider(create: (_) => InstrumentPositionStore()),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -160,5 +173,49 @@ void main() {
 
     expect(find.byType(AutoTradeStatusBadgeWidget), findsNothing);
     expect(find.byIcon(Icons.account_circle_outlined), findsOneWidget);
+  });
+
+  testWidgets(
+      'warns and stays on the current account when cancelling a live switch',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final robinhoodUser =
+        BrokerageUser(BrokerageSource.robinhood, 'rh-account', null, null);
+    final schwabUser =
+        BrokerageUser(BrokerageSource.schwab, 'schwab-account', null, null);
+    mockBrokerageUserStore = BrokerageUserStore([
+      robinhoodUser,
+      schwabUser,
+    ], 0);
+    mockAgenticProvider.config = AgenticTradingConfig(
+      strategyConfig: TradeStrategyConfig(),
+      autoTradeEnabled: true,
+      paperTradingMode: false,
+    );
+
+    await tester.pumpWidget(
+      buildWidget(auth: MockFirebaseAuth(user: MockFirebaseUser())),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Robinhood'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('schwab-account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Live auto-trading is enabled'), findsOneWidget);
+    expect(find.textContaining('will not place an order now'), findsOneWidget);
+
+    await tester.tap(find.text('Keep current account'));
+    await tester.pumpAndSettle();
+
+    expect(mockBrokerageUserStore.currentUser, same(robinhoodUser));
+    expect(find.text('Switch Account'), findsOneWidget);
+
+    await tester.tap(find.text('schwab-account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Switch account'));
+    await tester.pumpAndSettle();
+
+    expect(mockBrokerageUserStore.currentUser, same(schwabUser));
   });
 }

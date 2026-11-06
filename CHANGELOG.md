@@ -3,11 +3,66 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
-**Return Attribution ([#278](https://github.com/CIInc/robinhood-options-mobile/issues/278))**
+**Macro Regime & Walk-Forward Strategy Backtest Attribution ([#273](https://github.com/CIInc/robinhood-options-mobile/issues/273))**
+
+- **Macro Regime Classification:** Tag every simulated trade entry in `functions/src/backtesting.ts` with its market regime context (`BULL_LOW_VOL`, `BULL_HIGH_VOL`, `BEAR_LOW_VOL`, `BEAR_HIGH_VOL`) derived from benchmark trend (50-bar SMA) and normalized volatility (14-bar NATR) in $O(1)$ amortized two-pointer time without extra API calls.
+- **Regime Performance Attribution:** Aggregate simulated performance per regime (win rate, profit factor, net profit, max drawdown, trade count), exposing structural strategy strengths and vulnerabilities across distinct market environments.
+- **Walk-Forward Validation:** Implement chronological 70/30 In-Sample vs. Out-of-Sample stability analysis comparing Sharpe and Profit Factor retention to flag curve-fitting risk (`ROBUST`, `MODERATE`, `OVERFITTED`, `INSUFFICIENT_DATA`).
+- **Interactive Mobile UI:** Surface an interactive `RegimeAttributionCard` in `BacktestingWidget` featuring walk-forward stability badges, metrics retention table, and responsive 4-quadrant regime attribution tiles down to 320px viewports with screen-reader semantics.
+- **Trade Badging & CSV Export:** Display regime badges on trade logs in the Trades tab and include `Entry Regime` context in backtest CSV exports.
+
+## [0.60.10] - 2026-11-04
+**Paper Stock Position Identity**
+
+- **Ticker-Based Matching:** Match Paper stock positions by normalized ticker across instrument URLs in client and server fills, preventing alias URLs from splitting one holding into duplicate long and short rows.
+- **Ambiguous Legacy Rows:** Reject orders when multiple stored Paper position rows share a ticker instead of applying a fill to an arbitrary row.
+- **Regression Coverage:** Verify alias-URL buy-to-cover fills and rejection of ambiguous server-side fills.
+
+## [0.60.9] - 2026-11-04
+**Short Position Return Accuracy**
+
+- **Signed Return Percentages:** Preserve the P&L sign for short stock positions and calculate mixed long/short percentages against gross cost basis and prior market value.
+
+## [0.60.8] - 2026-11-03
+**Automatic Paper Quote Source Selection**
+
+- **Automatic Quote Feed:** Paper mode prefers the active Robinhood or Schwab account, then falls back to the first linked supported account. A pin override is shown only when multiple supported feeds are linked, or when correcting an unavailable saved pin.
+- **Isolation:** Quote-source selection does not switch the active account; simulated fills and exits remain in the Paper ledger, and Live orders continue to use the active account.
+- **Proposal Retry:** Transient trade-proposal call failures remain eligible for the next cycle and appear as retrying. Permanent callable failures are rejected rather than retried; brokerage submissions with an unknown outcome are not blindly replayed.
+
+## [0.60.7] - 2026-11-03
+**Paper Auto-Trade Exit Monitoring**
+
+- **Paper TP/SL Monitoring:** Fix simulated take-profit/stop-loss monitoring so it does not require a selected Live account. Paper exits still use the Paper ledger and configured quote source; Live monitoring still requires the selected account.
+- **Regression Coverage:** Verify Paper monitoring with no selected account and preserve the Live account requirement.
+
+## [0.60.6] - 2026-11-02
+**Independent Paper Quote Source & Background Scheduling**
+
+- **Paper Quote Source:** Configure Paper mode to follow the active brokerage or use a linked Robinhood or Schwab source independently of the account being viewed. Simulated fills remain in the separate Paper ledger; Live orders continue to use the active account.
+- **Background Scheduling:** Keep best-effort Workmanager checks eligible when the configured Paper quote source is linked, even when another brokerage is active. Auto-trading execution-mode and device-lifecycle acceptance tracked by [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
+
+## [0.60.5] - 2026-11-02
+**Paper Trading Account Clarity**
+
+- **Paper Mode Explanation:** Clarify that the selected brokerage supplies market quotes, while simulated cash, positions, and fills belong to the separate per-user Paper account. No real brokerage orders are placed in Paper mode.
+
+## [0.60.4] - 2026-11-02
+**Live Brokerage Switch Confirmation**
+
+- **Active Account Safety:** When automated trading is enabled in Live mode, switching the active brokerage from either the app-bar picker or brokerage profile requires explicit confirmation. The dialog explains that switching does not place an order, but future eligible cycles can route live orders through the newly selected account. Cancel keeps the current account selected; Paper mode and disabled auto-trading are unaffected. The underlying auto-trading acceptance work for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
+
+## [0.60.3] - 2026-11-02
+**Active Brokerage Selection Recovery, Return Attribution & Platform Hardening**
 
 - **Brinson-Fachler Sector Attribution:** The Performance section adds a Return Attribution card that splits today's active return vs. the selected benchmark into Allocation, Selection, and Interaction effects. The three effects always sum to the active return. Benchmark sector returns come from SPDR sector ETF quotes, and benchmark sector weights are approximate; custom benchmarks fall back to SPY weights and are labeled.
 - **Options Greeks & Income:** Estimates option P&L from Delta, Gamma, and Theta with a second-order Taylor approximation. Vega P&L is inferred from the remainder because prior implied volatility is not stored. Dividends and interest paid today are listed separately, and the UI discloses the approximation.
 - **Privacy, Export & Accessibility:** Dollar amounts follow balance masking while percentages stay visible. CSV export includes sector and Greek attribution tables. Rows have combined screen-reader labels, and the layout fits 320px screens. All calculations run on-device.
+- **Active Brokerage Selection Recovery ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):** Normalize the selected brokerage index after loading or removing linked accounts, preserve the active account when an earlier entry is removed, and report the active quote source when paper auto-trading is blocked. Physical-device lifecycle verification remains open.
+- **Security & Input Validation:** Require admin authorization for agentic-data seeding, validate role and market-data/order-sync inputs, and preserve authentication errors ([#281](https://github.com/CIInc/robinhood-options-mobile/issues/281), [#287](https://github.com/CIInc/robinhood-options-mobile/issues/287), [#291](https://github.com/CIInc/robinhood-options-mobile/issues/291), [#293](https://github.com/CIInc/robinhood-options-mobile/issues/293), [#300](https://github.com/CIInc/robinhood-options-mobile/issues/300)).
+- **Testability:** Pass the effective timestamp into wash-sale alert calculations for deterministic tests.
+- **Performance & Accessibility:** Reduce temporary allocations in rolling statistics, market-direction, ADX and GEX calculations, and add unified screen-reader semantics across portfolio, income, short-interest, and copy-trading cards ([#274](https://github.com/CIInc/robinhood-options-mobile/issues/274), [#276](https://github.com/CIInc/robinhood-options-mobile/issues/276), [#283](https://github.com/CIInc/robinhood-options-mobile/issues/283), [#286](https://github.com/CIInc/robinhood-options-mobile/issues/286), [#288](https://github.com/CIInc/robinhood-options-mobile/issues/288), [#289](https://github.com/CIInc/robinhood-options-mobile/issues/289), [#292](https://github.com/CIInc/robinhood-options-mobile/issues/292), [#294](https://github.com/CIInc/robinhood-options-mobile/issues/294), [#295](https://github.com/CIInc/robinhood-options-mobile/issues/295), [#296](https://github.com/CIInc/robinhood-options-mobile/issues/296), [#297](https://github.com/CIInc/robinhood-options-mobile/issues/297), [#299](https://github.com/CIInc/robinhood-options-mobile/issues/299)).
+- **Open Acceptance:** Return Attribution issue [#278](https://github.com/CIInc/robinhood-options-mobile/issues/278) remains open for completing and verifying its full income/yield scope; auto-trading issue [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open for physical-device and market-calendar acceptance.
 
 ## [0.60.2] - 2026-10-31
 **Schwab Auto-Trading Support & Physical-Device Verification**
