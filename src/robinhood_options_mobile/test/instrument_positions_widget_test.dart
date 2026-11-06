@@ -18,6 +18,65 @@ class FakeFirebaseAnalyticsObserver extends Fake
 class FakeGenerativeService extends Fake implements GenerativeService {}
 
 void main() {
+  test('short stock return percentages preserve the P&L sign', () {
+    final shortPosition = _position(
+      'mrk-id',
+      'MRK',
+      'Merck',
+      -100,
+      130,
+      147.71,
+      previousClose: 145,
+    );
+
+    expect(shortPosition.gainLoss, closeTo(-1771, 0.01));
+    expect(shortPosition.gainLossPercent, closeTo(-1771 / 13000, 0.000001));
+    expect(shortPosition.gainLossToday, closeTo(-271, 0.01));
+    expect(
+      shortPosition.gainLossPercentToday,
+      closeTo(-271 / 14500, 0.000001),
+    );
+  });
+
+  test('mixed long and short stock percentages use gross position basis', () {
+    final user = BrokerageUser(BrokerageSource.demo, 'test-user', null, null);
+    final positions = [
+      _position(
+        'fcx-id',
+        'FCX',
+        'Freeport-McMoRan',
+        100,
+        60,
+        63.26,
+        previousClose: 64.75,
+      ),
+      _position(
+        'mrk-id',
+        'MRK',
+        'Merck',
+        -100,
+        130,
+        147.71,
+        previousClose: 145,
+      ),
+    ];
+
+    expect(
+      user.getDisplayValueInstrumentPositions(
+        positions,
+        displayValue: DisplayValue.totalReturnPercent,
+      ),
+      closeTo(-1445 / 19000, 0.000001),
+    );
+    expect(
+      user.getDisplayValueInstrumentPositions(
+        positions,
+        displayValue: DisplayValue.todayReturnPercent,
+      ),
+      closeTo(-420 / 20975, 0.000001),
+    );
+  });
+
   testWidgets('renders positions list, share counts, and total market value',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);

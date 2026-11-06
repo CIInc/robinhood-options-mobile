@@ -116,11 +116,11 @@ void main() {
       );
       expect(
         find.text(
-          'Select a linked Robinhood or Schwab Paper quote source in Execution Settings.',
+          'Link Robinhood or Schwab to provide Paper quotes.',
         ),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('paperQuoteSource')), findsOneWidget);
+      expect(find.byKey(const ValueKey('paperQuoteSource')), findsNothing);
       expect(
         tester
             .widget<SwitchListTile>(
@@ -213,6 +213,11 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.textContaining('Automatically uses Robinhood for Paper quotes'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('paperQuoteSource')), findsNothing);
+      expect(
         tester
             .widget<SwitchListTile>(
                 find.byKey(const ValueKey('auto-trading-toggle')))
@@ -267,7 +272,7 @@ void main() {
         isNotNull,
       );
       expect(
-        find.textContaining('Choose the Paper quote source below'),
+        find.textContaining('Follows the active Robinhood account'),
         findsOneWidget,
       );
       expect(

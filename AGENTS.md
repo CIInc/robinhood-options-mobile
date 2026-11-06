@@ -37,8 +37,10 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
 
 3. **Auto-Trade & Order Execution Safeguards**
    - **Live-Quote BUY Guard:** `AgenticTradingProvider` validates stored signal prices against a fresh live quote before executing automatic or approved BUYs. Price deviations $> 3\%$ or quote-fetch failures block execution.
-   - **Paper Quote Source Isolation:** `AgenticTradingConfig.paperQuoteSource` controls Paper market data independently of `BrokerageUserStore.currentUser` when fixed to Robinhood or Schwab; Paper fills remain simulated, while Live orders use the active account. Keep settings and startup background eligibility aligned through `AgenticTradingProvider.canScheduleBackgroundAutoTrading`.
+   - **Paper Quote Source Isolation:** Automatic `AgenticTradingConfig.paperQuoteSource` prefers the active Robinhood/Schwab account, then falls back to the first linked supported account; optional fixed sources pin quotes when multiple feeds are linked. Paper fills remain simulated, while Live orders use the active account. Keep settings and startup background eligibility aligned through `AgenticTradingProvider.canScheduleBackgroundAutoTrading`.
    - **Paper TP/SL Exit Isolation:** In Paper mode, `account` is intentionally `null`; `AgenticTradingProvider.monitorTakeProfitStopLoss` must require the Paper ledger and quote-source context without requiring a Live account. Live exits still require the selected account, and Paper exits must remain simulated.
+   - **Paper Stock Position Identity:** Client and server Paper fills match positions by normalized ticker across instrument URLs. If legacy records contain multiple rows for one ticker, reject orders rather than mutate an arbitrary row; reconcile only from the Paper fill history.
+   - **Proposal Retry vs. Order Retry:** Retry only transient Cloud Function proposal failures; permanent errors are marked rejected. Do not blindly retry broker submissions with unknown outcomes; reconcile them through execution claims first.
    - **Authoritative Trade Sizing:** In Reasoning mode, when `enableDynamicPositionSizing` is `false`, the user's configured `tradeQuantity` is authoritative; AI-suggested sizing is used only when dynamic sizing is enabled, and `RiskGuard` limits always apply.
    - **Config Persistence Isolation:** `FirestoreService.updateUser` intentionally omits `agenticTradingConfig` and `futuresTradingConfig` so profile updates never overwrite trading settings with stale in-memory objects. Save trading configs only through their respective providers.
    - **Aggregate View Trading Block:** When viewing aggregated multi-account positions (`disableNavigation: true`), order placement and roll actions must remain disabled with a clear explanatory `SnackBar`.
@@ -46,6 +48,7 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
 
 4. **Balance Visibility & Social Privacy**
    - Respect `AccountStore` balance masking across all portfolio hero numbers, position rows, and chart components (`portfolio_chart_widget.dart` axes, range annotations, tooltips, and summary metrics).
+   - Preserve signed market value and dollar P&L for short stock positions; calculate return percentages against absolute position basis and gross aggregate basis so short losses cannot flip positive.
    - Cross-account tax and wash-sale correlation must run on-device over hydrated stores without leaking private multi-broker tax lots to shared Firestore collections.
 
 5. **Backend Security & Algorithmic Efficiency**

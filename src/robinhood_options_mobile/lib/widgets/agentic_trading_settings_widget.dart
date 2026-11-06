@@ -1321,8 +1321,8 @@ class _AgenticTradingSettingsWidgetState
               hasPaperQuoteSource
                   ? 'Paper quotes use the configured source, independently of the account you are viewing. Live orders use the active account and require Robinhood or Schwab.'
                   : hasBrokerage
-                      ? 'Choose a linked Robinhood or Schwab Paper quote source in Execution Settings. Live orders use the active account and require Robinhood or Schwab.'
-                      : 'Link a Robinhood or Schwab account to select a Paper quote source or enable automated Live execution. You can configure your strategy now.',
+                      ? 'Choose Automatic or link Robinhood or Schwab in Execution Settings to provide Paper quotes. Live orders use the active account and require Robinhood or Schwab.'
+                      : 'Link a Robinhood or Schwab account to provide Paper quotes or enable automated Live execution. You can configure your strategy now.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSecondaryContainer,
                   ),
@@ -1346,8 +1346,8 @@ class _AgenticTradingSettingsWidgetState
         title: const Text('Automated Paper Tests'),
         subtitle: Text(
           hasBrokerage
-              ? 'Link Robinhood or Schwab as the Paper quote source. Live orders require the active account to be Robinhood or Schwab.'
-              : 'Link a Robinhood or Schwab account to select a Paper quote source and run automated Paper tests.',
+              ? 'Link Robinhood or Schwab to provide Paper quotes. Live orders require the active account to be Robinhood or Schwab.'
+              : 'Link a Robinhood or Schwab account to provide Paper quotes and run automated Paper tests.',
         ),
       ),
     );
@@ -2087,6 +2087,10 @@ class _AgenticTradingSettingsWidgetState
           source: config.paperQuoteSource,
         ) !=
         null;
+    final hasAlternativePaperQuoteSource = brokerageUserStore.items.any(
+      (user) =>
+          AgenticTradingProvider.supportsAutoTradingBrokerage(user.source),
+    );
     final strategy = config.strategyConfig;
     final executionModeLabel =
         config.paperTradingMode ? 'Paper orders' : 'Live orders';
@@ -2100,7 +2104,10 @@ class _AgenticTradingSettingsWidgetState
                 (hasSupportedBrokerage || widget.service != null));
     final executionBlockReason = config.paperTradingMode
         ? !hasPaperQuoteSource
-            ? 'Select a linked Robinhood or Schwab Paper quote source in Execution Settings.'
+            ? config.paperQuoteSource != PaperQuoteSource.selectedBrokerage &&
+                    hasAlternativePaperQuoteSource
+                ? 'Pinned Paper quote source is unavailable. Choose Automatic or link the selected brokerage in Execution Settings.'
+                : 'Link Robinhood or Schwab to provide Paper quotes.'
             : !hasEntryCriteria
                 ? 'Choose at least one entry indicator to enable Systematic mode.'
                 : null
@@ -3541,24 +3548,51 @@ class _AgenticTradingSettingsWidgetState
     AgenticTradingProvider provider,
     Set<BrokerageSource> linkedQuoteSources,
     BrokerageSource? activeSource,
+    BrokerageSource? automaticSource,
   ) {
     final config = provider.config;
     final hasRobinhood = linkedQuoteSources.contains(BrokerageSource.robinhood);
     final hasSchwab = linkedQuoteSources.contains(BrokerageSource.schwab);
+    final pinnedBrokerageSource = switch (config.paperQuoteSource) {
+      PaperQuoteSource.selectedBrokerage => null,
+      PaperQuoteSource.robinhood => BrokerageSource.robinhood,
+      PaperQuoteSource.schwab => BrokerageSource.schwab,
+    };
+    final showPinSelector = linkedQuoteSources.length > 1 ||
+        (pinnedBrokerageSource != null &&
+            !linkedQuoteSources.contains(pinnedBrokerageSource));
     final activeLabel = switch (activeSource) {
       BrokerageSource.robinhood => 'Robinhood',
       BrokerageSource.schwab => 'Schwab',
       _ => 'unsupported brokerage',
+    };
+    final automaticLabel = switch (automaticSource) {
+      BrokerageSource.robinhood => 'Robinhood',
+      BrokerageSource.schwab => 'Schwab',
+      _ => null,
     };
     final quoteSourceLabel = switch (config.paperQuoteSource) {
       PaperQuoteSource.robinhood => 'Robinhood',
       PaperQuoteSource.schwab => 'Schwab',
       PaperQuoteSource.selectedBrokerage => null,
     };
+    if (!showPinSelector) {
+      if (automaticLabel == null) return const SizedBox.shrink();
+      final message = quoteSourceLabel == null
+          ? 'Automatically uses $automaticLabel for Paper quotes. Paper fills stay in your separate Paper account.'
+          : 'Uses $quoteSourceLabel quotes. Simulated trades stay in your separate Paper account.';
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Text(
+          message,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      );
+    }
     final items = <DropdownMenuItem<PaperQuoteSource>>[
       const DropdownMenuItem(
         value: PaperQuoteSource.selectedBrokerage,
-        child: Text('Follow selected brokerage'),
+        child: Text('Automatic'),
       ),
       if (hasRobinhood || config.paperQuoteSource == PaperQuoteSource.robinhood)
         DropdownMenuItem(
@@ -3596,9 +3630,7 @@ class _AgenticTradingSettingsWidgetState
           const SizedBox(height: 4),
           Text(
             quoteSourceLabel == null
-                ? 'Follows the $activeLabel account selected in the app bar. '
-                    'Choose a fixed source to keep Paper quotes independent '
-                    'of the account you are viewing.'
+                ? '${AgenticTradingProvider.supportsAutoTradingBrokerage(activeSource) ? 'Follows the active $activeLabel account' : 'Uses the first linked supported account because the active account cannot supply quotes'}. Pin a source to keep Paper quotes independent. Paper fills stay simulated; Live orders use the active account.'
                 : 'Uses $quoteSourceLabel quotes regardless of the account '
                     'you are viewing. Simulated trades stay in your separate '
                     'Paper account.',
@@ -3620,6 +3652,11 @@ class _AgenticTradingSettingsWidgetState
         .map((user) => user.source)
         .where(AgenticTradingProvider.supportsAutoTradingBrokerage)
         .toSet();
+    final automaticPaperQuoteSource =
+        AgenticTradingProvider.resolvePaperQuoteUser(
+      userStore: brokerageUserStore,
+      source: PaperQuoteSource.selectedBrokerage,
+    )?.source;
     final hasSupportedBrokerage = linkedQuoteSources.isNotEmpty;
     final canChangePaperMode = hasSupportedBrokerage ||
         (hasBrokerage &&
@@ -3642,8 +3679,8 @@ class _AgenticTradingSettingsWidgetState
             'paperTradingMode',
             'Paper Trading Mode',
             hasSupportedBrokerage
-                ? 'Choose the Paper quote source below, independently of the account you are viewing. Paper cash, positions and fills stay separate; no real orders are placed.'
-                : 'Select Robinhood or Schwab to run this automated paper strategy test. Paper orders remain simulated.',
+                ? 'Paper quotes automatically use the active supported account, otherwise the first linked feed.${linkedQuoteSources.length > 1 ? ' Pin a source below to override.' : ''} Paper cash, positions and fills stay separate; no real orders are placed.'
+                : 'Link Robinhood or Schwab to provide Paper quotes. Paper orders remain simulated.',
             agenticTradingProvider,
             value: agenticTradingProvider.config.paperTradingMode,
             onChanged: !canChangePaperMode
@@ -3721,6 +3758,7 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider,
             linkedQuoteSources,
             selectedBrokerage?.source,
+            automaticPaperQuoteSource,
           ),
 
         // Require Approval
@@ -5054,6 +5092,7 @@ class _AgenticTradingSettingsWidgetState
                 final strength =
                     s['multiIndicatorResult']?['signalStrength'] as int?;
                 final isAccepted = s['processedStatus'] == 'Accepted';
+                final isRetrying = s['processedStatus'] == 'Retry';
                 final rejectionReason = s['rejectionReason'] as String?;
                 final optimization = s['optimization'] as Map<String, dynamic>?;
                 final price = s['currentPrice'];
@@ -5077,8 +5116,16 @@ class _AgenticTradingSettingsWidgetState
                         Row(
                           children: [
                             Icon(
-                              isAccepted ? Icons.check_circle : Icons.cancel,
-                              color: isAccepted ? Colors.green : Colors.red,
+                              isAccepted
+                                  ? Icons.check_circle
+                                  : isRetrying
+                                      ? Icons.schedule
+                                      : Icons.cancel,
+                              color: isAccepted
+                                  ? Colors.green
+                                  : isRetrying
+                                      ? Colors.orange
+                                      : Colors.red,
                               size: 18,
                             ),
                             const SizedBox(width: 8),
@@ -5132,7 +5179,9 @@ class _AgenticTradingSettingsWidgetState
                             child: Text(
                               rejectionReason,
                               style: TextStyle(
-                                color: colorScheme.error,
+                                color: isRetrying
+                                    ? Colors.orange
+                                    : colorScheme.error,
                                 fontSize: 12,
                               ),
                             ),
