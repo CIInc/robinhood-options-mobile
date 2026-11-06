@@ -260,6 +260,10 @@ export async function performFuturesSignal(request: any) {
   };
 }
 
+const ALLOWED_INTERVALS = new Set(["15m", "30m", "1h", "1d"]);
+const SYMBOL_REGEX = /^[A-Z0-9^=.-]{1,15}$/i;
+const CONTRACT_ID_REGEX = /^[A-Za-z0-9_-]{1,50}$/;
+
 export const getFuturesSignals = onCall(async (request) => {
   if (!request.auth || !request.auth.uid) {
     throw new HttpsError(
@@ -267,9 +271,41 @@ export const getFuturesSignals = onCall(async (request) => {
       "Authentication is required to get futures signals."
     );
   }
+
+  const data = request.data || {};
+  const symbol = typeof data.symbol === "string" ? data.symbol.trim() : "";
+  const contractId = typeof data.contractId === "string" ?
+    data.contractId.trim() : "";
+  const interval = typeof data.interval === "string" ?
+    data.interval.trim() : "1h";
+
+  if (!symbol || !SYMBOL_REGEX.test(symbol)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Valid symbol is required."
+    );
+  }
+
+  if (!contractId || !CONTRACT_ID_REGEX.test(contractId)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Valid contractId is required."
+    );
+  }
+
+  if (!ALLOWED_INTERVALS.has(interval)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Invalid interval '${interval}'. Allowed: 15m, 30m, 1h, 1d.`
+    );
+  }
+
   try {
     return await performFuturesSignal(request);
   } catch (err) {
+    if (err instanceof HttpsError) {
+      throw err;
+    }
     logger.error("getFuturesSignals failed", err);
     return { status: "error", message: (err as Error).message };
   }

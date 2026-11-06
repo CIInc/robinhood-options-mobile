@@ -74,4 +74,46 @@ describe("getFuturesSignals callable authentication", () => {
     expect(result).toBeDefined();
     expect(result.status).not.toBe("error");
   });
+
+  it("rejects invalid or missing symbol", async () => {
+    const badSymbolRequest = {
+      data: { symbol: "INVALID_SYMBOL$$$", contractId: "ESM24" },
+      auth: { uid: "user123" } as any,
+    };
+
+    await expect(
+      (getFuturesSignals as any).run(badSymbolRequest)
+    ).rejects.toThrow(
+      new HttpsError("invalid-argument", "Valid symbol is required.")
+    );
+  });
+
+  it("rejects invalid or path-traversal contractId", async () => {
+    const pathTraversalRequest = {
+      data: { symbol: "ES=F", contractId: "../unexpected_doc" },
+      auth: { uid: "user123" } as any,
+    };
+
+    await expect(
+      (getFuturesSignals as any).run(pathTraversalRequest)
+    ).rejects.toThrow(
+      new HttpsError("invalid-argument", "Valid contractId is required.")
+    );
+  });
+
+  it("rejects unsupported interval", async () => {
+    const badIntervalRequest = {
+      data: { symbol: "ES=F", contractId: "ESM24", interval: "2h" },
+      auth: { uid: "user123" } as any,
+    };
+
+    await expect(
+      (getFuturesSignals as any).run(badIntervalRequest)
+    ).rejects.toThrow(
+      new HttpsError(
+        "invalid-argument",
+        "Invalid interval '2h'. Allowed: 15m, 30m, 1h, 1d."
+      )
+    );
+  });
 });
