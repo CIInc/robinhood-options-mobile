@@ -678,7 +678,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
               child: Text(
-                  "Opened ${formatDate.format(optionPosition.createdAt!)}",
+                  "Opened ${formatLocalDateTime(optionPosition.createdAt!)}",
                   style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).colorScheme.outline),

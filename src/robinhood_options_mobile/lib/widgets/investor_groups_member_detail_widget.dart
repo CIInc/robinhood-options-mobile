@@ -4,6 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -746,7 +747,6 @@ class _InvestorGroupsMemberDetailWidgetState
         }
 
         final formatCurrency = NumberFormat.simpleCurrency();
-        final formatDate = DateFormat('yyyy-MM-dd');
         final formatCompactDate = DateFormat('MMM d');
         final formatCompactDate2 = DateFormat('MMM d, yy');
 
@@ -812,7 +812,7 @@ class _InvestorGroupsMemberDetailWidgetState
             }
 
             final dateStr =
-                o.updatedAt != null ? formatDate.format(o.updatedAt!) : '';
+                o.updatedAt != null ? formatLocalDateTime(o.updatedAt!) : '';
 
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -1089,7 +1089,6 @@ class _InvestorGroupsMemberDetailWidgetState
         _fetchMissingInstruments(orders);
 
         final formatCurrency = NumberFormat.simpleCurrency();
-        final formatDate = DateFormat('yyyy-MM-dd');
 
         return ListView.builder(
           shrinkWrap: true,
@@ -1125,7 +1124,7 @@ class _InvestorGroupsMemberDetailWidgetState
                 : '';
 
             final dateStr =
-                o.updatedAt != null ? formatDate.format(o.updatedAt!) : '';
+                o.updatedAt != null ? formatLocalDateTime(o.updatedAt!) : '';
 
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),

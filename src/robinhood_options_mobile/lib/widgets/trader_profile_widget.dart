@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -772,7 +771,6 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
     DocumentReference<User> userDocRef,
   ) {
     final theme = Theme.of(context);
-    final formatCompactDate = DateFormat('MMM d, h:mm a');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -879,7 +877,7 @@ class _TraderProfileWidgetState extends State<TraderProfileWidget> {
                       final companyName = order.instrumentObj?.simpleName ??
                           order.instrumentObj?.name;
                       final dateStr = order.createdAt != null
-                          ? formatCompactDate.format(order.createdAt!)
+                          ? formatLocalDateTime(order.createdAt!)
                           : '';
                       final subtitleText = companyName != null &&
                               companyName.isNotEmpty &&

@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.61.0] - 2026-11-05 (pre-release)
+**Macro-Regime Backtesting, Safer Auto-Trading Diagnostics & Mobile Polish**
+
 **Macro Regime & Walk-Forward Strategy Backtest Attribution ([#273](https://github.com/CIInc/robinhood-options-mobile/issues/273))**
 
 - **Macro Regime Classification:** Tag every simulated trade entry in `functions/src/backtesting.ts` with its market regime context (`BULL_LOW_VOL`, `BULL_HIGH_VOL`, `BEAR_LOW_VOL`, `BEAR_HIGH_VOL`) derived from benchmark trend (50-bar SMA) and normalized volatility (14-bar NATR) in $O(1)$ amortized two-pointer time without extra API calls.
@@ -10,6 +12,11 @@ All notable changes to this project will be documented in this file.
 - **Walk-Forward Validation:** Implement chronological 70/30 In-Sample vs. Out-of-Sample stability analysis comparing Sharpe and Profit Factor retention to flag curve-fitting risk (`ROBUST`, `MODERATE`, `OVERFITTED`, `INSUFFICIENT_DATA`).
 - **Interactive Mobile UI:** Surface an interactive `RegimeAttributionCard` in `BacktestingWidget` featuring walk-forward stability badges, metrics retention table, and responsive 4-quadrant regime attribution tiles down to 320px viewports with screen-reader semantics.
 - **Trade Badging & CSV Export:** Display regime badges on trade logs in the Trades tab and include `Entry Regime` context in backtest CSV exports.
+
+- **Auto-Trade Cycle Diagnostics:** Add authenticated, allowlisted Cloud Logging events for cycle outcomes and bounded counters. Signal-fetch failures are distinguished from empty results, and start telemetry is non-blocking.
+- **Transaction Timestamps:** Show local date and time for order and trade event timestamps while keeping calendar-only dates date-only.
+- **Options-Flow Validation:** Bound and validate options-flow request inputs.
+- **Accessibility & Performance:** Unify screen-reader semantics for quantitative metric cards and optimize Williams %R evaluation with a monotonic sliding window.
 
 ## [0.60.10] - 2026-11-04
 **Paper Stock Position Identity**

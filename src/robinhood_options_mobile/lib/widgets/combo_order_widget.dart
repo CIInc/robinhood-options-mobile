@@ -323,10 +323,10 @@ class _ComboOrderWidgetState extends State<ComboOrderWidget> {
                       _buildDataRow('Ref ID', order.refId, theme),
                     if (order.createdAt != null)
                       _buildDataRow('Submitted',
-                          formatMediumDate.format(order.createdAt!), theme),
+                          formatLocalDateTime(order.createdAt!), theme),
                     if (order.updatedAt != null)
                       _buildDataRow('Updated',
-                          formatMediumDate.format(order.updatedAt!), theme),
+                          formatLocalDateTime(order.updatedAt!), theme),
                   ],
                 ),
               ),

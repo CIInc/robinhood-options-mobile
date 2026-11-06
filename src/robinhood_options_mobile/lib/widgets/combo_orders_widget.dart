@@ -247,7 +247,7 @@ class _ComboOrdersWidgetState extends State<ComboOrdersWidget> {
             ),
             if (order.createdAt != null)
               Text(
-                formatMediumDate.format(order.createdAt!),
+                formatLocalDateTime(order.createdAt!),
                 style: TextStyle(
                   fontSize: 11,
                   color:

@@ -156,7 +156,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
           var subtitle =
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}"),
+                "${optionOrder.state.capitalize()} ${formatLocalDateTime(optionOrder.updatedAt!)}"),
             if (optionOrder.optionEvents != null) ...[
               Text(
                 "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",

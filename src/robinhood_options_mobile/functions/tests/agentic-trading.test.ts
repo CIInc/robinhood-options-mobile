@@ -23,6 +23,7 @@ jest.mock("../src/market-data", () => ({
 }));
 
 import {
+  logAgenticTradingCycle,
   initiateTradeProposal,
   seedAgenticTrading,
 } from "../src/agentic-trading";
@@ -68,6 +69,68 @@ describe("agentic-trading callable functions auth checks", () => {
       authenticatedRequest
     );
     expect(response).toEqual({ status: "success" });
+  });
+
+  test("logAgenticTradingCycle rejects unauthenticated requests", async () => {
+    await expect(
+      (logAgenticTradingCycle as any).run({
+        auth: null,
+        data: {
+          cycleId: "cycle_12345678",
+          phase: "started",
+          trigger: "background",
+          reason: "cycle_started",
+        },
+      })
+    ).rejects.toMatchObject({ code: "unauthenticated" });
+  });
+
+  test("logAgenticTradingCycle records a safe summary", async () => {
+    const response = await (logAgenticTradingCycle as any).run({
+      auth: { uid: "user123", token: {} },
+      data: {
+        cycleId: "cycle_12345678",
+        phase: "blocked",
+        trigger: "background",
+        reason: "cycle_blocked",
+        paperMode: true,
+        tradingMode: "reasoning",
+        quoteSource: "robinhood",
+        signalsFetched: 0,
+      },
+    });
+
+    expect(response).toEqual({ recorded: true });
+  });
+
+  test("logAgenticTradingCycle accepts signal fetch failures", async () => {
+    const response = await (logAgenticTradingCycle as any).run({
+      auth: { uid: "user123", token: {} },
+      data: {
+        cycleId: "cycle_12345678",
+        phase: "failed",
+        trigger: "foreground",
+        reason: "signal_fetch_failed",
+      },
+    });
+
+    expect(response).toEqual({ recorded: true });
+  });
+
+  test("logAgenticTradingCycle rejects invalid input", async () => {
+    const callFn = () =>
+      (logAgenticTradingCycle as any).run({
+        auth: { uid: "user123", token: {} },
+        data: {
+          cycleId: "cycle_12345678",
+          phase: "blocked",
+          trigger: "background",
+          reason: "some raw error with private data",
+          signalsFetched: 10001,
+        },
+      });
+
+    await expect(callFn()).rejects.toMatchObject({ code: "invalid-argument" });
   });
 
   test("seedAgenticTrading rejects non-admin user", async () => {

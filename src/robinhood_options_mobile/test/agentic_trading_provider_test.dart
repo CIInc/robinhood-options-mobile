@@ -1673,6 +1673,62 @@ void main() {
       expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
     });
 
+    test('cycle diagnostics distinguish blocked, empty, and rejected signals',
+        () {
+      expect(
+        AgenticTradingProvider.cycleDiagnosticOutcome(
+          blocked: true,
+          signalsEvaluated: 2,
+          signalsAccepted: 1,
+        ),
+        (phase: 'blocked', reason: 'cycle_blocked'),
+      );
+      expect(
+        AgenticTradingProvider.cycleDiagnosticOutcome(
+          blocked: false,
+          signalsEvaluated: 0,
+          signalsAccepted: 0,
+        ),
+        (phase: 'completed', reason: 'no_signals'),
+      );
+      expect(
+        AgenticTradingProvider.cycleDiagnosticOutcome(
+          blocked: false,
+          signalsEvaluated: 0,
+          signalsAccepted: 0,
+          fetchFailed: true,
+        ),
+        (phase: 'failed', reason: 'signal_fetch_failed'),
+      );
+      expect(
+        AgenticTradingProvider.cycleDiagnosticOutcome(
+          blocked: false,
+          signalsEvaluated: 2,
+          signalsAccepted: 0,
+        ),
+        (phase: 'completed', reason: 'no_qualified_signals'),
+      );
+      expect(
+        AgenticTradingProvider.cycleDiagnosticOutcome(
+          blocked: true,
+          signalsEvaluated: 0,
+          signalsAccepted: 0,
+          fetchFailed: true,
+        ),
+        (phase: 'blocked', reason: 'cycle_blocked'),
+      );
+    });
+
+    test('cycle diagnostics count accepted signals awaiting approval', () {
+      expect(
+        AgenticTradingProvider.countAcceptedCycleSignals([
+          {'processedStatus': 'Accepted'},
+          {'processedStatus': 'Rejected'},
+        ]),
+        1,
+      );
+    });
+
     test('an evaluated cycle consumes its signals', () {
       provider
           .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});

@@ -76,6 +76,78 @@ class AgenticTradingProvider with ChangeNotifier {
     loadCachedMacroAssessment();
   }
 
+  static String createCycleDiagnosticId() => const Uuid().v4();
+
+  @visibleForTesting
+  static int countAcceptedCycleSignals(dynamic processedSignals) {
+    if (processedSignals is! List) return 0;
+    return processedSignals
+        .whereType<Map>()
+        .where((signal) => signal['processedStatus'] == 'Accepted')
+        .length;
+  }
+
+  @visibleForTesting
+  static ({String phase, String reason}) cycleDiagnosticOutcome({
+    required bool blocked,
+    required int signalsEvaluated,
+    required int signalsAccepted,
+    bool fetchFailed = false,
+  }) {
+    if (blocked) return (phase: 'blocked', reason: 'cycle_blocked');
+    if (fetchFailed) return (phase: 'failed', reason: 'signal_fetch_failed');
+    if (signalsEvaluated == 0) {
+      return (phase: 'completed', reason: 'no_signals');
+    }
+    if (signalsAccepted == 0) {
+      return (phase: 'completed', reason: 'no_qualified_signals');
+    }
+    return (phase: 'completed', reason: 'cycle_completed');
+  }
+
+  static Future<void> logCycleDiagnostic({
+    required String cycleId,
+    required String phase,
+    required String trigger,
+    required String reason,
+    bool? paperMode,
+    String? tradingMode,
+    String? quoteSource,
+    int? signalsFetched,
+    int? signalsEvaluated,
+    int? signalsAccepted,
+    int? ordersExecuted,
+    int? positionsMonitored,
+    int? exitsExecuted,
+    int? durationMs,
+  }) async {
+    final data = <String, dynamic>{
+      'cycleId': cycleId,
+      'phase': phase,
+      'trigger': trigger,
+      'reason': reason,
+      if (paperMode != null) 'paperMode': paperMode,
+      if (tradingMode != null) 'tradingMode': tradingMode,
+      if (quoteSource != null) 'quoteSource': quoteSource,
+      if (signalsFetched != null) 'signalsFetched': signalsFetched,
+      if (signalsEvaluated != null) 'signalsEvaluated': signalsEvaluated,
+      if (signalsAccepted != null) 'signalsAccepted': signalsAccepted,
+      if (ordersExecuted != null) 'ordersExecuted': ordersExecuted,
+      if (positionsMonitored != null) 'positionsMonitored': positionsMonitored,
+      if (exitsExecuted != null) 'exitsExecuted': exitsExecuted,
+      if (durationMs != null) 'durationMs': durationMs,
+    };
+
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('logAgenticTradingCycle')
+          .call(data)
+          .timeout(const Duration(seconds: 4));
+    } catch (error) {
+      debugPrint('Auto-trade diagnostics unavailable: ${error.runtimeType}');
+    }
+  }
+
   // Constants
   static const int _tradeDelaySeconds =
       2; // Delay between auto-trades to avoid rate limiting
@@ -477,24 +549,75 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic brokerageService,
     DocumentReference? userDocRef,
     AgenticTradingCycleDependencies? dependencies,
+    String trigger = 'foreground',
+    String? cycleId,
+    bool logStarted = true,
   }) async {
+    final diagnosticCycleId = cycleId ?? createCycleDiagnosticId();
+    final cycleStartedAt = DateTime.now();
+    var diagnosticPhase = 'completed';
+    var diagnosticReason = 'cycle_completed';
+    int? signalsFetched;
+    int? signalsEvaluated;
+    int? signalsAccepted;
+    int? ordersExecuted;
+    int? positionsMonitored;
+    int? exitsExecuted;
+
     if (_isAutoTrading) {
       _log('⚠️ Auto-trade cycle already in progress');
+      await logCycleDiagnostic(
+        cycleId: diagnosticCycleId,
+        phase: 'blocked',
+        trigger: trigger,
+        reason: 'cycle_in_progress',
+        paperMode: _config.paperTradingMode,
+        tradingMode: _config.tradingMode.name,
+        quoteSource: _config.paperQuoteSource.name,
+      );
       return;
     }
 
     final cycleLeaseId = await claimAutoTradeCycleLease(userDocRef);
-    if (cycleLeaseId == null) return;
+    if (cycleLeaseId == null) {
+      await logCycleDiagnostic(
+        cycleId: diagnosticCycleId,
+        phase: 'blocked',
+        trigger: trigger,
+        reason: 'lease_unavailable',
+        paperMode: _config.paperTradingMode,
+        tradingMode: _config.tradingMode.name,
+        quoteSource: _config.paperQuoteSource.name,
+      );
+      return;
+    }
 
     try {
       _log('🤖 Starting auto-trade cycle...');
-      if (await _shouldHaltForEmergencyStop(userDocRef)) return;
+      if (logStarted) {
+        unawaited(logCycleDiagnostic(
+          cycleId: diagnosticCycleId,
+          phase: 'started',
+          trigger: trigger,
+          reason: 'cycle_started',
+          paperMode: _config.paperTradingMode,
+          tradingMode: _config.tradingMode.name,
+          quoteSource: _config.paperQuoteSource.name,
+        ));
+      }
+      if (await _shouldHaltForEmergencyStop(userDocRef)) {
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'emergency_stop';
+        return;
+      }
       final cycleDependencies = dependencies ??
           (context == null
               ? null
               : AgenticTradingCycleDependencies.fromContext(context));
       if (cycleDependencies == null) {
         _log('⚠️ Auto-trade cycle requires dependencies or a BuildContext');
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'missing_dependencies';
         return;
       }
       final userStore = cycleDependencies.userStore;
@@ -510,6 +633,8 @@ class AgenticTradingProvider with ChangeNotifier {
       final autoTradeEnabled = _config.autoTradeEnabled;
       if (!autoTradeEnabled) {
         _log('🤖 Auto-trade check: disabled in config');
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'auto_trade_disabled';
         return;
       }
 
@@ -523,6 +648,8 @@ class AgenticTradingProvider with ChangeNotifier {
               userStore.currentUser == null ||
               accountStore.items.isEmpty)) {
         _log('❌ Auto-trade check: missing user or account data');
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'missing_live_account';
         return;
       }
 
@@ -536,6 +663,8 @@ class AgenticTradingProvider with ChangeNotifier {
       final selectedAccount = isPaperMode ? null : accountStore.selectedAccount;
       if (!isPaperMode && activeUser == null) {
         _log('❌ Auto-trade check: currentUser is null');
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'missing_live_account';
         return;
       }
       if (isPaperMode && currentUser == null) {
@@ -555,6 +684,8 @@ class AgenticTradingProvider with ChangeNotifier {
           'trades': <dynamic>[],
           'blocked': true,
         });
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'quote_source_unavailable';
         return;
       }
       final cycleBrokerageService = isPaperMode && currentUser != null
@@ -562,6 +693,8 @@ class AgenticTradingProvider with ChangeNotifier {
           : brokerageService;
       if (isPaperMode && cycleBrokerageService == null) {
         _log('⏭️ Paper quote source service is unavailable');
+        diagnosticPhase = 'blocked';
+        diagnosticReason = 'quote_service_unavailable';
         return;
       }
 
@@ -712,6 +845,7 @@ class AgenticTradingProvider with ChangeNotifier {
       }
       _log(
           '📡 Fetched ${tradeSignals.length} signals (${matchByIndicators ? "by enabled indicators" : "overall BUY"})');
+      signalsFetched = tradeSignals.length;
 
       // Filter out already processed signals (deduplication)
       final originalCount = tradeSignals.length;
@@ -730,6 +864,7 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       _log('📥 Processing ${tradeSignals.length} new signals');
+      signalsEvaluated = tradeSignals.length;
 
       final result = await autoTrade(
         tradeSignals: tradeSignals,
@@ -748,6 +883,16 @@ class AgenticTradingProvider with ChangeNotifier {
       // A blocked cycle (market closed, daily limit, cooldown) never evaluated
       // these signals, so they must stay eligible for the next cycle.
       rememberProcessedSignals(tradeSignals, result);
+      signalsAccepted = countAcceptedCycleSignals(result['processedSignals']);
+      final outcome = cycleDiagnosticOutcome(
+        blocked: result['blocked'] == true,
+        signalsEvaluated: signalsEvaluated,
+        signalsAccepted: signalsAccepted,
+        fetchFailed: fetchError != null,
+      );
+      diagnosticPhase = outcome.phase;
+      diagnosticReason = outcome.reason;
+      ordersExecuted = (result['tradesExecuted'] as int?) ?? 0;
 
       if (result['tradesExecuted'] > 0) {
         final count = result['tradesExecuted'];
@@ -777,6 +922,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final positionsToMonitor = isPaperMode
           ? paperTradingStore.positions
           : instrumentPositionStore.items;
+      positionsMonitored = positionsToMonitor.length;
 
       if (positionsToMonitor.isNotEmpty) {
         // _log('📊 Monitoring ${positionsToMonitor.length} positions for TP/SL');
@@ -792,6 +938,7 @@ class AgenticTradingProvider with ChangeNotifier {
         // _log(
         //     '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
         if (tpSlResult['exitsExecuted'] > 0) {
+          exitsExecuted = tpSlResult['exitsExecuted'] as int;
           _log('📊 TP/SL result: ${tpSlResult['message']}');
 
           // Merge exits into result for Last Execution display
@@ -802,6 +949,7 @@ class AgenticTradingProvider with ChangeNotifier {
           result['trades'] = allTrades;
           result['tradesExecuted'] = (result['tradesExecuted'] as int? ?? 0) +
               (tpSlResult['exitsExecuted'] as int);
+          ordersExecuted = result['tradesExecuted'] as int;
 
           if (tpSlResult['message'] != null &&
               tpSlResult['message'] != 'No exits required') {
@@ -830,8 +978,30 @@ class AgenticTradingProvider with ChangeNotifier {
       _log('✅ Auto-trade cycle complete.');
     } catch (e) {
       _log('❌ Auto-trade error: $e');
+      diagnosticPhase = 'failed';
+      diagnosticReason = 'cycle_error';
     } finally {
       await releaseAutoTradeCycleLease(userDocRef, cycleLeaseId);
+      await logCycleDiagnostic(
+        cycleId: diagnosticCycleId,
+        phase: diagnosticPhase,
+        trigger: trigger,
+        reason: diagnosticReason,
+        paperMode: _config.paperTradingMode,
+        tradingMode: _config.tradingMode.name,
+        quoteSource: _config.paperQuoteSource.name,
+        signalsFetched: signalsFetched,
+        signalsEvaluated: signalsEvaluated,
+        signalsAccepted: signalsAccepted,
+        ordersExecuted: ordersExecuted,
+        positionsMonitored: positionsMonitored,
+        exitsExecuted: exitsExecuted,
+        durationMs: DateTime.now()
+            .difference(cycleStartedAt)
+            .inMilliseconds
+            .clamp(0, 300000)
+            .toInt(),
+      );
     }
   }
 

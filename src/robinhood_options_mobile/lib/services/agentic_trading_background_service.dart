@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show DartPluginRegistrant;
 
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -10,6 +11,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/firebase_options.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
@@ -30,6 +32,7 @@ import 'package:workmanager/workmanager.dart';
 class AgenticTradingBackgroundService {
   static const taskName = 'com.cidevelop.robinhoodOptionsMobile.agenticTrading';
   static const frequency = Duration(minutes: 15);
+  static String? _activeCycleDiagnosticId;
 
   @visibleForTesting
   static IBrokerageService? brokerageServiceForSource(
@@ -80,6 +83,7 @@ class AgenticTradingBackgroundService {
   }
 
   static Future<bool> runOnce() async {
+    _activeCycleDiagnosticId = null;
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -98,11 +102,35 @@ class AgenticTradingBackgroundService {
         .timeout(const Duration(seconds: 10));
     if (firebaseUser == null) return true;
 
+    final cycleId = AgenticTradingProvider.createCycleDiagnosticId();
+    _activeCycleDiagnosticId = cycleId;
+    Future<void> reportCycle({
+      required String phase,
+      required String reason,
+      AgenticTradingConfig? config,
+    }) =>
+        AgenticTradingProvider.logCycleDiagnostic(
+          cycleId: cycleId,
+          phase: phase,
+          trigger: 'background',
+          reason: reason,
+          paperMode: config?.paperTradingMode,
+          tradingMode: config?.tradingMode.name,
+          quoteSource: config?.paperQuoteSource.name,
+        );
+
+    unawaited(reportCycle(phase: 'started', reason: 'cycle_started'));
+
     final userDocRef = FirestoreService().userCollection.doc(firebaseUser.uid);
     final userSnapshot = await userDocRef.get();
     final user = userSnapshot.data();
     final config = user?.agenticTradingConfig;
     if (config == null || !config.autoTradeEnabled) {
+      await reportCycle(
+        phase: 'blocked',
+        reason: config == null ? 'config_missing' : 'auto_trade_disabled',
+        config: config,
+      );
       await syncScheduling(enabled: false);
       return true;
     }
@@ -116,16 +144,35 @@ class AgenticTradingBackgroundService {
           )
         : brokerageUserStore.currentUser;
     if (brokerageUser == null) {
+      await reportCycle(
+        phase: 'blocked',
+        reason: config.paperTradingMode
+            ? 'quote_source_unavailable'
+            : 'account_unavailable',
+        config: config,
+      );
       await syncScheduling(enabled: false);
       return true;
     }
     final brokerageService = brokerageServiceForSource(brokerageUser.source);
     if (brokerageService == null) {
+      await reportCycle(
+        phase: 'blocked',
+        reason: 'quote_service_unavailable',
+        config: config,
+      );
       await syncScheduling(enabled: false);
       return true;
     }
     brokerageUser.ensureOAuth2Client();
-    if (brokerageUser.oauth2Client == null) return false;
+    if (brokerageUser.oauth2Client == null) {
+      await reportCycle(
+        phase: 'blocked',
+        reason: 'oauth_unavailable',
+        config: config,
+      );
+      return false;
+    }
 
     final accountStore = AccountStore();
     final portfolioStore = PortfolioStore();
@@ -149,7 +196,14 @@ class AgenticTradingBackgroundService {
       optionPositionStore,
       instrumentPositionStore: instrumentPositionStore,
     );
-    if (accounts.isEmpty) return false;
+    if (accounts.isEmpty) {
+      await reportCycle(
+        phase: 'blocked',
+        reason: 'account_unavailable',
+        config: config,
+      );
+      return false;
+    }
     brokerageUser.accounts = accounts;
     if (accountStore.selectedAccountNumber == null ||
         !accounts.any((account) =>
@@ -212,6 +266,11 @@ class AgenticTradingBackgroundService {
       quoteStore.dispose();
       paperStore.dispose();
       tradeSignalsProvider.dispose();
+      await reportCycle(
+        phase: 'blocked',
+        reason: 'market_closed',
+        config: config,
+      );
       return true;
     }
 
@@ -247,6 +306,11 @@ class AgenticTradingBackgroundService {
           updatedAt: quote?.updatedAt,
           price: quote?.lastTradePrice ?? quote?.lastExtendedHoursTradePrice,
         )) {
+          await reportCycle(
+            phase: 'blocked',
+            reason: 'stale_quote',
+            config: config,
+          );
           return false;
         }
       }
@@ -258,6 +322,11 @@ class AgenticTradingBackgroundService {
           updatedAt: quote?.updatedAt,
           price: quote?.lastTradePrice ?? quote?.lastExtendedHoursTradePrice,
         )) {
+          await reportCycle(
+            phase: 'blocked',
+            reason: 'stale_quote',
+            config: config,
+          );
           return false;
         }
       }
@@ -279,6 +348,9 @@ class AgenticTradingBackgroundService {
       brokerageService: brokerageService,
       userDocRef: userDocRef,
       dependencies: dependencies,
+      trigger: 'background',
+      cycleId: cycleId,
+      logStarted: false,
     );
     provider.dispose();
     brokerageUserStore.dispose();
@@ -303,6 +375,15 @@ void agenticTradingBackgroundDispatcher() {
     try {
       return await AgenticTradingBackgroundService.runOnce();
     } catch (error) {
+      final cycleId = AgenticTradingBackgroundService._activeCycleDiagnosticId;
+      if (cycleId != null) {
+        await AgenticTradingProvider.logCycleDiagnostic(
+          cycleId: cycleId,
+          phase: 'failed',
+          trigger: 'background',
+          reason: 'cycle_error',
+        );
+      }
       debugPrint('Agentic background cycle failed: $error');
       return false;
     }

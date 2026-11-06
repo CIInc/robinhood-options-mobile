@@ -42,6 +42,12 @@ Market-close exits can be evaluated by a foreground cycle or a background check 
 
 The session date uses Eastern Time and handles DST, standard NYSE holidays, and recurring 1:00 p.m. early closes on July 3, Christmas Eve, and the day after Thanksgiving. Unscheduled exchange closures are not represented and require manual verification. Status records are stored per user, tracked trade, and session date. Missed exits are not retried after the market closes. The emergency stop is stored on the user document and checked before each order submission; if its state cannot be loaded or the user-document reference is unavailable, the auto-trade cycle fails closed. A request already submitted to a brokerage cannot be recalled by activating the stop.
 
+## Cycle Diagnostics
+
+Foreground and Workmanager cycles report sanitized summaries through the authenticated `logAgenticTradingCycle` callable. The server validates phase, trigger, reason, execution mode, quote source, and bounded counters before writing a structured Cloud Logging entry. Events include the authenticated user ID and a per-cycle ID, but never symbols, prices, quantities, portfolio data, brokerage credentials, or raw exception messages.
+
+The `started` event is best-effort and does not block emergency-stop checks or cycle setup. Terminal events distinguish blocked, failed, and completed cycles; `signal_fetch_failed` identifies a failed Firestore signal query separately from a successful query with no signals. Diagnostic delivery is best-effort and must not be used as an execution or order-state source of truth.
+
 ## Architecture
 
 ### Components

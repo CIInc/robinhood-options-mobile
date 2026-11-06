@@ -6451,7 +6451,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     fontSize: 16.0,
                                     fontWeight: FontWeight.w500)),
                             subtitle: Text(
-                                "${order.state} ${formatDate.format(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
+                                "${order.state} ${formatLocalDateTime(order.updatedAt!)}${order.trailingPeg != null ? "\nTrailing: ${order.trailingPeg!['percentage'] != null ? "${order.trailingPeg!['percentage']}%" : (order.trailingPeg!['price'] != null ? formatCompactNumber.format(double.tryParse(order.trailingPeg!['price']['amount'] ?? "0")) : "")}" : ""}",
                                 style: TextStyle(
                                     fontSize: 14,
                                     color: Theme.of(context)
@@ -6596,7 +6596,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}",
+                                    "${optionOrder.state.capitalize()} ${formatLocalDateTime(optionOrder.updatedAt!)}",
                                     style: TextStyle(
                                         fontSize: 14,
                                         color: Theme.of(context)
