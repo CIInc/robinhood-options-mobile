@@ -377,6 +377,7 @@ Market orders fill immediately; limit/stop/stop-limit orders rest until triggere
 | Slippage | Configurable `$/share` (or `$/contract`): buys fill at `price + slippage`, sells at `price − slippage` |
 | Commission | Configurable flat `$/trade`, added to cost on buys, subtracted from proceeds on sells |
 | Position averaging | Extending a position (long or short) re-averages the entry price; reductions keep it |
+| Stock position identity | Client and server fills match by normalized ticker across instrument URLs. Legacy duplicate rows for one ticker are treated as ambiguous and orders are rejected rather than applied arbitrarily |
 | Position close | Quantity at ~0 removes the position; realized P&L recorded in the history entry |
 | **Short stock** | Sell with no position opens a short (negative quantity); proceeds credited. **150% of entry value required to open (Reg-T); 130% of current market value held as maintenance**, marked to market on each refresh. Buy-to-cover realizes `(avg − price) × qty`. Long/short flips in one order are rejected |
 | **Margin calls** | After each quote refresh, `processMarginCalls` checks cash against reservations + maintenance. Deficits force partial buy-to-covers (largest exposure first, only as many shares as needed); an unresolvable deficit logs a `MARGIN` warning entry |

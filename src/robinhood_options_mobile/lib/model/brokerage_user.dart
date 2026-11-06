@@ -374,13 +374,16 @@ class BrokerageUser {
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((InstrumentPosition e) => e.marketValue)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((InstrumentPosition e) => e.marketValue - e.gainLossToday)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator - 1;
+        final totalReturn = ops.fold<double>(
+            0, (sum, position) => sum + position.gainLossToday);
+        final grossPreviousMarketValue = ops.fold<double>(
+          0,
+          (sum, position) =>
+              sum + (position.marketValue - position.gainLossToday).abs(),
+        );
+        value = grossPreviousMarketValue == 0
+            ? 0
+            : totalReturn / grossPreviousMarketValue;
         break;
       case DisplayValue.totalReturn:
         value = ops
@@ -388,13 +391,13 @@ class BrokerageUser {
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((InstrumentPosition e) => e.marketValue)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((InstrumentPosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator - 1;
+        final totalReturn =
+            ops.fold<double>(0, (sum, position) => sum + position.gainLoss);
+        final grossCostBasis = ops.fold<double>(
+          0,
+          (sum, position) => sum + position.totalCost.abs(),
+        );
+        value = grossCostBasis == 0 ? 0 : totalReturn / grossCostBasis;
         break;
       default:
     }
