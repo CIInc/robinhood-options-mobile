@@ -867,7 +867,7 @@ export async function fetchGammaExposure(
   onlyUseCache = false
 ): Promise<GammaExposureData | null> {
   const filter = expirationFilter || "all";
-  const cacheKey = filter === "all" ? symbol : `${symbol}_${filter} `;
+  const cacheKey = filter === "all" ? symbol : `${symbol}_${filter}`;
 
   // Check GEX cache first
   const cached = await getCachedGEX(cacheKey);
@@ -961,20 +961,70 @@ export async function fetchGammaExposure(
  * Callable Firebase Function to fetch Gamma Exposure data for a symbol.
  * @param req - Request.
  */
+const GEX_SYMBOL_REGEX = /^[A-Za-z0-9.-]{1,10}$/;
+const VALID_EXPIRATION_FILTERS = new Set(["all", "0-7", "8-30", "30+"]);
+
 export const getGammaExposure = onCall({
   secrets: ["TWELVE_DATA_API_KEY"],
 }, async (req) => {
+  // SECURITY: Require authentication
   if (!req.auth) {
     throw new HttpsError("unauthenticated", "Authentication required.");
   }
 
-  const symbol: string = req.data?.symbol;
+  const rawSymbol = req.data?.symbol;
   const spotPrice: number | undefined = req.data?.spotPrice;
   const expirationFilter: string | undefined = req.data?.expirationFilter;
   const riskFreeRate: number | undefined = req.data?.riskFreeRate;
 
-  if (!symbol || typeof symbol !== "string") {
-    throw new HttpsError("invalid-argument", "symbol is required.");
+  // SECURITY: Validate symbol format and bounds
+  if (
+    typeof rawSymbol !== "string" ||
+    !GEX_SYMBOL_REGEX.test(rawSymbol.trim())
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Valid stock symbol is required (1-10 alphanumeric characters)."
+    );
+  }
+  const symbol = rawSymbol.trim().toUpperCase();
+
+  // SECURITY: Validate spotPrice if supplied
+  if (
+    spotPrice !== undefined &&
+    (typeof spotPrice !== "number" ||
+      !Number.isFinite(spotPrice) ||
+      spotPrice <= 0)
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "spotPrice must be a positive finite number."
+    );
+  }
+
+  // SECURITY: Validate expirationFilter against permitted set
+  if (
+    expirationFilter !== undefined &&
+    (!VALID_EXPIRATION_FILTERS.has(expirationFilter))
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Invalid expirationFilter. Allowed values: all, 0-7, 8-30, 30+."
+    );
+  }
+
+  // SECURITY: Validate riskFreeRate if supplied
+  if (
+    riskFreeRate !== undefined &&
+    (typeof riskFreeRate !== "number" ||
+      !Number.isFinite(riskFreeRate) ||
+      riskFreeRate < 0 ||
+      riskFreeRate > 1)
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "riskFreeRate must be a finite number between 0 and 1."
+    );
   }
 
   logger.info(`getGammaExposure called for ${symbol}`, {
@@ -984,7 +1034,7 @@ export const getGammaExposure = onCall({
   });
 
   const gexData = await fetchGammaExposure(
-    symbol.toUpperCase(),
+    symbol,
     spotPrice,
     expirationFilter,
     riskFreeRate
@@ -1026,7 +1076,7 @@ export function resolveGammaExposureSymbols(
     additionalSymbols
       .map((symbol) => typeof symbol === "string" ?
         symbol.trim().toUpperCase() : "")
-      .filter((symbol) => symbol.length > 0)
+      .filter((symbol) => symbol.length > 0 && GEX_SYMBOL_REGEX.test(symbol))
       .forEach((symbol) => uniqueSymbols.add(symbol));
   }
   return Array.from(uniqueSymbols).slice(0, 100);

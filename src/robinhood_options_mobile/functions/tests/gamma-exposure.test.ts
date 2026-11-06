@@ -197,4 +197,16 @@ describe("Gamma Exposure symbol selection", () => {
       expect.arrayContaining(["SPY", "QQQ", "IWM"])
     );
   });
+
+  it("filters out invalid symbol patterns and malicious inputs", () => {
+    const symbols = resolveGammaExposureSymbols(
+      ["AAPL", "../etc/passwd", "TOOLONGSYMBOLNAME", "VALID.B", "INVALID$YM"],
+      false
+    );
+
+    expect(symbols).toEqual(["AAPL", "VALID.B"]);
+    expect(symbols).not.toContain("../etc/passwd");
+    expect(symbols).not.toContain("TOOLONGSYMBOLNAME");
+    expect(symbols).not.toContain("INVALID$YM");
+  });
 });
