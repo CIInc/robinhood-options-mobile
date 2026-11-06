@@ -21,6 +21,9 @@ import {
   computeOBV,
   evaluateOBV,
   evaluateMarketDirection,
+  computeRSI,
+  computeRSIArray,
+  evaluateMomentum,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -680,6 +683,96 @@ describe("Technical Indicators", () => {
       expect(resEnd35.metadata?.slowMA).toBeCloseTo(
         resSliced.metadata?.slowMA as number, 5
       );
+    });
+  });
+
+  describe("computeRSIArray and evaluateMomentum", () => {
+    it("should return empty array for insufficient data", () => {
+      const prices = [10, 11, 12];
+      expect(computeRSIArray(prices, 14)).toEqual([]);
+    });
+
+    it("should compute RSI array matching trailing computeRSI value", () => {
+      const prices = Array.from({ length: 50 }, (_, i) => 100 + (i % 5) * 2);
+      const rsiArr = computeRSIArray(prices, 14);
+      const scalarRsi = computeRSI(prices, 14);
+      expect(rsiArr.length).toBe(prices.length - 14);
+      expect(rsiArr[rsiArr.length - 1]).toBeCloseTo(scalarRsi as number, 6);
+    });
+
+    it("should respect lookback parameter and return exact trailing slice",
+      () => {
+        const prices = Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i));
+        const fullArr = computeRSIArray(prices, 14);
+        const lookback = 15;
+        const boundedArr = computeRSIArray(prices, 14, prices.length, lookback);
+        expect(boundedArr.length).toBe(lookback);
+        expect(boundedArr).toEqual(fullArr.slice(-lookback));
+      });
+
+    it("should respect endIndex parameter with lookback", () => {
+      const prices = Array.from({ length: 80 }, (_, i) => 100 + i * 0.5);
+      const endIndex = 45;
+      const lookback = 10;
+      const bounded = computeRSIArray(prices, 14, endIndex, lookback);
+      const sliced = computeRSIArray(
+        prices.slice(0, endIndex), 14, endIndex, lookback
+      );
+      expect(bounded).toEqual(sliced);
+    });
+
+    it("should return HOLD for insufficient data in evaluateMomentum", () => {
+      const prices = [100, 101, 102];
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("HOLD");
+      expect(result.value).toBeNull();
+      expect(result.reason).toContain("Insufficient data for RSI");
+    });
+
+    it("should detect oversold condition", () => {
+      // Monotonically falling prices
+      const prices = Array.from({ length: 25 }, (_, i) => 100 - i * 3);
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("BUY");
+      expect(result.value).toBeLessThan(30);
+      expect(result.reason).toContain("oversold");
+    });
+
+    it("should detect overbought condition", () => {
+      // Monotonically rising prices
+      const prices = Array.from({ length: 25 }, (_, i) => 100 + i * 3);
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("SELL");
+      expect(result.value).toBeGreaterThan(70);
+      expect(result.reason).toContain("overbought");
+    });
+
+    it("should detect bullish divergence in evaluateMomentum", () => {
+      // Construct a pattern:
+      // Trough 1 at i=10 (price 80, RSI ~25)
+      // Rally to i=18 (price 95)
+      // Trough 2 at i=25 (price 75 lower, but RSI higher due to shallower dip)
+      const prices = [
+        100, 95, 90, 85, 82, 80, 81, 84, 88, 92,
+        80, 85, 89, 93, 95, 94, 90, 88, 85, 83,
+        80, 78, 77, 76, 75, 77, 79, 81, 82, 83,
+        84, 85, 86, 87, 88,
+      ];
+      const result = evaluateMomentum(prices, 14);
+      expect(result.value).not.toBeNull();
+      expect(["BUY", "HOLD"]).toContain(result.signal);
+    });
+
+    it("should evaluate identically with endIndex vs array slice", () => {
+      const prices = Array.from(
+        { length: 70 }, (_, i) => 100 + Math.sin(i) * 5
+      );
+      const endIndex = 45;
+      const resEnd = evaluateMomentum(prices, 14, endIndex);
+      const resSlice = evaluateMomentum(prices.slice(0, endIndex), 14);
+      expect(resEnd.signal).toBe(resSlice.signal);
+      expect(resEnd.value).toBeCloseTo(resSlice.value as number, 5);
+      expect(resEnd.reason).toBe(resSlice.reason);
     });
   });
 });

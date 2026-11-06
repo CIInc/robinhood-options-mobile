@@ -234,18 +234,26 @@ export function computeRSI(
 /**
  * Compute array of RSI values
  * Performance optimization: Calculates price changes on-the-fly to avoid
- * allocating an intermediate `changes` array.
+ * allocating an intermediate `changes` array. Optional `lookback` bounds
+ * array storage to only the trailing `lookback` elements while maintaining
+ * exact Wilder smoothing state in scalar variables.
  * @param {number[]} prices - Array of prices
  * @param {number} period - RSI period
  * @param {number} [endIndex] - Optional end index
+ * @param {number} [lookback] - Optional lookback count of trailing RSI values
  * @return {number[]} Array of RSI values corresponding to prices[period..end]
  */
 export function computeRSIArray(
   prices: number[],
   period = 14,
-  endIndex = prices ? prices.length : 0
+  endIndex = prices ? prices.length : 0,
+  lookback?: number
 ): number[] {
   if (!prices || endIndex < period + 1 || prices.length < endIndex) return [];
+
+  const totalCount = endIndex - period;
+  const skipCount = lookback !== undefined && lookback < totalCount ?
+    totalCount - lookback : 0;
 
   const rsiValues: number[] = [];
   let gains = 0;
@@ -265,10 +273,12 @@ export function computeRSIArray(
   let avgLoss = losses / period;
 
   // First RSI
-  if (avgLoss === 0) {
-    rsiValues.push(100);
-  } else {
-    rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
+  if (skipCount === 0) {
+    if (avgLoss === 0) {
+      rsiValues.push(100);
+    } else {
+      rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
+    }
   }
 
   // Calculate RSI using smoothed averages
@@ -280,10 +290,13 @@ export function computeRSIArray(
     avgGain = (avgGain * (period - 1) + currentGain) / period;
     avgLoss = (avgLoss * (period - 1) + currentLoss) / period;
 
-    if (avgLoss === 0) {
-      rsiValues.push(100);
-    } else {
-      rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
+    const seriesIdx = i - period;
+    if (seriesIdx >= skipCount) {
+      if (avgLoss === 0) {
+        rsiValues.push(100);
+      } else {
+        rsiValues.push(100 - (100 / (1 + avgGain / avgLoss)));
+      }
     }
   }
 
@@ -1790,18 +1803,35 @@ export function evaluateMomentum(
     };
   }
 
-  // Optimized to calculate RSI once
-  const rsiSeries = computeRSIArray(prices, rsiPeriod, endIndex);
+  // Performance optimization: When endIndex < 30, divergence analysis is
+  // skipped; evaluate trailing scalar RSI directly without allocating any
+  // arrays. When endIndex >= 30, request only the trailing lookback window
+  // (30 RSI values) instead of allocating up to thousands of elements.
+  const lookback = 30;
+  let rsi: number;
+  let rsiSeries: number[] | null = null;
 
-  if (rsiSeries.length === 0) {
-    return {
-      value: null,
-      signal: "HOLD",
-      reason: "Unable to compute RSI",
-    };
+  if (endIndex < 30) {
+    const scalarRsi = computeRSI(prices, rsiPeriod, endIndex);
+    if (scalarRsi === null) {
+      return {
+        value: null,
+        signal: "HOLD",
+        reason: "Unable to compute RSI",
+      };
+    }
+    rsi = scalarRsi;
+  } else {
+    rsiSeries = computeRSIArray(prices, rsiPeriod, endIndex, lookback);
+    if (rsiSeries.length === 0) {
+      return {
+        value: null,
+        signal: "HOLD",
+        reason: "Unable to compute RSI",
+      };
+    }
+    rsi = rsiSeries[rsiSeries.length - 1];
   }
-
-  const rsi = rsiSeries[rsiSeries.length - 1];
 
   // RSI thresholds
   const oversoldThreshold = 30;
@@ -1814,36 +1844,34 @@ export function evaluateMomentum(
   let rsiTrend = 0;
   let priceTrend = 0;
 
-  if (endIndex >= 30) {
-    // RSI Series: indices 0..N correspond to prices[rsiPeriod..end]
-    // already computed above
+  if (endIndex >= 30 && rsiSeries !== null) {
+    const recentLen = rsiSeries.length;
+    const getRSI = (k: number) => rsiSeries![k];
+    const getPriceIdx = (k: number) => endIndex - recentLen + k;
 
-    // Look at last 30 bars (or fewer)
-    const lookback = 30;
-    const startIdx = Math.max(0, rsiSeries.length - lookback);
-    const recentLen = rsiSeries.length - startIdx;
-    const getRSI = (k: number) => rsiSeries[startIdx + k];
+    // 1. Identify trailing 2 RSI Extrema without array allocations
+    let prevTrough = -1;
+    let lastTrough = -1;
+    let prevPeak = -1;
+    let lastPeak = -1;
 
-    // Map relative index k to prices index
-    const getPriceIdx = (k: number) => rsiPeriod + startIdx + k;
-
-    // 1. Identify RSI Extrema
-    const rsiPeaks: number[] = [];
-    const rsiTroughs: number[] = [];
     for (let i = 1; i < recentLen - 1; i++) {
-      if (getRSI(i) > getRSI(i - 1) && getRSI(i) > getRSI(i + 1)) {
-        rsiPeaks.push(i);
+      const curr = getRSI(i);
+      if (curr > getRSI(i - 1) && curr > getRSI(i + 1)) {
+        prevPeak = lastPeak;
+        lastPeak = i;
       }
-      if (getRSI(i) < getRSI(i - 1) && getRSI(i) < getRSI(i + 1)) {
-        rsiTroughs.push(i);
+      if (curr < getRSI(i - 1) && curr < getRSI(i + 1)) {
+        prevTrough = lastTrough;
+        lastTrough = i;
       }
     }
 
     // 2. Check Divergence
     // Bullish Divergence: Price = Lower Lows, RSI = Higher Lows
-    if (rsiTroughs.length >= 2) {
-      const t2 = rsiTroughs[rsiTroughs.length - 1]; // recent
-      const t1 = rsiTroughs[rsiTroughs.length - 2]; // older
+    if (prevTrough !== -1 && lastTrough !== -1) {
+      const t2 = lastTrough; // recent
+      const t1 = prevTrough; // older
 
       // RSI Higher Low?
       if (getRSI(t2) > getRSI(t1) && getRSI(t2) < 50) {
@@ -1857,9 +1885,9 @@ export function evaluateMomentum(
     }
 
     // Bearish Divergence: Price = Higher Highs, RSI = Lower Highs
-    if (rsiPeaks.length >= 2) {
-      const p2 = rsiPeaks[rsiPeaks.length - 1]; // recent
-      const p1 = rsiPeaks[rsiPeaks.length - 2]; // older
+    if (prevPeak !== -1 && lastPeak !== -1) {
+      const p2 = lastPeak; // recent
+      const p1 = prevPeak; // older
 
       // RSI Lower High?
       if (getRSI(p2) < getRSI(p1) && getRSI(p2) > 50) {
