@@ -210,7 +210,7 @@ class _ForexOrdersWidgetState extends State<ForexOrdersWidget> {
                     title: Text(
                         "${order.side == 'buy' ? 'Buy' : 'Sell'} ${formatNumber.format(order.quantity)} at ${order.averagePrice != null ? formatCurrency.format(order.averagePrice) : (order.price != null ? formatCurrency.format(order.price) : "Market")}"),
                     subtitle: Text(
-                        "${order.state} ${order.updatedAt != null ? formatDate.format(order.updatedAt!) : ''}"),
+                        "${order.state} ${order.updatedAt != null ? formatLocalDateTime(order.updatedAt!) : ''}"),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,

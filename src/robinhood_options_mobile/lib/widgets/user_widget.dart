@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_functions/cloud_functions.dart';
@@ -2647,7 +2646,6 @@ class _UserWidgetState extends State<UserWidget> {
   Widget _buildPublicRecentTradesCard(
       BuildContext context, User targetUser, PortfolioPrivacySettings privacy) {
     final theme = Theme.of(context);
-    final formatCompactDate = DateFormat('MMM d, h:mm a');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
@@ -2705,7 +2703,7 @@ class _UserWidgetState extends State<UserWidget> {
                       final isBuy = order.side.toLowerCase() == 'buy';
                       final symbol = order.instrumentObj?.symbol ?? 'Trade';
                       final dateStr = order.createdAt != null
-                          ? formatCompactDate.format(order.createdAt!)
+                          ? formatLocalDateTime(order.createdAt!)
                           : '';
                       return ListTile(
                         dense: true,

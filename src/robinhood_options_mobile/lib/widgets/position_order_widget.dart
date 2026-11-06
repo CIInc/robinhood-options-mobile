@@ -160,7 +160,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                           color:
                               Theme.of(context).appBarTheme.foregroundColor)),
                 Text(
-                  formatDate.format(positionOrder.updatedAt!),
+                  formatLocalDateTime(positionOrder.updatedAt!),
                   style: TextStyle(
                       fontSize: 14.0,
                       color: Theme.of(context)
@@ -252,9 +252,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
               const Divider(),
               _buildSectionHeader("Timestamps"),
               _buildDetailRow(
-                  "Created", formatDate.format(positionOrder.createdAt!)),
+                  "Created", formatLocalDateTime(positionOrder.createdAt!)),
               _buildDetailRow(
-                  "Updated", formatDate.format(positionOrder.updatedAt!)),
+                  "Updated", formatLocalDateTime(positionOrder.updatedAt!)),
               if (positionOrder.rejectReason != null) ...[
                 const Divider(),
                 ListTile(

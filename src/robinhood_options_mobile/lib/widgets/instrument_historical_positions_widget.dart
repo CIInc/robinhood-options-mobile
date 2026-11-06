@@ -542,7 +542,6 @@ class _InstrumentHistoricalPositionsWidgetState
       ),
       builder: (bottomSheetContext) {
         final theme = Theme.of(bottomSheetContext);
-        final dateFormat = DateFormat.yMMMd().add_jm();
 
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
@@ -753,7 +752,7 @@ class _InstrumentHistoricalPositionsWidgetState
                                       ),
                                       if (orderDate != null)
                                         Text(
-                                          dateFormat.format(orderDate),
+                                          formatLocalDateTime(orderDate),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
                                             color: theme

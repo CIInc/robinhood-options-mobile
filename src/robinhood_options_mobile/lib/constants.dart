@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatDateTime = DateFormat.yMMMd().add_jm();
+String formatLocalDateTime(DateTime dateTime) =>
+    formatDateTime.format(dateTime.toLocal());
 final formatMonthDayOfWeek = DateFormat.MMMEd();
 final formatCompactDate = DateFormat("MMMd");
 final formatCompactDateYear = DateFormat.yMMM(); // ("MMM d yy");

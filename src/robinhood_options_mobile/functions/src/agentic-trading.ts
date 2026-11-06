@@ -167,6 +167,96 @@ export const initiateTradeProposal = onCall({
   return performTradeProposal(request);
 });
 
+const AUTO_TRADE_DIAGNOSTIC_PHASES = new Set([
+  "started", "completed", "blocked", "failed",
+]);
+const AUTO_TRADE_DIAGNOSTIC_TRIGGERS = new Set([
+  "foreground", "background", "manual",
+]);
+const AUTO_TRADE_DIAGNOSTIC_REASONS = new Set([
+  "cycle_started", "cycle_completed", "cycle_error", "cycle_in_progress",
+  "lease_unavailable", "emergency_stop", "missing_dependencies",
+  "auto_trade_disabled", "missing_live_account", "quote_source_unavailable",
+  "quote_service_unavailable", "oauth_unavailable", "account_unavailable",
+  "market_closed", "stale_quote", "config_missing", "cycle_blocked",
+  "no_signals", "no_qualified_signals", "signal_fetch_failed",
+]);
+const AUTO_TRADE_DIAGNOSTIC_COUNTERS = [
+  "signalsFetched", "signalsEvaluated", "signalsAccepted", "ordersExecuted",
+  "positionsMonitored", "exitsExecuted", "durationMs",
+] as const;
+
+/**
+ * Receives a small, sanitized client cycle summary for Cloud Logging.
+ * No symbols, prices, quantities, portfolio data, or credentials are accepted.
+ * @param {any} request The callable request.
+ * @return {object} Whether the diagnostic event was recorded.
+ */
+export const logAgenticTradingCycle = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "Authentication is required to log an auto-trade cycle."
+    );
+  }
+
+  const data = request.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new HttpsError("invalid-argument", "Cycle diagnostics are required.");
+  }
+
+  const { phase, trigger, reason, cycleId } = data;
+  if (typeof cycleId !== "string" ||
+      !/^[A-Za-z0-9_-]{8,80}$/.test(cycleId) ||
+      !AUTO_TRADE_DIAGNOSTIC_PHASES.has(phase) ||
+      !AUTO_TRADE_DIAGNOSTIC_TRIGGERS.has(trigger) ||
+      !AUTO_TRADE_DIAGNOSTIC_REASONS.has(reason)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Invalid cycle diagnostic fields."
+    );
+  }
+
+  if (data.paperMode !== undefined && typeof data.paperMode !== "boolean") {
+    throw new HttpsError("invalid-argument", "paperMode must be a boolean.");
+  }
+  if (data.tradingMode !== undefined &&
+      !["systematic", "reasoning"].includes(data.tradingMode)) {
+    throw new HttpsError("invalid-argument", "Invalid trading mode.");
+  }
+  if (data.quoteSource !== undefined &&
+      !["selectedBrokerage", "robinhood", "schwab"].includes(
+        data.quoteSource
+      )) {
+    throw new HttpsError("invalid-argument", "Invalid quote source.");
+  }
+
+  const counters: Record<string, number> = {};
+  for (const field of AUTO_TRADE_DIAGNOSTIC_COUNTERS) {
+    const value = data[field];
+    if (value === undefined) continue;
+    const maximum = field === "durationMs" ? 300000 : 10000;
+    if (!Number.isInteger(value) || value < 0 || value > maximum) {
+      throw new HttpsError("invalid-argument", `Invalid ${field}.`);
+    }
+    counters[field] = value;
+  }
+
+  logger.info("Agentic trading cycle diagnostics", {
+    uid: request.auth.uid,
+    cycleId,
+    phase,
+    trigger,
+    reason,
+    ...(data.paperMode !== undefined ? { paperMode: data.paperMode } : {}),
+    ...(data.tradingMode ? { tradingMode: data.tradingMode } : {}),
+    ...(data.quoteSource ? { quoteSource: data.quoteSource } : {}),
+    ...counters,
+  });
+
+  return { recorded: true };
+});
+
 /**
  * Seeds the charts collection with chart documents for popular
  * symbols. This can be run manually to ensure all popular symbols are

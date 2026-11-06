@@ -94,6 +94,8 @@ export const analyzeTradePostMortem = gemini.analyzeTradePostMortem;
 export const generateUnifiedConviction = gemini.generateUnifiedConviction;
 export const initiateTradeProposal =
   agenticTradingfunc.initiateTradeProposal;
+export const logAgenticTradingCycle =
+  agenticTradingfunc.logAgenticTradingCycle;
 export const seedAgenticTrading = agenticTradingfunc.seedAgenticTrading;
 export const agenticTradingCronJob = agenticTradingCron.agenticTradingCron;
 export const agenticTradingCronInvoke =

@@ -264,10 +264,10 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                 _buildSectionHeader("Timestamps"),
                 if (widget.optionOrder.createdAt != null)
                   _buildDetailRow("Created",
-                      formatDate.format(widget.optionOrder.createdAt!)),
+                      formatLocalDateTime(widget.optionOrder.createdAt!)),
                 if (widget.optionOrder.updatedAt != null)
                   _buildDetailRow("Updated",
-                      formatDate.format(widget.optionOrder.updatedAt!)),
+                      formatLocalDateTime(widget.optionOrder.updatedAt!)),
               ],
               // if (widget.optionOrder.cancelUrl != null)
               //   _buildDetailRow("Cancel Url", widget.optionOrder.cancelUrl!),

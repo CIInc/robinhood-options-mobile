@@ -1485,7 +1485,7 @@ class _HistoryPageState extends State<HistoryPage>
                                       ],
                                       const SizedBox(height: 2),
                                       Text(
-                                        "${order.state} • ${formatDate.format(order.updatedAt!)}",
+                                        "${order.state} • ${formatLocalDateTime(order.updatedAt!)}",
                                         style: TextStyle(
                                             fontSize: 12,
                                             color: Theme.of(context)
@@ -1687,11 +1687,11 @@ class _HistoryPageState extends State<HistoryPage>
                           (BuildContext context, int index) {
                             var optionOrder = filteredOptionOrders![index];
                             var subtitle = Text(
-                                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
+                                "${optionOrder.state.capitalize()} ${formatLocalDateTime(optionOrder.updatedAt!)}");
                             if (optionOrder.optionEvents != null) {
                               var optionEvent = optionOrder.optionEvents!.first;
                               subtitle = Text(
-                                  "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
+                                  "${optionOrder.state.capitalize()} ${formatLocalDateTime(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
                             }
                             double displayPremium =
                                 (optionOrder.processedPremium ?? 0) *
