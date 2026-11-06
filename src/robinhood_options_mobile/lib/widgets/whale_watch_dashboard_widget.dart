@@ -18,6 +18,7 @@ class WhaleWatchDashboardWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GenerativeService generativeService;
+  final FirestoreService? firestoreService;
 
   const WhaleWatchDashboardWidget({
     super.key,
@@ -28,6 +29,7 @@ class WhaleWatchDashboardWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    this.firestoreService,
   });
 
   @override
@@ -36,7 +38,8 @@ class WhaleWatchDashboardWidget extends StatefulWidget {
 }
 
 class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService _firestoreService =
+      widget.firestoreService ?? FirestoreService();
   final NumberFormat _currencyFormat =
       NumberFormat.compactCurrency(symbol: '\$');
   final DateFormat _dateFormat = DateFormat('MMM d, yyyy');
@@ -110,46 +113,59 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
   Widget _buildSentimentOverview(WhaleWatchAggregate aggregate) {
     final total = aggregate.buyTotal + aggregate.sellTotal;
     final buyPercent = total > 0 ? (aggregate.buyTotal / total) : 0.5;
+    final sentimentLabel = buyPercent >= 0.6
+        ? 'Bullish'
+        : (buyPercent <= 0.4 ? 'Bearish' : 'Neutral');
+    final buyText = _currencyFormat.format(aggregate.buyTotal);
+    final sellText = _currencyFormat.format(aggregate.sellTotal);
+    final filingCount = aggregate.buyCount + aggregate.sellCount;
 
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Insider Sentiment Index',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: buyPercent,
-            backgroundColor: Colors.red.withOpacity(0.3),
-            color: Colors.green,
-            minHeight: 12,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Buys: ${_currencyFormat.format(aggregate.buyTotal)}',
-                style: const TextStyle(
-                    color: Colors.green, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                'Sells: ${_currencyFormat.format(aggregate.sellTotal)}',
-                style: const TextStyle(
-                    color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Based on ${aggregate.buyCount + aggregate.sellCount} filings in the last 24h',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: 'Insider Sentiment Index: $sentimentLabel. '
+          'Buys: $buyText, Sells: $sellText. '
+          'Based on $filingCount filings in the last 24h',
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Insider Sentiment Index',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: buyPercent,
+              backgroundColor: Colors.red.withValues(alpha: 0.3),
+              color: Colors.green,
+              minHeight: 12,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Buys: $buyText',
+                  style: const TextStyle(
+                      color: Colors.green, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Sells: $sellText',
+                  style: const TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Based on $filingCount filings in the last 24h',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -171,6 +187,8 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
         itemCount: aggregate.topAccumulatedSymbols.length,
         itemBuilder: (context, index) {
           final item = aggregate.topAccumulatedSymbols[index];
+          final modeText =
+              isHoldings ? 'Institutional holding' : 'Accumulating';
           return Card(
             child: InkWell(
               onTap: () async {
@@ -194,25 +212,32 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
                   );
                 }
               },
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      item.symbol,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 18),
-                    ),
-                    Text(
-                      isHoldings ? 'Institutional holding' : 'Accumulating',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isHoldings ? Colors.blue : Colors.green,
+              child: Semantics(
+                container: true,
+                button: true,
+                label: '${item.symbol}, $modeText',
+                hint: 'Double tap to view ${item.symbol} details',
+                excludeSemantics: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        item.symbol,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 18),
                       ),
-                    ),
-                  ],
+                      Text(
+                        modeText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isHoldings ? Colors.blue : Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -223,52 +248,65 @@ class _WhaleWatchDashboardWidgetState extends State<WhaleWatchDashboardWidget> {
   }
 
   Widget _buildTransactionTile(WhaleWatchTransaction tx) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: tx.isBuy
-            ? Colors.green.withOpacity(0.1)
-            : Colors.red.withOpacity(0.1),
-        child: Icon(
-          tx.isBuy ? Icons.arrow_upward : Icons.arrow_downward,
-          color: tx.isBuy ? Colors.green : Colors.red,
+    final direction = tx.isBuy ? 'Buy' : 'Sale';
+    final formattedValue = _currencyFormat.format(tx.value);
+    final formattedDate = _dateFormat.format(tx.date);
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: '$direction: ${tx.symbol}, $formattedValue by ${tx.filerName} '
+          '(${tx.filerRelation}). $formattedDate, ${tx.transactionText}',
+      hint: 'Double tap to view ${tx.symbol} instrument details',
+      excludeSemantics: true,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: tx.isBuy
+              ? Colors.green.withValues(alpha: 0.1)
+              : Colors.red.withValues(alpha: 0.1),
+          child: Icon(
+            tx.isBuy ? Icons.arrow_upward : Icons.arrow_downward,
+            color: tx.isBuy ? Colors.green : Colors.red,
+          ),
         ),
-      ),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(tx.symbol, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(_currencyFormat.format(tx.value)),
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('${tx.filerName} (${tx.filerRelation})'),
-          Text('${_dateFormat.format(tx.date)} • ${tx.transactionText}',
-              style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-      onTap: () async {
-        final instrument =
-            await _firestoreService.getInstrument(symbol: tx.symbol);
-        if (instrument != null && mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => InstrumentWidget(
-                widget.brokerageUser,
-                widget.service,
-                instrument,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-                user: widget.user,
-                userDocRef: widget.userDocRef,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(tx.symbol,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(formattedValue),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${tx.filerName} (${tx.filerRelation})'),
+            Text('$formattedDate • ${tx.transactionText}',
+                style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+        onTap: () async {
+          final instrument =
+              await _firestoreService.getInstrument(symbol: tx.symbol);
+          if (instrument != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                  widget.brokerageUser,
+                  widget.service,
+                  instrument,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: widget.generativeService,
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                ),
               ),
-            ),
-          );
-        }
-      },
+            );
+          }
+        },
+      ),
     );
   }
 }
