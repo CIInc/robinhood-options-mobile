@@ -3415,25 +3415,54 @@ export function evaluateWilliamsR(
     };
   }
 
-  const williamsR = computeWilliamsR(highs, lows, closes, period, endIndex);
+  // Performance optimization: Find extrema across shared period - 1 window
+  // in a single loop pass to evaluate current and previous Williams %R
+  // together, avoiding duplicate O(period) lookback scans.
+  let williamsR: number | null = null;
+  let prevWilliamsR: number | null = null;
+
+  if (endIndex === period) {
+    williamsR = computeWilliamsR(highs, lows, closes, period, endIndex);
+  } else {
+    const oldestPrevIdx = endIndex - period - 1;
+    const currentIdx = endIndex - 1;
+    const sharedStart = endIndex - period;
+    const sharedEnd = endIndex - 2;
+
+    let sharedHigh = highs[sharedStart];
+    let sharedLow = lows[sharedStart];
+    for (let i = sharedStart + 1; i <= sharedEnd; i++) {
+      if (highs[i] > sharedHigh) sharedHigh = highs[i];
+      if (lows[i] < sharedLow) sharedLow = lows[i];
+    }
+
+    // Previous Williams %R
+    const prevHigh = highs[oldestPrevIdx] > sharedHigh ?
+      highs[oldestPrevIdx] : sharedHigh;
+    const prevLow = lows[oldestPrevIdx] < sharedLow ?
+      lows[oldestPrevIdx] : sharedLow;
+    if (prevHigh !== prevLow) {
+      const prevClose = closes[endIndex - 2];
+      prevWilliamsR = ((prevHigh - prevClose) / (prevHigh - prevLow)) * -100;
+    }
+
+    // Current Williams %R
+    const currHigh = highs[currentIdx] > sharedHigh ?
+      highs[currentIdx] : sharedHigh;
+    const currLow = lows[currentIdx] < sharedLow ?
+      lows[currentIdx] : sharedLow;
+    if (currHigh !== currLow) {
+      const currentClose = closes[currentIdx];
+      williamsR = ((currHigh - currentClose) / (currHigh - currLow)) * -100;
+    }
+  }
+
   if (williamsR === null) {
     return {
       value: null,
       signal: "HOLD",
       reason: "Unable to compute Williams %R",
     };
-  }
-
-  // Calculate previous Williams %R for momentum detection without array slicing
-  let prevWilliamsR: number | null = null;
-  if (endIndex > period) {
-    prevWilliamsR = computeWilliamsR(
-      highs,
-      lows,
-      closes,
-      period,
-      endIndex - 1
-    );
   }
 
   const oversoldThreshold = -80;

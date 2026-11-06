@@ -21,6 +21,8 @@ import {
   computeOBV,
   evaluateOBV,
   evaluateMarketDirection,
+  computeWilliamsR,
+  evaluateWilliamsR,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -680,6 +682,129 @@ describe("Technical Indicators", () => {
       expect(resEnd35.metadata?.slowMA).toBeCloseTo(
         resSliced.metadata?.slowMA as number, 5
       );
+    });
+  });
+
+  describe("evaluateWilliamsR", () => {
+    it("should return HOLD for insufficient data", () => {
+      const highs = [10, 11, 12];
+      const lows = [9, 10, 11];
+      const closes = [9.5, 10.5, 11.5];
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("HOLD");
+      expect(result.value).toBeNull();
+      expect(result.reason).toContain("Insufficient data");
+    });
+
+    it("should return HOLD for flat range where high === low", () => {
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(100);
+      const closes = Array(15).fill(100);
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("HOLD");
+      expect(result.value).toBeNull();
+      expect(result.reason).toContain("Unable to compute Williams %R");
+    });
+
+    it("should evaluate correctly when endIndex === period", () => {
+      const highs = [
+        105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118,
+      ];
+      const lows = [
+        95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+      ];
+      const closes = [
+        100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
+      ];
+      const expected = computeWilliamsR(highs, lows, closes, 14, 14);
+      const result = evaluateWilliamsR(highs, lows, closes, 14, 14);
+      expect(result.value).toBeCloseTo(expected as number, 4);
+      expect(result.metadata?.prevWilliamsR).toBeUndefined();
+    });
+
+    it("should detect rising from oversold reversal", () => {
+      // 15 bars where previous bar is deep oversold (< -80)
+      // and current bar bounces upwards but remains <= -80
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(0);
+      const closes = Array(15).fill(5); // %R = (100 - 5) / 100 * -100 = -95
+      closes[14] = 15; // %R = (100 - 15) / 100 * -100 = -85 (rising from -95)
+
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("BUY");
+      expect(result.metadata?.interpretation).toBe("oversold_reversal");
+      expect(result.reason).toContain("rising from oversold");
+    });
+
+    it("should detect simple oversold condition", () => {
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(0);
+      const closes = Array(15).fill(10);
+      closes[14] = 5; // %R = -95, falling deeper into oversold
+
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("BUY");
+      expect(result.metadata?.interpretation).toBe("oversold");
+    });
+
+    it("should detect falling from overbought reversal", () => {
+      // Previous bar was overbought >= -20, current bar drops
+      // but remains >= -20
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(0);
+      const closes = Array(15).fill(95); // %R = -5
+      closes[14] = 85; // %R = -15 (falling from -5)
+
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("SELL");
+      expect(result.metadata?.interpretation).toBe("overbought_reversal");
+      expect(result.reason).toContain("falling from overbought");
+    });
+
+    it("should detect simple overbought condition", () => {
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(0);
+      const closes = Array(15).fill(85);
+      closes[14] = 95; // %R = -5, rising higher into overbought
+
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("SELL");
+      expect(result.metadata?.interpretation).toBe("overbought");
+    });
+
+    it("should detect neutral condition", () => {
+      const highs = Array(15).fill(100);
+      const lows = Array(15).fill(0);
+      const closes = Array(15).fill(50); // %R = -50
+
+      const result = evaluateWilliamsR(highs, lows, closes, 14);
+      expect(result.signal).toBe("HOLD");
+      expect(result.reason).toContain("neutral");
+      expect(result.value).toBeCloseTo(-50, 4);
+    });
+
+    it("should match computeWilliamsR for both current and previous", () => {
+      const N = 40;
+      const highs = Array.from({ length: N }, (_, i) => 100 + Math.sin(i) * 10);
+      const lows = Array.from({ length: N }, (_, i) => 80 + Math.sin(i) * 10);
+      const closes = Array.from(
+        { length: N },
+        (_, i) => (highs[i] + lows[i]) / 2
+      );
+
+      for (let end = 15; end <= N; end++) {
+        const res = evaluateWilliamsR(highs, lows, closes, 14, end);
+        const expectedCurr = computeWilliamsR(highs, lows, closes, 14, end);
+        const expectedPrev = computeWilliamsR(highs, lows, closes, 14, end - 1);
+
+        expect(res.value).toBeCloseTo(expectedCurr as number, 4);
+        if (res.metadata?.prevWilliamsR !== undefined) {
+          expect(res.metadata.prevWilliamsR).toBeCloseTo(
+            expectedPrev as number,
+            4
+          );
+        }
+      }
     });
   });
 });
