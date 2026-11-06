@@ -127,14 +127,26 @@ class PortfolioHeroStatsWidget extends StatelessWidget {
       ],
     );
 
-    if (onTap == null) return content;
-    return InkWell(
+    final interactive = onTap != null;
+    final body = interactive
+        ? InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2.0),
+              child: content,
+            ),
+          )
+        : content;
+
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      button: interactive,
+      label: '$label: $value',
+      hint: interactive ? 'Double tap to view details' : null,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2.0),
-        child: content,
-      ),
+      child: body,
     );
   }
 }
