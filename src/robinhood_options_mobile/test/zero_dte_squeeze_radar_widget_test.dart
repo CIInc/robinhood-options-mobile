@@ -125,6 +125,13 @@ void main() {
       expect(find.text('816 /min'), findsOneWidget);
       expect(find.text('+610 /min'), findsOneWidget);
       expect(find.text('3.4x'), findsOneWidget);
+
+      expect(find.bySemanticsLabel('Call Velocity: 816 /min'), findsOneWidget);
+      expect(find.bySemanticsLabel('Net Flow Velocity: +610 /min'),
+          findsOneWidget);
+      expect(
+          find.bySemanticsLabel('0DTE Call Premium: \$8.2M'), findsOneWidget);
+      expect(find.bySemanticsLabel('Unusual Vol / OI: 3.4x'), findsOneWidget);
     });
 
     testWidgets('Renders dealer gamma flip panel with key levels',
@@ -140,6 +147,14 @@ void main() {
       expect(find.text('0.5%'), findsOneWidget); // Distance
       expect(find.text('\$505.00'), findsOneWidget); // Call Wall
       expect(find.text('\$495.00'), findsOneWidget); // Put Wall
+
+      expect(find.bySemanticsLabel('Spot Price: \$502.50'), findsOneWidget);
+      expect(find.bySemanticsLabel('Gamma Flip: \$500.00'), findsOneWidget);
+      expect(find.bySemanticsLabel('Flip Distance: 0.5%'), findsOneWidget);
+      expect(find.bySemanticsLabel('Call Wall (Resistance): \$505.00'),
+          findsOneWidget);
+      expect(find.bySemanticsLabel('Put Wall (Support): \$495.00'),
+          findsOneWidget);
     });
 
     testWidgets('Renders squeeze factor breakdown list', (tester) async {

@@ -335,7 +335,8 @@ class InstrumentPosition {
   }
 
   double get gainLossPercent {
-    return gainLoss / totalCost;
+    final costBasis = totalCost.abs();
+    return costBasis == 0 ? 0 : gainLoss / costBasis;
   }
 
   double get gainLossToday {
@@ -348,10 +349,10 @@ class InstrumentPosition {
   }
 
   double get gainLossPercentToday {
-    return instrumentObj != null && instrumentObj!.quoteObj != null
-        ? gainLossToday /
-            (instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!)
-        : 0;
+    if (instrumentObj == null || instrumentObj!.quoteObj == null) return 0;
+    final previousMarketValue =
+        (instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!).abs();
+    return previousMarketValue == 0 ? 0 : gainLossToday / previousMarketValue;
   }
 /*
   double get changeToday {    

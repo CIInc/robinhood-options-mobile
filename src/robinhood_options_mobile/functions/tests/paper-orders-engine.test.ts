@@ -238,6 +238,60 @@ describe("evaluateStockPendingOrders", () => {
     expect(result.data.cashBalance).toBe(100000 + 1390);
   });
 
+  it("covers a same-symbol short when the order uses a different URL", () => {
+    const data = account({
+      positions: [
+        {
+          ...longPosition(-10, 150),
+          instrument: "https://api.robinhood.com/instruments/old-id/",
+        },
+      ],
+      pendingOrders: [
+        order({
+          side: "buy",
+          quantity: 10,
+          orderType: "limit",
+          limitPrice: 145,
+          instrumentJson: instrumentJson("AAPL"),
+        }),
+      ],
+    });
+
+    const result = evaluateStockPendingOrders(data, { AAPL: 140 });
+
+    expect(result.fills).toBe(1);
+    expect(result.data.positions).toHaveLength(0);
+    expect(result.data.cashBalance).toBe(100000 - 1400);
+    expect(result.data.history[0].detail).toContain("Buy to cover");
+  });
+
+  it("rejects fills when same-symbol position rows are ambiguous", () => {
+    const data = account({
+      positions: [
+        longPosition(10, 150),
+        {
+          ...longPosition(-10, 160),
+          instrument: "https://api.robinhood.com/instruments/other-id/",
+        },
+      ],
+      pendingOrders: [
+        order({
+          side: "buy",
+          quantity: 10,
+          orderType: "limit",
+          limitPrice: 145,
+        }),
+      ],
+    });
+
+    const result = evaluateStockPendingOrders(data, { AAPL: 140 });
+
+    expect(result.fills).toBe(0);
+    expect(result.data.positions).toHaveLength(2);
+    expect(result.data.cashBalance).toBe(100000);
+    expect(result.data.history[0].state).toBe("rejected");
+  });
+
   it("blocks selling shares pledged to covered calls", () => {
     const data = account({
       positions: [longPosition(100, 150)],
