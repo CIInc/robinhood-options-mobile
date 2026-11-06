@@ -3507,7 +3507,39 @@ export function evaluateWilliamsR(
 }
 
 /**
+ * Helper to calculate midpoint of high and low over a period.
+ * Standalone to avoid per-invocation closure allocations.
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number} p - Period window.
+ * @param {number} idx - End index of window.
+ * @return {number|null} Midpoint or null if out of range.
+ */
+function getMidpointRange(
+  highs: number[],
+  lows: number[],
+  p: number,
+  idx: number
+): number | null {
+  const start = idx - p + 1;
+  if (start < 0) return null;
+  let maxH = highs[start];
+  let minL = lows[start];
+  for (let i = start + 1; i <= idx; i++) {
+    if (highs[i] > maxH) maxH = highs[i];
+    if (lows[i] < minL) minL = lows[i];
+  }
+  return (maxH + minL) / 2;
+}
+
+/**
  * Compute Ichimoku Cloud
+ * Performance optimization: Leverages nested sub-window segmentation for
+ * standard Ichimoku parameters (conversionPeriod <= basePeriod <= spanBPeriod),
+ * evaluating extremes across non-overlapping sub-ranges in a single pass
+ * per historical anchor instead of 5 separate overlapping scans. Reduces
+ * bar scans from 122 down to 78 bars (~36% fewer iterations) and eliminates
+ * per-call closure instantiation.
  * @param {number[]} highs - Array of high prices.
  * @param {number[]} lows - Array of low prices.
  * @param {number[]} closes - Array of close prices.
@@ -3543,49 +3575,104 @@ export function computeIchimokuCloud(
   }
 
   const currentIdx = endIndex - 1;
-
-  // Helper to calculate midpoint of high and low over a period
-  // without array slicing
-  const getMidpoint = (p: number, idx: number) => {
-    const start = idx - p + 1;
-    if (start < 0) return null;
-    let maxH = highs[start];
-    let minL = lows[start];
-    for (let i = start + 1; i <= idx; i++) {
-      if (highs[i] > maxH) maxH = highs[i];
-      if (lows[i] < minL) minL = lows[i];
-    }
-    return (maxH + minL) / 2;
-  };
-
-  const conversionLine = getMidpoint(conversionPeriod, currentIdx);
-  const baseLine = getMidpoint(basePeriod, currentIdx);
-
-  // Span A: (Conversion Line + Base Line) / 2, shifted forward by displacement
-  // To get the CURRENT Span A value, we need the calculation
-  // from 'displacement' periods ago
   const idxAgo = currentIdx - displacement;
   if (idxAgo < 0) return null;
 
-  const convAgo = getMidpoint(conversionPeriod, idxAgo);
-  const baseAgo = getMidpoint(basePeriod, idxAgo);
+  let conversionLine: number | null;
+  let baseLine: number | null;
+  let convAgo: number | null;
+  let baseAgo: number | null;
+  let spanB: number | null;
 
-  if (convAgo === null || baseAgo === null) return null;
-  const spanA = (convAgo + baseAgo) / 2;
+  // Optimized single-pass nested segmentation for standard parameters
+  if (conversionPeriod <= basePeriod && basePeriod <= spanBPeriod) {
+    const baseStart = currentIdx - basePeriod + 1;
+    if (baseStart < 0) return null;
+    const convStart = currentIdx - conversionPeriod + 1;
 
-  // Span B: (52-period high + low) / 2, shifted forward
-  const spanBAgo = getMidpoint(spanBPeriod, idxAgo);
-  const spanB = spanBAgo; // If null, return null
+    let baseMaxH = highs[baseStart];
+    let baseMinL = lows[baseStart];
+    for (let i = baseStart + 1; i < convStart; i++) {
+      const h = highs[i];
+      const l = lows[i];
+      if (h > baseMaxH) baseMaxH = h;
+      if (l < baseMinL) baseMinL = l;
+    }
 
-  // Lagging Span: Current closing price, shifted back.
-  // In real-time context, we look at where today's price is
-  // relative to price 26 periods ago
-  const laggingSpan = closes[currentIdx];
+    let convMaxH = highs[convStart];
+    let convMinL = lows[convStart];
+    for (let i = convStart + 1; i <= currentIdx; i++) {
+      const h = highs[i];
+      const l = lows[i];
+      if (h > convMaxH) convMaxH = h;
+      if (l < convMinL) convMinL = l;
+    }
+
+    if (convMaxH > baseMaxH) baseMaxH = convMaxH;
+    if (convMinL < baseMinL) baseMinL = convMinL;
+
+    conversionLine = (convMaxH + convMinL) / 2;
+    baseLine = (baseMaxH + baseMinL) / 2;
+
+    const spanBStart = idxAgo - spanBPeriod + 1;
+    if (spanBStart < 0) return null;
+    const baseAgoStart = idxAgo - basePeriod + 1;
+    const convAgoStart = idxAgo - conversionPeriod + 1;
+
+    let spanBMaxH = highs[spanBStart];
+    let spanBMinL = lows[spanBStart];
+    for (let i = spanBStart + 1; i < baseAgoStart; i++) {
+      const h = highs[i];
+      const l = lows[i];
+      if (h > spanBMaxH) spanBMaxH = h;
+      if (l < spanBMinL) spanBMinL = l;
+    }
+
+    let baseAgoMaxH = highs[baseAgoStart];
+    let baseAgoMinL = lows[baseAgoStart];
+    for (let i = baseAgoStart + 1; i < convAgoStart; i++) {
+      const h = highs[i];
+      const l = lows[i];
+      if (h > baseAgoMaxH) baseAgoMaxH = h;
+      if (l < baseAgoMinL) baseAgoMinL = l;
+    }
+
+    let convAgoMaxH = highs[convAgoStart];
+    let convAgoMinL = lows[convAgoStart];
+    for (let i = convAgoStart + 1; i <= idxAgo; i++) {
+      const h = highs[i];
+      const l = lows[i];
+      if (h > convAgoMaxH) convAgoMaxH = h;
+      if (l < convAgoMinL) convAgoMinL = l;
+    }
+
+    if (convAgoMaxH > baseAgoMaxH) baseAgoMaxH = convAgoMaxH;
+    if (convAgoMinL < baseAgoMinL) baseAgoMinL = convAgoMinL;
+
+    if (baseAgoMaxH > spanBMaxH) spanBMaxH = baseAgoMaxH;
+    if (baseAgoMinL < spanBMinL) spanBMinL = baseAgoMinL;
+
+    convAgo = (convAgoMaxH + convAgoMinL) / 2;
+    baseAgo = (baseAgoMaxH + baseAgoMinL) / 2;
+    spanB = (spanBMaxH + spanBMinL) / 2;
+  } else {
+    // Fallback for non-standard or arbitrary user configurations
+    conversionLine = getMidpointRange(
+      highs, lows, conversionPeriod, currentIdx
+    );
+    baseLine = getMidpointRange(highs, lows, basePeriod, currentIdx);
+    convAgo = getMidpointRange(highs, lows, conversionPeriod, idxAgo);
+    baseAgo = getMidpointRange(highs, lows, basePeriod, idxAgo);
+    spanB = getMidpointRange(highs, lows, spanBPeriod, idxAgo);
+  }
 
   if (conversionLine === null || baseLine === null ||
-    spanA === null || spanB === null) {
+    convAgo === null || baseAgo === null || spanB === null) {
     return null;
   }
+
+  const spanA = (convAgo + baseAgo) / 2;
+  const laggingSpan = closes[currentIdx];
 
   return {
     conversionLine,

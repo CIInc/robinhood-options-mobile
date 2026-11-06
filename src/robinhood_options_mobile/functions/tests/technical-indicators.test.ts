@@ -21,6 +21,8 @@ import {
   computeOBV,
   evaluateOBV,
   evaluateMarketDirection,
+  computeIchimokuCloud,
+  evaluateIchimokuCloud,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -680,6 +682,102 @@ describe("Technical Indicators", () => {
       expect(resEnd35.metadata?.slowMA).toBeCloseTo(
         resSliced.metadata?.slowMA as number, 5
       );
+    });
+  });
+
+  describe("computeIchimokuCloud and evaluateIchimokuCloud", () => {
+    it("should return null for insufficient data", () => {
+      const highs = Array.from({ length: 40 }, () => 105);
+      const lows = Array.from({ length: 40 }, () => 95);
+      const closes = Array.from({ length: 40 }, () => 100);
+
+      // spanBPeriod default is 52, so 40 is insufficient
+      const res = computeIchimokuCloud(highs, lows, closes);
+      expect(res).toBeNull();
+
+      const evalRes = evaluateIchimokuCloud(highs, lows, closes);
+      expect(evalRes.signal).toBe("HOLD");
+      expect(evalRes.reason).toContain("Insufficient data");
+    });
+
+    it("should compute accurate Ichimoku values for 100 bars", () => {
+      const n = 100;
+      const highs = Array.from(
+        { length: n }, (_, i) => 100 + Math.sin(i * 0.1) * 10 + 2
+      );
+      const lows = Array.from(
+        { length: n }, (_, i) => 100 + Math.sin(i * 0.1) * 10 - 2
+      );
+      const closes = Array.from(
+        { length: n }, (_, i) => 100 + Math.sin(i * 0.1) * 10
+      );
+
+      const res = computeIchimokuCloud(highs, lows, closes);
+      expect(res).not.toBeNull();
+      if (!res) return;
+
+      expect(res.conversionLine).toBeGreaterThan(0);
+      expect(res.baseLine).toBeGreaterThan(0);
+      expect(res.spanA).toBeGreaterThan(0);
+      expect(res.spanB).toBeGreaterThan(0);
+      expect(res.laggingSpan).toBe(closes[n - 1]);
+
+      const evalRes = evaluateIchimokuCloud(highs, lows, closes);
+      expect(evalRes.value).toBe(closes[n - 1]);
+      expect(["BUY", "SELL", "HOLD"]).toContain(evalRes.signal);
+    });
+
+    it("should respect custom endIndex parameter", () => {
+      const n = 120;
+      const highs = Array.from({ length: n }, (_, i) => 110 + i * 0.5);
+      const lows = Array.from({ length: n }, (_, i) => 90 + i * 0.5);
+      const closes = Array.from({ length: n }, (_, i) => 100 + i * 0.5);
+
+      const resEnd80 = computeIchimokuCloud(
+        highs, lows, closes, 9, 26, 52, 26, 80
+      );
+      const resSliced = computeIchimokuCloud(
+        highs.slice(0, 80),
+        lows.slice(0, 80),
+        closes.slice(0, 80),
+        9, 26, 52, 26, 80
+      );
+
+      expect(resEnd80).toEqual(resSliced);
+    });
+
+    it("should correctly handle downward trending prices", () => {
+      const n = 100;
+      // Steadily declining prices to exercise lower-low tracking branches
+      const highs = Array.from({ length: n }, (_, i) => 200 - i * 1.0);
+      const lows = Array.from({ length: n }, (_, i) => 190 - i * 1.0);
+      const closes = Array.from({ length: n }, (_, i) => 195 - i * 1.0);
+
+      const res = computeIchimokuCloud(highs, lows, closes);
+      expect(res).not.toBeNull();
+      if (!res) return;
+
+      expect(res.conversionLine).toBeLessThan(200);
+      expect(res.baseLine).toBeLessThan(200);
+      expect(res.spanA).toBeLessThan(200);
+      expect(res.spanB).toBeLessThan(200);
+    });
+
+    it("should handle custom non-standard periods via fallback path", () => {
+      const n = 80;
+      const highs = Array.from({ length: n }, (_, i) => 120 + (i % 5));
+      const lows = Array.from({ length: n }, (_, i) => 80 - (i % 5));
+      const closes = Array.from({ length: n }, () => 100);
+
+      // Non-standard where conversionPeriod > basePeriod
+      const res = computeIchimokuCloud(
+        highs, lows, closes, 30, 15, 40, 10
+      );
+      expect(res).not.toBeNull();
+      if (!res) return;
+
+      expect(res.conversionLine).toBeGreaterThan(0);
+      expect(res.baseLine).toBeGreaterThan(0);
     });
   });
 });
