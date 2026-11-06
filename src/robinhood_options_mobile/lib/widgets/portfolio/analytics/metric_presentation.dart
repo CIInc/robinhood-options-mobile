@@ -253,127 +253,134 @@ class MetricPresentation {
       }
     }
 
-    return Tooltip(
-      richMessage: TextSpan(
-        children: [
-          TextSpan(
-            text: '$label\n\n',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.white,
-              letterSpacing: 0.5,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $valueStr',
+      button: true,
+      hint: 'Double tap to view metric explanation and guidance',
+      child: Tooltip(
+        richMessage: TextSpan(
+          children: [
+            TextSpan(
+              text: '$label\n\n',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
             ),
-          ),
-          TextSpan(
-            text: definitions[label] ?? '',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.white,
-              height: 1.6,
-              fontWeight: FontWeight.w400,
+            TextSpan(
+              text: definitions[label] ?? '',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.white,
+                height: 1.6,
+                fontWeight: FontWeight.w400,
+              ),
             ),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      showDuration: const Duration(seconds: 30),
-      waitDuration: const Duration(milliseconds: 500),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.grey[850]!,
-            Colors.grey[900]!,
           ],
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        showDuration: const Duration(seconds: 30),
+        waitDuration: const Duration(milliseconds: 500),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.grey[850]!,
+              Colors.grey[900]!,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 12,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 12,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      textStyle: const TextStyle(color: Colors.white),
-      child: InkWell(
-        onTap: () {
-          final definition = definitions[label];
-          if (definition != null) {
-            final guidance = metricGuidance[label] ??
-                {'tip': definition, 'noThreshold': true};
-            showMetricDetails(context, label, definition, guidance);
-          }
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      Colors.grey[850]!,
-                      Colors.grey[900]!,
-                    ]
-                  : [
-                      Theme.of(context).colorScheme.surfaceContainer,
-                      Theme.of(context).colorScheme.surface,
-                    ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Theme.of(context)
-                      .colorScheme
-                      .outlineVariant
-                      .withValues(alpha: 0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                blurRadius: 8,
-                spreadRadius: 1,
-                offset: const Offset(0, 2),
+        textStyle: const TextStyle(color: Colors.white),
+        child: InkWell(
+          onTap: () {
+            final definition = definitions[label];
+            if (definition != null) {
+              final guidance = metricGuidance[label] ??
+                  {'tip': definition, 'noThreshold': true};
+              showMetricDetails(context, label, definition, guidance);
+            }
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        Colors.grey[850]!,
+                        Colors.grey[900]!,
+                      ]
+                    : [
+                        Theme.of(context).colorScheme.surfaceContainer,
+                        Theme.of(context).colorScheme.surface,
+                      ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: isDark
-                            ? Colors.grey[400]
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 6),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(valueStr,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: valueColor ??
-                            (isDark
-                                ? Colors.white
-                                : Theme.of(context).colorScheme.onSurface))),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.2),
+                width: 1,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: isDark
+                              ? Colors.grey[400]
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(valueStr,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: valueColor ??
+                              (isDark
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.onSurface))),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -34,8 +34,8 @@ This document outlines the planned features, enhancements, and delivery mileston
 **Last reviewed:** November 4, 2026 · **Current app version:** 0.60.10
 
 ### Quick Stats
-- **Completed checklist items:** 61 high-level capability blocks (460+ sub-features)
-- **Planned checklist items:** 34 actionable tasks
+- **Completed checklist items:** 62 high-level capability blocks (460+ sub-features)
+- **Planned checklist items:** 33 actionable tasks
 - **GitHub issues:** 134 total — 43 open and 91 closed (as of November 4, 2026)
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
 
@@ -75,7 +75,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 ### v0.61.0: Advanced Derivatives, Walk-Forward Validation & Smart Order Routing (Target: Q1/Q2 2027)
 
 #### Quantitative Research & Strategy Backtesting
-- [ ] **Macro Regime & GEX-Conditioned Strategy Backtest Attribution (Walk-Forward Validation)** (v0.61.0, [#273](https://github.com/CIInc/robinhood-options-mobile/issues/273), [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
+- [x] **Macro Regime & GEX-Conditioned Strategy Backtest Attribution (Walk-Forward Validation)** (v0.61.0, [#273](https://github.com/CIInc/robinhood-options-mobile/issues/273), [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
   - Tag each simulated trade in `functions/src/backtesting.ts` with its market regime (Bull Low-Vol, Bull High-Vol, Bear Low-Vol, Bear High-Vol) derived from SPY trend and ATR/volatility percentiles in $O(1)$ space.
   - Compute per-regime performance metrics (win rate, profit factor, net profit, max drawdown, trade count).
   - Support an In-Sample / Out-of-Sample (70/30) split returning comparative Sharpe and profit factor degradation to detect curve-fitted parameter configurations.
