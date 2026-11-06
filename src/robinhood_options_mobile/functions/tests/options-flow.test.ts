@@ -51,7 +51,9 @@ jest.mock("../src/options-flow-utils", () => ({
   fetchOptionsFlowForSymbols: jest.fn(),
 }));
 
+import { fetchOptionsFlowForSymbols } from "../src/options-flow-utils";
 import {
+  getOptionsFlow,
   createOptionAlert,
   toggleOptionAlert,
   deleteOptionAlert,
@@ -60,6 +62,128 @@ import {
 describe("options-flow alert endpoints", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("getOptionsFlow", () => {
+    it("rejects unauthenticated requests", async () => {
+      await expect(
+        (getOptionsFlow as any).run({
+          data: { symbol: "AAPL" },
+          auth: undefined,
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "unauthenticated",
+          "The function must be called while authenticated."
+        )
+      );
+    });
+
+    it("rejects missing symbol or symbols list", async () => {
+      await expect(
+        (getOptionsFlow as any).run({
+          data: {},
+          auth: { uid: "user-123" },
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "invalid-argument",
+          "Symbol or symbols list is required."
+        )
+      );
+    });
+
+    it("rejects invalid single symbol format", async () => {
+      const invalidSymbols = ["", "TOOLONGSYMBOL123", "AAPL$", "   "];
+      for (const symbol of invalidSymbols) {
+        await expect(
+          (getOptionsFlow as any).run({
+            data: { symbol },
+            auth: { uid: "user-123" },
+          })
+        ).rejects.toThrow(
+          new HttpsError(
+            "invalid-argument",
+            "Symbol must be a valid stock symbol (1-10 characters)."
+          )
+        );
+      }
+    });
+
+    it("rejects empty symbols array or more than 25 symbols", async () => {
+      await expect(
+        (getOptionsFlow as any).run({
+          data: { symbols: [] },
+          auth: { uid: "user-123" },
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "invalid-argument",
+          "Symbols array must contain between 1 and 25 symbols."
+        )
+      );
+
+      const tooManySymbols = Array.from({ length: 26 }, (_, i) => `SYM${i}`);
+      await expect(
+        (getOptionsFlow as any).run({
+          data: { symbols: tooManySymbols },
+          auth: { uid: "user-123" },
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "invalid-argument",
+          "Symbols array must contain between 1 and 25 symbols."
+        )
+      );
+    });
+
+    it("rejects invalid entries in symbols array", async () => {
+      await expect(
+        (getOptionsFlow as any).run({
+          data: { symbols: ["AAPL", "TOOLONGSYMBOL123"] },
+          auth: { uid: "user-123" },
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "invalid-argument",
+          "Each symbol must be a valid stock symbol (1-10 characters)."
+        )
+      );
+    });
+
+    it("rejects invalid expiration filter", async () => {
+      await expect(
+        (getOptionsFlow as any).run({
+          data: { symbol: "AAPL", expiration: "invalid-range" },
+          auth: { uid: "user-123" },
+        })
+      ).rejects.toThrow(
+        new HttpsError(
+          "invalid-argument",
+          "Invalid expiration range filter."
+        )
+      );
+    });
+
+    it("succeeds with valid single symbol and expiration", async () => {
+      (fetchOptionsFlowForSymbols as jest.Mock).mockResolvedValueOnce([{
+        id: "flow-1",
+        symbol: "AAPL",
+      }]);
+
+      const res = await (getOptionsFlow as any).run({
+        data: { symbol: "aapl", expiration: "0-7" },
+        auth: { uid: "user-123" },
+      });
+
+      expect(res).toEqual({
+        items: [{ id: "flow-1", symbol: "AAPL" }],
+      });
+      expect(fetchOptionsFlowForSymbols).toHaveBeenCalledWith(
+        ["AAPL"],
+        "0-7"
+      );
+    });
   });
 
   describe("createOptionAlert", () => {

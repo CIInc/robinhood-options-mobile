@@ -1303,6 +1303,13 @@ class PaperTradingStore extends ChangeNotifier {
   /// quantity are treated as short opens and validated against collateral
   /// capacity instead; final enforcement happens again at fill time.
   void _validateReservation(PendingPaperOrder order) {
+    final stockPositionIndex = order.assetType == 'stock'
+        ? _stockPositionIndex(
+            symbol: order.symbol,
+            instrumentUrl: order.assetUrl,
+          )
+        : -1;
+
     if (order.side == 'buy') {
       final cost =
           order.quantity * order.reservePrice * order.contractMultiplier +
@@ -1316,8 +1323,9 @@ class PaperTradingStore extends ChangeNotifier {
 
     double held = 0;
     if (order.assetType == 'stock') {
-      final idx = _positions.indexWhere((p) => p.instrument == order.assetUrl);
-      held = idx >= 0 ? (_positions[idx].quantity ?? 0) : 0;
+      held = stockPositionIndex >= 0
+          ? (_positions[stockPositionIndex].quantity ?? 0)
+          : 0;
     } else {
       final idx = _optionPositions.indexWhere((p) =>
           p.legs.isNotEmpty &&
@@ -1329,7 +1337,10 @@ class PaperTradingStore extends ChangeNotifier {
         .where((o) =>
             o.side == 'sell' &&
             o.assetType == order.assetType &&
-            o.assetUrl == order.assetUrl)
+            (order.assetType == 'stock'
+                ? o.symbol.trim().toUpperCase() ==
+                    order.symbol.trim().toUpperCase()
+                : o.assetUrl == order.assetUrl))
         .fold(0.0, (total, o) => total + o.quantity);
 
     if (held - reserved >= order.quantity) {
@@ -1637,7 +1648,10 @@ class PaperTradingStore extends ChangeNotifier {
   }) async {
     double executionPrice = price;
     double amount = 0;
-    final index = _positions.indexWhere((p) => p.instrument == instrument.url);
+    final index = _stockPositionIndex(
+      symbol: instrument.symbol,
+      instrumentUrl: instrument.url,
+    );
     final heldQty = index >= 0 ? (_positions[index].quantity ?? 0) : 0.0;
 
     if (side.toLowerCase() == 'buy') {
@@ -1727,7 +1741,10 @@ class PaperTradingStore extends ChangeNotifier {
   /// long; negative are short. [sign] is +1 for buys, -1 for sells.
   void _updateStockPosition(
       Instrument instrument, double quantity, double price, int sign) {
-    int index = _positions.indexWhere((p) => p.instrument == instrument.url);
+    final index = _stockPositionIndex(
+      symbol: instrument.symbol,
+      instrumentUrl: instrument.url,
+    );
 
     if (index != -1) {
       var current = _positions[index];
@@ -1797,6 +1814,34 @@ class PaperTradingStore extends ChangeNotifier {
       )..instrumentObj = instrument;
       _positions.add(newPos);
     }
+  }
+
+  int _stockPositionIndex({
+    required String symbol,
+    required String instrumentUrl,
+  }) {
+    final normalizedSymbol = symbol.trim().toUpperCase();
+    final matches = <int>[];
+    for (var index = 0; index < _positions.length; index++) {
+      final position = _positions[index];
+      final positionSymbol =
+          position.instrumentObj?.symbol.trim().toUpperCase();
+      if (normalizedSymbol.isNotEmpty &&
+          positionSymbol != null &&
+          positionSymbol.isNotEmpty) {
+        if (positionSymbol == normalizedSymbol) matches.add(index);
+      } else if (position.instrument == instrumentUrl) {
+        matches.add(index);
+      }
+    }
+
+    if (matches.length > 1) {
+      throw StateError(
+        'Multiple Paper positions exist for $symbol. Reconcile this ticker '
+        'before placing another order.',
+      );
+    }
+    return matches.isEmpty ? -1 : matches.single;
   }
 
   Future<void> executeOptionOrder({

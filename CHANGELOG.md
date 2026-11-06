@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+**Macro Regime & Walk-Forward Strategy Backtest Attribution ([#273](https://github.com/CIInc/robinhood-options-mobile/issues/273))**
+
+- **Macro Regime Classification:** Tag every simulated trade entry in `functions/src/backtesting.ts` with its market regime context (`BULL_LOW_VOL`, `BULL_HIGH_VOL`, `BEAR_LOW_VOL`, `BEAR_HIGH_VOL`) derived from benchmark trend (50-bar SMA) and normalized volatility (14-bar NATR) in $O(1)$ amortized two-pointer time without extra API calls.
+- **Regime Performance Attribution:** Aggregate simulated performance per regime (win rate, profit factor, net profit, max drawdown, trade count), exposing structural strategy strengths and vulnerabilities across distinct market environments.
+- **Walk-Forward Validation:** Implement chronological 70/30 In-Sample vs. Out-of-Sample stability analysis comparing Sharpe and Profit Factor retention to flag curve-fitting risk (`ROBUST`, `MODERATE`, `OVERFITTED`, `INSUFFICIENT_DATA`).
+- **Interactive Mobile UI:** Surface an interactive `RegimeAttributionCard` in `BacktestingWidget` featuring walk-forward stability badges, metrics retention table, and responsive 4-quadrant regime attribution tiles down to 320px viewports with screen-reader semantics.
+- **Trade Badging & CSV Export:** Display regime badges on trade logs in the Trades tab and include `Entry Regime` context in backtest CSV exports.
+
+## [0.60.10] - 2026-11-04
+**Paper Stock Position Identity**
+
+- **Ticker-Based Matching:** Match Paper stock positions by normalized ticker across instrument URLs in client and server fills, preventing alias URLs from splitting one holding into duplicate long and short rows.
+- **Ambiguous Legacy Rows:** Reject orders when multiple stored Paper position rows share a ticker instead of applying a fill to an arbitrary row.
+- **Regression Coverage:** Verify alias-URL buy-to-cover fills and rejection of ambiguous server-side fills.
+
+## [0.60.9] - 2026-11-04
+**Short Position Return Accuracy**
+
+- **Signed Return Percentages:** Preserve the P&L sign for short stock positions and calculate mixed long/short percentages against gross cost basis and prior market value.
+
+## [0.60.8] - 2026-11-03
+**Automatic Paper Quote Source Selection**
+
+- **Automatic Quote Feed:** Paper mode prefers the active Robinhood or Schwab account, then falls back to the first linked supported account. A pin override is shown only when multiple supported feeds are linked, or when correcting an unavailable saved pin.
+- **Isolation:** Quote-source selection does not switch the active account; simulated fills and exits remain in the Paper ledger, and Live orders continue to use the active account.
+- **Proposal Retry:** Transient trade-proposal call failures remain eligible for the next cycle and appear as retrying. Permanent callable failures are rejected rather than retried; brokerage submissions with an unknown outcome are not blindly replayed.
+
+## [0.60.7] - 2026-11-03
+**Paper Auto-Trade Exit Monitoring**
+
+- **Paper TP/SL Monitoring:** Fix simulated take-profit/stop-loss monitoring so it does not require a selected Live account. Paper exits still use the Paper ledger and configured quote source; Live monitoring still requires the selected account.
+- **Regression Coverage:** Verify Paper monitoring with no selected account and preserve the Live account requirement.
 
 ## [0.60.6] - 2026-11-02
 **Independent Paper Quote Source & Background Scheduling**

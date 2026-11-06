@@ -12,10 +12,10 @@ class _UnusedFirestore extends Fake implements FirebaseFirestore {}
 /// short stock with 150% collateral, cash-secured puts, covered calls,
 /// buy-to-close, and expiration/assignment.
 void main() {
-  Instrument makeInstrument({String symbol = 'AAPL'}) {
+  Instrument makeInstrument({String symbol = 'AAPL', String? url}) {
     return Instrument(
         id: 'id_$symbol',
-        url: 'https://api.robinhood.com/instruments/$symbol/',
+        url: url ?? 'https://api.robinhood.com/instruments/$symbol/',
         quote: 'quote',
         fundamentals: 'fundamentals',
         splits: 'splits',
@@ -122,6 +122,34 @@ void main() {
 
       expect(store.positions.first.quantity, -20);
       expect(store.positions.first.averageBuyPrice, 155.0);
+    });
+
+    test('same-symbol orders with different instrument URLs share a position',
+        () async {
+      final store = makeStore();
+      final firstInstrument = makeInstrument(
+        url: 'https://api.robinhood.com/instruments/first-id/',
+      );
+      final secondInstrument = makeInstrument(
+        url: 'https://api.robinhood.com/instruments/second-id/',
+      );
+
+      await store.submitStockOrder(
+        instrument: firstInstrument,
+        quantity: 10,
+        side: 'sell',
+        orderType: 'market',
+        marketPrice: 150.0,
+      );
+      await store.submitStockOrder(
+        instrument: secondInstrument,
+        quantity: 10,
+        side: 'buy',
+        orderType: 'market',
+        marketPrice: 140.0,
+      );
+
+      expect(store.positions, isEmpty);
     });
 
     test('buy-to-cover realizes P&L and releases collateral', () async {

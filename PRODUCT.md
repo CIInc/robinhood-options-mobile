@@ -20,7 +20,7 @@ Retail and semi-professional traders often manage fragmented accounts (taxable b
    - Answer *"What happened?"* and *"What needs my attention?"* first. The Portfolio tab leads with hero metrics, a prioritized **Action Center** (`PortfolioAlertService`), and top movers, while deep analytical tools live in six dedicated drill-down sections (`Performance`, `Positions`, `Risk`, `Insights`, `Taxes`, `Strategies`) backed by a single shared `PortfolioAnalyticsController`.
 
 2. **Safety, Explicit Consent & Capital Protection First**
-   - Automation never bypasses risk controls. Auto-trading enforces live-quote price validation ($\le 3\%$ deviation), explicit fixed vs. dynamic position sizing, `RiskGuard` portfolio concentration checks, and a 5-tier sequential stop queue.
+   - Automation never bypasses risk controls. Auto-trading enforces live-quote price validation ($\le 3\%$ deviation), explicit fixed vs. dynamic position sizing, `RiskGuard` portfolio concentration checks, and a 5-tier sequential stop queue. Paper take-profit/stop-loss exits operate only on the simulated ledger and do not require a selected Live account.
    - Manual and copied trades are protected by `RiskCircuitBreakerService` (daily loss limits, drawdown locks, behavioral tilt cooling-off periods), `CopyTradeRiskGuardianService` (allocation clamping, slippage aborts, leader drawdown auto-disconnect), and pre-trade pin/assignment/wash-sale warnings.
    - High-risk or experimental capabilities are partitioned behind a 4-tier **Feature Access & Beta Labs** gate (`FeatureAccessService`) with remote kill switches and explicit safety disclaimers.
 

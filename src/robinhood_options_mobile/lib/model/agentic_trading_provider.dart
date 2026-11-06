@@ -337,9 +337,11 @@ class AgenticTradingProvider with ChangeNotifier {
   }) {
     final activeUser = userStore.currentUser;
     if (source == PaperQuoteSource.selectedBrokerage) {
-      return supportsAutoTradingBrokerage(activeUser?.source)
-          ? activeUser
-          : null;
+      if (supportsAutoTradingBrokerage(activeUser?.source)) return activeUser;
+      for (final user in userStore.items) {
+        if (supportsAutoTradingBrokerage(user.source)) return user;
+      }
+      return null;
     }
     final brokerageSource = switch (source) {
       PaperQuoteSource.selectedBrokerage => null,
@@ -537,13 +539,14 @@ class AgenticTradingProvider with ChangeNotifier {
         return;
       }
       if (isPaperMode && currentUser == null) {
-        final selectedSource = switch (_config.paperQuoteSource) {
-          PaperQuoteSource.selectedBrokerage => 'the selected brokerage',
-          PaperQuoteSource.robinhood => 'Robinhood',
-          PaperQuoteSource.schwab => 'Schwab',
+        final message = switch (_config.paperQuoteSource) {
+          PaperQuoteSource.selectedBrokerage =>
+            'Paper trading needs a linked Robinhood or Schwab account for quotes.',
+          PaperQuoteSource.robinhood =>
+            'Robinhood is not linked as the pinned Paper quote source. Choose Automatic or link Robinhood in Execution Settings.',
+          PaperQuoteSource.schwab =>
+            'Schwab is not linked as the pinned Paper quote source. Choose Automatic or link Schwab in Execution Settings.',
         };
-        final message = 'Paper quote source $selectedSource is unavailable. '
-            'Choose a linked Robinhood or Schwab source in Execution Settings.';
         _log('⏭️ $message');
         updateLastAutoTradeResult({
           'success': false,
@@ -916,11 +919,26 @@ class AgenticTradingProvider with ChangeNotifier {
   void rememberProcessedSignals(
       List<Map<String, dynamic>> signals, Map<String, dynamic> result) {
     if (result['blocked'] == true) return;
+    final retryingSignalIds = <String>{};
+    final processedSignals = result['processedSignals'];
+    if (processedSignals is List) {
+      for (final processedSignal in processedSignals.whereType<Map>()) {
+        if (processedSignal['processedStatus'] != 'Retry') continue;
+        final symbol = processedSignal['symbol'] as String?;
+        final timestamp = processedSignal['timestamp'] as int?;
+        if (symbol != null && timestamp != null) {
+          retryingSignalIds.add('${symbol}_$timestamp');
+        }
+      }
+    }
     for (final signal in signals) {
       final symbol = signal['symbol'] as String?;
       final timestamp = signal['timestamp'] as int?;
       if (symbol != null && timestamp != null) {
-        _processedSignalTimestamps['${symbol}_$timestamp'] = timestamp;
+        final signalId = '${symbol}_$timestamp';
+        if (!retryingSignalIds.contains(signalId)) {
+          _processedSignalTimestamps[signalId] = timestamp;
+        }
       }
     }
   }
@@ -2432,7 +2450,16 @@ class AgenticTradingProvider with ChangeNotifier {
           };
         } catch (e) {
           _log('❌ Error initiating proposal for $symbol: $e');
-          return null;
+          return {
+            'signal': signal,
+            'result': {
+              'status': 'error',
+              'message': e.toString(),
+              'retryable': TradeSignalsProvider.isRetryableProposalFailure(e),
+            },
+            'symbol': symbol,
+            'currentPrice': currentPrice,
+          };
         }
       });
 
@@ -2833,7 +2860,31 @@ class AgenticTradingProvider with ChangeNotifier {
             final reasonToLog = assessmentReason ??
                 (proposalResult['message'] as String?) ??
                 'Rejected by agent';
-            _log('❌ Trade proposal rejected for $symbol: $reasonToLog');
+            if (proposalStatus == 'error') {
+              final retryable = proposalResult['retryable'] == true;
+              final processedSignalIndex = processedSignals.indexWhere(
+                (processedSignal) =>
+                    processedSignal['symbol'] == symbol &&
+                    processedSignal['timestamp'] == signal['timestamp'] &&
+                    processedSignal['interval'] == signal['interval'],
+              );
+              if (processedSignalIndex != -1) {
+                processedSignals[processedSignalIndex]
+                  ..['processedStatus'] = retryable ? 'Retry' : 'Rejected'
+                  ..['rejectionReason'] = retryable
+                      ? 'Proposal request failed; retrying next eligible cycle: $reasonToLog'
+                      : 'Proposal request failed; not automatically retried: $reasonToLog';
+              }
+              if (retryable) {
+                _log(
+                    '⏳ Trade proposal failed for $symbol; signal will be retried next eligible cycle: $reasonToLog');
+              } else {
+                _log(
+                    '❌ Trade proposal failed for $symbol and will not be retried automatically: $reasonToLog');
+              }
+            } else {
+              _log('❌ Trade proposal rejected for $symbol: $reasonToLog');
+            }
           }
 
           // Delay between trades to avoid rate limiting
@@ -3114,10 +3165,12 @@ class AgenticTradingProvider with ChangeNotifier {
     _isMonitoringExits = true;
     try {
       // Validate required parameters
+      final isPaperMode = _config.paperTradingMode;
       if (brokerageUser == null ||
-          account == null ||
+          (!isPaperMode && account == null) ||
           brokerageService == null ||
-          instrumentStore == null) {
+          instrumentStore == null ||
+          (isPaperMode && paperTradingStore == null)) {
         _log(
             '❌ Missing required parameters for take profit/stop loss monitoring');
         return {
