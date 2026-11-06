@@ -2837,7 +2837,7 @@ class _UserWidgetState extends State<UserWidget> {
     final theme = Theme.of(context);
     final isBundleAllowed = featureBundle == null ||
         FeatureAccessService.instance
-            .isFeatureEnabled(featureBundle, userRole: userRole);
+            .isFeatureEnabled(featureBundle, userRole: userRole, user: user);
     if (!isBundleAllowed) {
       return null;
     }

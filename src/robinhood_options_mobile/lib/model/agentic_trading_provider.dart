@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_brokerage_service_factory.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_run_journal.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -138,14 +139,70 @@ class AgenticTradingProvider with ChangeNotifier {
       if (durationMs != null) 'durationMs': durationMs,
     };
 
+    Future<void> recordCycleEvent({
+      required String event,
+      String? eventReason,
+    }) async {
+      try {
+        await AgenticTradingRunJournal.record(
+          event: event,
+          trigger: trigger,
+          phase: phase,
+          reason: eventReason ?? reason,
+          cycleId: cycleId,
+        );
+      } catch (error) {
+        debugPrint(
+            'Could not persist background diagnostic: ${error.runtimeType}');
+      }
+    }
+
     try {
+      await recordCycleEvent(event: 'cycle_diagnostic');
+      if (trigger == 'background') {
+        try {
+          if (!await AgenticTradingRunJournal.shouldUploadBackgroundDiagnostic(
+              reason: reason)) {
+            await recordCycleEvent(event: 'cloud_log_coalesced');
+            return;
+          }
+        } catch (error) {
+          debugPrint(
+              'Could not check diagnostic upload throttle: ${error.runtimeType}');
+          await recordCycleEvent(
+            event: 'cloud_log_throttle_check_failed',
+            eventReason: error.runtimeType.toString(),
+          );
+          return;
+        }
+      }
       await FirebaseFunctions.instance
           .httpsCallable('logAgenticTradingCycle')
           .call(data)
           .timeout(const Duration(seconds: 4));
     } catch (error) {
       debugPrint('Auto-trade diagnostics unavailable: ${error.runtimeType}');
+      await recordCycleEvent(
+        event: 'cloud_log_failed',
+        eventReason: error.runtimeType.toString(),
+      );
+      return;
     }
+    if (trigger == 'background') {
+      try {
+        await AgenticTradingRunJournal.markBackgroundDiagnosticUploaded(
+          reason: reason,
+        );
+      } catch (error) {
+        debugPrint(
+            'Could not persist diagnostic upload throttle: ${error.runtimeType}');
+        await recordCycleEvent(
+          event: 'cloud_log_upload_marker_failed',
+          eventReason: error.runtimeType.toString(),
+        );
+      }
+    }
+    await recordCycleEvent(event: 'cloud_log_uploaded');
   }
 
   // Constants
@@ -427,16 +484,6 @@ class AgenticTradingProvider with ChangeNotifier {
     }
     return null;
   }
-
-  static bool canScheduleBackgroundAutoTrading({
-    required BrokerageUserStore userStore,
-    required AgenticTradingConfig config,
-  }) =>
-      config.paperTradingMode
-          ? resolvePaperQuoteUser(
-                  userStore: userStore, source: config.paperQuoteSource) !=
-              null
-          : supportsAutoTradingBrokerage(userStore.currentUser?.source);
 
   /// Initialize the timer's next trade time (called from navigation widget when timer starts)
   void initializeAutoTradeTimer() {

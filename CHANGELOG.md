@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.1] - 2026-11-06 (pre-release)
+**Backtest Input Bounds & On-Device Auto-Trade Diagnostics**
+
+- **Backtest Input Validation ([#314](https://github.com/CIInc/robinhood-options-mobile/pull/314)):** Normalize and bound symbol filters to 30 valid symbols, validate date strings and ordering, and return typed callable errors for invalid input.
+- **Auto-Trade Lifecycle Diagnostics:** Add a bounded, trigger-separated device journal and an activity panel for recent background task events. Reconcile periodic scheduling on app resume to recover from task cancellation in the separate background engine; background timing remains best effort.
+- **Feature Availability:** Honor user-document feature flags when rendering gated profile features, including preferences set on another device.
+
 ## [0.61.0] - 2026-11-05 (pre-release)
 **Macro-Regime Backtesting, Safer Auto-Trading Diagnostics & Mobile Polish**
 

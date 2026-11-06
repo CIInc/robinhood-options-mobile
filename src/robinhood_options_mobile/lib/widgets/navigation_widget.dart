@@ -155,9 +155,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   Future<List<dynamic>> _loadData(BrokerageUserStore userStore) async {
+    final authUser = auth.currentUser;
+    final authUid = authUser?.uid;
+    user = null;
+    final loadedUserDoc = authUser == null
+        ? null
+        : _firestoreService.userCollection.doc(authUser.uid);
+    userDoc = loadedUserDoc;
+
     if (userStore.currentUser?.source == BrokerageSource.paper) {
       await Provider.of<PaperTradingStore>(context, listen: false)
-          .ensureLoaded(auth.currentUser);
+          .ensureLoaded(authUser);
     }
 
     final packageInfoFuture = PackageInfo.fromPlatform();
@@ -175,20 +183,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       service = null;
     }
 
-    if (auth.currentUser != null) {
-      userDoc = _firestoreService.userCollection.doc(auth.currentUser!.uid);
-      futureArr.add(userDoc!.get());
+    if (authUser != null) {
+      futureArr.add(loadedUserDoc!.get());
 
       // Initialize PaperTradingStore
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Provider.of<PaperTradingStore>(context, listen: false)
-              .setUser(auth.currentUser);
+              .setUser(authUser);
         });
       }
     }
 
     final snapshots = await Future.wait(futureArr);
+    if (auth.currentUser?.uid != authUid) return snapshots;
     final loadedUserSnapshot =
         snapshots.whereType<DocumentSnapshot<User>>().firstOrNull;
     final loadedUser = loadedUserSnapshot?.data();
@@ -703,6 +711,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
       SchwabStreamerService.resumeAll();
       _removeBadge();
       _authIfNeeded(); // Re-authenticate resume
+      final currentAuthUid = auth.currentUser?.uid;
+      final hasCurrentUserDocument = currentAuthUid != null &&
+          userDoc?.id == currentAuthUid &&
+          user != null;
+      final agenticProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      unawaited(AgenticTradingBackgroundService.syncScheduling(
+        enabled: AgenticTradingBackgroundService.shouldRegisterPeriodicTask(
+          hasUserDocument: hasCurrentUserDocument,
+          autoTradeEnabled: agenticProvider.config.autoTradeEnabled,
+        ),
+        force: true,
+      ));
     } else if (state == AppLifecycleState.paused) {
       SchwabStreamerService.pauseAll();
       // Logic to require auth again if we want to be strict on resume
@@ -923,16 +944,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
             }
 
-            final canScheduleAutoTrading =
-                AgenticTradingProvider.canScheduleBackgroundAutoTrading(
-              userStore: userStore,
-              config: agenticProvider.config,
-            );
-            unawaited(AgenticTradingBackgroundService.syncScheduling(
-              enabled: userDoc != null &&
-                  canScheduleAutoTrading &&
-                  agenticProvider.config.autoTradeEnabled,
-            ));
+            final currentAuthUid = auth.currentUser?.uid;
+            final loadedUserDocumentMatchesAuth = currentAuthUid != null &&
+                userDoc?.id == currentAuthUid &&
+                user != null;
+            if (dataSnapshot.connectionState == ConnectionState.done &&
+                dataSnapshot.hasData) {
+              unawaited(AgenticTradingBackgroundService.syncScheduling(
+                enabled: loadedUserDocumentMatchesAuth &&
+                    AgenticTradingBackgroundService.shouldRegisterPeriodicTask(
+                      hasUserDocument: loadedUserDocumentMatchesAuth,
+                      autoTradeEnabled: agenticProvider.config.autoTradeEnabled,
+                    ),
+              ));
+            }
 
             // The first build pass runs before the user document reference exists.
             if (userDoc != null) {

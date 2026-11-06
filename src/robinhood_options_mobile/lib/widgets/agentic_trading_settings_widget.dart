@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/widgets/shared/strategy_details_bottom_
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_run_journal.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -46,6 +47,92 @@ class AgenticTradingSettingsWidget extends StatefulWidget {
   @override
   State<AgenticTradingSettingsWidget> createState() =>
       _AgenticTradingSettingsWidgetState();
+}
+
+class _BackgroundActivityPanel extends StatefulWidget {
+  const _BackgroundActivityPanel();
+
+  @override
+  State<_BackgroundActivityPanel> createState() =>
+      _BackgroundActivityPanelState();
+}
+
+class _BackgroundActivityPanelState extends State<_BackgroundActivityPanel> {
+  late Future<List<Map<String, dynamic>>> _entries;
+
+  @override
+  void initState() {
+    super.initState();
+    _entries = AgenticTradingRunJournal.recent(limit: 8);
+  }
+
+  void _refresh() {
+    setState(() {
+      _entries = AgenticTradingRunJournal.recent(limit: 8);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+        leading: const Icon(Icons.history),
+        title: const Text('Background activity'),
+        subtitle: const Text('On-device task and cycle records'),
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              tooltip: 'Refresh background activity',
+              onPressed: _refresh,
+              icon: const Icon(Icons.refresh),
+            ),
+          ),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _entries,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const ListTile(
+                  title: Text('Loading local diagnostics...'),
+                );
+              }
+              if (snapshot.hasError) {
+                return const ListTile(
+                  title: Text('Could not read local diagnostics.'),
+                );
+              }
+              final entries = snapshot.data ?? const [];
+              if (entries.isEmpty) {
+                return const ListTile(
+                  title: Text('No local diagnostic events recorded.'),
+                );
+              }
+              return Column(
+                children: entries.map((entry) {
+                  final timestamp =
+                      DateTime.tryParse(entry['at'] as String? ?? '')
+                          ?.toLocal();
+                  final cycleId = entry['cycleId'] as String?;
+                  final sources = entry['brokerageSources'];
+                  final details = [
+                    if (entry['trigger'] case final String trigger) trigger,
+                    if (entry['phase'] case final String phase) phase,
+                    if (entry['reason'] case final String reason) reason,
+                    if (sources is List && sources.isNotEmpty)
+                      'sources ${sources.join(', ')}',
+                    if (cycleId != null) 'cycle ${cycleId.substring(0, 8)}',
+                    if (timestamp != null)
+                      DateFormat('MMM d, h:mm:ss a').format(timestamp),
+                  ];
+                  return ListTile(
+                    dense: true,
+                    title: Text(entry['event'] as String? ?? 'unknown'),
+                    subtitle: Text(details.join(' • ')),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      );
 }
 
 class _AgenticTradingSettingsWidgetState
@@ -1321,8 +1408,8 @@ class _AgenticTradingSettingsWidgetState
               hasPaperQuoteSource
                   ? 'Paper quotes use the configured source, independently of the account you are viewing. Live orders use the active account and require Robinhood or Schwab.'
                   : hasBrokerage
-                      ? 'Choose Automatic or link Robinhood or Schwab in Execution Settings to provide Paper quotes. Live orders use the active account and require Robinhood or Schwab.'
-                      : 'Link a Robinhood or Schwab account to provide Paper quotes or enable automated Live execution. You can configure your strategy now.',
+                      ? 'No supported Paper quote source is available in this device account list. Reconnect Robinhood or Schwab, or choose Automatic in Execution Settings.'
+                      : 'Connect a Robinhood or Schwab account on this device to provide Paper quotes or enable automated Live execution. You can configure your strategy now.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSecondaryContainer,
                   ),
@@ -2106,8 +2193,8 @@ class _AgenticTradingSettingsWidgetState
         ? !hasPaperQuoteSource
             ? config.paperQuoteSource != PaperQuoteSource.selectedBrokerage &&
                     hasAlternativePaperQuoteSource
-                ? 'Pinned Paper quote source is unavailable. Choose Automatic or link the selected brokerage in Execution Settings.'
-                : 'Link Robinhood or Schwab to provide Paper quotes.'
+                ? 'Pinned Paper quote source is unavailable in this device account list. Choose Automatic or reconnect the selected brokerage.'
+                : 'Connect a Robinhood or Schwab account on this device to provide Paper quotes.'
             : !hasEntryCriteria
                 ? 'Choose at least one entry indicator to enable Systematic mode.'
                 : null
@@ -2283,16 +2370,12 @@ class _AgenticTradingSettingsWidgetState
                                 .copyWith(autoTradeEnabled: value));
                         await agenticTradingProvider.updateConfig(
                             newConfig, widget.userDocRef);
-                        final brokerageUserStore =
-                            Provider.of<BrokerageUserStore>(context,
-                                listen: false);
                         await AgenticTradingBackgroundService.syncScheduling(
-                          enabled: value &&
-                              AgenticTradingProvider
-                                  .canScheduleBackgroundAutoTrading(
-                                userStore: brokerageUserStore,
-                                config: agenticTradingProvider.config,
-                              ),
+                          enabled: AgenticTradingBackgroundService
+                              .shouldRegisterPeriodicTask(
+                            hasUserDocument: true,
+                            autoTradeEnabled: value,
+                          ),
                         );
                       },
                 title: Text(
@@ -3668,6 +3751,7 @@ class _AgenticTradingSettingsWidgetState
       icon: Icons.settings,
       initiallyExpanded: true,
       children: [
+        const _BackgroundActivityPanel(),
         if (!hasSupportedBrokerage &&
             (!hasBrokerage || !agenticTradingProvider.config.paperTradingMode))
           _buildPaperModeUnavailable(
