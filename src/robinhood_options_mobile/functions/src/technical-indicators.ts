@@ -493,7 +493,13 @@ export function computeBollingerBandsArray(
 }
 
 /**
- * Compute array of Stochastic values
+ * Compute array of Stochastic values.
+ * Performance optimization:
+ * 1. Uses monotonic sliding-window deques (Int32Array) to track trailing
+ *    highest high and lowest low in O(1) amortized time per bar, cutting %K
+ *    complexity from O(N * kPeriod) to O(N).
+ * 2. Uses a sliding window sum for %D in O(1) time instead of inner loops.
+ * 3. Pre-allocates result and intermediate typed buffers of exact length.
  * @param {number[]} highs - Array of high prices
  * @param {number[]} lows - Array of low prices
  * @param {number[]} closes - Array of close prices
@@ -518,66 +524,70 @@ export function computeStochasticArray(
     return Array(endIndex).fill(null);
   }
 
-  const result: ({ k: number; d: number } | null)[] =
-    Array(kPeriod - 1).fill(null);
-
-  const kValues: number[] = [];
-
-  // Calculate raw K values for the whole series starting from index kPeriod - 1
-  for (let i = kPeriod - 1; i < endIndex; i++) {
-    let hh = Number.NEGATIVE_INFINITY;
-    let ll = Number.POSITIVE_INFINITY;
-    // Look back kPeriod bars including current
-    for (let j = 0; j < kPeriod; j++) {
-      const valH = highs[i - j];
-      const valL = lows[i - j];
-      if (valH > hh) hh = valH;
-      if (valL < ll) ll = valL;
-    }
-
-    if (hh !== ll && Number.isFinite(hh) && Number.isFinite(ll)) {
-      kValues.push(((closes[i] - ll) / (hh - ll)) * 100);
-    } else {
-      kValues.push(50); // Default to middle if no range
-    }
-  }
-
-  // Now calculate D (SMA of K)
-  // kValues[0] corresponds to index kPeriod - 1
-  // We need dPeriod kValues to calculate first D
-
-  // Align result with input array
-  // result has kPeriod - 1 nulls.
-  // We can calculate D starting from index (kPeriod - 1) + (dPeriod - 1)
-
-  if (kValues.length < dPeriod) {
-    // Fill remaining with nulls or partial K?
-    // Usually we just return nulls if we can't compute D
+  const numK = endIndex - kPeriod + 1;
+  if (numK < dPeriod) {
     return Array(closes.length).fill(null);
   }
 
-  // Helper to compute SMA on a slice of K values
-  const getSMA = (arr: number[], idx: number, p: number) => {
-    let sum = 0;
-    for (let j = 0; j < p; j++) {
-      sum += arr[idx - j];
-    }
-    return sum / p;
-  };
-
-  // Before we have enough K values for D, we can either put nulls or just K
-  // Standard practice: D is valid only after dPeriod K values.
-
-  // Add nulls for the gap where D cannot be calculated yet
-  for (let i = 0; i < dPeriod - 1; i++) {
-    result.push(null);
+  const result: ({ k: number; d: number } | null)[] = new Array(endIndex);
+  const nullPrefixCount = (kPeriod - 1) + (dPeriod - 1);
+  for (let i = 0; i < nullPrefixCount; i++) {
+    result[i] = null;
   }
 
-  // Calculate D for the rest
-  for (let i = dPeriod - 1; i < kValues.length; i++) {
-    const k = kValues[i];
-    const d = getSMA(kValues, i, dPeriod);
-    result.push({ k, d });
+  // Pre-allocated typed buffer for raw %K values
+  const kValues = new Float64Array(numK);
+
+  // Monotonic sliding window deques for highest high and lowest low
+  const maxDeque = new Int32Array(endIndex);
+  const minDeque = new Int32Array(endIndex);
+  let maxHead = 0;
+  let maxTail = 0;
+  let minHead = 0;
+  let minTail = 0;
+
+  let dSum = 0;
+
+  for (let i = 0; i < endIndex; i++) {
+    const windowStart = i - kPeriod + 1;
+    if (maxTail > maxHead && maxDeque[maxHead] < windowStart) {
+      maxHead++;
+    }
+    if (minTail > minHead && minDeque[minHead] < windowStart) {
+      minHead++;
+    }
+
+    const h = highs[i];
+    while (maxTail > maxHead && highs[maxDeque[maxTail - 1]] <= h) {
+      maxTail--;
+    }
+    maxDeque[maxTail++] = i;
+
+    const l = lows[i];
+    while (minTail > minHead && lows[minDeque[minTail - 1]] >= l) {
+      minTail--;
+    }
+    minDeque[minTail++] = i;
+
+    if (i >= kPeriod - 1) {
+      const hh = highs[maxDeque[maxHead]];
+      const ll = lows[minDeque[minHead]];
+      let k = 50;
+      if (hh !== ll && Number.isFinite(hh) && Number.isFinite(ll)) {
+        k = ((closes[i] - ll) / (hh - ll)) * 100;
+      }
+
+      const kIdx = i - (kPeriod - 1);
+      kValues[kIdx] = k;
+      dSum += k;
+
+      if (kIdx >= dPeriod - 1) {
+        if (kIdx >= dPeriod) {
+          dSum -= kValues[kIdx - dPeriod];
+        }
+        result[i] = { k, d: dSum / dPeriod };
+      }
+    }
   }
 
   return result;
