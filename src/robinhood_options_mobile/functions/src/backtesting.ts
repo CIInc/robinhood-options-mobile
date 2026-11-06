@@ -59,6 +59,48 @@ interface BacktestParams {
   gexExitThreshold: number;
 }
 
+export type MarketRegimeType =
+  | "BULL_LOW_VOL"
+  | "BULL_HIGH_VOL"
+  | "BEAR_LOW_VOL"
+  | "BEAR_HIGH_VOL"
+  | "UNKNOWN";
+
+export interface RegimePerformance {
+  regime: MarketRegimeType;
+  label: string;
+  tradeCount: number;
+  winCount: number;
+  lossCount: number;
+  winRate: number;
+  winRatePercent: number;
+  netProfit: number;
+  profitFactor: number;
+  averageProfit: number;
+  maxDrawdownPercent: number;
+}
+
+export interface WalkForwardPeriodMetrics {
+  totalTrades: number;
+  winRate: number;
+  totalReturn: number;
+  totalReturnPercent: number;
+  profitFactor: number;
+  sharpeRatio: number;
+  maxDrawdownPercent: number;
+}
+
+export interface WalkForwardValidationResult {
+  splitRatio: number;
+  splitTimestamp: string;
+  inSample: WalkForwardPeriodMetrics;
+  outOfSample: WalkForwardPeriodMetrics;
+  sharpeRetention: number;
+  profitFactorRetention: number;
+  stabilityScore: "ROBUST" | "MODERATE" | "OVERFITTED" | "INSUFFICIENT_DATA";
+  summary: string;
+}
+
 interface Trade {
   timestamp: string;
   action: string;
@@ -68,6 +110,7 @@ interface Trade {
   commission: number;
   reason: string;
   signalData: technicalIndicators.MultiIndicatorResult | null;
+  entryRegime?: MarketRegimeType;
 }
 
 interface Position {
@@ -75,11 +118,349 @@ interface Position {
   quantity: number;
   entryTimestamp: Date;
   executedExitStages: number[]; // Indices of exit stages already executed
+  entryRegime?: MarketRegimeType;
 }
 
 interface EquityPoint {
   timestamp: string;
   equity: number;
+}
+
+/**
+ * Classifies benchmark conditions into 4 macro volatility regimes.
+ * @param {number} benchmarkPrice Current benchmark close.
+ * @param {number} benchmarkSma Benchmark moving average (e.g. SMA50).
+ * @param {number} benchmarkNatr Benchmark normalized ATR percentage.
+ * @param {number} natrThreshold Volatility threshold (default 1.15%).
+ * @return {MarketRegimeType} Market regime.
+ */
+export function classifyMarketRegime(
+  benchmarkPrice: number,
+  benchmarkSma: number,
+  benchmarkNatr: number,
+  natrThreshold = 1.15
+): MarketRegimeType {
+  const isBull = benchmarkPrice >= benchmarkSma;
+  const isHighVol = benchmarkNatr >= natrThreshold;
+  if (isBull && !isHighVol) return "BULL_LOW_VOL";
+  if (isBull && isHighVol) return "BULL_HIGH_VOL";
+  if (!isBull && !isHighVol) return "BEAR_LOW_VOL";
+  return "BEAR_HIGH_VOL";
+}
+
+/**
+ * Computes trade performance attribution partitioned by market regime.
+ * @param {Trade[]} trades List of executed trades.
+ * @param {number} initialCapital Initial portfolio capital.
+ * @return {Record<string, RegimePerformance>} Performance per regime.
+ */
+export function computeRegimeAttribution(
+  trades: Trade[],
+  initialCapital: number
+): Record<string, RegimePerformance> {
+  const regimes: MarketRegimeType[] = [
+    "BULL_LOW_VOL",
+    "BULL_HIGH_VOL",
+    "BEAR_LOW_VOL",
+    "BEAR_HIGH_VOL",
+  ];
+  const labels: Record<MarketRegimeType, string> = {
+    BULL_LOW_VOL: "Bull Low-Vol",
+    BULL_HIGH_VOL: "Bull High-Vol",
+    BEAR_LOW_VOL: "Bear Low-Vol",
+    BEAR_HIGH_VOL: "Bear High-Vol",
+    UNKNOWN: "Unknown / Other",
+  };
+
+  const stats: Record<string, RegimePerformance> = {};
+  for (const r of regimes) {
+    stats[r] = {
+      regime: r,
+      label: labels[r],
+      tradeCount: 0,
+      winCount: 0,
+      lossCount: 0,
+      winRate: 0,
+      winRatePercent: 0,
+      netProfit: 0,
+      profitFactor: 0,
+      averageProfit: 0,
+      maxDrawdownPercent: 0,
+    };
+  }
+
+  const buyTrades = trades.filter((t) => t.action === "BUY");
+  const sellTrades = trades.filter((t) => t.action === "SELL");
+  const completed = Math.min(buyTrades.length, sellTrades.length);
+
+  const grossProfits: Record<string, number> = {};
+  const grossLosses: Record<string, number> = {};
+  const peakPnl: Record<string, number> = {};
+  const maxDd: Record<string, number> = {};
+
+  for (const r of regimes) {
+    grossProfits[r] = 0;
+    grossLosses[r] = 0;
+    peakPnl[r] = 0;
+    maxDd[r] = 0;
+  }
+
+  for (let i = 0; i < completed; i++) {
+    const buy = buyTrades[i];
+    const sell = sellTrades[i];
+    const regime = buy.entryRegime || "UNKNOWN";
+    if (!stats[regime]) {
+      stats[regime] = {
+        regime,
+        label: labels[regime] || regime,
+        tradeCount: 0,
+        winCount: 0,
+        lossCount: 0,
+        winRate: 0,
+        winRatePercent: 0,
+        netProfit: 0,
+        profitFactor: 0,
+        averageProfit: 0,
+        maxDrawdownPercent: 0,
+      };
+      grossProfits[regime] = 0;
+      grossLosses[regime] = 0;
+      peakPnl[regime] = 0;
+      maxDd[regime] = 0;
+    }
+
+    const pnl = (sell.price - buy.price) * buy.quantity;
+    const s = stats[regime];
+    s.tradeCount++;
+    s.netProfit += pnl;
+
+    if (pnl > 0) {
+      s.winCount++;
+      grossProfits[regime] += pnl;
+    } else {
+      s.lossCount++;
+      grossLosses[regime] += Math.abs(pnl);
+    }
+
+    if (s.netProfit > peakPnl[regime]) {
+      peakPnl[regime] = s.netProfit;
+    }
+    const currentDd = peakPnl[regime] - s.netProfit;
+    if (currentDd > maxDd[regime]) {
+      maxDd[regime] = currentDd;
+    }
+  }
+
+  for (const key of Object.keys(stats)) {
+    const s = stats[key];
+    if (s.tradeCount > 0) {
+      s.winRate = s.winCount / s.tradeCount;
+      s.winRatePercent = Math.round(s.winRate * 100);
+      s.averageProfit = s.netProfit / s.tradeCount;
+      const gp = grossProfits[key] || 0;
+      const gl = grossLosses[key] || 0;
+      s.profitFactor = gl > 0 ?
+        Number((gp / gl).toFixed(2)) :
+        (gp > 0 ? 999 : 0);
+      const cap = Math.max(1, initialCapital);
+      s.maxDrawdownPercent = Number(((maxDd[key] / cap) * 100).toFixed(2));
+      s.netProfit = Number(s.netProfit.toFixed(2));
+      s.averageProfit = Number(s.averageProfit.toFixed(2));
+    }
+  }
+
+  return stats;
+}
+
+/**
+ * Evaluates in-sample vs out-of-sample performance to flag curve-fitting.
+ * @param {Trade[]} trades List of executed trades.
+ * @param {number} initialCapital Initial portfolio capital.
+ * @param {number} splitRatio Ratio of in-sample trades (default 0.70).
+ * @return {WalkForwardValidationResult} Walk-forward validation metrics.
+ */
+export function computeWalkForwardValidation(
+  trades: Trade[],
+  initialCapital: number,
+  splitRatio = 0.7
+): WalkForwardValidationResult {
+  const buyTrades = trades.filter((t) => t.action === "BUY");
+  const sellTrades = trades.filter((t) => t.action === "SELL");
+  const completed = Math.min(buyTrades.length, sellTrades.length);
+
+  const emptyPeriod = (): WalkForwardPeriodMetrics => ({
+    totalTrades: 0,
+    winRate: 0,
+    totalReturn: 0,
+    totalReturnPercent: 0,
+    profitFactor: 0,
+    sharpeRatio: 0,
+    maxDrawdownPercent: 0,
+  });
+
+  if (completed < 4) {
+    return {
+      splitRatio,
+      splitTimestamp: trades[0]?.timestamp || "",
+      inSample: emptyPeriod(),
+      outOfSample: emptyPeriod(),
+      sharpeRetention: 1,
+      profitFactorRetention: 1,
+      stabilityScore: "INSUFFICIENT_DATA",
+      summary: "Insufficient completed trades (need >= 4) for validation.",
+    };
+  }
+
+  const isCount = Math.max(1, Math.floor(completed * splitRatio));
+  const splitTimestamp = buyTrades[isCount]?.timestamp ||
+    buyTrades[isCount - 1]?.timestamp || "";
+
+  /**
+   * Evaluates trade metrics for a given subset of completed trades.
+   * @param {number} start Start trade index.
+   * @param {number} end End trade index.
+   * @param {number} baseCapital Starting capital for this period.
+   * @return {object} Slice metrics and ending capital.
+   */
+  function evaluateSlice(
+    start: number,
+    end: number,
+    baseCapital: number
+  ): { metrics: WalkForwardPeriodMetrics; endingCapital: number } {
+    let wins = 0;
+    let grossWins = 0;
+    let grossLosses = 0;
+    let netPnl = 0;
+    const sliceReturns: number[] = [];
+    let currentEquity = baseCapital;
+    let peakEquity = baseCapital;
+    let maxDd = 0;
+
+    for (let i = start; i < end; i++) {
+      const buy = buyTrades[i];
+      const sell = sellTrades[i];
+      const pnl = (sell.price - buy.price) * buy.quantity;
+      netPnl += pnl;
+      if (pnl > 0) {
+        wins++;
+        grossWins += pnl;
+      } else {
+        grossLosses += Math.abs(pnl);
+      }
+      const prevEquity = currentEquity;
+      currentEquity += pnl;
+      if (prevEquity > 0) {
+        sliceReturns.push(pnl / prevEquity);
+      }
+      if (currentEquity > peakEquity) {
+        peakEquity = currentEquity;
+      }
+      const dd = peakEquity - currentEquity;
+      if (dd > maxDd) {
+        maxDd = dd;
+      }
+    }
+
+    const count = end - start;
+    const winRate = count > 0 ? Number((wins / count).toFixed(3)) : 0;
+    const profitFactor = grossLosses > 0 ?
+      Number((grossWins / grossLosses).toFixed(2)) :
+      (grossWins > 0 ? 999 : 0);
+    const returnPct = baseCapital > 0 ?
+      Number(((netPnl / baseCapital) * 100).toFixed(2)) : 0;
+    const maxDdPct = peakEquity > 0 ?
+      Number(((maxDd / peakEquity) * 100).toFixed(2)) : 0;
+
+    // Sharpe ratio
+    let sharpe = 0;
+    if (sliceReturns.length > 1) {
+      const avg = sliceReturns.reduce((a, b) => a + b, 0) /
+        sliceReturns.length;
+      const variance = sliceReturns.reduce(
+        (sum, r) => sum + Math.pow(r - avg, 2), 0
+      ) / sliceReturns.length;
+      const std = Math.sqrt(variance);
+      if (std > 0) {
+        sharpe = Number(((avg / std) * Math.sqrt(252)).toFixed(2));
+      }
+    }
+
+    return {
+      metrics: {
+        totalTrades: count,
+        winRate,
+        totalReturn: Number(netPnl.toFixed(2)),
+        totalReturnPercent: returnPct,
+        profitFactor,
+        sharpeRatio: sharpe,
+        maxDrawdownPercent: maxDdPct,
+      },
+      endingCapital: currentEquity,
+    };
+  }
+
+  const isResult = evaluateSlice(0, isCount, initialCapital);
+  const oosResult = evaluateSlice(isCount, completed, isResult.endingCapital);
+
+  const isSharpe = isResult.metrics.sharpeRatio;
+  const oosSharpe = oosResult.metrics.sharpeRatio;
+  const isPf = isResult.metrics.profitFactor;
+  const oosPf = oosResult.metrics.profitFactor;
+
+  let sharpeRetention = 1;
+  if (isSharpe > 0) {
+    sharpeRetention = Number((oosSharpe / isSharpe).toFixed(2));
+  } else if (oosSharpe < 0) {
+    sharpeRetention = 0;
+  }
+
+  let pfRetention = 1;
+  if (isPf > 0) {
+    pfRetention = Number((oosPf / isPf).toFixed(2));
+  } else if (oosPf <= 0) {
+    pfRetention = 0;
+  }
+
+  type StabilityTier =
+    | "ROBUST"
+    | "MODERATE"
+    | "OVERFITTED"
+    | "INSUFFICIENT_DATA";
+  let stabilityScore: StabilityTier;
+  let summary = "";
+
+  if (completed < 8) {
+    stabilityScore = "INSUFFICIENT_DATA";
+    summary = "Limited sample size. Collect more trades for higher confidence.";
+  } else if (
+    oosResult.metrics.totalReturn >= 0 &&
+    oosPf >= 1.0 &&
+    (isSharpe <= 0 || sharpeRetention >= 0.65)
+  ) {
+    stabilityScore = "ROBUST";
+    summary = "Robust out-of-sample performance. Strategy generalizes well.";
+  } else if (
+    oosResult.metrics.totalReturn >= 0 &&
+    oosPf >= 0.85 &&
+    (isSharpe <= 0 || sharpeRetention >= 0.35)
+  ) {
+    stabilityScore = "MODERATE";
+    summary = "Moderate OOS degradation. Watch parameter sensitivity.";
+  } else {
+    stabilityScore = "OVERFITTED";
+    summary = "High curve-fitting risk. Out-of-sample performance decayed.";
+  }
+
+  return {
+    splitRatio,
+    splitTimestamp,
+    inSample: isResult.metrics,
+    outOfSample: oosResult.metrics,
+    sharpeRetention,
+    profitFactorRetention: pfRetention,
+    stabilityScore,
+    summary,
+  };
 }
 
 /**
@@ -567,12 +948,54 @@ async function runBacktestSimulation(params: BacktestParams) {
     (key) => enabledIndicators[key] === true
   );
 
+  // Precompute benchmark regimes aligned with symbol timestamps
+  let mIdx = 0;
+  const benchmarkCloses = marketData?.closes || [];
+  const benchmarkHighs = marketData?.highs || [];
+  const benchmarkLows = marketData?.lows || [];
+  const benchmarkTimes = marketData?.timestamps || [];
+
+  const getBenchmarkRegimeAt = (targetSec: number): MarketRegimeType => {
+    if (!benchmarkCloses.length) return "UNKNOWN";
+    while (
+      benchmarkTimes.length &&
+      mIdx + 1 < benchmarkTimes.length &&
+      benchmarkTimes[mIdx + 1] <= targetSec
+    ) {
+      mIdx++;
+    }
+    const idx = Math.min(mIdx, benchmarkCloses.length - 1);
+    const close = benchmarkCloses[idx];
+    const periodSma = Math.min(50, idx + 1);
+    const sma = technicalIndicators.computeSMA(
+      benchmarkCloses,
+      periodSma,
+      idx + 1
+    ) ?? close;
+    const periodAtr = Math.min(14, idx);
+    let natr = 1.0;
+    if (periodAtr >= 2 && benchmarkHighs.length > idx) {
+      const atr = technicalIndicators.computeATR(
+        benchmarkHighs,
+        benchmarkLows,
+        benchmarkCloses,
+        periodAtr,
+        idx + 1
+      );
+      if (atr && close > 0) {
+        natr = (atr / close) * 100;
+      }
+    }
+    return classifyMarketRegime(close, sma, natr);
+  };
+
   // Iterate through historical data
   for (let i = startIndex; i < finalIndex; i++) {
     const timestampMs = timestamps[i] * 1000;
     const timestamp = new Date(timestampMs);
     const isoTimestamp = timestamp.toISOString();
     const close = closes[i];
+    const currentRegime = getBenchmarkRegimeAt(timestamps[i]);
 
     // Buy & Hold Calculation
     const bhChangePercent = (close - initialPrice) / initialPrice;
@@ -636,6 +1059,7 @@ async function runBacktestSimulation(params: BacktestParams) {
                 commission: 0,
                 reason: `Partial Take Profit (${stage.profitTargetPercent}%)`,
                 signalData: multiIndicatorResult,
+                entryRegime: position.entryRegime || currentRegime,
               });
 
               position.quantity -= exitQuantity;
@@ -742,6 +1166,7 @@ async function runBacktestSimulation(params: BacktestParams) {
           commission: 0,
           reason: exitReason,
           signalData: null,
+          entryRegime: position.entryRegime || currentRegime,
         });
 
         position = null;
@@ -834,6 +1259,7 @@ async function runBacktestSimulation(params: BacktestParams) {
             quantity,
             entryTimestamp: timestamp,
             executedExitStages: [],
+            entryRegime: currentRegime,
           };
           initialPositionQuantity = quantity;
           highestPriceInPosition = entryPrice;
@@ -849,6 +1275,7 @@ async function runBacktestSimulation(params: BacktestParams) {
               `Signal Entry (Strength: ${strength.toFixed(1)}% - ` +
               `${buySignalsList.join(", ")})`,
             signalData: multiIndicatorResult,
+            entryRegime: currentRegime,
           });
         }
       }
@@ -879,6 +1306,7 @@ async function runBacktestSimulation(params: BacktestParams) {
       commission: 0,
       reason: "End of backtest period",
       signalData: null,
+      entryRegime: position.entryRegime || "UNKNOWN",
     });
   }
 
@@ -1049,6 +1477,12 @@ async function runBacktestSimulation(params: BacktestParams) {
     };
   }
 
+  const regimeAttribution = computeRegimeAttribution(trades, initialCapital);
+  const walkForwardValidation = computeWalkForwardValidation(
+    trades,
+    initialCapital
+  );
+
   return {
     config,
     trades,
@@ -1075,5 +1509,7 @@ async function runBacktestSimulation(params: BacktestParams) {
     buyAndHoldEquityCurve,
     performanceByIndicator,
     indicatorSignalCounts,
+    regimeAttribution,
+    walkForwardValidation,
   };
 }

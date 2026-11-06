@@ -22,8 +22,8 @@ import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_brokerage_service_factory.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -37,12 +37,11 @@ class AgenticTradingBackgroundService {
     IBrokerageService Function()? robinhoodFactory,
     IBrokerageService Function()? schwabFactory,
   }) =>
-      switch (source) {
-        BrokerageSource.robinhood =>
-          (robinhoodFactory ?? RobinhoodService.new)(),
-        BrokerageSource.schwab => (schwabFactory ?? SchwabService.new)(),
-        _ => null,
-      };
+      AgenticTradingBrokerageServiceFactory.forSource(
+        source,
+        robinhoodFactory: robinhoodFactory,
+        schwabFactory: schwabFactory,
+      );
 
   static Future<void> initialize() async {
     if (!_isSupportedPlatform) return;
@@ -110,7 +109,12 @@ class AgenticTradingBackgroundService {
 
     final brokerageUserStore = BrokerageUserStore([], 0);
     await brokerageUserStore.load();
-    final brokerageUser = brokerageUserStore.currentUser;
+    final brokerageUser = config.paperTradingMode
+        ? AgenticTradingProvider.resolvePaperQuoteUser(
+            userStore: brokerageUserStore,
+            source: config.paperQuoteSource,
+          )
+        : brokerageUserStore.currentUser;
     if (brokerageUser == null) {
       await syncScheduling(enabled: false);
       return true;

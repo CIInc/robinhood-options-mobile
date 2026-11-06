@@ -62,6 +62,11 @@ that mode opens `*PositionsPageWidget`, the per-asset-class full ledger those
 widgets have always had. The overview's length is therefore bounded by the
 number of asset classes, not the number of positions.
 
+Stock market value and dollar P&L retain the sign of each position's quantity.
+Return percentages divide by absolute position cost basis (or prior market
+value); asset-class percentages use gross position basis so long and short
+exposure cannot cancel in the denominator.
+
 The charts size themselves at 26px a row, so a large account could still make
 one summary taller than the screen. `chartRowLimit` caps the bars — 8 from the
 overview — and the header says `charting top 8` so the missing bars do not read

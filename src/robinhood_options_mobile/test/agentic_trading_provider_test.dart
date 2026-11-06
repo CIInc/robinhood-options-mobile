@@ -1,15 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -41,6 +45,25 @@ class RejectingTradeSignalsProvider {
       'status': 'rejected',
       'message': 'Risk threshold exceeded',
     };
+  }
+}
+
+class FailingTradeSignalsProvider {
+  final String message;
+  int calls = 0;
+
+  FailingTradeSignalsProvider(this.message);
+
+  Future<Map<String, dynamic>> initiateTradeProposal({
+    required String symbol,
+    required double currentPrice,
+    required Map<String, dynamic> portfolioState,
+    required dynamic config,
+    String? interval,
+    bool skipSignalUpdate = false,
+  }) async {
+    calls++;
+    throw Exception(message);
   }
 }
 
@@ -149,6 +172,94 @@ void main() {
         AgenticTradingProvider.supportsAutoTradingBrokerage(null),
         isFalse,
       );
+    });
+
+    test('Automatic Paper quote source prefers active then first linked broker',
+        () {
+      final firstRobinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-first', null, null);
+      final activeRobinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-active', null, null);
+      final schwab =
+          BrokerageUser(BrokerageSource.schwab, 'schwab', null, null);
+      final activeUserStore =
+          BrokerageUserStore([firstRobinhood, activeRobinhood, schwab], 1);
+      final demo = BrokerageUser(BrokerageSource.demo, 'demo-user', null, null);
+      final fallbackUserStore =
+          BrokerageUserStore([firstRobinhood, schwab, demo], 2);
+
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: activeUserStore,
+          source: PaperQuoteSource.selectedBrokerage,
+        ),
+        same(activeRobinhood),
+      );
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: fallbackUserStore,
+          source: PaperQuoteSource.selectedBrokerage,
+        ),
+        same(firstRobinhood),
+      );
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: activeUserStore,
+          source: PaperQuoteSource.schwab,
+        ),
+        same(schwab),
+      );
+      expect(
+        AgenticTradingProvider.resolvePaperQuoteUser(
+          userStore: activeUserStore,
+          source: PaperQuoteSource.robinhood,
+        ),
+        same(firstRobinhood),
+      );
+      activeUserStore.dispose();
+      fallbackUserStore.dispose();
+    });
+
+    test('background scheduling follows Paper source, not active brokerage',
+        () {
+      final robinhood =
+          BrokerageUser(BrokerageSource.robinhood, 'rh-user', null, null);
+      final demo = BrokerageUser(BrokerageSource.demo, 'demo-user', null, null);
+      final userStore = BrokerageUserStore([robinhood, demo], 1);
+
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: true,
+            paperQuoteSource: PaperQuoteSource.robinhood,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: true,
+            paperQuoteSource: PaperQuoteSource.selectedBrokerage,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
+          userStore: userStore,
+          config: AgenticTradingConfig(
+            strategyConfig: TradeStrategyConfig(),
+            paperTradingMode: false,
+          ),
+        ),
+        isFalse,
+      );
+      userStore.dispose();
     });
 
     test('background auto-trading selects the matching brokerage service', () {
@@ -390,6 +501,53 @@ void main() {
       expect(isOpen, isA<bool>());
     });
 
+    test('Paper TP/SL monitoring does not require a brokerage account',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: <InstrumentPosition>[],
+        brokerageUser: 'mock',
+        account: null,
+        brokerageService: FakeBrokerageService(),
+        instrumentStore: 'mock',
+        paperTradingStore: paperTradingStore,
+      );
+
+      expect(result['message'], 'No exits triggered');
+      expect(
+        provider.activityLog.where(
+          (entry) => entry.contains('Missing required parameters'),
+        ),
+        isEmpty,
+      );
+      paperTradingStore.dispose();
+    });
+
+    test('Live TP/SL monitoring still requires a brokerage account', () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = false;
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: <InstrumentPosition>[],
+        brokerageUser: 'mock',
+        account: null,
+        brokerageService: FakeBrokerageService(),
+        instrumentStore: 'mock',
+      );
+
+      expect(result['message'], 'Missing required parameters');
+      expect(
+        provider.activityLog,
+        contains(
+          contains('Missing required parameters for take profit/stop loss'),
+        ),
+      );
+    });
+
     test('autoTrade should fail when auto-trade is not enabled', () async {
       // Ensure auto-trade is not enabled
       provider.loadConfigFromUser(null);
@@ -536,7 +694,7 @@ void main() {
               },
             },
           ],
-          tradeSignalsProvider: null,
+          tradeSignalsProvider: RejectingTradeSignalsProvider(),
           portfolioState: {},
           brokerageUser: null,
           account: null,
@@ -1520,6 +1678,132 @@ void main() {
           .rememberProcessedSignals([signal('CTRA', 1)], {'tradesExecuted': 0});
 
       expect(provider.hasProcessedSignal('CTRA', 1), isTrue);
+    });
+
+    test('a retryable proposal failure leaves its signal eligible', () {
+      provider.rememberProcessedSignals(
+        [signal('CTRA', 1)],
+        {
+          'processedSignals': [
+            {...signal('CTRA', 1), 'processedStatus': 'Retry'},
+          ],
+        },
+      );
+
+      expect(provider.hasProcessedSignal('CTRA', 1), isFalse);
+    });
+
+    test('only transient proposal failures are retried', () async {
+      expect(
+        TradeSignalsProvider.isRetryableProposalFailure(
+          FirebaseFunctionsException(
+            code: 'unknown',
+            message: 'The network connection was lost.',
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        TradeSignalsProvider.isRetryableProposalFailure(
+          FirebaseFunctionsException(
+            code: 'permission-denied',
+            message: 'Request is not permitted.',
+          ),
+        ),
+        isFalse,
+      );
+
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+      final signal = {
+        'symbol': 'NUE',
+        'currentPrice': 150.0,
+        'timestamp': 123,
+      };
+      final failingProvider = FailingTradeSignalsProvider(
+        '[firebase_functions/unknown] The network connection was lost.',
+      );
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal],
+          tradeSignalsProvider: failingProvider,
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+        final processedSignal =
+            (result['processedSignals'] as List<Map<String, dynamic>>).single;
+
+        expect(processedSignal['processedStatus'], 'Retry');
+        provider.rememberProcessedSignals([signal], result);
+        expect(provider.hasProcessedSignal('NUE', 123), isFalse);
+
+        final retryResult = await provider.autoTrade(
+          tradeSignals: [signal],
+          tradeSignalsProvider: failingProvider,
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+        expect(failingProvider.calls, 2);
+        expect(
+          (retryResult['processedSignals'] as List<Map<String, dynamic>>)
+              .single['processedStatus'],
+          'Retry',
+        );
+        expect(
+          provider.activityLog,
+          contains(contains('will be retried next eligible cycle')),
+        );
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('permanent proposal failure is rejected and marked processed',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 15, 0);
+      final signal = {
+        'symbol': 'NUE',
+        'currentPrice': 150.0,
+        'timestamp': 123,
+      };
+      final failingProvider = FailingTradeSignalsProvider(
+        '[firebase_functions/permission-denied] Request is not permitted.',
+      );
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal],
+          tradeSignalsProvider: failingProvider,
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+        final processedSignal =
+            (result['processedSignals'] as List<Map<String, dynamic>>).single;
+
+        expect(processedSignal['processedStatus'], 'Rejected');
+        provider.rememberProcessedSignals([signal], result);
+        expect(provider.hasProcessedSignal('NUE', 123), isTrue);
+        expect(failingProvider.calls, 1);
+      } finally {
+        MarketHours.testTime = null;
+      }
     });
 
     test('autoTrade flags a market-closed cycle as blocked', () async {

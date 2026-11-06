@@ -2,6 +2,7 @@ import {
   calculateCorrelation,
   computeCCIArrayLocal,
   computeMFIArrayLocal,
+  computeWilliamsRArrayLocal,
   discoverAlphaFactors,
 } from "../src/alpha-factor-discovery";
 
@@ -232,6 +233,66 @@ describe("Alpha Factor Discovery - Local Indicator Functions", () => {
       expect(result[3]).toBe(100);
       expect(result[4]).toBe(100);
       expect(result[5]).toBe(100);
+    });
+  });
+
+  describe("computeWilliamsRArrayLocal", () => {
+    it("should return nulls if history is shorter than period", () => {
+      const highs = [10, 11, 12];
+      const lows = [8, 9, 10];
+      const closes = [9, 10, 11];
+      const period = 5;
+
+      const result = computeWilliamsRArrayLocal(highs, lows, closes, period);
+
+      expect(result).toEqual([null, null, null]);
+    });
+
+    it("should compute exact Williams %R values for standard prices", () => {
+      const highs = [15, 17, 16, 18, 19, 21, 20];
+      const lows = [10, 12, 11, 13, 14, 15, 16];
+      const closes = [12, 14, 13, 16, 18, 19, 17];
+      const period = 5;
+
+      const result = computeWilliamsRArrayLocal(highs, lows, closes, period);
+
+      expect(result).toHaveLength(7);
+      // First (period - 1) items should be null
+      expect(result[0]).toBeNull();
+      expect(result[1]).toBeNull();
+      expect(result[2]).toBeNull();
+      expect(result[3]).toBeNull();
+
+      // At index 4: window is indices [0..4]
+      // highs: [15, 17, 16, 18, 19] => max = 19
+      // lows: [10, 12, 11, 13, 14] => min = 10
+      // close: closes[4] = 18
+      // %R = ((19 - 18) / (19 - 10)) * -100 = (1 / 9) * -100 = -11.1111...
+      expect(result[4]).toBeCloseTo(((19 - 18) / (19 - 10)) * -100, 4);
+
+      // At index 5: window is indices [1..5]
+      // highs: [17, 16, 18, 19, 21] => max = 21
+      // lows: [12, 11, 13, 14, 15] => min = 11
+      // close: closes[5] = 19
+      // %R = ((21 - 19) / (21 - 11)) * -100 = (2 / 10) * -100 = -20
+      expect(result[5]).toBeCloseTo(-20, 4);
+
+      // At index 6: window is indices [2..6]
+      // highs: [16, 18, 19, 21, 20] => max = 21
+      // lows: [11, 13, 14, 15, 16] => min = 11
+      // close: closes[6] = 17
+      // %R = ((21 - 17) / (21 - 11)) * -100 = (4 / 10) * -100 = -40
+      expect(result[6]).toBeCloseTo(-40, 4);
+    });
+
+    it("should return 0 when highest equals lowest (zero range)", () => {
+      const highs = [10, 10, 10, 10, 10];
+      const lows = [10, 10, 10, 10, 10];
+      const closes = [10, 10, 10, 10, 10];
+
+      const result = computeWilliamsRArrayLocal(highs, lows, closes, 5);
+
+      expect(result[4]).toBe(0);
     });
   });
 });

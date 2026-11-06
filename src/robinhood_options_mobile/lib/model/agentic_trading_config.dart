@@ -7,6 +7,12 @@ enum TradingMode {
   reasoning,
 }
 
+enum PaperQuoteSource {
+  selectedBrokerage,
+  robinhood,
+  schwab,
+}
+
 /// Agentic Trading Configuration Model
 ///
 /// Stores per-user configuration for agentic trading system.
@@ -19,6 +25,7 @@ class AgenticTradingConfig {
   // Execution Settings
   // Where is symbolFilter and interval? In TradeStrategyConfig? Should it be here?
   bool paperTradingMode;
+  PaperQuoteSource paperQuoteSource;
   bool requireApproval;
   int checkIntervalMinutes;
   int autoTradeCooldownMinutes;
@@ -48,6 +55,7 @@ class AgenticTradingConfig {
     this.notifyOnMissedExit = true,
     this.notifyDailySummary = false,
     this.paperTradingMode = true,
+    this.paperQuoteSource = PaperQuoteSource.selectedBrokerage,
     this.requireApproval = false,
     this.tradeStrategyTemplateId,
   });
@@ -71,6 +79,10 @@ class AgenticTradingConfig {
         notifyOnMissedExit = json['notifyOnMissedExit'] as bool? ?? true,
         notifyDailySummary = json['notifyDailySummary'] as bool? ?? false,
         paperTradingMode = json['paperTradingMode'] as bool? ?? false,
+        paperQuoteSource = PaperQuoteSource.values.firstWhere(
+          (source) => source.name == json['paperQuoteSource'],
+          orElse: () => PaperQuoteSource.selectedBrokerage,
+        ),
         requireApproval = json['requireApproval'] as bool? ?? false,
         tradeStrategyTemplateId = json['selectedTemplateId'] as String?,
         strategyConfig = json['strategyConfig'] != null
@@ -94,6 +106,7 @@ class AgenticTradingConfig {
       'notifyOnMissedExit': notifyOnMissedExit,
       'notifyDailySummary': notifyDailySummary,
       'paperTradingMode': paperTradingMode,
+      'paperQuoteSource': paperQuoteSource.name,
       'requireApproval': requireApproval,
       'selectedTemplateId': tradeStrategyTemplateId,
     };
@@ -123,6 +136,7 @@ class AgenticTradingConfig {
     bool? notifyOnMissedExit,
     bool? notifyDailySummary,
     bool? paperTradingMode,
+    PaperQuoteSource? paperQuoteSource,
     bool? requireApproval,
     String? selectedTemplateId,
   }) {
@@ -145,6 +159,7 @@ class AgenticTradingConfig {
       notifyOnMissedExit: notifyOnMissedExit ?? this.notifyOnMissedExit,
       notifyDailySummary: notifyDailySummary ?? this.notifyDailySummary,
       paperTradingMode: paperTradingMode ?? this.paperTradingMode,
+      paperQuoteSource: paperQuoteSource ?? this.paperQuoteSource,
       requireApproval: requireApproval ?? this.requireApproval,
       tradeStrategyTemplateId: selectedTemplateId ?? tradeStrategyTemplateId,
     );
