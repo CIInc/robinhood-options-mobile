@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
@@ -41,7 +42,7 @@ class InvestorGroupsWidget extends StatefulWidget {
     required this.observer,
     this.user,
     this.userDocRef,
-    this.initialTabIndex = 1,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -63,6 +64,10 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
   int _pendingInvitationCount = 0;
   bool _leaderboardCompareMode = false;
 
+  bool get _isDemo =>
+      widget.brokerageUser?.source == BrokerageSource.demo ||
+      widget.service is DemoService;
+
   @override
   void initState() {
     super.initState();
@@ -76,6 +81,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
         });
       }
     });
+    if (_isDemo) {
+      _pendingInvitationCount = 1;
+    }
     _refreshStreams();
     _logScreenView();
   }
@@ -104,7 +112,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
     } else {
       _userGroupsStream = null;
       _pendingInvitationsStream = null;
-      _pendingInvitationCount = 0;
+      _pendingInvitationCount = _isDemo ? 1 : 0;
     }
   }
 
@@ -628,7 +636,7 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
   }
 
   Widget _buildMyGroups(BuildContext context) {
-    if (auth.currentUser == null) {
+    if (auth.currentUser == null && !_isDemo) {
       return CustomScrollView(
         slivers: [
           SliverFillRemaining(
@@ -673,6 +681,12 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
       );
     }
 
+    if (auth.currentUser == null && _isDemo) {
+      final allGroups = _generateMockMyGroups();
+      final filteredGroups = _filterAndSortGroups(allGroups);
+      return _buildMyGroupsView(filteredGroups);
+    }
+
     return StreamBuilder(
       stream: _userGroupsStream,
       builder: (context, snapshot) {
@@ -680,9 +694,19 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
           return _buildLoadingState();
         }
         if (snapshot.hasError) {
+          if (_isDemo) {
+            final allGroups = _generateMockMyGroups();
+            final filteredGroups = _filterAndSortGroups(allGroups);
+            return _buildMyGroupsView(filteredGroups);
+          }
           return _buildErrorState('Error loading groups: ${snapshot.error}');
         }
-        if (!snapshot.hasData || snapshot.data!.size == 0) {
+        var allGroups =
+            snapshot.data?.docs.map((doc) => doc.data()).toList() ?? [];
+        if (allGroups.isEmpty && _isDemo) {
+          allGroups = _generateMockMyGroups();
+        }
+        if (allGroups.isEmpty) {
           return CustomScrollView(
             slivers: [
               SliverFillRemaining(
@@ -772,142 +796,142 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
           );
         }
 
-        final allGroups = snapshot.data!.docs.map((doc) => doc.data()).toList();
         final filteredGroups = _filterAndSortGroups(allGroups);
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              _refreshStreams();
-            });
-            widget.analytics.logEvent(name: 'refresh_my_groups');
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          child: CustomScrollView(
-            slivers: [
-              if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
-                        const SizedBox(height: 16),
-                        const Text('No groups found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        Text('Try adjusting your search',
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            firestoreService: widget.firestoreService,
-                            heroSource: 'my_groups',
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest
-                                    .withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withValues(alpha: 0.4),
-                                  width: 0.8,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    group.isPrivate
-                                        ? Icons.lock_rounded
-                                        : Icons.public_rounded,
-                                    size: 13,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    group.isPrivate ? 'Private' : 'Public',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'my_groups',
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
+        return _buildMyGroupsView(filteredGroups);
       },
     );
   }
 
+  Widget _buildMyGroupsView(List<InvestorGroup> filteredGroups) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          _refreshStreams();
+        });
+        widget.analytics.logEvent(name: 'refresh_my_groups');
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      child: CustomScrollView(
+        slivers: [
+          if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off,
+                        size: 64,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.6)),
+                    const SizedBox(height: 16),
+                    const Text('No groups found',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Text('Try adjusting your search',
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 14)),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 4, bottom: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final group = filteredGroups[index];
+                    return _AnimatedGroupCard(
+                      index: index,
+                      child: _GroupCard(
+                        group: group,
+                        firestoreService: widget.firestoreService,
+                        heroSource: 'my_groups',
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .outlineVariant
+                                  .withValues(alpha: 0.4),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                group.isPrivate
+                                    ? Icons.lock_rounded
+                                    : Icons.public_rounded,
+                                size: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                group.isPrivate ? 'Private' : 'Public',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        onTap: () {
+                          widget.analytics.logEvent(
+                            name: 'view_group_details',
+                            parameters: {
+                              'group_id': group.id,
+                              'from': 'my_groups',
+                            },
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InvestorGroupDetailWidget(
+                                groupId: group.id,
+                                firestoreService: widget.firestoreService,
+                                service: widget.service,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  childCount: filteredGroups.length,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPendingInvitations(BuildContext context) {
-    if (auth.currentUser == null) {
+    if (auth.currentUser == null && !_isDemo) {
       return CustomScrollView(
         slivers: [
           SliverFillRemaining(
@@ -952,6 +976,12 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
       );
     }
 
+    if (auth.currentUser == null && _isDemo) {
+      final allGroups = _generateMockPendingInvitations();
+      final filteredGroups = _filterAndSortGroups(allGroups);
+      return _buildPendingInvitationsView(filteredGroups);
+    }
+
     return StreamBuilder(
       stream: _pendingInvitationsStream,
       builder: (context, snapshot) {
@@ -959,16 +989,26 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
           return _buildLoadingState();
         }
         if (snapshot.hasError) {
+          if (_isDemo) {
+            final allGroups = _generateMockPendingInvitations();
+            final filteredGroups = _filterAndSortGroups(allGroups);
+            return _buildPendingInvitationsView(filteredGroups);
+          }
           return _buildErrorState(
               'Error loading invitations: ${snapshot.error}');
         }
-        if (!snapshot.hasData || snapshot.data!.size == 0) {
+        var allGroups =
+            snapshot.data?.docs.map((doc) => doc.data()).toList() ?? [];
+        if (allGroups.isEmpty && _isDemo) {
+          allGroups = _generateMockPendingInvitations();
+        }
+        if (allGroups.isEmpty) {
           // Update count when we receive data
           if (snapshot.hasData) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && _pendingInvitationCount != snapshot.data!.size) {
+              if (mounted && _pendingInvitationCount != 0) {
                 setState(() {
-                  _pendingInvitationCount = snapshot.data!.size;
+                  _pendingInvitationCount = 0;
                 });
               }
             });
@@ -1039,175 +1079,185 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
 
         // Update count when we have data with invitations
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _pendingInvitationCount != snapshot.data!.size) {
+          if (mounted && _pendingInvitationCount != allGroups.length) {
             setState(() {
-              _pendingInvitationCount = snapshot.data!.size;
+              _pendingInvitationCount = allGroups.length;
             });
           }
         });
 
-        final allGroups = snapshot.data!.docs.map((doc) => doc.data()).toList();
         final filteredGroups = _filterAndSortGroups(allGroups);
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              _refreshStreams();
-            });
-            widget.analytics.logEvent(name: 'refresh_invitations');
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          child: CustomScrollView(
-            slivers: [
-              if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
-                        const SizedBox(height: 16),
-                        const Text('No invitations found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
-
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            firestoreService: widget.firestoreService,
-                            heroSource: 'invitations',
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (group.description != null)
-                                  Text(
-                                    group.description!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                Text(
-                                  'Invitation from group admin',
-                                  style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Semantics(
-                                  label: 'Accept invitation to ${group.name}',
-                                  child: FilledButton.tonal(
-                                    onPressed: () async {
-                                      await _acceptInvitation(context, group);
-                                    },
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.green.withValues(alpha: 0.2),
-                                      foregroundColor: Colors.green[700],
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.check_rounded,
-                                            size: 18),
-                                        const SizedBox(width: 4),
-                                        const Text('Accept'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Semantics(
-                                  label: 'Decline invitation to ${group.name}',
-                                  child: OutlinedButton(
-                                    onPressed: () async {
-                                      await _declineInvitation(context, group);
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: Colors.red[700],
-                                      side: BorderSide(
-                                          color: Colors.red
-                                              .withValues(alpha: 0.5)),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.close_rounded,
-                                            size: 18),
-                                        const SizedBox(width: 4),
-                                        const Text('Decline'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'invitations',
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
+        return _buildPendingInvitationsView(filteredGroups);
       },
+    );
+  }
+
+  Widget _buildPendingInvitationsView(List<InvestorGroup> filteredGroups) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          _refreshStreams();
+        });
+        widget.analytics.logEvent(name: 'refresh_invitations');
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      child: CustomScrollView(
+        slivers: [
+          if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off,
+                        size: 64,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.6)),
+                    const SizedBox(height: 16),
+                    const Text('No invitations found',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 4, bottom: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final group = filteredGroups[index];
+
+                    return _AnimatedGroupCard(
+                      index: index,
+                      child: _GroupCard(
+                        group: group,
+                        firestoreService: widget.firestoreService,
+                        heroSource: 'invitations',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (group.description != null)
+                              Text(
+                                group.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            Text(
+                              'Invitation from group admin',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Semantics(
+                              label: 'Accept invitation to ${group.name}',
+                              child: FilledButton.tonal(
+                                onPressed: () async {
+                                  await _acceptInvitation(context, group);
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor:
+                                      Colors.green.withValues(alpha: 0.2),
+                                  foregroundColor: Colors.green[700],
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.check_rounded, size: 18),
+                                    const SizedBox(width: 4),
+                                    const Text('Accept'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Semantics(
+                              label: 'Decline invitation to ${group.name}',
+                              child: OutlinedButton(
+                                onPressed: () async {
+                                  await _declineInvitation(context, group);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red[700],
+                                  side: BorderSide(
+                                      color: Colors.red.withValues(alpha: 0.5)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.close_rounded, size: 18),
+                                    const SizedBox(width: 4),
+                                    const Text('Decline'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          widget.analytics.logEvent(
+                            name: 'view_group_details',
+                            parameters: {
+                              'group_id': group.id,
+                              'from': 'invitations',
+                            },
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InvestorGroupDetailWidget(
+                                groupId: group.id,
+                                firestoreService: widget.firestoreService,
+                                service: widget.service,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  childCount: filteredGroups.length,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   Future<void> _acceptInvitation(
       BuildContext context, InvestorGroup group) async {
-    if (auth.currentUser == null) return;
+    if (auth.currentUser == null && !_isDemo) return;
+
+    if (_isDemo &&
+        (auth.currentUser == null || group.id.startsWith('group_'))) {
+      if (context.mounted) {
+        setState(() {
+          _pendingInvitationCount = 0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Joined ${group.name} (Demo)')),
+        );
+      }
+      return;
+    }
 
     try {
       await widget.firestoreService
@@ -1257,7 +1307,21 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
 
   Future<void> _declineInvitation(
       BuildContext context, InvestorGroup group) async {
-    if (auth.currentUser == null) return;
+    if (auth.currentUser == null && !_isDemo) return;
+
+    if (_isDemo &&
+        (auth.currentUser == null || group.id.startsWith('group_'))) {
+      if (context.mounted) {
+        setState(() {
+          _pendingInvitationCount = 0;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Declined invitation to ${group.name} (Demo)')),
+        );
+      }
+      return;
+    }
 
     try {
       await widget.firestoreService
@@ -1390,10 +1454,20 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
           return _buildLoadingState();
         }
         if (snapshot.hasError) {
+          if (_isDemo) {
+            final allGroups = _generateMockPublicGroups();
+            final filteredGroups = _filterAndSortGroups(allGroups);
+            return _buildPublicGroupsView(filteredGroups);
+          }
           return _buildErrorState(
               'Error loading public groups: ${snapshot.error}');
         }
-        if (!snapshot.hasData || snapshot.data!.size == 0) {
+        var allGroups =
+            snapshot.data?.docs.map((doc) => doc.data()).toList() ?? [];
+        if (allGroups.isEmpty && _isDemo) {
+          allGroups = _generateMockPublicGroups();
+        }
+        if (allGroups.isEmpty) {
           return CustomScrollView(
             slivers: [
               SliverFillRemaining(
@@ -1477,134 +1551,226 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
           );
         }
 
-        final allGroups = snapshot.data!.docs.map((doc) => doc.data()).toList();
         final filteredGroups = _filterAndSortGroups(allGroups);
-
-        return RefreshIndicator(
-          onRefresh: () async {
-            setState(() {
-              _refreshStreams();
-            });
-            widget.analytics.logEvent(name: 'refresh_public_groups');
-            await Future.delayed(const Duration(milliseconds: 500));
-          },
-          child: CustomScrollView(
-            slivers: [
-              if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search_off,
-                            size: 64,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primary
-                                .withValues(alpha: 0.6)),
-                        const SizedBox(height: 16),
-                        const Text('No groups found',
-                            style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 8),
-                        Text('Try adjusting your search',
-                            style: TextStyle(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                                fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.only(top: 4, bottom: 16),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final group = filteredGroups[index];
-                        final isMember = auth.currentUser != null &&
-                            group.isMember(auth.currentUser!.uid);
-
-                        return _AnimatedGroupCard(
-                          index: index,
-                          child: _GroupCard(
-                            group: group,
-                            firestoreService: widget.firestoreService,
-                            heroSource: 'discover',
-                            trailing: isMember
-                                ? Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 14,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimaryContainer,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Joined',
-                                          style: TextStyle(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimaryContainer,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : null,
-                            onTap: () {
-                              widget.analytics.logEvent(
-                                name: 'view_group_details',
-                                parameters: {
-                                  'group_id': group.id,
-                                  'from': 'discover',
-                                  'is_member': isMember.toString(),
-                                },
-                              );
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      InvestorGroupDetailWidget(
-                                    groupId: group.id,
-                                    firestoreService: widget.firestoreService,
-                                    service: widget.service,
-                                    brokerageUser: widget.brokerageUser,
-                                    analytics: widget.analytics,
-                                    observer: widget.observer,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredGroups.length,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        );
+        return _buildPublicGroupsView(filteredGroups);
       },
     );
+  }
+
+  Widget _buildPublicGroupsView(List<InvestorGroup> filteredGroups) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {
+          _refreshStreams();
+        });
+        widget.analytics.logEvent(name: 'refresh_public_groups');
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      child: CustomScrollView(
+        slivers: [
+          if (filteredGroups.isEmpty && _searchQuery.trim().isNotEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off,
+                        size: 64,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.6)),
+                    const SizedBox(height: 16),
+                    const Text('No groups found',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Text('Try adjusting your search',
+                        style: TextStyle(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontSize: 14)),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 4, bottom: 16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final group = filteredGroups[index];
+                    final isMember = auth.currentUser != null &&
+                        group.isMember(auth.currentUser!.uid);
+
+                    return _AnimatedGroupCard(
+                      index: index,
+                      child: _GroupCard(
+                        group: group,
+                        firestoreService: widget.firestoreService,
+                        heroSource: 'discover',
+                        trailing: isMember
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 14,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Joined',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : null,
+                        onTap: () {
+                          widget.analytics.logEvent(
+                            name: 'view_group_details',
+                            parameters: {
+                              'group_id': group.id,
+                              'from': 'discover',
+                              'is_member': isMember.toString(),
+                            },
+                          );
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InvestorGroupDetailWidget(
+                                groupId: group.id,
+                                firestoreService: widget.firestoreService,
+                                service: widget.service,
+                                brokerageUser: widget.brokerageUser,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  childCount: filteredGroups.length,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<InvestorGroup> _generateMockPublicGroups() {
+    return [
+      InvestorGroup(
+        id: 'group_tech_alpha',
+        name: 'Tech Momentum Alpha',
+        description:
+            'Active tech & growth options trading club focusing on earnings breakouts and volatility momentum.',
+        createdBy: 'demo_user_1',
+        members: [
+          'demo_user_1',
+          'demo_user_2',
+          'demo_user_3',
+          'demo_user_4',
+          'demo_user_5'
+        ],
+        admins: ['demo_user_1'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 90)),
+        isPrivate: false,
+      ),
+      InvestorGroup(
+        id: 'group_theta_syndicate',
+        name: 'Theta Decay Syndicate',
+        description:
+            'Systematic premium selling strategies, credit spreads, and iron condors with strict risk guardrails.',
+        createdBy: 'demo_user_2',
+        members: ['demo_user_2', 'demo_user_3', 'demo_user_6'],
+        admins: ['demo_user_2'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 60)),
+        isPrivate: false,
+      ),
+      InvestorGroup(
+        id: 'group_macro_riders',
+        name: 'Macro Trend Riders',
+        description:
+            'Top-down macro asset allocation, index futures hedging, and thematic ETF swings.',
+        createdBy: 'demo_user_3',
+        members: ['demo_user_1', 'demo_user_3', 'demo_user_7'],
+        admins: ['demo_user_3'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 45)),
+        isPrivate: false,
+      ),
+    ];
+  }
+
+  List<InvestorGroup> _generateMockMyGroups() {
+    return [
+      InvestorGroup(
+        id: 'group_tech_alpha',
+        name: 'Tech Momentum Alpha',
+        description:
+            'Active tech & growth options trading club focusing on earnings breakouts and volatility momentum.',
+        createdBy: 'demo_user_1',
+        members: [
+          'demo_user',
+          'demo_user_1',
+          'demo_user_2',
+        ],
+        admins: ['demo_user_1'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 90)),
+        isPrivate: false,
+      ),
+      InvestorGroup(
+        id: 'group_demo_fund',
+        name: 'Demo Alpha Fund',
+        description:
+            'Personal demo portfolio club testing automated agentic strategies and copy trading.',
+        createdBy: 'demo_user',
+        members: ['demo_user', 'demo_user_1'],
+        admins: ['demo_user'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 14)),
+        isPrivate: true,
+      ),
+    ];
+  }
+
+  List<InvestorGroup> _generateMockPendingInvitations() {
+    return [
+      InvestorGroup(
+        id: 'group_theta_syndicate',
+        name: 'Theta Decay Syndicate',
+        description:
+            'Systematic premium selling strategies, credit spreads, and iron condors with strict risk guardrails.',
+        createdBy: 'demo_user_2',
+        members: ['demo_user_2', 'demo_user_3'],
+        pendingInvitations: ['demo_user'],
+        admins: ['demo_user_2'],
+        dateCreated: DateTime.now().subtract(const Duration(days: 60)),
+        isPrivate: true,
+      ),
+    ];
   }
 }
 

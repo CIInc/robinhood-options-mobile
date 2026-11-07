@@ -556,5 +556,28 @@ void main() {
       expect(find.text('Bought 10 shares of AAPL'), findsOneWidget);
       expect(find.text('Copy'), findsNothing);
     });
+
+    testWidgets(
+        'demo account populates mock trades and ideas when firestore is empty',
+        (tester) async {
+      final emptyDb = FakeFirebaseFirestore();
+      final emptyFirestoreService = FirestoreService(firestore: emptyDb);
+
+      await tester.pumpWidget(MaterialApp(
+        home: FollowingActivityFeedWidget(
+          auth: mockAuth,
+          firestoreService: emptyFirestoreService,
+          analytics: fakeAnalytics,
+          observer: fakeObserver,
+          brokerageUser: brokerageUser,
+          service: service,
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('NVDA Blackwell Ramp & Data Center Acceleration'),
+          findsOneWidget);
+      expect(find.text('Bought 100 shares of NVDA'), findsOneWidget);
+    });
   });
 }

@@ -5,10 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
-import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -638,7 +640,10 @@ class _TopPortfoliosLeaderboardWidgetState
               }
 
               var allEntries = snapshot.data ?? _lastEntries;
-              if (allEntries.isEmpty) {
+              final isDemo =
+                  widget.brokerageUser?.source == BrokerageSource.demo ||
+                      widget.service is DemoService;
+              if (allEntries.isEmpty && isDemo) {
                 allEntries = _generateMockLeaderboardEntries();
               }
               _lastEntries = allEntries;

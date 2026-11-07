@@ -548,6 +548,8 @@ void main() {
       final emptyFirestoreService = FirestoreService(firestore: emptyDb);
       final user = FakeUser(uid: 'user_123', displayName: 'David Trader');
       final auth = FakeFirebaseAuthWithUser(user);
+      final liveUser =
+          BrokerageUser(BrokerageSource.robinhood, 'live_user', null, null);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -557,8 +559,8 @@ void main() {
             firestoreService: emptyFirestoreService,
             analytics: fakeAnalytics,
             observer: fakeObserver,
-            brokerageUser: brokerageUser,
-            service: service,
+            brokerageUser: liveUser,
+            service: null,
           ),
         ),
       );
@@ -588,6 +590,43 @@ void main() {
       final emptyDb = FakeFirebaseFirestore();
       final emptyFirestoreService = FirestoreService(firestore: emptyDb);
       final auth = FakeFirebaseAuth();
+      final liveUser =
+          BrokerageUser(BrokerageSource.robinhood, 'live_user', null, null);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(useMaterial3: true),
+          home: TopPortfoliosLeaderboardWidget(
+            auth: auth,
+            firestoreService: emptyFirestoreService,
+            analytics: fakeAnalytics,
+            observer: fakeObserver,
+            brokerageUser: liveUser,
+            service: null,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No Portfolios Found'), findsOneWidget);
+      expect(find.text('No public portfolios match the current filters.'),
+          findsOneWidget);
+      expect(find.text('Publish My Portfolio'), findsNothing);
+    });
+
+    testWidgets(
+        'demo account populates mock leaderboard entries when firestore is empty',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final emptyDb = FakeFirebaseFirestore();
+      final emptyFirestoreService = FirestoreService(firestore: emptyDb);
+      final auth = FakeFirebaseAuth();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -604,10 +643,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('No Portfolios Found'), findsOneWidget);
-      expect(find.text('No public portfolios match the current filters.'),
-          findsOneWidget);
-      expect(find.text('Publish My Portfolio'), findsNothing);
+      expect(find.text('No Portfolios Found'), findsNothing);
+      expect(find.text('AlphaHunter'), findsWidgets);
+      expect(find.text('QuantumTheta'), findsWidgets);
+      expect(find.text('VolHarvester'), findsWidgets);
     });
 
     testWidgets(

@@ -78,6 +78,14 @@ class AgenticTradingProvider with ChangeNotifier {
     loadCachedMacroAssessment();
   }
 
+  static bool get _isFirebaseAuthenticated {
+    try {
+      return FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static String createCycleDiagnosticId() => const Uuid().v4();
 
   @visibleForTesting
@@ -177,7 +185,7 @@ class AgenticTradingProvider with ChangeNotifier {
           return;
         }
       }
-      if (FirebaseAuth.instance.currentUser == null) return;
+      if (!_isFirebaseAuthenticated) return;
       await FirebaseFunctions.instance
           .httpsCallable('logAgenticTradingCycle')
           .call(data)
@@ -460,8 +468,7 @@ class AgenticTradingProvider with ChangeNotifier {
     bool includeAiAnalysis = false,
   }) async {
     try {
-      final authUser = FirebaseAuth.instance.currentUser;
-      if (authUser == null) {
+      if (!_isFirebaseAuthenticated) {
         if (_macroAssessment != null) {
           _previousMacroAssessment = _macroAssessment;
         }
@@ -518,8 +525,7 @@ class AgenticTradingProvider with ChangeNotifier {
     _isAiAnalysisLoading = true;
     notifyListeners();
     try {
-      final authUser = FirebaseAuth.instance.currentUser;
-      if (authUser == null) {
+      if (!_isFirebaseAuthenticated) {
         if (_macroAssessment != null) {
           _macroAssessment = _macroAssessment!.copyWith(
             aiAnalysis:
@@ -584,8 +590,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> fetchMacroHistory({int limit = 30}) async {
     try {
-      final authUser = FirebaseAuth.instance.currentUser;
-      if (authUser == null) {
+      if (!_isFirebaseAuthenticated) {
         _loadMockMacroHistory();
         return;
       }
@@ -819,6 +824,10 @@ class AgenticTradingProvider with ChangeNotifier {
     int? ordersExecuted;
     int? positionsMonitored;
     int? exitsExecuted;
+    final cycleDependencies = dependencies ??
+        (context == null
+            ? null
+            : AgenticTradingCycleDependencies.fromContext(context));
 
     if (_isAutoTrading) {
       _log('⚠️ Auto-trade cycle already in progress');
@@ -866,10 +875,6 @@ class AgenticTradingProvider with ChangeNotifier {
         diagnosticReason = 'emergency_stop';
         return;
       }
-      final cycleDependencies = dependencies ??
-          (context == null
-              ? null
-              : AgenticTradingCycleDependencies.fromContext(context));
       if (cycleDependencies == null) {
         _log('⚠️ Auto-trade cycle requires dependencies or a BuildContext');
         diagnosticPhase = 'blocked';
@@ -1490,7 +1495,9 @@ class AgenticTradingProvider with ChangeNotifier {
           final status = existing?['status'];
           if (status == 'attempted' ||
               status == 'completed' ||
-              status == 'unknown') return false;
+              status == 'unknown') {
+            return false;
+          }
           transaction.set(
             claimRef,
             {
@@ -1520,7 +1527,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required String status,
     String? message,
   }) async {
-    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
+    if (userDocRef == null) return;
     try {
       await userDocRef
           .collection('agentic_trading_execution_claims')
@@ -1551,7 +1558,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> loadLatestMarketCloseExitStatus(
       DocumentReference? userDocRef) async {
-    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
+    if (userDocRef == null) return;
     try {
       final snapshot = await userDocRef
           .collection('agentic_trading_exit_status')
@@ -1934,7 +1941,7 @@ class AgenticTradingProvider with ChangeNotifier {
   /// Add a single trade to Firestore history
   Future<void> _addTradeToHistoryFirestore(
       Map<String, dynamic> tradeRecord, DocumentReference? userDocRef) async {
-    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
+    if (userDocRef == null) return;
 
     try {
       await userDocRef.collection('auto_trade_history').add(tradeRecord);
@@ -2138,7 +2145,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> _persistEmergencyStop(
       DocumentReference? userDocRef, bool activated) async {
-    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
+    if (userDocRef == null) return;
     final rawUserRef = userDocRef.firestore.doc(userDocRef.path);
     await rawUserRef.set(
       {'agenticTradingEmergencyStop': activated},
@@ -4398,7 +4405,7 @@ class AgenticTradingProvider with ChangeNotifier {
     double? profitLoss,
     Map<String, dynamic>? dailyStats,
   }) async {
-    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
+    if (userDocRef == null || !_isFirebaseAuthenticated) return;
 
     try {
       final functions = FirebaseFunctions.instance;
