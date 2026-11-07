@@ -32,6 +32,9 @@ interface FuturesSignalConfig {
   trailingStopAtrMultiplier?: number;
 }
 
+const VALID_IDENTIFIER_REGEX = /^[A-Za-z0-9=.-]{1,20}$/;
+const ALLOWED_INTERVALS = new Set(["15m", "1h", "1d"]);
+
 /**
  * Build and evaluate a futures signal from market data and config.
  * @param {any} request Callable request payload.
@@ -39,15 +42,39 @@ interface FuturesSignalConfig {
  */
 export async function performFuturesSignal(request: any) {
   const data = request.data || {};
-  const symbol = data.symbol as string;
-  const contractId = data.contractId as string;
-  const interval = (data.interval as string) || "1h";
+  const rawSymbol = typeof data.symbol === "string" ? data.symbol.trim() : "";
+  const rawContractId = typeof data.contractId === "string" ?
+    data.contractId.trim() : "";
+  const rawInterval = typeof data.interval === "string" ?
+    data.interval.trim() : "1h";
   const config: FuturesSignalConfig = data.config || {};
   const portfolioState = data.portfolioState || {};
 
-  if (!symbol || !contractId) {
-    return { status: "error", message: "symbol and contractId are required" };
+  // SECURITY: Validate symbol and contractId against strict character and
+  // length constraints to prevent path traversal or injection into Firestore
+  // signal doc IDs (`signals/${contractId}_${interval}`).
+  if (!VALID_IDENTIFIER_REGEX.test(rawSymbol)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "symbol must be 1-20 alphanumeric characters (or =, ., -)."
+    );
   }
+  if (!VALID_IDENTIFIER_REGEX.test(rawContractId)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "contractId must be 1-20 alphanumeric characters (or =, ., -)."
+    );
+  }
+  if (!ALLOWED_INTERVALS.has(rawInterval)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "interval must be one of: 15m, 1h, 1d."
+    );
+  }
+
+  const symbol = rawSymbol;
+  const contractId = rawContractId;
+  const interval = rawInterval;
 
   const marketData = await getMarketData(
     symbol,
@@ -270,7 +297,13 @@ export const getFuturesSignals = onCall(async (request) => {
   try {
     return await performFuturesSignal(request);
   } catch (err) {
+    if (err instanceof HttpsError) {
+      throw err;
+    }
     logger.error("getFuturesSignals failed", err);
-    return { status: "error", message: (err as Error).message };
+    throw new HttpsError(
+      "internal",
+      "An unexpected error occurred while calculating futures signals."
+    );
   }
 });

@@ -74,4 +74,66 @@ describe("getFuturesSignals callable authentication", () => {
     expect(result).toBeDefined();
     expect(result.status).not.toBe("error");
   });
+
+  it("rejects when symbol is missing or contains invalid characters",
+    async () => {
+      const invalidSymbols = ["", "   ", "ES/F", "ES..F..INVALID_LONG_TICKER",
+        "ES F", "../traversal"];
+
+      for (const symbol of invalidSymbols) {
+        const req = {
+          data: { symbol, contractId: "ESM24" },
+          auth: { uid: "user123" } as any,
+        };
+        await expect(
+          (getFuturesSignals as any).run(req)
+        ).rejects.toThrow(
+          new HttpsError(
+            "invalid-argument",
+            "symbol must be 1-20 alphanumeric characters (or =, ., -)."
+          )
+        );
+      }
+    });
+
+  it("rejects when contractId is missing or contains invalid characters",
+    async () => {
+      const invalidContractIds = ["", "   ", "ES/M24", "ESM24#INVALID",
+        "../../doc", "A".repeat(25)];
+
+      for (const contractId of invalidContractIds) {
+        const req = {
+          data: { symbol: "ES=F", contractId },
+          auth: { uid: "user123" } as any,
+        };
+        await expect(
+          (getFuturesSignals as any).run(req)
+        ).rejects.toThrow(
+          new HttpsError(
+            "invalid-argument",
+            "contractId must be 1-20 alphanumeric characters (or =, ., -)."
+          )
+        );
+      }
+    });
+
+  it("rejects when interval is not in allowed intervals whitelist",
+    async () => {
+      const invalidIntervals = ["5m", "30m", "2h", "1w", "invalid", "../1d"];
+
+      for (const interval of invalidIntervals) {
+        const req = {
+          data: { symbol: "ES=F", contractId: "ESM24", interval },
+          auth: { uid: "user123" } as any,
+        };
+        await expect(
+          (getFuturesSignals as any).run(req)
+        ).rejects.toThrow(
+          new HttpsError(
+            "invalid-argument",
+            "interval must be one of: 15m, 1h, 1d."
+          )
+        );
+      }
+    });
 });
