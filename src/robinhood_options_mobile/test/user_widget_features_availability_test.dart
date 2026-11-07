@@ -264,6 +264,37 @@ void main() {
           findsOneWidget);
     });
 
+    testWidgets('honors Automated Trading opt-in stored on the user document',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 4000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await FeatureAccessService.instance.setUserPreference(
+        FeatureBundle.automatedTrading,
+        false,
+      );
+      final userDocRef = firestoreService.userCollection.doc(testUid);
+      final storedUser = (await userDocRef.get()).data()!;
+      storedUser.featureFlags = {FeatureBundle.automatedTrading.name: true};
+      await userDocRef.set(storedUser);
+
+      await tester.pumpWidget(createTestApp(
+        auth: MockFirebaseAuthWithUser(mockUser),
+        brokerageUser: null,
+        service: null,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.widgetWithText(ListTile, 'Automated Trading'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets(
         'Connected with Charles Schwab hides unsupported features and empty categories',
         (WidgetTester tester) async {

@@ -9,7 +9,7 @@ void main() {
     test('parses standard marginable instrument buying power correctly', () {
       final now = DateTime.now();
       final json = {
-        'account_number': '5QR12345',
+        'account_number': '5DM12345',
         'instrument_id': 'inst_aapl_123',
         'buying_power': '41505.26',
         'short_buying_power': '20752.63',
@@ -26,7 +26,7 @@ void main() {
       final bp = InstrumentBuyingPower.fromJson('inst_aapl_123', json);
 
       expect(bp.instrumentId, 'inst_aapl_123');
-      expect(bp.accountNumber, '5QR12345');
+      expect(bp.accountNumber, '5DM12345');
       expect(bp.buyingPower, 41505.26);
       expect(bp.shortBuyingPower, 20752.63);
       expect(bp.cashOnly, isFalse);
@@ -46,7 +46,7 @@ void main() {
 
     test('parses 100% cash-only / non-marginable instrument correctly', () {
       final json = {
-        'account_number': '5QR12345',
+        'account_number': '5DM12345',
         'instrument_id': 'inst_gme_456',
         'buying_power': 10000.0,
         'short_buying_power': 0.0,
@@ -224,7 +224,7 @@ void main() {
       );
 
       final bpJson = await demoService.getInstrumentBuyingPower(
-          user, '5QR12345', 'inst_aapl');
+          user, '5DM12345', 'inst_aapl');
       expect(bpJson, isNotNull);
 
       final bp = InstrumentBuyingPower.fromJson('inst_aapl', bpJson);
@@ -251,7 +251,7 @@ void main() {
       );
 
       final bpJson = await demoService.getInstrumentBuyingPower(
-          user, '5QR12345', 'inst_gme_meme');
+          user, '5DM12345', 'inst_gme_meme');
       expect(bpJson, isNotNull);
 
       final bp = InstrumentBuyingPower.fromJson('inst_gme_meme', bpJson);

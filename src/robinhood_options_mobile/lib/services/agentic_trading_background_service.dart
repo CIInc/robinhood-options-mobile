@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_brokerage_service_factory.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_run_journal.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -33,6 +34,32 @@ class AgenticTradingBackgroundService {
   static const taskName = 'com.cidevelop.robinhoodOptionsMobile.agenticTrading';
   static const frequency = Duration(minutes: 15);
   static String? _activeCycleDiagnosticId;
+  static final _scheduleCoordinator = BackgroundTaskScheduleCoordinator(
+    registerTask: _registerPeriodicTask,
+    cancelTask: _cancelPeriodicTask,
+  );
+
+  static Future<void> _recordLocalEvent({
+    required String event,
+    String? reason,
+    String? phase,
+    String? cycleId,
+    List<String>? brokerageSources,
+  }) async {
+    try {
+      await AgenticTradingRunJournal.record(
+        event: event,
+        trigger: 'background',
+        reason: reason,
+        phase: phase,
+        cycleId: cycleId,
+        brokerageSources: brokerageSources,
+      );
+    } catch (error) {
+      debugPrint(
+          'Could not persist background diagnostic: ${error.runtimeType}');
+    }
+  }
 
   @visibleForTesting
   static IBrokerageService? brokerageServiceForSource(
@@ -51,25 +78,48 @@ class AgenticTradingBackgroundService {
     await Workmanager().initialize(agenticTradingBackgroundDispatcher);
   }
 
-  static Future<void> syncScheduling({required bool enabled}) async {
-    if (!_isSupportedPlatform) return;
-    if (!enabled) {
-      await Workmanager().cancelByUniqueName(taskName);
-      return;
+  static Future<void> syncScheduling({
+    required bool enabled,
+    bool force = false,
+  }) {
+    if (!_isSupportedPlatform) return Future<void>.value();
+    return _scheduleCoordinator.sync(enabled: enabled, force: force);
+  }
+
+  static Future<void> _registerPeriodicTask() async {
+    try {
+      await Workmanager().registerPeriodicTask(
+        taskName,
+        taskName,
+        frequency: frequency,
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+        constraints: Constraints(networkType: NetworkType.connected),
+      );
+      await _recordLocalEvent(event: 'schedule_registered');
+    } catch (error) {
+      await _recordLocalEvent(
+        event: 'schedule_failed',
+        reason: error.runtimeType.toString(),
+      );
+      rethrow;
     }
-    await Workmanager().registerPeriodicTask(
-      taskName,
-      taskName,
-      frequency: frequency,
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-      constraints: Constraints(networkType: NetworkType.connected),
-    );
+  }
+
+  static Future<void> _cancelPeriodicTask() async {
+    await Workmanager().cancelByUniqueName(taskName);
+    await _recordLocalEvent(event: 'schedule_cancelled');
   }
 
   static bool get _isSupportedPlatform =>
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
+
+  static bool shouldRegisterPeriodicTask({
+    required bool hasUserDocument,
+    required bool autoTradeEnabled,
+  }) =>
+      hasUserDocument && autoTradeEnabled;
 
   @visibleForTesting
   static bool isFreshQuote({
@@ -84,23 +134,32 @@ class AgenticTradingBackgroundService {
 
   static Future<bool> runOnce() async {
     _activeCycleDiagnosticId = null;
+    await _recordLocalEvent(event: 'run_started');
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
+    await _recordLocalEvent(event: 'firebase_ready');
     if (!kIsWeb && !kDebugMode) {
       await FirebaseAppCheck.instance.activate(
         providerAndroid: const AndroidPlayIntegrityProvider(),
         providerApple: const AppleDeviceCheckProvider(),
       );
     }
+    await _recordLocalEvent(event: 'app_check_ready');
 
+    await _recordLocalEvent(event: 'auth_wait_started');
     final firebaseUser = await FirebaseAuth.instance
         .authStateChanges()
         .first
         .timeout(const Duration(seconds: 10));
-    if (firebaseUser == null) return true;
+    if (firebaseUser == null) {
+      await _recordLocalEvent(event: 'auth_missing', reason: 'signed_out');
+      await syncScheduling(enabled: false);
+      return true;
+    }
+    await _recordLocalEvent(event: 'auth_restored');
 
     final cycleId = AgenticTradingProvider.createCycleDiagnosticId();
     _activeCycleDiagnosticId = cycleId;
@@ -119,13 +178,23 @@ class AgenticTradingBackgroundService {
           quoteSource: config?.paperQuoteSource.name,
         );
 
-    unawaited(reportCycle(phase: 'started', reason: 'cycle_started'));
+    await _recordLocalEvent(
+      event: 'cycle_started',
+      phase: 'started',
+      reason: 'cycle_started',
+      cycleId: cycleId,
+    );
 
     final userDocRef = FirestoreService().userCollection.doc(firebaseUser.uid);
     final userSnapshot = await userDocRef.get();
     final user = userSnapshot.data();
     final config = user?.agenticTradingConfig;
     if (config == null || !config.autoTradeEnabled) {
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: config == null ? 'config_missing' : 'auto_trade_disabled',
+        cycleId: cycleId,
+      );
       await reportCycle(
         phase: 'blocked',
         reason: config == null ? 'config_missing' : 'auto_trade_disabled',
@@ -137,6 +206,15 @@ class AgenticTradingBackgroundService {
 
     final brokerageUserStore = BrokerageUserStore([], 0);
     await brokerageUserStore.load();
+    await _recordLocalEvent(
+      event: 'brokerage_store_loaded',
+      reason: 'entries_${brokerageUserStore.items.length}',
+      cycleId: cycleId,
+      brokerageSources: brokerageUserStore.items
+          .map((user) => user.source.enumValue())
+          .toSet()
+          .toList(),
+    );
     final brokerageUser = config.paperTradingMode
         ? AgenticTradingProvider.resolvePaperQuoteUser(
             userStore: brokerageUserStore,
@@ -144,6 +222,13 @@ class AgenticTradingBackgroundService {
           )
         : brokerageUserStore.currentUser;
     if (brokerageUser == null) {
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: config.paperTradingMode
+            ? 'quote_source_unavailable'
+            : 'account_unavailable',
+        cycleId: cycleId,
+      );
       await reportCycle(
         phase: 'blocked',
         reason: config.paperTradingMode
@@ -151,21 +236,30 @@ class AgenticTradingBackgroundService {
             : 'account_unavailable',
         config: config,
       );
-      await syncScheduling(enabled: false);
       return true;
     }
+    await _recordLocalEvent(event: 'quote_source_resolved', cycleId: cycleId);
     final brokerageService = brokerageServiceForSource(brokerageUser.source);
     if (brokerageService == null) {
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: 'quote_service_unavailable',
+        cycleId: cycleId,
+      );
       await reportCycle(
         phase: 'blocked',
         reason: 'quote_service_unavailable',
         config: config,
       );
-      await syncScheduling(enabled: false);
       return true;
     }
     brokerageUser.ensureOAuth2Client();
     if (brokerageUser.oauth2Client == null) {
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: 'oauth_unavailable',
+        cycleId: cycleId,
+      );
       await reportCycle(
         phase: 'blocked',
         reason: 'oauth_unavailable',
@@ -197,6 +291,11 @@ class AgenticTradingBackgroundService {
       instrumentPositionStore: instrumentPositionStore,
     );
     if (accounts.isEmpty) {
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: 'account_unavailable',
+        cycleId: cycleId,
+      );
       await reportCycle(
         phase: 'blocked',
         reason: 'account_unavailable',
@@ -271,6 +370,11 @@ class AgenticTradingBackgroundService {
         reason: 'market_closed',
         config: config,
       );
+      await _recordLocalEvent(
+        event: 'cycle_blocked',
+        reason: 'market_closed',
+        cycleId: cycleId,
+      );
       return true;
     }
 
@@ -306,6 +410,11 @@ class AgenticTradingBackgroundService {
           updatedAt: quote?.updatedAt,
           price: quote?.lastTradePrice ?? quote?.lastExtendedHoursTradePrice,
         )) {
+          await _recordLocalEvent(
+            event: 'cycle_blocked',
+            reason: 'stale_quote',
+            cycleId: cycleId,
+          );
           await reportCycle(
             phase: 'blocked',
             reason: 'stale_quote',
@@ -322,6 +431,11 @@ class AgenticTradingBackgroundService {
           updatedAt: quote?.updatedAt,
           price: quote?.lastTradePrice ?? quote?.lastExtendedHoursTradePrice,
         )) {
+          await _recordLocalEvent(
+            event: 'cycle_blocked',
+            reason: 'stale_quote',
+            cycleId: cycleId,
+          );
           await reportCycle(
             phase: 'blocked',
             reason: 'stale_quote',
@@ -344,6 +458,7 @@ class AgenticTradingBackgroundService {
       quoteStore: quoteStore,
       requireFreshQuotes: true,
     );
+    await _recordLocalEvent(event: 'cycle_invoked', cycleId: cycleId);
     await provider.runAutoTradeCycle(
       brokerageService: brokerageService,
       userDocRef: userDocRef,
@@ -362,6 +477,7 @@ class AgenticTradingBackgroundService {
     quoteStore.dispose();
     paperStore.dispose();
     tradeSignalsProvider.dispose();
+    await _recordLocalEvent(event: 'cycle_returned', cycleId: cycleId);
     return true;
   }
 }
@@ -371,11 +487,30 @@ void agenticTradingBackgroundDispatcher() {
   WidgetsFlutterBinding.ensureInitialized();
   DartPluginRegistrant.ensureInitialized();
   Workmanager().executeTask((taskName, inputData) async {
-    if (taskName != AgenticTradingBackgroundService.taskName) return true;
+    if (taskName != AgenticTradingBackgroundService.taskName) {
+      await AgenticTradingBackgroundService._recordLocalEvent(
+        event: 'task_ignored',
+      );
+      return true;
+    }
+    await AgenticTradingBackgroundService._recordLocalEvent(
+      event: 'task_received',
+    );
     try {
-      return await AgenticTradingBackgroundService.runOnce();
+      final result = await AgenticTradingBackgroundService.runOnce();
+      await AgenticTradingBackgroundService._recordLocalEvent(
+        event: 'task_finished',
+        reason: result ? 'success' : 'retry_requested',
+        cycleId: AgenticTradingBackgroundService._activeCycleDiagnosticId,
+      );
+      return result;
     } catch (error) {
       final cycleId = AgenticTradingBackgroundService._activeCycleDiagnosticId;
+      await AgenticTradingBackgroundService._recordLocalEvent(
+        event: 'task_failed',
+        reason: error.runtimeType.toString(),
+        cycleId: cycleId,
+      );
       if (cycleId != null) {
         await AgenticTradingProvider.logCycleDiagnostic(
           cycleId: cycleId,
@@ -388,4 +523,35 @@ void agenticTradingBackgroundDispatcher() {
       return false;
     }
   });
+}
+
+class BackgroundTaskScheduleCoordinator {
+  BackgroundTaskScheduleCoordinator({
+    required Future<void> Function() registerTask,
+    required Future<void> Function() cancelTask,
+  })  : _registerTask = registerTask,
+        _cancelTask = cancelTask;
+
+  final Future<void> Function() _registerTask;
+  final Future<void> Function() _cancelTask;
+  Future<void> _pendingChanges = Future<void>.value();
+  bool? _appliedEnabledState;
+
+  Future<void> sync({required bool enabled, bool force = false}) {
+    final completer = Completer<void>();
+    _pendingChanges = _pendingChanges.catchError((Object _) {}).then((_) async {
+      if (!force && _appliedEnabledState == enabled) return;
+      if (enabled) {
+        await _registerTask();
+      } else {
+        await _cancelTask();
+      }
+      _appliedEnabledState = enabled;
+    }).then<void>(
+      (_) => completer.complete(),
+      onError: (Object error, StackTrace stackTrace) =>
+          completer.completeError(error, stackTrace),
+    );
+    return completer.future;
+  }
 }

@@ -1614,19 +1614,99 @@ class YahooService {
     return [];
   }
 
-  /// Converts any currency pair string or ID into a Yahoo Finance forex symbol.
-  /// e.g. "EUR/USD" -> "EURUSD=X", "forex_eurusd" -> "EURUSD=X", "USDJPY" -> "USDJPY=X".
+  static final Map<String, String> customForexPairMap = {};
+
+  static const Map<String, String> _knownCryptoIds = {
+    '3d961844-d360-45fc-989b-f6fca761d511': 'BTC-USD',
+    '76637d50-c702-4ed1-bcb5-5b0732a81f48': 'ETH-USD',
+    '1ef78e1b-049b-4f12-90e5-555dcf2fe204': 'DOGE-USD',
+    '2d189ddb-bc0d-4aa4-bd6b-cd72e6679cd0': 'SHIB-USD',
+    '2f2b77c4-e426-4271-ae49-18d5cb296d3a': 'BCH-USD',
+    '383280b1-ff53-43fc-9c84-f01afd0989cd': 'LTC-USD',
+    '7b577ce3-489d-4269-9408-796a0d1abb3a': 'ETC-USD',
+    '0cdc8c93-fbda-462f-94b7-26353d87a009': 'SOL-USD',
+    'f62a25b6-31c0-4c92-846d-3c8105627b62': 'AVAX-USD',
+    '7a04fe7a-e3a8-4a07-8c35-d0fec9f35569': 'XLM-USD',
+    '3a3d9131-b627-4782-95e6-aeb874558e99': 'USDC-USD',
+    '33316259-af8c-4f31-86a4-c5c07e12d625': 'UNI-USD',
+    '884fd5dd-726a-4104-92c2-6d751f857827': 'AAVE-USD',
+    '6b7f1ac0-79d2-4dd1-b227-d98b7474715b': 'XRP-USD',
+    'f5cd90c4-6058-4e2c-909d-2fe46bb80caf': 'ADA-USD',
+    'b8b501ae-e6d2-474c-8595-5049ff23d9f6': 'AVAX-USD',
+    '84e52b1d-3ca7-48ff-829a-b40e8b719810': 'FIL-USD',
+    '44749fb6-41c3-4004-bf51-f0d0b365648f': 'BAL-USD',
+    '07244e5a-8953-4079-bae2-165e5e02c1cf': 'ALGO-USD',
+    'd75687f0-37f4-4fb3-b6f3-cae06e041054': 'GRT-USD',
+    '3e5aaf7a-caa6-470e-932d-9cf264ffb19a': 'BAT-USD',
+    '2ffea689-6b72-423f-b487-06743f6164fd': 'HNT-USD',
+    '1769041a-7607-4c0d-9fbb-4acbe93ee915': 'APE-USD',
+    'ba7fe1e3-f5c7-4ca2-9645-09942d494f45': 'ENJ-USD',
+    'c59484ee-cff5-4e95-943e-5e6290e7082c': 'RUNE-USD',
+    '5257b7e3-b31e-4f7c-b3fc-3cbe16e1bd93': 'WBTC-USD',
+    '9b3f12e8-b3ed-48db-bce9-78d451019b89': 'TRX-USD',
+    'cf673624-5aff-4252-aebb-6a499893d8cb': 'MANA-USD',
+    '7a760c7d-490e-4395-a6cf-3c1d5f035a48': 'BNB-USD',
+    '56d9b0a5-5b6e-4eb1-bb9d-ab11fadbd389': 'DAI-USD',
+    '3f5e8c48-bba6-4f90-9d72-303055315bad': 'ICP-USD',
+    'b40857da-99fa-4762-9cd0-cbb960fca571': 'SAND-USD',
+  };
+
+  /// Converts any currency pair string or ID into a Yahoo Finance forex/crypto symbol.
+  /// e.g. "EUR/USD" -> "EURUSD=X", "forex_eurusd" -> "EURUSD=X", "USDJPY" -> "USDJPY=X",
+  /// "BTC-USD" -> "BTC-USD", "3d961844-d360-45fc-989b-f6fca761d511" -> "BTC-USD".
   static String toForexYahooSymbol(String symbolOrPairId) {
+    final lowerId = symbolOrPairId.trim().toLowerCase();
+    if (customForexPairMap.containsKey(lowerId)) {
+      return customForexPairMap[lowerId]!;
+    }
+    if (_knownCryptoIds.containsKey(lowerId)) {
+      return _knownCryptoIds[lowerId]!;
+    }
+
     var s = symbolOrPairId.trim().toUpperCase();
     if (s.startsWith('FOREX_')) {
       s = s.substring(6);
     }
-    s = s.replaceAll('/', '').replaceAll('-', '').replaceAll('_', '');
-    if (s.endsWith('=X')) {
+
+    if (s.endsWith('-USD')) {
       return s;
     }
-    if (s.length == 6) {
-      return '$s=X';
+
+    const cryptoSymbols = {
+      'BTC',
+      'ETH',
+      'DOGE',
+      'SHIB',
+      'SOL',
+      'ADA',
+      'XRP',
+      'AVAX',
+      'LTC',
+      'BCH',
+      'LINK',
+      'UNI',
+      'XLM',
+      'ETC',
+      'USDC',
+      'MATIC',
+      'DOT',
+      'NEAR'
+    };
+    if (cryptoSymbols.contains(s)) {
+      return '$s-USD';
+    }
+    for (final c in cryptoSymbols) {
+      if (s == '${c}USD') {
+        return '$c-USD';
+      }
+    }
+
+    var clean = s.replaceAll('/', '').replaceAll('-', '').replaceAll('_', '');
+    if (clean.endsWith('=X')) {
+      return clean;
+    }
+    if (clean.length == 6) {
+      return '$clean=X';
     }
     return symbolOrPairId;
   }

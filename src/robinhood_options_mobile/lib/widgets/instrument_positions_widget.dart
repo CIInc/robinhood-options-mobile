@@ -240,6 +240,10 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     charts.NumericExtents? secondaryExtents;
     List<charts.TickSpec<num>>? secondaryTicks;
 
+    final bool startsAtZero =
+        widget.brokerageUser.displayValue == DisplayValue.marketValue ||
+            widget.brokerageUser.displayValue == DisplayValue.totalCost;
+
     if (isDualAxis) {
       final secondaryValues = chartPositions
           .map((e) => widget.brokerageUser.getDisplayValueInstrumentPosition(e,
@@ -248,6 +252,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       final aligned = AlignedAxisExtents.compute(
         primaryValues: primaryValues,
         secondaryValues: secondaryValues,
+        primaryStartsAtZero: startsAtZero,
       );
       extents = aligned.primaryExtents;
       secondaryExtents = aligned.secondaryExtents;
@@ -285,14 +290,16 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           ? charts.NumericExtents.fromValues(primaryNumericValues)
           : const charts.NumericExtents(0, 1);
       double primaryPad = extents.width > 0 ? extents.width * 0.1 : 0.05;
-      final bool startsAtZero =
-          widget.brokerageUser.displayValue == DisplayValue.marketValue ||
-              widget.brokerageUser.displayValue == DisplayValue.totalCost;
       // Value-based bars anchor at zero but must still fit negative values (shorts).
       final double lowest = extents.min - primaryPad;
       final double highest = extents.max + primaryPad;
-      final double minVal = startsAtZero ? (lowest < 0 ? lowest : 0.0) : lowest;
-      final double maxVal = startsAtZero && highest < 0 ? 0.0 : highest;
+      final double minVal =
+          startsAtZero ? (extents.min < 0 ? lowest : 0.0) : lowest;
+      double maxVal =
+          startsAtZero ? (extents.max > 0 ? highest : 0.0) : highest;
+      if (minVal == maxVal) {
+        maxVal = minVal + 1.0;
+      }
       extents = charts.NumericExtents(minVal, maxVal);
     }
 

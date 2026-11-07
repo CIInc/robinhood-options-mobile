@@ -361,6 +361,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     charts.NumericExtents? secondaryExtents;
     List<charts.TickSpec<num>>? secondaryTicks;
 
+    final bool startsAtZero =
+        widget.brokerageUser.displayValue == DisplayValue.marketValue ||
+            widget.brokerageUser.displayValue == DisplayValue.totalCost;
+
     if (isDualAxis) {
       final secondaryNumericValues = data
           .map((d) => (d['secondaryMeasure'] as num?)?.toDouble())
@@ -369,6 +373,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       final aligned = AlignedAxisExtents.compute(
         primaryValues: primaryNumericValues,
         secondaryValues: secondaryNumericValues,
+        primaryStartsAtZero: startsAtZero,
       );
       primaryExtents = aligned.primaryExtents;
       secondaryExtents = aligned.secondaryExtents;
@@ -405,14 +410,16 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           : const charts.NumericExtents(0, 1);
       double primaryPad =
           primaryExtents.width > 0 ? primaryExtents.width * 0.1 : 0.05;
-      final bool startsAtZero =
-          widget.brokerageUser.displayValue == DisplayValue.marketValue ||
-              widget.brokerageUser.displayValue == DisplayValue.totalCost;
       // Value-based bars anchor at zero but must still fit negative values (short options).
       final double lowest = primaryExtents.min - primaryPad;
       final double highest = primaryExtents.max + primaryPad;
-      final double minVal = startsAtZero ? (lowest < 0 ? lowest : 0.0) : lowest;
-      final double maxVal = startsAtZero && highest < 0 ? 0.0 : highest;
+      final double minVal =
+          startsAtZero ? (primaryExtents.min < 0 ? lowest : 0.0) : lowest;
+      double maxVal =
+          startsAtZero ? (primaryExtents.max > 0 ? highest : 0.0) : highest;
+      if (minVal == maxVal) {
+        maxVal = minVal + 1.0;
+      }
       primaryExtents = charts.NumericExtents(minVal, maxVal);
     }
 

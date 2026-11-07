@@ -141,7 +141,7 @@ void main() {
   group('UnifiedAccount Model', () {
     test('parses full unified account payload', () {
       final json = {
-        'account_number': '5QR12345',
+        'account_number': '5DM12345',
         'account_type': 'margin',
         'buying_power': 25000.0,
         'options_buying_power': 18500.0,
@@ -169,7 +169,7 @@ void main() {
       };
 
       final unified = UnifiedAccount.fromJson(json);
-      expect(unified.accountNumber, '5QR12345');
+      expect(unified.accountNumber, '5DM12345');
       expect(unified.accountType, 'margin');
       expect(unified.isMarginAccount, isTrue);
       expect(unified.buyingPower, 25000.0);
@@ -254,7 +254,7 @@ void main() {
       expect(raw, isNotNull);
 
       final unified = UnifiedAccount.fromJson(raw);
-      expect(unified.accountNumber, '5QR12345');
+      expect(unified.accountNumber, '5DM12345');
       expect(unified.buyingPower, 25000.0);
       expect(unified.optionsBuyingPower, 18500.0);
       expect(unified.cryptoBuyingPower, 12000.0);
@@ -326,7 +326,7 @@ void main() {
         },
         "equities": {
           "active_subscription_id": "ed9af327-ff97-56af-8172-0731f1afc505",
-          "apex_account_number": "5QR24141",
+          "apex_account_number": "5DM12345",
           "available_margin": null,
           "equity": {
             "amount": "50945.027189",
@@ -344,7 +344,7 @@ void main() {
             "currency_id": "1072fc76-1862-41ab-82c2-485837590762"
           },
           "opened_at": "2015-02-12T22:41:50.744964Z",
-          "rhs_account_number": "101241412",
+          "rhs_account_number": "101987654",
           "total_margin": {
             "amount": "49807.6204",
             "currency_code": "USD",
@@ -445,7 +445,7 @@ void main() {
       };
 
       final unified = UnifiedAccount.fromJson(json);
-      expect(unified.accountNumber, '101241412');
+      expect(unified.accountNumber, '101987654');
       expect(unified.buyingPower, closeTo(53408.51, 0.01));
       expect(unified.optionsBuyingPower, closeTo(26704.25, 0.01));
       expect(unified.cryptoBuyingPower, closeTo(26704.25, 0.01));
@@ -466,7 +466,7 @@ void main() {
   group('PortfolioAlertService Margin Health Alerts', () {
     test('triggers critical alert on active margin call deficit', () {
       final unified = UnifiedAccount(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         marginHealth: const MarginHealth(
           status: MarginHealthStatus.marginCall,
           marginCallAmount: 3500.0,
@@ -488,7 +488,7 @@ void main() {
 
     test('triggers critical alert on critical margin buffer (<10%)', () {
       final unified = UnifiedAccount(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         marginHealth: const MarginHealth(
           status: MarginHealthStatus.critical,
           marginBuffer: 800.0,
@@ -512,7 +512,7 @@ void main() {
 
     test('triggers warning alert on low margin buffer (<25%)', () {
       final unified = UnifiedAccount(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         marginHealth: const MarginHealth(
           status: MarginHealthStatus.warning,
           marginBuffer: 1800.0,
@@ -535,7 +535,7 @@ void main() {
 
     test('no margin alerts generated for unleveraged accounts', () {
       final unified = UnifiedAccount(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         marginHealth: const MarginHealth(
           status: MarginHealthStatus.unleveraged,
           borrowedAmount: 0.0,

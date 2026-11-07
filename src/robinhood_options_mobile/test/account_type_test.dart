@@ -10,7 +10,7 @@ void main() {
   group('Account Type & IRA Recognition Tests', () {
     test('parses individual brokerage account correctly', () {
       final json = {
-        'account_number': '1AB23456',
+        'account_number': '5DM12345',
         'type': 'margin',
         'brokerage_account_type': 'individual',
         'portfolio_cash': '17546.87',
@@ -18,7 +18,7 @@ void main() {
 
       final account = Account.fromJson(json);
 
-      expect(account.accountNumber, '1AB23456');
+      expect(account.accountNumber, '5DM12345');
       expect(account.type, 'margin');
       expect(account.brokerageAccountType, 'individual');
       expect(account.isRetirement, isFalse);
@@ -79,7 +79,7 @@ void main() {
   group('UnifiedAccount IRA Margin Rules Tests', () {
     test('standard margin account returns isMarginAccount = true', () {
       const unified = UnifiedAccount(
-        accountNumber: '1AB23456',
+        accountNumber: '5DM12345',
         accountType: 'margin',
         brokerageAccountType: 'individual',
       );

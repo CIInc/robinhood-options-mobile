@@ -23,8 +23,8 @@ InstrumentPosition buildPosition({
   final position = InstrumentPosition(
     'https://example.com/positions/$symbol/',
     'https://example.com/instruments/$symbol/',
-    'https://example.com/accounts/1AB23456/',
-    '1AB23456',
+    'https://example.com/accounts/5DM12345/',
+    '5DM12345',
     costBasis ?? price,
     0,
     quantity,
@@ -88,9 +88,9 @@ InstrumentPosition buildPosition({
 }
 
 Account buildAccount({double? cash, double? buyingPower}) => Account(
-      'https://example.com/accounts/1AB23456/',
+      'https://example.com/accounts/5DM12345/',
       cash,
-      '1AB23456',
+      '5DM12345',
       'margin',
       buyingPower,
       '2',
@@ -128,7 +128,7 @@ OptionAggregatePosition buildOptionPosition({
   final pos = OptionAggregatePosition(
     'pos-$symbol-$strikePrice-$optionType',
     'chain-1',
-    '1AB23456',
+    '5DM12345',
     symbol,
     strategy,
     markPrice != null ? markPrice * 100.0 : 250.0,
@@ -598,7 +598,7 @@ void main() {
       );
 
       final unifiedAccount = const UnifiedAccount(
-        accountNumber: '1AB23456',
+        accountNumber: '5DM12345',
         buyingPower: 120000,
       );
 

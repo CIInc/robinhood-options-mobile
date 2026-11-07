@@ -266,7 +266,7 @@ class PortfolioHistoricals {
     "page_direction": "up",
     "chart_type": "historical_portfolio",
     "chart_style": "PERFORMANCE",
-    "account_number": "5QR24141",
+    "account_number": "5DM12345",
     "benchmark_ids": "",
     "spans": {
         "available_spans": [

@@ -105,6 +105,8 @@ Comprehensive backtesting interface for testing trading strategies on historical
   - Simulate trades using multi-indicator system
   - Calculate performance metrics
   - Return comprehensive results
+  - Normalize and filter symbol inputs, require at least one valid symbol, and cap requests at 30 symbols
+  - Require parseable start/end date strings with the start before the end; invalid arguments return a typed callable error
 
 ## Usage
 

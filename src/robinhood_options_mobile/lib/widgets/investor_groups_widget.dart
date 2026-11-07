@@ -30,6 +30,7 @@ class InvestorGroupsWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final User? user;
   final DocumentReference<User>? userDocRef;
+  final int initialTabIndex;
 
   const InvestorGroupsWidget({
     super.key,
@@ -40,6 +41,7 @@ class InvestorGroupsWidget extends StatefulWidget {
     required this.observer,
     this.user,
     this.userDocRef,
+    this.initialTabIndex = 1,
   });
 
   @override
@@ -64,7 +66,9 @@ class _InvestorGroupsWidgetState extends State<InvestorGroupsWidget>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _currentTabIndex = widget.initialTabIndex;
+    _tabController = TabController(
+        length: 4, vsync: this, initialIndex: widget.initialTabIndex);
     _tabController.addListener(() {
       if (_tabController.index != _currentTabIndex) {
         setState(() {

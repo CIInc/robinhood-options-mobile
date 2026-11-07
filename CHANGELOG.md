@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.1] - 2026-11-06 (pre-release)
+**Backtest Input Bounds & On-Device Auto-Trade Diagnostics**
+
+- **Backtest Input Validation ([#314](https://github.com/CIInc/robinhood-options-mobile/pull/314)):** Normalize and bound symbol filters to 30 valid symbols, validate date strings and ordering, and return typed callable errors for invalid input.
+- **Auto-Trade Lifecycle Diagnostics:** Add a bounded, trigger-separated device journal and an activity panel for recent background task events. Reconcile periodic scheduling on app resume to recover from task cancellation in the separate background engine; background timing remains best effort.
+- **Feature Availability:** Honor user-document feature flags when rendering gated profile features, including preferences set on another device.
+- **Demo Crypto Instrument Charts:** Resolve Robinhood crypto instrument UUIDs to Yahoo Finance symbols (`BTC-USD`, `ETH-USD`, `DOGE-USD`, etc.) via `YahooService`, synthesize authentic Brownian bridge historicals up to the current timestamp in `DemoService.getForexHistoricals` when offline or on provider error, guard intraday timestamp filtering against empty datasets in `ForexInstrumentWidget`, and render a clean empty state with retry in `ForexChartWidget`.
+
 ## [0.61.0] - 2026-11-05 (pre-release)
 **Macro-Regime Backtesting, Safer Auto-Trading Diagnostics & Mobile Polish**
 
@@ -267,7 +275,7 @@ All notable changes to this project will be documented in this file.
     - Synthesized individual IRA transfer records (`RetirementTransaction`) from PaymentHub SDUI stacked data rows, extracting contribution type ("New IRA Contribution"), tax year (2026), match percentage (3%), and match amounts ($30.00 and $60.00), populating the full $3,000.00 contribution and $90.00 Gold match.
     - Added "Transfers & Contributions" transaction breakdown list in `RetirementWidget` displaying individual contribution transfer dates, amounts, and match percentages.
     - Fixed endpoint query string issue in `RobinhoodService.getRetirementHistory`: removed erroneous `?account_number=` query parameter which caused misrouting on the user-scoped Bonfire endpoint.
-    - Updated navigation and account context routing in `UserWidget` and `RetirementWidget`: automatically selects the user's retirement/IRA account (`741902639`) rather than defaulting to taxable individual accounts (`5QR24141`), with an IRA account switcher dropdown when multiple retirement accounts exist.
+    - Updated navigation and account context routing in `UserWidget` and `RetirementWidget`: automatically selects the user's retirement/IRA account (`7DM12345`) rather than defaulting to taxable individual accounts (`5DM12345`), with an IRA account switcher dropdown when multiple retirement accounts exist.
     - Distinctly separated annual IRS contribution room ($3,000 contributed, $4,000 limit remaining for current tax year) from settled rollover assets ($25,334.93 rolled over from Merrill Lynch in 2025).
     - Fixed "Total Account Value" displaying cash buying power instead of total account value (TAV): resolved total account balance using portfolio equity, account total value, or settled rollover transfers, while adding a distinct "Cash / Buying Power" secondary row when cash differs from total portfolio equity.
     - Fixed squished header card title by placing status badges in a responsive `Wrap` layout underneath the title and account number.

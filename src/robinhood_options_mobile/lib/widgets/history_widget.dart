@@ -936,7 +936,9 @@ class _HistoryPageState extends State<HistoryPage>
                           .compareTo(DateTime.now()) >=
                       0) &&
               (stockSymbolFilters.isEmpty ||
-                  stockSymbolFilters.contains(element.instrumentObj!.symbol)))
+                  (element.instrumentObj != null &&
+                      stockSymbolFilters
+                          .contains(element.instrumentObj!.symbol))))
           .toList();
 
       positionOrdersBalance = filteredPositionOrders!.isNotEmpty
@@ -950,32 +952,61 @@ class _HistoryPageState extends State<HistoryPage>
                       (order.side == "buy" ? -1.0 : 1.0))
           : 0;
 
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+
       // Group position orders by symbol for historical position cycles reconstruction
       final Map<String, List<InstrumentOrder>> ordersBySymbol = {};
       for (final order in positionOrders) {
-        final symbol = order.instrumentObj?.symbol ??
-            (order.instrument.isNotEmpty ? order.instrument : '');
-        if (symbol.isNotEmpty) {
-          ordersBySymbol.putIfAbsent(symbol, () => []).add(order);
+        String? symbol = order.instrumentObj?.symbol;
+        if (symbol == null ||
+            symbol.isEmpty ||
+            symbol.startsWith('http://') ||
+            symbol.startsWith('https://')) {
+          if (order.instrumentId.isNotEmpty) {
+            final stored = instrumentStore.items
+                .firstWhereOrNull((i) => i.id == order.instrumentId);
+            if (stored != null &&
+                stored.symbol.isNotEmpty &&
+                !stored.symbol.startsWith('http')) {
+              order.instrumentObj = stored;
+              symbol = stored.symbol;
+            }
+          }
         }
+        final key = (symbol != null &&
+                symbol.isNotEmpty &&
+                !symbol.startsWith('http'))
+            ? symbol
+            : (order.instrumentId.isNotEmpty ? order.instrumentId : 'UNKNOWN');
+        ordersBySymbol.putIfAbsent(key, () => []).add(order);
       }
 
       for (final entry in ordersBySymbol.entries) {
-        final symbol = entry.key;
+        final key = entry.key;
         final ordersForSymbol = entry.value;
         final instrumentId = ordersForSymbol.first.instrumentId;
         final splits = ordersForSymbol.first.instrumentObj?.splitsObj;
+        final candidateSymbol = ordersForSymbol.first.instrumentObj?.symbol;
+        final actualSymbol = (candidateSymbol != null &&
+                candidateSymbol.isNotEmpty &&
+                !candidateSymbol.startsWith('http'))
+            ? candidateSymbol
+            : (!key.startsWith('http') && !key.contains('/') && key != 'UNKNOWN'
+                ? key
+                : '');
 
         final rawSummary = InstrumentCostBasisLookbackSummary.fromOrders(
           ordersForSymbol,
-          symbol: symbol,
+          symbol: actualSymbol,
           instrumentId: instrumentId,
           splits: splits,
         );
 
         if (rawSummary.hasHistory) {
           if (stockSymbolFilters.isNotEmpty &&
-              !stockSymbolFilters.contains(symbol)) {
+              (actualSymbol.isEmpty ||
+                  !stockSymbolFilters.contains(actualSymbol))) {
             continue;
           }
 
@@ -1172,52 +1203,76 @@ class _HistoryPageState extends State<HistoryPage>
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Past Positions",
-                                    style: TextStyle(
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    "$orderDateFilterDisplay ${pastPositionsTotalRealized > 0 ? "+" : pastPositionsTotalRealized < 0 ? "-" : ""}${formatCurrency.format(pastPositionsTotalRealized.abs())} (${pastPositionsTotalRealized >= 0 ? "+" : ""}${formatPercentage.format(pastPositionsTotalRealizedPercent)}) • $pastPositionsTotalRoundTrips round trip${pastPositionsTotalRoundTrips == 1 ? '' : 's'}",
-                                    style: TextStyle(
-                                      color: _amountColor(
-                                          pastPositionsTotalRealized),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
                             Row(
-                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.filter_list),
-                                  onPressed: () {
-                                    _showFilterBottomSheet(
-                                      title: "Filter Past Positions",
-                                      builder: (setState) => [
-                                        buildOrderDateFilterWidget(setState),
-                                        const SizedBox(height: 25),
-                                        buildStockOrderSymbolFilterWidget(
-                                            4, setState),
-                                      ],
-                                    );
-                                  },
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Past Positions",
+                                        style: TextStyle(
+                                            fontSize: 20.0,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        "$orderDateFilterDisplay ${pastPositionsTotalRealized > 0 ? "+" : pastPositionsTotalRealized < 0 ? "-" : ""}${formatCurrency.format(pastPositionsTotalRealized.abs())} (${pastPositionsTotalRealized >= 0 ? "+" : ""}${formatPercentage.format(pastPositionsTotalRealizedPercent)}) • $pastPositionsTotalRoundTrips round trip${pastPositionsTotalRoundTrips == 1 ? '' : 's'}",
+                                        style: TextStyle(
+                                          color: _amountColor(
+                                              pastPositionsTotalRealized),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildFilterIconButton(
+                                      activeFilterCount:
+                                          _activePastPositionFilterCount,
+                                      tooltip: "Filter Past Positions",
+                                      onPressed: () {
+                                        _showFilterBottomSheet(
+                                          title: "Filter Past Positions",
+                                          onReset: () {
+                                            orderDateFilterSelection =
+                                                'Past Month';
+                                            stockSymbolFilters.clear();
+                                          },
+                                          builder: (setState) => [
+                                            buildOrderDateFilterWidget(
+                                                setState),
+                                            const SizedBox(height: 25),
+                                            buildStockOrderSymbolFilterWidget(
+                                                4, setState),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ],
+                            ),
+                            _buildActiveFiltersBar(
+                              symbolFilters: stockSymbolFilters,
+                              showStatus: false,
+                              onResetAll: () {
+                                setState(() {
+                                  orderDateFilterSelection = 'Past Month';
+                                  stockSymbolFilters.clear();
+                                });
+                              },
                             ),
                           ],
                         ),
@@ -1230,9 +1285,12 @@ class _HistoryPageState extends State<HistoryPage>
                         delegate: SliverChildBuilderDelegate(
                           (BuildContext context, int index) {
                             final summary = pastPositionSummaries[index];
+                            final hasValidSymbol = summary.symbol.isNotEmpty &&
+                                !summary.symbol.startsWith('http://') &&
+                                !summary.symbol.startsWith('https://');
                             return InstrumentHistoricalPositionsWidget(
                               summary: summary,
-                              title: summary.symbol.isNotEmpty
+                              title: hasValidSymbol
                                   ? '${summary.symbol} Past Positions'
                                   : 'Previous Positions',
                               onTapOrder: (order) {
@@ -3088,6 +3146,9 @@ class _HistoryPageState extends State<HistoryPage>
 
   bool get _isDateFiltered => orderDateFilterSelection != 'All Time';
   bool get _isStatusFiltered => orderFilters.length < 4;
+
+  int get _activePastPositionFilterCount =>
+      (_isDateFiltered ? 1 : 0) + stockSymbolFilters.length;
 
   int get _activeStockFilterCount =>
       (_isStatusFiltered ? 1 : 0) +

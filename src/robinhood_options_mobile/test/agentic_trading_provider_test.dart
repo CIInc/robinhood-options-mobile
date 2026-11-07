@@ -220,46 +220,28 @@ void main() {
       fallbackUserStore.dispose();
     });
 
-    test('background scheduling follows Paper source, not active brokerage',
-        () {
-      final robinhood =
-          BrokerageUser(BrokerageSource.robinhood, 'rh-user', null, null);
-      final demo = BrokerageUser(BrokerageSource.demo, 'demo-user', null, null);
-      final userStore = BrokerageUserStore([robinhood, demo], 1);
-
+    test('schedules while enabled even if quote source is unavailable', () {
       expect(
-        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
-          userStore: userStore,
-          config: AgenticTradingConfig(
-            strategyConfig: TradeStrategyConfig(),
-            paperTradingMode: true,
-            paperQuoteSource: PaperQuoteSource.robinhood,
-          ),
+        AgenticTradingBackgroundService.shouldRegisterPeriodicTask(
+          hasUserDocument: true,
+          autoTradeEnabled: true,
         ),
         isTrue,
       );
       expect(
-        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
-          userStore: userStore,
-          config: AgenticTradingConfig(
-            strategyConfig: TradeStrategyConfig(),
-            paperTradingMode: true,
-            paperQuoteSource: PaperQuoteSource.selectedBrokerage,
-          ),
-        ),
-        isTrue,
-      );
-      expect(
-        AgenticTradingProvider.canScheduleBackgroundAutoTrading(
-          userStore: userStore,
-          config: AgenticTradingConfig(
-            strategyConfig: TradeStrategyConfig(),
-            paperTradingMode: false,
-          ),
+        AgenticTradingBackgroundService.shouldRegisterPeriodicTask(
+          hasUserDocument: true,
+          autoTradeEnabled: false,
         ),
         isFalse,
       );
-      userStore.dispose();
+      expect(
+        AgenticTradingBackgroundService.shouldRegisterPeriodicTask(
+          hasUserDocument: false,
+          autoTradeEnabled: true,
+        ),
+        isFalse,
+      );
     });
 
     test('background auto-trading selects the matching brokerage service', () {

@@ -112,7 +112,7 @@ void main() {
       final effDate = DateTime(2026, 8, 31);
       final json = {
         'id': 'mic_aug_26',
-        'account_number': '5QR12345',
+        'account_number': '5DM12345',
         'amount': '42.50',
         'state': 'posted',
         'effective_date': effDate.toIso8601String(),
@@ -208,12 +208,12 @@ void main() {
       ];
 
       final summary = MarginFinancingSummary.fromMarginCallsAndInterest(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         rawCalls: rawCalls,
         rawInterestCharges: rawInterest,
       );
 
-      expect(summary.accountNumber, '5QR12345');
+      expect(summary.accountNumber, '5DM12345');
       expect(summary.openCallsCount, 2);
       expect(summary.totalDeficitDemand, 1150.00);
       expect(summary.hasActiveMarginCall, isTrue);
@@ -240,7 +240,7 @@ void main() {
       expect(interest, isNotEmpty);
 
       final summary = MarginFinancingSummary.fromMarginCallsAndInterest(
-        accountNumber: '5QR12345',
+        accountNumber: '5DM12345',
         rawCalls: calls,
         rawInterestCharges: interest,
       );

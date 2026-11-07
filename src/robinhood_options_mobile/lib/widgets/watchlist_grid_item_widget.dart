@@ -425,6 +425,31 @@ class WatchlistGridItemWidget extends StatelessWidget {
                             user: user,
                             userDocRef: userDocRef,
                           )));
+            } else if (watchListItem.objectType == 'instrument' ||
+                watchListItem.instrument.isNotEmpty) {
+              final instrumentStore =
+                  Provider.of<InstrumentStore>(context, listen: false);
+              Instrument? instrument;
+              if (watchListItem.instrument.isNotEmpty) {
+                instrument = await service.getInstrument(
+                    brokerageUser, instrumentStore, watchListItem.instrument);
+              }
+              if (instrument != null && context.mounted) {
+                watchListItem.instrumentObj = instrument;
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              brokerageUser,
+                              service,
+                              instrument!,
+                              analytics: analytics,
+                              observer: observer,
+                              generativeService: generativeService,
+                              user: user,
+                              userDocRef: userDocRef,
+                            )));
+              }
             } else if (watchListItem.objectType == 'option_strategy' &&
                 watchListItem.chainSymbol != null) {
               var instrument = await service.getInstrumentBySymbol(

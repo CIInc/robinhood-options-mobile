@@ -418,8 +418,16 @@ class InstrumentCostBasisLookbackSummary {
       return aDate.compareTo(bDate);
     });
 
+    // Ensure symbol is not a raw URL
+    if (symbol.startsWith('http://') || symbol.startsWith('https://')) {
+      symbol = '';
+    }
     if (symbol.isEmpty && validOrders.isNotEmpty) {
-      symbol = validOrders.first.instrumentObj?.symbol ?? '';
+      final objSymbol = validOrders.first.instrumentObj?.symbol ?? '';
+      if (!objSymbol.startsWith('http://') &&
+          !objSymbol.startsWith('https://')) {
+        symbol = objSymbol;
+      }
     }
     if (instrumentId.isEmpty && validOrders.isNotEmpty) {
       instrumentId = validOrders.first.instrumentId;

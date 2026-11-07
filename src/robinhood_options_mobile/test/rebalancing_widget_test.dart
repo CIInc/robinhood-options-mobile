@@ -47,9 +47,9 @@ void main() {
     await userDocRef.set(user);
 
     final account = Account(
-      'https://example.com/accounts/1AB23456/',
+      'https://example.com/accounts/5DM12345/',
       5000.0,
-      '1AB23456',
+      '5DM12345',
       'margin',
       5000.0,
       '2',

@@ -162,10 +162,13 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                           final DateTime today =
                               DateTime(now.year, now.month, now.day);
 
-                          data.historicals = data.historicals
+                          final filtered = data.historicals
                               .where((element) =>
                                   element.beginsAt!.compareTo(today) >= 0)
                               .toList();
+                          if (filtered.length >= 2) {
+                            data.historicals = filtered;
+                          }
                         }
                         widget.holding.historicalsObj = data;
                       }
@@ -382,6 +385,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       holding: holding,
       chartDateSpanFilter: chartDateSpanFilter,
       chartBoundsFilter: chartBoundsFilter,
+      done: done,
       onFilterChanged: (span, bounds) {
         resetChart(span, bounds);
       },
@@ -938,6 +942,7 @@ class ForexChartWidget extends StatefulWidget {
   final ForexHolding holding;
   final ChartDateSpan chartDateSpanFilter;
   final Bounds chartBoundsFilter;
+  final bool done;
   final Function(ChartDateSpan, Bounds) onFilterChanged;
 
   const ForexChartWidget({
@@ -945,6 +950,7 @@ class ForexChartWidget extends StatefulWidget {
     required this.holding,
     required this.chartDateSpanFilter,
     required this.chartBoundsFilter,
+    this.done = false,
     required this.onFilterChanged,
   });
 
@@ -1265,6 +1271,56 @@ class _ForexChartWidgetState extends State<ForexChartWidget> {
           _buildChartControls(hasVolume: hasVolume),
           _buildDateFilters(),
           _buildInlineTechnicalAnalysis(context),
+        ],
+      ));
+    }
+    final hasNoData = (widget.holding.historicalsObj != null &&
+            widget.holding.historicalsObj!.historicals.isEmpty) ||
+        widget.done;
+    if (hasNoData) {
+      return SliverToBoxAdapter(
+          child: Column(
+        children: [
+          SizedBox(
+              height: 340,
+              child: Center(
+                  child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.show_chart,
+                    size: 48,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "No chart data available",
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.7),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      widget.onFilterChanged(
+                        widget.chartDateSpanFilter,
+                        widget.chartBoundsFilter,
+                      );
+                    },
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text("Retry"),
+                  ),
+                ],
+              ))),
+          _buildDateFilters(),
         ],
       ));
     }

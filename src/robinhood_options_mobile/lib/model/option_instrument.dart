@@ -93,8 +93,8 @@ class OptionInstrument {
         selloutDateTime = json['sellout_datetime'] != null
             ? DateTime.tryParse(json['sellout_datetime'])
             : null,
-        longStrategyCode = json['long_strategy_code'],
-        shortStrategyCode = json['short_strategy_code'],
+        longStrategyCode = json['long_strategy_code'] ?? '',
+        shortStrategyCode = json['short_strategy_code'] ?? '',
         optionMarketData = json['option_market_data'] != null
             ? OptionMarketData.fromJson(json['option_market_data'])
             : null;

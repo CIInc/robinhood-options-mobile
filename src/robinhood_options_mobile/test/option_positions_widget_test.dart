@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 
 class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {}
@@ -74,12 +75,40 @@ void main() {
     expect(_richTextContaining('AAPL \$150 call x 1'), findsOneWidget);
     expect(_richTextContaining('AAPL \$155 call x 2'), findsOneWidget);
   });
+
+  testWidgets(
+      'detail page chart primary measure axis starts at zero for market value',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final brokerageUser =
+        BrokerageUser(BrokerageSource.demo, 'test-user', null, null)
+          ..displayValue = DisplayValue.marketValue
+          ..showPositionDetails = false;
+    final positions = [
+      _position('aapl-call-150', 'AAPL', 150, 1),
+      _position('spy-call-500', 'SPY', 500, 10),
+    ];
+
+    await tester
+        .pumpWidget(_app(brokerageUser, positions, chartRowLimit: null));
+    await tester.pumpAndSettle();
+
+    final barChart = tester.widget<BarChart>(find.byType(BarChart));
+    expect(barChart.primaryMeasureAxis?.viewport?.min, 0.0);
+  });
 }
 
 Widget _app(
   BrokerageUser brokerageUser,
-  List<OptionAggregatePosition> positions,
-) {
+  List<OptionAggregatePosition> positions, {
+  int? chartRowLimit = 0,
+}) {
   return MaterialApp(
     home: Scaffold(
       body: CustomScrollView(
@@ -88,7 +117,7 @@ Widget _app(
             brokerageUser,
             DemoService(),
             positions,
-            chartRowLimit: 0,
+            chartRowLimit: chartRowLimit,
             showFooter: false,
             analytics: FakeFirebaseAnalytics(),
             observer: FakeFirebaseAnalyticsObserver(),

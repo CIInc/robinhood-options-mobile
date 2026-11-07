@@ -110,13 +110,14 @@ void main() {
 
       // Verify widget renders without errors
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
+      expect(find.text('Background activity'), findsOneWidget);
       expect(
         find.textContaining('Market-close exits are not guaranteed'),
         findsOneWidget,
       );
       expect(
         find.text(
-          'Link Robinhood or Schwab to provide Paper quotes.',
+          'Connect a Robinhood or Schwab account on this device to provide Paper quotes.',
         ),
         findsOneWidget,
       );

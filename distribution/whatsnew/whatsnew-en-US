@@ -1,0 +1,7 @@
+- Macro regime classification & walk-forward strategy backtesting
+- Multi-account portfolio performance & Brinson-Fachler sector return attribution
+- Options Greeks (Delta, Gamma, Theta) P&L approximation & GEX levels
+- Automatic paper quote source routing & simulated trade execution
+- Signed P&L accuracy for short stock positions & cash flow tracking
+- Comprehensive risk circuit breakers & behavioral guardrails
+- Performance optimizations and bug fixes
