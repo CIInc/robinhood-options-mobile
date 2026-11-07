@@ -21,6 +21,8 @@ import {
   computeOBV,
   evaluateOBV,
   evaluateMarketDirection,
+  evaluateMomentum,
+  computeRSI,
 } from "../src/technical-indicators";
 
 describe("Technical Indicators", () => {
@@ -680,6 +682,58 @@ describe("Technical Indicators", () => {
       expect(resEnd35.metadata?.slowMA).toBeCloseTo(
         resSliced.metadata?.slowMA as number, 5
       );
+    });
+  });
+
+  describe("evaluateMomentum", () => {
+    it("should return HOLD for insufficient data", () => {
+      const prices = [100, 101, 102];
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("HOLD");
+      expect(result.value).toBeNull();
+      expect(result.reason).toContain("Insufficient data");
+    });
+
+    it("should calculate correct RSI value matching computeRSI", () => {
+      const prices = Array.from(
+        { length: 100 },
+        (_, i) => 100 + Math.sin(i * 0.1) * 10 + i * 0.05
+      );
+      const result = evaluateMomentum(prices, 14);
+      const expectedRsi = computeRSI(prices, 14);
+      expect(result.value).toBeCloseTo(expectedRsi as number, 5);
+    });
+
+    it("should detect oversold BUY signal", () => {
+      // 100 prices constantly declining
+      const prices = Array.from({ length: 50 }, (_, i) => 150 - i * 2);
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("BUY");
+      expect(result.reason).toContain("oversold");
+      expect(result.value).toBeLessThan(30);
+    });
+
+    it("should detect overbought SELL signal", () => {
+      // 100 prices constantly increasing
+      const prices = Array.from({ length: 50 }, (_, i) => 50 + i * 2);
+      const result = evaluateMomentum(prices, 14);
+      expect(result.signal).toBe("SELL");
+      expect(result.reason).toContain("overbought");
+      expect(result.value).toBeGreaterThan(70);
+    });
+
+    it("should respect endIndex parameter across time series", () => {
+      const prices = Array.from(
+        { length: 120 },
+        (_, i) => 100 + Math.sin(i * 0.2) * 15 + i * 0.1
+      );
+      for (const end of [20, 30, 45, 80, 120]) {
+        const resEnd = evaluateMomentum(prices, 14, end);
+        const resSliced = evaluateMomentum(prices.slice(0, end), 14);
+        expect(resEnd.signal).toBe(resSliced.signal);
+        expect(resEnd.value).toBeCloseTo(resSliced.value as number, 5);
+        expect(resEnd.reason).toBe(resSliced.reason);
+      }
     });
   });
 });
