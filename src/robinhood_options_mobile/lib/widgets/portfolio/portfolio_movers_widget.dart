@@ -127,32 +127,42 @@ class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
           ),
           if (widget.expandable && hasMore) ...[
             const SizedBox(height: 12),
-            InkWell(
-              borderRadius: BorderRadius.circular(4),
-              onTap: () => setState(() => _isExpanded = !_isExpanded),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _isExpanded
-                          ? 'Show fewer movers'
-                          : 'Show more (${allWinners.length + allLosers.length} total)',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+            Semantics(
+              button: true,
+              expanded: _isExpanded,
+              label: _isExpanded
+                  ? 'Show fewer movers'
+                  : 'Show more movers, ${allWinners.length + allLosers.length} total',
+              hint: _isExpanded
+                  ? 'Double tap to collapse movers list'
+                  : 'Double tap to expand movers list',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(4),
+                onTap: () => setState(() => _isExpanded = !_isExpanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _isExpanded
+                            ? 'Show fewer movers'
+                            : 'Show more (${allWinners.length + allLosers.length} total)',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Icon(
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -211,36 +221,58 @@ class _PortfolioMoversWidgetState extends State<PortfolioMoversWidget> {
     final currency = NumberFormat.simpleCurrency(decimalDigits: 0);
     final percent = NumberFormat.percentPattern()..maximumFractionDigits = 1;
 
-    final rowContent = Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              mover.symbol,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.bold),
+    final isPositive = mover.gainLoss > 0;
+    final isNegative = mover.gainLoss < 0;
+    final direction =
+        isPositive ? 'gained' : (isNegative ? 'lost' : 'unchanged');
+    final amountText = showBalances
+        ? (isNegative
+            ? currency.format(mover.gainLoss.abs())
+            : currency.format(mover.gainLoss))
+        : 'hidden balance';
+    final percentText = percent.format(mover.gainLossPercent.abs());
+    final semanticLabel =
+        '${mover.symbol}, $direction $amountText, $percentText today';
+
+    final rowContent = Semantics(
+      container: true,
+      excludeSemantics: true,
+      button: widget.onMoverTap != null,
+      label: semanticLabel,
+      hint: widget.onMoverTap != null
+          ? 'Double tap to view ${mover.symbol} details'
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                mover.symbol,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                showBalances ? currency.format(mover.gainLoss) : '\$••••',
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: color, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                percent.format(mover.gainLossPercent),
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-        ],
+            const SizedBox(width: 4),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  showBalances ? currency.format(mover.gainLoss) : '\$••••',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: color, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  percent.format(mover.gainLossPercent),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
 
