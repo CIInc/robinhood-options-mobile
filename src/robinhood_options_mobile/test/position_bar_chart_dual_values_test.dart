@@ -288,7 +288,8 @@ void main() {
         double primaryPad = extents.width > 0 ? extents.width * 0.1 : 0.05;
         final bool startsAtZero = displayValue == DisplayValue.marketValue ||
             displayValue == DisplayValue.totalCost;
-        return startsAtZero ? 0.0 : extents.min - primaryPad;
+        final double lowest = extents.min - primaryPad;
+        return startsAtZero ? (extents.min < 0 ? lowest : 0.0) : lowest;
       }
 
       // Even if positions have high positive minimums (e.g. $5,000 - $12,000),
@@ -296,6 +297,12 @@ void main() {
       final mvMin =
           computeMinExtent(DisplayValue.marketValue, [5000.0, 8000.0, 12000.0]);
       expect(mvMin, 0.0);
+
+      // When small positive positions exist (e.g. $100 and $7,200),
+      // where 100 - pad is negative, Market Value axis must still start at 0
+      final smallPosMin =
+          computeMinExtent(DisplayValue.marketValue, [100.0, 7200.0]);
+      expect(smallPosMin, 0.0);
 
       final costMin =
           computeMinExtent(DisplayValue.totalCost, [4000.0, 7000.0, 10000.0]);
@@ -305,6 +312,11 @@ void main() {
       final returnMin =
           computeMinExtent(DisplayValue.totalReturn, [100.0, 200.0, 500.0]);
       expect(returnMin, lessThan(100.0));
+
+      // Short positions (negative values) allow negative baseline
+      final shortMin =
+          computeMinExtent(DisplayValue.marketValue, [-500.0, 1200.0]);
+      expect(shortMin, lessThan(-500.0));
     });
 
     test('multi-axis bar charts align \$0 tick with 0% tick', () {

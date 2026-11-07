@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -176,6 +177,7 @@ class AgenticTradingProvider with ChangeNotifier {
           return;
         }
       }
+      if (FirebaseAuth.instance.currentUser == null) return;
       await FirebaseFunctions.instance
           .httpsCallable('logAgenticTradingCycle')
           .call(data)
@@ -295,11 +297,182 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isAiAnalysisLoading = false;
   bool get isAiAnalysisLoading => _isAiAnalysisLoading;
 
+  MacroAssessment _getMockMacroAssessment() {
+    final now = DateTime.now();
+    return MacroAssessment(
+      status: 'BULLISH',
+      score: 72,
+      confidence: 84,
+      signalDivergence: SignalDivergence(
+        bullishCount: 14,
+        bearishCount: 3,
+        neutralCount: 5,
+        isConflicted: false,
+      ),
+      indicators: MacroIndicators(
+        vix: MacroIndicator(
+          value: 14.85,
+          signal: 'BULLISH',
+          trend: 'Falling',
+          momentum: '-1.2/wk',
+        ),
+        tnx: MacroIndicator(
+          value: 4.12,
+          signal: 'NEUTRAL',
+          trend: 'Stable',
+          momentum: '+0.03',
+        ),
+        marketTrend: MacroIndicator(
+          value: 584.50,
+          signal: 'BULLISH',
+          trend: 'Uptrend',
+          momentum: 'Above 20/50/200 SMA',
+        ),
+        technologyLeadership: MacroIndicator(
+          value: 492.30,
+          signal: 'BULLISH',
+          trend: 'Outperforming',
+          momentum: '+1.8% vs SPY',
+        ),
+        yieldCurve: MacroIndicator(
+          value: 0.18,
+          signal: 'BULLISH',
+          trend: 'Normalizing',
+          momentum: 'Disinverted',
+        ),
+        gold: MacroIndicator(
+          value: 2680.50,
+          signal: 'NEUTRAL',
+          trend: 'Consolidating',
+        ),
+        oil: MacroIndicator(
+          value: 71.40,
+          signal: 'NEUTRAL',
+          trend: 'Rangebound',
+        ),
+        dxy: MacroIndicator(
+          value: 103.20,
+          signal: 'NEUTRAL',
+          trend: 'Softening',
+        ),
+        btc: MacroIndicator(
+          value: 68500.0,
+          signal: 'BULLISH',
+          trend: 'Breakout',
+        ),
+        hyg: MacroIndicator(
+          value: 78.40,
+          signal: 'BULLISH',
+          trend: 'Tight Spreads',
+        ),
+        putCallRatio: MacroIndicator(
+          value: 0.68,
+          signal: 'BULLISH',
+          trend: 'Greed',
+        ),
+        advDecline: MacroIndicator(
+          value: 2.15,
+          signal: 'BULLISH',
+          trend: 'Broad Participation',
+        ),
+      ),
+      sectorRotation: SectorRotation(
+        bullish: [
+          'Technology (XLK)',
+          'Communication (XLC)',
+          'Financials (XLF)'
+        ],
+        bearish: [
+          'Utilities (XLU)',
+          'Real Estate (XLRE)',
+          'Consumer Staples (XLP)'
+        ],
+      ),
+      assetAllocation: AssetAllocation(
+        equity: '65%',
+        fixedIncome: '20%',
+        cash: '10%',
+        commodities: '5%',
+      ),
+      strategies: [
+        MacroStrategy(
+          name: 'Tech Momentum & Growth',
+          icon: 'trending_up',
+          risk: 'MODERATE',
+          description:
+              'Overweight semiconductors, cloud infrastructure, and large-cap tech while yields remain stable.',
+        ),
+        MacroStrategy(
+          name: 'Covered Calls on Extended Equities',
+          icon: 'shield',
+          risk: 'LOW',
+          description:
+              'Sell out-of-the-money calls on high-beta names to capture elevated implied volatility skew.',
+        ),
+      ],
+      reason:
+          'Broad market breadth remains positive with technology leadership outperforming. VIX below 16 and credit spreads near historical lows provide supportive liquidity backdrop.',
+      aiAnalysis:
+          'Macro economic environment is favorable for trend-following and momentum strategies. Low volatility regime combined with yield curve normalization supports cyclical and large-cap equity exposure.',
+      timestamp: now,
+    );
+  }
+
+  void _loadMockMacroHistory() {
+    final now = DateTime.now();
+    final mockCurrent = _macroAssessment ?? _getMockMacroAssessment();
+    _macroHistory = [
+      mockCurrent,
+      mockCurrent.copyWith(
+        score: 70,
+        status: 'BULLISH',
+        timestamp: now.subtract(const Duration(days: 1)),
+      ),
+      mockCurrent.copyWith(
+        score: 68,
+        status: 'BULLISH',
+        timestamp: now.subtract(const Duration(days: 2)),
+      ),
+      mockCurrent.copyWith(
+        score: 65,
+        status: 'NEUTRAL',
+        timestamp: now.subtract(const Duration(days: 3)),
+      ),
+      mockCurrent.copyWith(
+        score: 63,
+        status: 'NEUTRAL',
+        timestamp: now.subtract(const Duration(days: 4)),
+      ),
+      mockCurrent.copyWith(
+        score: 67,
+        status: 'BULLISH',
+        timestamp: now.subtract(const Duration(days: 5)),
+      ),
+    ];
+    if (_previousMacroAssessment == null && _macroHistory.length > 1) {
+      _previousMacroAssessment = _macroHistory[1];
+    }
+    notifyListeners();
+  }
+
   Future<void> fetchMacroAssessment({
     bool forceRefresh = false,
     bool includeAiAnalysis = false,
   }) async {
     try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        if (_macroAssessment != null) {
+          _previousMacroAssessment = _macroAssessment;
+        }
+        _macroAssessment = _getMockMacroAssessment();
+        notifyListeners();
+        _log(
+            "Macro assessment updated (Demo Mock): ${_macroAssessment?.status}");
+        _loadMockMacroHistory();
+        return;
+      }
+
       final functions = FirebaseFunctions.instance;
       final callable = functions.httpsCallable('getMacroAssessment');
       final result = await callable.call({
@@ -331,6 +504,12 @@ class AgenticTradingProvider with ChangeNotifier {
       }
     } catch (e) {
       _log("Error fetching macro assessment: $e");
+      if (_macroAssessment == null ||
+          e.toString().contains('unauthenticated')) {
+        _macroAssessment = _getMockMacroAssessment();
+        notifyListeners();
+        _loadMockMacroHistory();
+      }
     }
   }
 
@@ -339,6 +518,18 @@ class AgenticTradingProvider with ChangeNotifier {
     _isAiAnalysisLoading = true;
     notifyListeners();
     try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        if (_macroAssessment != null) {
+          _macroAssessment = _macroAssessment!.copyWith(
+            aiAnalysis:
+                'Macro economic environment is favorable for trend-following and momentum strategies. Low volatility regime combined with yield curve normalization supports cyclical and large-cap equity exposure.',
+          );
+          notifyListeners();
+        }
+        return;
+      }
+
       final functions = FirebaseFunctions.instance;
       final callable = functions.httpsCallable('getMacroAiAnalysis');
       final result = await callable.call({'forceRefresh': forceRefresh});
@@ -352,6 +543,15 @@ class AgenticTradingProvider with ChangeNotifier {
       }
     } catch (e) {
       _log("Error fetching macro AI analysis: $e");
+      if (_macroAssessment != null &&
+          (_macroAssessment!.aiAnalysis == null ||
+              _macroAssessment!.aiAnalysis!.isEmpty)) {
+        _macroAssessment = _macroAssessment!.copyWith(
+          aiAnalysis:
+              'Macro economic environment is favorable for trend-following and momentum strategies. Low volatility regime combined with yield curve normalization supports cyclical and large-cap equity exposure.',
+        );
+        notifyListeners();
+      }
     } finally {
       _isAiAnalysisLoading = false;
       notifyListeners();
@@ -384,6 +584,12 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> fetchMacroHistory({int limit = 30}) async {
     try {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        _loadMockMacroHistory();
+        return;
+      }
+
       final functions = FirebaseFunctions.instance;
       final callable = functions.httpsCallable('getMacroHistory');
       final result = await callable.call({'limit': limit});
@@ -402,6 +608,9 @@ class AgenticTradingProvider with ChangeNotifier {
       }
     } catch (e) {
       _log("Error fetching macro history: $e");
+      if (_macroHistory.isEmpty) {
+        _loadMockMacroHistory();
+      }
     }
   }
 
@@ -1311,7 +1520,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required String status,
     String? message,
   }) async {
-    if (userDocRef == null) return;
+    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
     try {
       await userDocRef
           .collection('agentic_trading_execution_claims')
@@ -1342,7 +1551,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> loadLatestMarketCloseExitStatus(
       DocumentReference? userDocRef) async {
-    if (userDocRef == null) return;
+    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
     try {
       final snapshot = await userDocRef
           .collection('agentic_trading_exit_status')
@@ -1725,7 +1934,7 @@ class AgenticTradingProvider with ChangeNotifier {
   /// Add a single trade to Firestore history
   Future<void> _addTradeToHistoryFirestore(
       Map<String, dynamic> tradeRecord, DocumentReference? userDocRef) async {
-    if (userDocRef == null) return;
+    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
 
     try {
       await userDocRef.collection('auto_trade_history').add(tradeRecord);
@@ -1929,7 +2138,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   Future<void> _persistEmergencyStop(
       DocumentReference? userDocRef, bool activated) async {
-    if (userDocRef == null) return;
+    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
     final rawUserRef = userDocRef.firestore.doc(userDocRef.path);
     await rawUserRef.set(
       {'agenticTradingEmergencyStop': activated},
@@ -4189,7 +4398,7 @@ class AgenticTradingProvider with ChangeNotifier {
     double? profitLoss,
     Map<String, dynamic>? dailyStats,
   }) async {
-    if (userDocRef == null) return;
+    if (userDocRef == null || FirebaseAuth.instance.currentUser == null) return;
 
     try {
       final functions = FirebaseFunctions.instance;

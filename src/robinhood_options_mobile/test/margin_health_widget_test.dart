@@ -106,9 +106,9 @@ void main() {
     });
 
     final account = Account(
-      'https://api.robinhood.com/accounts/101241412/',
+      'https://api.robinhood.com/accounts/101987654/',
       50945.02,
-      '101241412',
+      '101987654',
       'margin',
       53408.51,
       'level_3',
@@ -221,7 +221,7 @@ class _MockRealPhoenixService extends DemoService {
       },
       "equities": {
         "active_subscription_id": "ed9af327-ff97-56af-8172-0731f1afc505",
-        "apex_account_number": "5QR24141",
+        "apex_account_number": "5DM12345",
         "available_margin": null,
         "equity": {
           "amount": "50945.027189",
@@ -239,7 +239,7 @@ class _MockRealPhoenixService extends DemoService {
           "currency_id": "1072fc76-1862-41ab-82c2-485837590762"
         },
         "opened_at": "2015-02-12T22:41:50.744964Z",
-        "rhs_account_number": "101241412",
+        "rhs_account_number": "101987654",
         "total_margin": {
           "amount": "49807.6204",
           "currency_code": "USD",

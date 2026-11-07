@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 
 class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {}
@@ -248,6 +249,34 @@ void main() {
           'Trading actions are disabled in Aggregate View. Switch to a single account to trade.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'detail page chart primary measure axis starts at zero for market value',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final brokerageUser =
+        BrokerageUser(BrokerageSource.demo, 'test-user', null, null)
+          ..displayValue = DisplayValue.marketValue
+          ..showPositionDetails = false;
+    final positions = [
+      _position('c-id', 'C', 'Citigroup', 2.0, 50.0, 50.0), // $100
+      _position('spy-id', 'SPY', 'SPDR S&P 500', 16.0, 450.0, 450.0), // $7,200
+    ];
+
+    await tester.pumpWidget(
+      _app(brokerageUser, positions),
+    );
+    await tester.pumpAndSettle();
+
+    final barChart = tester.widget<BarChart>(find.byType(BarChart));
+    expect(barChart.primaryMeasureAxis?.viewport?.min, 0.0);
   });
 }
 

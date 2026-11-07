@@ -3,8 +3,11 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/paywall_widget.dart';
@@ -67,6 +70,17 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
 
   @override
   Widget build(BuildContext context) {
+    BrokerageUserStore? userStore;
+    try {
+      userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    } catch (_) {}
+    final effectiveBrokerageUser =
+        widget.brokerageUser ?? userStore?.currentUser;
+    final effectiveService = widget.service ??
+        (effectiveBrokerageUser?.source == BrokerageSource.demo
+            ? DemoService()
+            : null);
+
     if (widget.user == null) {
       return Scaffold(
         body: RefreshIndicator(
@@ -86,10 +100,10 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                     : Constants.appTitle),
                 analytics: widget.analytics,
                 observer: widget.observer,
-                user: widget.brokerageUser,
+                user: effectiveBrokerageUser,
                 firestoreUser: null,
                 userDocRef: null,
-                service: widget.service,
+                service: effectiveService,
                 scrollController: _scrollController,
                 onChange: () {
                   _tradeSignalsKey.currentState?.refresh();
@@ -109,17 +123,17 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                         FirestoreService(),
                         widget.analytics,
                         widget.observer,
-                        widget.brokerageUser,
-                        widget.service);
+                        effectiveBrokerageUser,
+                        effectiveService);
                   },
                 ),
               ),
               TradeSignalsWidget(
                 key: _tradeSignalsKey,
                 user: null,
-                brokerageUser: widget.brokerageUser,
+                brokerageUser: effectiveBrokerageUser,
                 userDocRef: null,
-                service: widget.service,
+                service: effectiveService,
                 analytics: widget.analytics,
                 observer: widget.observer,
                 generativeService: widget.generativeService,
@@ -135,8 +149,8 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                       FirestoreService(),
                       widget.analytics,
                       widget.observer,
-                      widget.brokerageUser,
-                      widget.service);
+                      effectiveBrokerageUser,
+                      effectiveService);
                 },
               ),
             ],
@@ -186,10 +200,10 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                       : Constants.appTitle),
                   analytics: widget.analytics,
                   observer: widget.observer,
-                  user: widget.brokerageUser,
+                  user: effectiveBrokerageUser,
                   firestoreUser: currentUser,
                   userDocRef: widget.userDocRef,
-                  service: widget.service,
+                  service: effectiveService,
                   scrollController: _scrollController,
                   onChange: () {
                     _tradeSignalsKey.currentState?.refresh();
@@ -209,9 +223,9 @@ class _TradeSignalsPageState extends State<TradeSignalsPage> {
                 TradeSignalsWidget(
                   key: _tradeSignalsKey,
                   user: currentUser,
-                  brokerageUser: widget.brokerageUser,
+                  brokerageUser: effectiveBrokerageUser,
                   userDocRef: widget.userDocRef,
-                  service: widget.service,
+                  service: effectiveService,
                   analytics: widget.analytics,
                   observer: widget.observer,
                   generativeService: widget.generativeService,

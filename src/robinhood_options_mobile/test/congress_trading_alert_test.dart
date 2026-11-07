@@ -14,8 +14,8 @@ InstrumentPosition _buildInstrumentPosition({
   final pos = InstrumentPosition(
     'https://example.com/positions/$symbol/',
     'https://example.com/instruments/$symbol/',
-    'https://example.com/accounts/1AB23456/',
-    '1AB23456',
+    'https://example.com/accounts/5DM12345/',
+    '5DM12345',
     100.0,
     0,
     quantity,
@@ -67,7 +67,7 @@ OptionAggregatePosition _buildOptionPosition({
   return OptionAggregatePosition(
     'opt_$symbol',
     'chain_$symbol',
-    '1AB23456',
+    '5DM12345',
     symbol,
     'long_call',
     2.50,

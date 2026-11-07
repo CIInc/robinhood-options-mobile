@@ -179,7 +179,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify header account number from payload
-    expect(find.textContaining('5QR24141'), findsOneWidget);
+    expect(find.textContaining('5DM12345'), findsOneWidget);
 
     // Verify $0.00 total locked and category cash metrics
     expect(find.text('\$0.00'), findsWidgets);
@@ -199,7 +199,7 @@ class _ZeroCollateralMockService extends DemoService {
   Future<dynamic> getOptionChainCollateral(
       BrokerageUser user, String chainId, String accountNumber) async {
     return {
-      "account_number": "5QR24141",
+      "account_number": "5DM12345",
       "collateral": {
         "cash": {"amount": "0.0000", "direction": "debit", "infinite": false},
         "equities": [

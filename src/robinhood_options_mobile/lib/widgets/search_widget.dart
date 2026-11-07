@@ -1543,12 +1543,13 @@ class _SearchWidgetState extends State<SearchWidget>
 
               if (!mounted) return;
 
-              if (instrument == null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content:
-                        Text("Instrument ${movers[index].symbol} not found.")));
-                return;
-              }
+              final targetInstrument = instrument ??
+                  Instrument.forSymbol(
+                    movers[index].symbol,
+                    instrumentUrl: movers[index].instrumentUrl.isNotEmpty
+                        ? movers[index].instrumentUrl
+                        : null,
+                  );
 
               Navigator.push(
                   context,
@@ -1556,7 +1557,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       builder: (context) => InstrumentWidget(
                             activeUser,
                             activeService,
-                            instrument,
+                            targetInstrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
@@ -1705,11 +1706,11 @@ class _SearchWidgetState extends State<SearchWidget>
 
               if (!mounted) return;
 
-              if (instrument == null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("Instrument ${data["symbol"]} not found.")));
-                return;
-              }
+              final targetInstrument = instrument ??
+                  Instrument.forSymbol(
+                    data["symbol"],
+                    instrumentUrl: data["instrument"] ?? data["url"],
+                  );
 
               Navigator.push(
                   context,
@@ -1717,7 +1718,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       builder: (context) => InstrumentWidget(
                             activeUser,
                             activeService,
-                            instrument,
+                            targetInstrument,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,

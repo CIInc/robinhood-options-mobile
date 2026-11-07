@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/model/combo_order_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
@@ -27,6 +28,7 @@ import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
@@ -164,11 +166,17 @@ InstrumentOrder _makeOrder({
   required double price,
   required DateTime date,
   String symbol = 'AAPL',
+  String? instrumentUrl,
+  String? instrumentId,
+  bool attachInstrumentObj = true,
 }) {
+  final instId = instrumentId ?? 'inst_$symbol';
+  final instUrl =
+      instrumentUrl ?? 'https://api.robinhood.com/instruments/$instId/';
   final inst = Instrument.fromSchwabJson({
     'symbol': symbol,
     'description': '$symbol Inc.',
-    'cusip': 'inst_$symbol',
+    'cusip': instId,
   });
 
   final order = InstrumentOrder(
@@ -176,10 +184,10 @@ InstrumentOrder _makeOrder({
     'ref_$id',
     'https://api.robinhood.com/orders/$id/',
     'https://api.robinhood.com/accounts/ACC123/',
-    'https://api.robinhood.com/positions/ACC123/inst_$symbol/',
+    'https://api.robinhood.com/positions/ACC123/$instId/',
     null,
-    'https://api.robinhood.com/instruments/inst_$symbol/',
-    'inst_$symbol',
+    instUrl,
+    instId,
     quantity,
     price,
     0.0,
@@ -197,7 +205,9 @@ InstrumentOrder _makeOrder({
     date,
     null,
   );
-  order.instrumentObj = inst;
+  if (attachInstrumentObj) {
+    order.instrumentObj = inst;
+  }
   return order;
 }
 
@@ -210,6 +220,7 @@ void main() {
     required IBrokerageService service,
     BrokerageUser? user,
     MockAgenticTradingProvider? autoTrade,
+    InstrumentStore? instrumentStore,
   }) {
     final brokerageUser =
         user ?? BrokerageUser(BrokerageSource.demo, 'demo_user', null, null);
@@ -224,7 +235,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => OptionPositionStore()),
         ChangeNotifierProvider(create: (_) => InstrumentOrderStore()),
         ChangeNotifierProvider(create: (_) => OptionOrderStore()),
-        ChangeNotifierProvider(create: (_) => InstrumentStore()),
+        ChangeNotifierProvider(
+            create: (_) => instrumentStore ?? InstrumentStore()),
         ChangeNotifierProvider(create: (_) => OptionEventStore()),
         ChangeNotifierProvider(create: (_) => DividendStore()),
         ChangeNotifierProvider(create: (_) => ChartSelectionStore()),
@@ -395,8 +407,11 @@ void main() {
       // Default filter is 'Past Month', so 90-day-old cycle should be filtered out
       expect(find.text('No past positions found.'), findsOneWidget);
 
-      // Open the filter bottom sheet
-      final filterButton = find.byIcon(Icons.filter_list);
+      // Verify the active date filter chip is rendered in the active filters bar
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsOneWidget);
+
+      // Open the filter bottom sheet via filter icon button with active badge
+      final filterButton = find.byIcon(Icons.filter_alt);
       expect(filterButton, findsOneWidget);
       await tester.tap(filterButton);
       await tester.pumpAndSettle();
@@ -418,6 +433,92 @@ void main() {
       // Now the cycle should be visible!
       expect(find.text('TSLA Past Positions'), findsOneWidget);
       expect(find.textContaining(r'+$500.00'), findsWidgets);
+
+      // Active filters bar now displays 'Past Year'
+      expect(find.widgetWithText(InputChip, 'Past Year'), findsOneWidget);
+    });
+
+    testWidgets(
+        'shows active filter chips and handles deleting chip and Reset All',
+        (tester) async {
+      final now = DateTime.now();
+      final orders = [
+        _makeOrder(
+          id: 'o1',
+          side: 'buy',
+          quantity: 10,
+          price: 100,
+          date: now.subtract(const Duration(days: 10)),
+          symbol: 'AAPL',
+        ),
+        _makeOrder(
+          id: 'o2',
+          side: 'sell',
+          quantity: 10,
+          price: 120,
+          date: now.subtract(const Duration(days: 2)),
+          symbol: 'AAPL',
+        ),
+      ];
+
+      final service = MockBrokerageService(positionOrders: orders);
+
+      await tester.pumpWidget(buildWidget(service: service));
+      await tester.pumpAndSettle();
+
+      // Past Positions displays the 'Past Month' input chip by default
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'Reset All'), findsOneWidget);
+
+      // Delete the date filter chip (switches to 'All Time')
+      final chipIcons = find.descendant(
+        of: find.widgetWithText(InputChip, 'Past Month'),
+        matching: find.byType(Icon),
+      );
+      expect(chipIcons, findsNWidgets(2));
+      await tester.tap(chipIcons.last);
+      await tester.pumpAndSettle();
+
+      // When date filter is 'All Time', date chip and Reset All disappear
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsNothing);
+      expect(find.widgetWithText(ActionChip, 'Reset All'), findsNothing);
+
+      // Open filter bottom sheet and set a symbol filter
+      final filterListButton = find.byIcon(Icons.filter_list);
+      expect(filterListButton, findsOneWidget);
+      await tester.tap(filterListButton);
+      await tester.pumpAndSettle();
+
+      // Select 'Past Month' again in bottom sheet
+      final pastMonthChip = find.widgetWithText(ChoiceChip, 'Past Month');
+      await tester.ensureVisible(pastMonthChip);
+      await tester.pumpAndSettle();
+      await tester.tap(pastMonthChip);
+      await tester.pumpAndSettle();
+
+      // Select 'AAPL' symbol filter
+      final aaplChip = find.widgetWithText(FilterChip, 'AAPL');
+      await tester.ensureVisible(aaplChip);
+      await tester.pumpAndSettle();
+      await tester.tap(aaplChip);
+      await tester.pumpAndSettle();
+
+      // Apply
+      await tester.tap(find.text('Apply Filters'));
+      await tester.pumpAndSettle();
+
+      // Both 'Past Month' and 'AAPL' chips should be visible, plus Reset All
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'AAPL'), findsOneWidget);
+      expect(find.widgetWithText(ActionChip, 'Reset All'), findsOneWidget);
+
+      // Tap Reset All
+      await tester.tap(find.widgetWithText(ActionChip, 'Reset All'));
+      await tester.pumpAndSettle();
+
+      // Symbol filter is cleared, date filter resets to 'Past Month'
+      expect(find.widgetWithText(InputChip, 'AAPL'), findsNothing);
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsOneWidget);
     });
 
     testWidgets('renders cleanly on narrow 320px viewport without overflow',
@@ -454,7 +555,162 @@ void main() {
       // Verify no overflow occurred
       expect(tester.takeException(), isNull);
       expect(find.text('Past Positions'), findsWidgets);
-      expect(find.byIcon(Icons.filter_list), findsOneWidget);
+      expect(find.byIcon(Icons.filter_alt), findsOneWidget);
+      expect(find.widgetWithText(InputChip, 'Past Month'), findsOneWidget);
+    });
+
+    test('InstrumentCostBasisLookbackSummary sanitizes raw URL symbols', () {
+      final now = DateTime.now();
+      final orders = [
+        _makeOrder(
+          id: 'o1',
+          side: 'buy',
+          quantity: 10,
+          price: 50.0,
+          date: now.subtract(const Duration(days: 5)),
+          symbol: 'TEST',
+        ),
+        _makeOrder(
+          id: 'o2',
+          side: 'sell',
+          quantity: 10,
+          price: 55.0,
+          date: now.subtract(const Duration(days: 1)),
+          symbol: 'TEST',
+        ),
+      ];
+
+      // Even if callers pass a raw URL into symbol, it must be sanitized
+      final summary = InstrumentCostBasisLookbackSummary.fromOrders(
+        orders,
+        symbol:
+            'https://api.robinhood.com/instruments/fc77229c-9134-4817-bd0c-588e672c15e7/',
+      );
+
+      expect(summary.symbol.startsWith('http'), isFalse);
+      expect(summary.symbol, 'TEST'); // Resolved from orders' instrumentObj
+    });
+
+    testWidgets(
+        'resolves symbol from InstrumentStore when order.instrumentObj is null',
+        (tester) async {
+      final now = DateTime.now();
+      final buyOrder = _makeOrder(
+        id: 'o1',
+        side: 'buy',
+        quantity: 25,
+        price: 39.07,
+        date: now.subtract(const Duration(days: 10)),
+        symbol: 'RHHBY',
+        instrumentId: 'fc77229c-9134-4817-bd0c-588e672c15e7',
+        instrumentUrl:
+            'https://api.robinhood.com/instruments/fc77229c-9134-4817-bd0c-588e672c15e7/',
+        attachInstrumentObj: false,
+      );
+      final sellOrder = _makeOrder(
+        id: 'o2',
+        side: 'sell',
+        quantity: 25,
+        price: 40.40,
+        date: now.subtract(const Duration(days: 2)),
+        symbol: 'RHHBY',
+        instrumentId: 'fc77229c-9134-4817-bd0c-588e672c15e7',
+        instrumentUrl:
+            'https://api.robinhood.com/instruments/fc77229c-9134-4817-bd0c-588e672c15e7/',
+        attachInstrumentObj: false,
+      );
+
+      final instrumentStore = InstrumentStore();
+      instrumentStore.add(Instrument.forSymbol(
+        'RHHBY',
+        instrumentUrl:
+            'https://api.robinhood.com/instruments/fc77229c-9134-4817-bd0c-588e672c15e7/',
+      ));
+
+      final service =
+          MockBrokerageService(positionOrders: [buyOrder, sellOrder]);
+
+      await tester.pumpWidget(buildWidget(
+        service: service,
+        instrumentStore: instrumentStore,
+      ));
+      await tester.pumpAndSettle();
+
+      // Should display RHHBY Past Positions and NEVER the raw URL
+      expect(find.text('RHHBY Past Positions'), findsOneWidget);
+      expect(find.textContaining('https://api.robinhood.com'), findsNothing);
+    });
+
+    testWidgets(
+        'never displays URL in title even when instrument symbol is unknown',
+        (tester) async {
+      final now = DateTime.now();
+      final buyOrder = _makeOrder(
+        id: 'o1',
+        side: 'buy',
+        quantity: 10,
+        price: 100.0,
+        date: now.subtract(const Duration(days: 10)),
+        symbol: 'UNKNOWN',
+        instrumentId: 'unknown-guid-12345',
+        instrumentUrl:
+            'https://api.robinhood.com/instruments/unknown-guid-12345/',
+        attachInstrumentObj: false,
+      );
+      final sellOrder = _makeOrder(
+        id: 'o2',
+        side: 'sell',
+        quantity: 10,
+        price: 110.0,
+        date: now.subtract(const Duration(days: 2)),
+        symbol: 'UNKNOWN',
+        instrumentId: 'unknown-guid-12345',
+        instrumentUrl:
+            'https://api.robinhood.com/instruments/unknown-guid-12345/',
+        attachInstrumentObj: false,
+      );
+
+      final service =
+          MockBrokerageService(positionOrders: [buyOrder, sellOrder]);
+
+      await tester.pumpWidget(buildWidget(service: service));
+      await tester.pumpAndSettle();
+
+      // Must never render any URL string in the UI
+      expect(find.textContaining('https://'), findsNothing);
+      expect(find.textContaining('http://'), findsNothing);
+    });
+
+    test(
+        'DemoService returns valid Instrument for historical positions RHHBY & SGOV',
+        () async {
+      final demoService = DemoService();
+      final store = InstrumentStore();
+      final user = BrokerageUser(BrokerageSource.demo, '5DM12345', null, null);
+
+      final instruments = await demoService.getInstrumentsByIds(user, store, [
+        'fc77229c-9134-4817-bd0c-588e672c15e7', // RHHBY
+        '97b91844-533c-4f43-be7b-6c6852acb9a7', // SGOV
+      ]);
+
+      expect(instruments.length, 2);
+      final rhhby = instruments
+          .firstWhere((i) => i.id == 'fc77229c-9134-4817-bd0c-588e672c15e7');
+      expect(rhhby.symbol, 'RHHBY');
+      expect(rhhby.name, 'Roche Holding AG');
+
+      final sgov = instruments
+          .firstWhere((i) => i.id == '97b91844-533c-4f43-be7b-6c6852acb9a7');
+      expect(sgov.symbol, 'SGOV');
+      expect(sgov.name, 'iShares 0-3 Month Treasury Bond ETF');
+
+      // Test getInstrument via URL
+      final fetched = await demoService.getInstrument(
+        user,
+        store,
+        'https://api.robinhood.com/instruments/fc77229c-9134-4817-bd0c-588e672c15e7/',
+      );
+      expect(fetched.symbol, 'RHHBY');
     });
   });
 }

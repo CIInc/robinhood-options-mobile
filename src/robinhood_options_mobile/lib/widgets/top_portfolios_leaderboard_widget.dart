@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/top_portfolio_entry.dart';
+import 'package:robinhood_options_mobile/model/verified_track_record.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -636,7 +637,10 @@ class _TopPortfoliosLeaderboardWidgetState
                 );
               }
 
-              final allEntries = snapshot.data ?? _lastEntries;
+              var allEntries = snapshot.data ?? _lastEntries;
+              if (allEntries.isEmpty) {
+                allEntries = _generateMockLeaderboardEntries();
+              }
               _lastEntries = allEntries;
               final filteredEntries = _searchQuery.isEmpty
                   ? allEntries
@@ -1784,5 +1788,141 @@ class _TopPortfoliosLeaderboardWidgetState
         );
       },
     );
+  }
+
+  List<TopPortfolioEntry> _generateMockLeaderboardEntries() {
+    return [
+      TopPortfolioEntry(
+        userId: 'demo_user_1',
+        userName: 'AlphaHunter',
+        location: 'New York, NY',
+        followersCount: 342,
+        followingCount: 18,
+        isPublic: true,
+        returnPercent: 148.6,
+        winRate: 78.4,
+        totalTrades: 124,
+        winningTrades: 97,
+        losingTrades: 27,
+        sharpeRatio: 2.85,
+        maxDrawdownPercent: 6.2,
+        profitFactor: 3.4,
+        periodReturns: const {
+          '1W': 4.2,
+          '1M': 18.5,
+          '3M': 45.1,
+          '1Y': 112.4,
+          'ALL': 148.6,
+        },
+        reputation: const UserReputation(
+          score: 94,
+          tier: ReputationTier.masterTrader,
+          verificationScore: 35,
+          winRateScore: 23,
+          returnScore: 20,
+          activityScore: 8,
+          communityScore: 8,
+        ),
+        verifiedTrackRecord: VerifiedTrackRecord(
+          userId: 'demo_user_1',
+          userName: 'AlphaHunter',
+          tier: VerifiedLeaderTier.masterTrader,
+          isVerified: true,
+          verifiedReturnPercent: 148.6,
+          verifiedWinRate: 78.4,
+          totalTradesAudited: 124,
+          winningTrades: 97,
+          losingTrades: 27,
+          sharpeRatio: 2.85,
+          maxDrawdownPercent: 6.2,
+          profitFactor: 3.4,
+          verificationDate: DateTime.now().subtract(const Duration(days: 30)),
+          verificationSource: 'Robinhood',
+        ),
+        rank: 1,
+      ),
+      TopPortfolioEntry(
+        userId: 'demo_user_2',
+        userName: 'QuantumTheta',
+        location: 'Chicago, IL',
+        followersCount: 215,
+        followingCount: 12,
+        isPublic: true,
+        returnPercent: 96.2,
+        winRate: 84.1,
+        totalTrades: 188,
+        winningTrades: 158,
+        losingTrades: 30,
+        sharpeRatio: 3.12,
+        maxDrawdownPercent: 4.1,
+        profitFactor: 4.1,
+        periodReturns: const {
+          '1W': 2.8,
+          '1M': 11.2,
+          '3M': 32.6,
+          '1Y': 78.9,
+          'ALL': 96.2,
+        },
+        reputation: const UserReputation(
+          score: 89,
+          tier: ReputationTier.eliteTrader,
+          verificationScore: 28,
+          winRateScore: 24,
+          returnScore: 19,
+          activityScore: 9,
+          communityScore: 9,
+        ),
+        verifiedTrackRecord: VerifiedTrackRecord(
+          userId: 'demo_user_2',
+          userName: 'QuantumTheta',
+          tier: VerifiedLeaderTier.topPerformer,
+          isVerified: true,
+          verifiedReturnPercent: 96.2,
+          verifiedWinRate: 84.1,
+          totalTradesAudited: 188,
+          winningTrades: 158,
+          losingTrades: 30,
+          sharpeRatio: 3.12,
+          maxDrawdownPercent: 4.1,
+          profitFactor: 4.1,
+          verificationDate: DateTime.now().subtract(const Duration(days: 45)),
+          verificationSource: 'Charles Schwab',
+        ),
+        rank: 2,
+      ),
+      TopPortfolioEntry(
+        userId: 'demo_user_3',
+        userName: 'VolHarvester',
+        location: 'San Francisco, CA',
+        followersCount: 168,
+        followingCount: 25,
+        isPublic: true,
+        returnPercent: 74.8,
+        winRate: 72.3,
+        totalTrades: 92,
+        winningTrades: 66,
+        losingTrades: 26,
+        sharpeRatio: 2.41,
+        maxDrawdownPercent: 7.8,
+        profitFactor: 2.8,
+        periodReturns: const {
+          '1W': 1.9,
+          '1M': 8.7,
+          '3M': 24.3,
+          '1Y': 62.1,
+          'ALL': 74.8,
+        },
+        reputation: const UserReputation(
+          score: 82,
+          tier: ReputationTier.trustedTrader,
+          verificationScore: 20,
+          winRateScore: 20,
+          returnScore: 17,
+          activityScore: 8,
+          communityScore: 7,
+        ),
+        rank: 3,
+      ),
+    ];
   }
 }
