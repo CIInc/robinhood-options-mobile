@@ -53,23 +53,31 @@ class PortfolioStressTestCard extends StatelessWidget {
             Text('Stress testing needs priced holdings.',
                 style: theme.textTheme.bodyMedium)
           else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.account_balance_wallet_outlined,
-                      size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text('Net priced exposure', style: theme.textTheme.bodySmall),
-                  const Spacer(),
-                  Text(_formatCurrency(portfolioValue, showSign: false),
-                      style: theme.textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.bold)),
-                ],
+            Semantics(
+              container: true,
+              excludeSemantics: true,
+              label:
+                  'Net priced exposure: ${_formatCurrency(portfolioValue, showSign: false)}',
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet_outlined,
+                        size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Text('Net priced exposure',
+                        style: theme.textTheme.bodySmall),
+                    const Spacer(),
+                    Text(_formatCurrency(portfolioValue, showSign: false),
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -92,25 +100,31 @@ class PortfolioStressTestCard extends StatelessWidget {
               },
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                _legendDot(theme.colorScheme.error),
-                const SizedBox(width: 5),
-                Text('loss', style: theme.textTheme.labelSmall),
-                const SizedBox(width: 12),
-                _legendDot(Colors.green),
-                const SizedBox(width: 5),
-                Text('gain', style: theme.textTheme.labelSmall),
-                const Spacer(),
-                Flexible(
-                  child: Text(
-                    'Illustrative, not a forecast',
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.labelSmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            Semantics(
+              container: true,
+              excludeSemantics: true,
+              label:
+                  'Legend: loss is red, gain is green. Illustrative, not a forecast',
+              child: Row(
+                children: [
+                  _legendDot(theme.colorScheme.error),
+                  const SizedBox(width: 5),
+                  Text('loss', style: theme.textTheme.labelSmall),
+                  const SizedBox(width: 12),
+                  _legendDot(Colors.green),
+                  const SizedBox(width: 5),
+                  Text('gain', style: theme.textTheme.labelSmall),
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      'Illustrative, not a forecast',
+                      textAlign: TextAlign.end,
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ],
@@ -127,6 +141,7 @@ class PortfolioStressTestCard extends StatelessWidget {
       label:
           '${shock >= 0 ? 'Up' : 'Down'} ${(shock.abs() * 100).toStringAsFixed(0)} percent market scenario, ${_formatCurrency(change)} projected change',
       container: true,
+      excludeSemantics: true,
       child: Container(
         constraints: const BoxConstraints(minHeight: 62),
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
