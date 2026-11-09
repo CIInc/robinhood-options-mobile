@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../model/news_intelligence.dart';
 
@@ -16,6 +17,12 @@ class NewsIntelligenceService {
       }
     }
 
+    if (FirebaseAuth.instance.currentUser == null) {
+      final local = _buildLocalNewsIntelligence(sym, articles ?? []);
+      _cache[sym] = local;
+      return local;
+    }
+
     try {
       final callable = _functions.httpsCallable('getNewsIntelligence');
       final response = await callable.call({
@@ -30,19 +37,25 @@ class NewsIntelligenceService {
       return intelligence;
     } catch (e) {
       debugPrint('Error fetching news intelligence for $sym: $e');
-      if (articles != null && articles.isNotEmpty) {
-        // Local analysis fallback
-        final local = _buildLocalNewsIntelligence(sym, articles);
-        _cache[sym] = local;
-        return local;
-      }
-      rethrow;
+      final local = _buildLocalNewsIntelligence(sym, articles ?? []);
+      _cache[sym] = local;
+      return local;
     }
   }
 
   Future<Map<String, NewsIntelligence>> getWatchlistNewsIntelligence(
       List<String> symbols) async {
     if (symbols.isEmpty) return {};
+    if (FirebaseAuth.instance.currentUser == null) {
+      final result = <String, NewsIntelligence>{};
+      for (final s in symbols) {
+        final upper = s.toUpperCase();
+        final local = _buildLocalNewsIntelligence(upper, []);
+        result[upper] = local;
+        _cache[upper] = local;
+      }
+      return result;
+    }
     try {
       final callable = _functions.httpsCallable('getWatchlistNewsIntelligence');
       final response = await callable.call({

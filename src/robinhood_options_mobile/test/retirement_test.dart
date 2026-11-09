@@ -296,7 +296,7 @@ void main() {
         'parses ACATS incoming settled transfer into rollover contributions and sets sourceDescription',
         () {
       final json = {
-        'account_number': '741902639',
+        'account_number': '7DM12345',
         'account_type': 'ira_traditional',
         'total_value': '25334.93',
         'match_rate': '1',
@@ -304,7 +304,7 @@ void main() {
         'acats': [
           {
             'id': '33455e38-973c-4dfd-8208-0037343ff77a',
-            'rhs_account_number': '741902639',
+            'rhs_account_number': '7DM12345',
             'contra_broker_name': 'Merrill Lynch',
             'settlement_date': '2025-05-02',
             'phase': 'settled',
@@ -315,7 +315,7 @@ void main() {
 
       final history = RetirementHistory.fromJson(json);
 
-      expect(history.accountNumber, '741902639');
+      expect(history.accountNumber, '7DM12345');
       // Should contain 2026 (current year active) and 2025 (settled rollover)
       expect(history.contributions.length, 2);
 
@@ -392,7 +392,7 @@ void main() {
       );
 
       final traditionalAccount = Account.fromJson({
-        'account_number': '741902639',
+        'account_number': '7DM12345',
         'type': 'cash',
         'brokerage_account_type': 'ira_traditional',
         'total_value': '25326.80',
@@ -431,7 +431,7 @@ void main() {
       );
 
       final traditionalAccount = Account.fromJson({
-        'account_number': '741902639',
+        'account_number': '7DM12345',
         'type': 'cash',
         'brokerage_account_type': 'ira_traditional',
         'total_value': '25326.80',
@@ -439,7 +439,7 @@ void main() {
       });
 
       final mockHistory = RetirementHistory.fromJson({
-        'account_number': '741902639',
+        'account_number': '7DM12345',
         'account_type': 'ira_traditional',
         'total_value': 25326.80,
         'match_rate': 0.03,
@@ -481,7 +481,7 @@ void main() {
           {
             'id': 'acat_2025_01',
             'phase': 'settled',
-            'rhs_account_number': '741902639',
+            'rhs_account_number': '7DM12345',
             'settlement_date': '2025-06-15T12:00:00Z',
             'contra_broker_name': 'Merrill Lynch',
             'market_value': '25334.93',
@@ -601,7 +601,7 @@ void main() {
 
     test('synthesizes multiple unified transfers into RetirementHistory', () {
       final historyJson = {
-        'account_number': '741902639',
+        'account_number': '7DM12345',
         'account_type': 'ira_traditional',
         'match_rate': 0.03,
         'results': [], // empty legacy endpoint

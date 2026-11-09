@@ -138,7 +138,7 @@ void main() {
         'parses real Robinhood API zero-collateral response with scientific notation and account_number',
         () {
       final json = {
-        "account_number": "5QR24141",
+        "account_number": "5DM12345",
         "collateral": {
           "cash": {"amount": "0.0000", "direction": "debit", "infinite": false},
           "equities": [
@@ -171,7 +171,7 @@ void main() {
           OptionChainCollateral.fromJson('chain_amzn', 'fallback_acct', json);
 
       expect(collateral.chainId, 'chain_amzn');
-      expect(collateral.accountNumber, '5QR24141');
+      expect(collateral.accountNumber, '5DM12345');
       expect(collateral.totalCashLocked, 0.0);
       expect(collateral.totalSharesLocked, 0.0);
       expect(collateral.hasAnyCollateral, isFalse);

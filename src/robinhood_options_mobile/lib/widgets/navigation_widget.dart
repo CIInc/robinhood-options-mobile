@@ -58,6 +58,12 @@ import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
+import 'package:robinhood_options_mobile/widgets/gamma_exposure_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
+import 'package:robinhood_options_mobile/widgets/tax_optimization_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_chain_widget.dart';
+import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_strategy_config.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
@@ -1195,8 +1201,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     final host = link.host;
     final pathSegments = link.pathSegments;
 
+    // Pop any open pushed modals or sub-routes back to root tab
+    Navigator.of(context).popUntil((route) => route.isFirst);
+
+    // realizealpha://overview OR realizealpha://portfolio
+    if (host == 'overview' ||
+        host == 'portfolio' ||
+        (pathSegments.isNotEmpty &&
+            (pathSegments[0] == 'overview' ||
+                pathSegments[0] == 'portfolio'))) {
+      _onPageChanged(0);
+    }
     // realizealpha://watchlist OR https://realizealpha.com/watchlist
-    if (host == 'watchlist' ||
+    else if (host == 'watchlist' ||
         (pathSegments.isNotEmpty && pathSegments[0] == 'watchlist')) {
       await _navigateToWatchlist(context, isGroupWatchlist: false);
     }
@@ -1220,6 +1237,174 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     else if (host == 'rebalancing' ||
         (pathSegments.isNotEmpty && pathSegments[0] == 'rebalancing')) {
       await _navigateToRebalancing(context);
+    }
+    // realizealpha://gex OR realizealpha://gex/SPY
+    else if (host == 'gex' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'gex')) {
+      String symbol = 'SPY';
+      if (host == 'gex' && pathSegments.isNotEmpty) {
+        symbol = pathSegments[0];
+      } else if (pathSegments.length > 1) {
+        symbol = pathSegments[1];
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GammaExposurePage(
+            symbol: symbol,
+            generativeService: _generativeService,
+          ),
+        ),
+      );
+    }
+    // realizealpha://backtest-result
+    else if (host == 'backtest-result' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'backtest-result')) {
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final backtestingProvider =
+          Provider.of<BacktestingProvider>(context, listen: false);
+      final result = backtestingProvider.currentResult ??
+          (backtestingProvider.backtestHistory.isNotEmpty
+              ? backtestingProvider.backtestHistory.first
+              : BacktestingProvider.createMockBacktestResult(
+                  TradeStrategyConfig(
+                  symbolFilter: ['SPY'],
+                  interval: '1d',
+                  startDate: DateTime.now().subtract(const Duration(days: 90)),
+                  endDate: DateTime.now(),
+                )));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BacktestResultPage(
+            result: result,
+            user: user,
+            userDocRef: userDoc,
+            brokerageUser: userStore.currentUser,
+            service: service,
+          ),
+        ),
+      );
+    }
+    // realizealpha://backtesting OR realizealpha://backtesting/SPY
+    else if (host == 'backtesting' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'backtesting')) {
+      String symbol = 'SPY';
+      if (host == 'backtesting' && pathSegments.isNotEmpty) {
+        symbol = pathSegments[0];
+      } else if (pathSegments.length > 1) {
+        symbol = pathSegments[1];
+      }
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BacktestingWidget(
+            brokerageUser: userStore.currentUser,
+            service: service,
+            user: user,
+            userDocRef: userDoc,
+            prefilledSymbol: symbol,
+          ),
+        ),
+      );
+    }
+    // realizealpha://flow OR realizealpha://options-flow
+    else if (host == 'flow' ||
+        host == 'options-flow' ||
+        (pathSegments.isNotEmpty &&
+            (pathSegments[0] == 'flow' || pathSegments[0] == 'options-flow'))) {
+      String symbol = 'SPY';
+      if ((host == 'flow' || host == 'options-flow') &&
+          pathSegments.isNotEmpty) {
+        symbol = pathSegments[0];
+      } else if (pathSegments.length > 1) {
+        symbol = pathSegments[1];
+      }
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OptionsFlowWidget(
+            initialSymbol: symbol,
+            brokerageUser: userStore.currentUser,
+            service: service,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            user: user,
+            userDocRef: userDoc,
+          ),
+        ),
+      );
+    }
+    // realizealpha://tax OR realizealpha://taxes
+    else if (host == 'tax' ||
+        host == 'taxes' ||
+        (pathSegments.isNotEmpty &&
+            (pathSegments[0] == 'tax' || pathSegments[0] == 'taxes'))) {
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final brokerageUser =
+          userStore.currentUser ?? userStore.items.firstOrNull;
+      if (brokerageUser != null && service != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TaxOptimizationWidget(
+              user: brokerageUser,
+              service: service!,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: _generativeService,
+              appUser: user,
+              userDocRef: userDoc,
+            ),
+          ),
+        );
+      }
+    }
+    // realizealpha://chain OR realizealpha://chain/SPY
+    else if (host == 'chain' ||
+        (pathSegments.isNotEmpty && pathSegments[0] == 'chain')) {
+      String symbol = 'SPY';
+      if (host == 'chain' && pathSegments.isNotEmpty) {
+        symbol = pathSegments[0];
+      } else if (pathSegments.length > 1) {
+        symbol = pathSegments[1];
+      }
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final brokerageUser =
+          userStore.currentUser ?? userStore.items.firstOrNull;
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      var instrument = instrumentStore.items.firstWhereOrNull(
+          (i) => i.symbol.toUpperCase() == symbol.toUpperCase());
+      if (instrument == null && service != null && brokerageUser != null) {
+        instrument = await service!
+            .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol);
+        if (instrument != null) {
+          instrumentStore.addOrUpdate(instrument);
+        }
+      }
+      final targetInstrument = instrument;
+      if (targetInstrument != null &&
+          brokerageUser != null &&
+          service != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => InstrumentOptionChainWidget(
+              brokerageUser,
+              service!,
+              targetInstrument,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: _generativeService,
+              user: user,
+              userDocRef: userDoc,
+            ),
+          ),
+        );
+      }
     }
     // realizealpha://instrument/AAPL OR https://realizealpha.com/instrument/AAPL
     else if (host == 'instrument' ||
@@ -1334,6 +1519,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   void _buildTabs(BrokerageUserStore userStore) {
+    if (service == null && userStore.currentUser != null) {
+      service = _getService(userStore.currentUser!);
+    }
     debugPrint(
         "_buildTabs userStore items: ${userStore.items.length} currentUser: ${userStore.currentUser}");
     tabPages = [
@@ -1451,6 +1639,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
                       onExploreDemo: () async {
                         final user = BrokerageUser(
                             BrokerageSource.demo, "Demo Account", null, null);
+                        service = DemoService();
                         userStore.addOrUpdate(user);
                         userStore
                             .setCurrentUserIndex(userStore.items.indexOf(user));

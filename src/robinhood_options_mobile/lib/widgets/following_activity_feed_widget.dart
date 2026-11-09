@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -12,6 +11,7 @@ import 'package:robinhood_options_mobile/model/group_analysis.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_follow.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -106,12 +106,16 @@ class _FollowingActivityFeedWidgetState
     super.dispose();
   }
 
+  bool get _isDemo =>
+      widget.brokerageUser?.source == BrokerageSource.demo ||
+      widget.service is DemoService;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentUser = widget.auth.currentUser;
 
-    if (currentUser == null) {
+    if (currentUser == null && !_isDemo) {
       if (!widget.showAppBar) {
         return const Center(
           child: Text('Sign in to view your social feed.'),
@@ -140,6 +144,8 @@ class _FollowingActivityFeedWidgetState
         ),
       );
     }
+
+    final effectiveUid = currentUser?.uid ?? 'demo_user';
 
     return Scaffold(
       appBar: widget.showAppBar
@@ -201,20 +207,26 @@ class _FollowingActivityFeedWidgetState
           : null,
       body: StreamBuilder<List<UserFollow>>(
         stream: _followingStream ??
-            widget.firestoreService.getFollowingStream(currentUser.uid),
+            (currentUser != null
+                ? widget.firestoreService.getFollowingStream(currentUser.uid)
+                : null),
         builder: (context, followSnapshot) {
-          if (followSnapshot.connectionState == ConnectionState.waiting) {
+          if (followSnapshot.connectionState == ConnectionState.waiting &&
+              (!_isDemo || followSnapshot.data != null)) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (followSnapshot.hasError) {
+          if (followSnapshot.hasError && !_isDemo) {
             return Center(
               child: Text('Error: ${followSnapshot.error}'),
             );
           }
 
           final follows = followSnapshot.data ?? [];
-          final followedUserIds = follows.map((f) => f.followingId).toList();
+          var followedUserIds = follows.map((f) => f.followingId).toList();
+          if (followedUserIds.isEmpty && _isDemo) {
+            followedUserIds = ['demo_user_1', 'demo_user_2', 'demo_user_3'];
+          }
 
           return Column(
             children: [
@@ -226,14 +238,14 @@ class _FollowingActivityFeedWidgetState
                   children: [
                     // Tab 0: All (Interleaved)
                     _KeepAliveTab(
-                      child: _buildAllFeed(
-                          currentUser.uid, followedUserIds, theme),
+                      child:
+                          _buildAllFeed(effectiveUid, followedUserIds, theme),
                     ),
 
                     // Tab 1: Followed Trade Ideas
                     _KeepAliveTab(
                       child: _buildTradeIdeasFeed(
-                        currentUser.uid,
+                        effectiveUid,
                         followedUserIds,
                         theme,
                         isCommunity: false,
@@ -243,13 +255,13 @@ class _FollowingActivityFeedWidgetState
                     // Tab 2: Followed Trades Only
                     _KeepAliveTab(
                       child: _buildTradesFeed(
-                          currentUser.uid, followedUserIds, theme),
+                          effectiveUid, followedUserIds, theme),
                     ),
 
                     // Tab 3: Global Community Ideas
                     _KeepAliveTab(
                       child: _buildTradeIdeasFeed(
-                        currentUser.uid,
+                        effectiveUid,
                         null, // null = all community ideas
                         theme,
                         isCommunity: true,
@@ -516,7 +528,7 @@ class _FollowingActivityFeedWidgetState
     List<String> followedUserIds,
     ThemeData theme,
   ) {
-    if (followedUserIds.isEmpty) {
+    if (followedUserIds.isEmpty && !_isDemo) {
       return _buildNoFollowingEmptyState(theme);
     }
 
@@ -529,12 +541,19 @@ class _FollowingActivityFeedWidgetState
               .getSocialTradeIdeasStream(authorIds: followedUserIds),
           builder: (context, ideaSnapshot) {
             if (actSnapshot.connectionState == ConnectionState.waiting &&
-                ideaSnapshot.connectionState == ConnectionState.waiting) {
+                ideaSnapshot.connectionState == ConnectionState.waiting &&
+                !_isDemo) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final activities = actSnapshot.data ?? [];
-            final ideas = ideaSnapshot.data ?? [];
+            var activities = actSnapshot.data ?? [];
+            var ideas = ideaSnapshot.data ?? [];
+            if (activities.isEmpty && _isDemo) {
+              activities = _generateMockActivities();
+            }
+            if (ideas.isEmpty && _isDemo) {
+              ideas = _generateMockTradeIdeas();
+            }
 
             // Filter activities
             final filteredActivities = activities.where((act) {
@@ -652,7 +671,7 @@ class _FollowingActivityFeedWidgetState
     ThemeData theme, {
     required bool isCommunity,
   }) {
-    if (!isCommunity && (authorIds == null || authorIds.isEmpty)) {
+    if (!isCommunity && (authorIds == null || authorIds.isEmpty) && !_isDemo) {
       return _buildNoFollowingEmptyState(theme);
     }
 
@@ -661,11 +680,12 @@ class _FollowingActivityFeedWidgetState
         authorIds: isCommunity ? null : authorIds,
       ),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            (!_isDemo || snapshot.data != null)) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasError) {
+        if (snapshot.hasError && !_isDemo) {
           final isPermissionDenied =
               snapshot.error.toString().contains('permission-denied');
           return Center(
@@ -707,7 +727,10 @@ class _FollowingActivityFeedWidgetState
           );
         }
 
-        final ideas = snapshot.data ?? [];
+        var ideas = snapshot.data ?? [];
+        if (ideas.isEmpty && _isDemo) {
+          ideas = _generateMockTradeIdeas();
+        }
         var filtered = ideas.where((idea) {
           if (_selectedSentiment == 'bullish') {
             return idea.sentiment == GroupAnalysisSentiment.bullish;
@@ -801,7 +824,7 @@ class _FollowingActivityFeedWidgetState
     List<String> followedUserIds,
     ThemeData theme,
   ) {
-    if (followedUserIds.isEmpty) {
+    if (followedUserIds.isEmpty && !_isDemo) {
       return _buildNoFollowingEmptyState(theme);
     }
 
@@ -809,17 +832,21 @@ class _FollowingActivityFeedWidgetState
       stream: widget.firestoreService
           .getFollowedUsersActivitiesStream(followedUserIds),
       builder: (context, activitySnapshot) {
-        if (activitySnapshot.connectionState == ConnectionState.waiting) {
+        if (activitySnapshot.connectionState == ConnectionState.waiting &&
+            (!_isDemo || activitySnapshot.data != null)) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (activitySnapshot.hasError) {
+        if (activitySnapshot.hasError && !_isDemo) {
           return Center(
             child: Text('Failed to load activities: ${activitySnapshot.error}'),
           );
         }
 
-        final activities = activitySnapshot.data ?? [];
+        var activities = activitySnapshot.data ?? [];
+        if (activities.isEmpty && _isDemo) {
+          activities = _generateMockActivities();
+        }
         var filtered = activities.where((act) {
           if (_selectedFilter == 'equity') {
             return act.assetType?.toLowerCase() == 'equity' ||
@@ -1914,6 +1941,144 @@ class _FollowingActivityFeedWidgetState
         ),
       ),
     );
+  }
+
+  List<GroupAnalysisPost> _generateMockTradeIdeas() {
+    return [
+      GroupAnalysisPost(
+        id: 'mock_idea_nvda',
+        groupId: 'social',
+        authorId: 'demo_user_1',
+        authorName: 'AlphaHunter',
+        title: 'NVDA Blackwell Ramp & Data Center Acceleration',
+        symbol: 'NVDA',
+        sentiment: GroupAnalysisSentiment.bullish,
+        thesis:
+            'Strong hyperscaler CapEx commitments and Blackwell B200 volume ramp in Q4 provide significant EPS upside. Margins stabilizing above 74%.',
+        entryTarget: 138.50,
+        targetPrice: 165.00,
+        stopLoss: 128.00,
+        timeHorizon: GroupAnalysisTimeHorizon.mediumTerm,
+        likes: const ['demo_user_2', 'demo_user_3', 'user_4', 'user_5'],
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      GroupAnalysisPost(
+        id: 'mock_idea_spy',
+        groupId: 'social',
+        authorId: 'demo_user_2',
+        authorName: 'QuantumTheta',
+        title: 'SPY Breakout with Declining Volatility',
+        symbol: 'SPY',
+        sentiment: GroupAnalysisSentiment.bullish,
+        thesis:
+            'SPY holding above 20-day EMA with negative dealer gamma flip receding. Upside continuation expected into monthly OPEX.',
+        entryTarget: 588.00,
+        targetPrice: 605.00,
+        stopLoss: 579.00,
+        timeHorizon: GroupAnalysisTimeHorizon.shortTerm,
+        likes: const ['demo_user_1', 'demo_user_3'],
+        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+      ),
+      GroupAnalysisPost(
+        id: 'mock_idea_tsla',
+        groupId: 'social',
+        authorId: 'demo_user_3',
+        authorName: 'VolHarvester',
+        title: 'TSLA Rangebound Iron Condor Setup',
+        symbol: 'TSLA',
+        sentiment: GroupAnalysisSentiment.neutral,
+        thesis:
+            'Implied volatility remains rich following robotaxi event. Selling 240/270 condors captures elevated IV crush as delivery volatility settles.',
+        entryTarget: 252.00,
+        targetPrice: 250.00,
+        stopLoss: 275.00,
+        timeHorizon: GroupAnalysisTimeHorizon.shortTerm,
+        likes: const ['demo_user_1', 'demo_user_2'],
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      GroupAnalysisPost(
+        id: 'mock_idea_aapl',
+        groupId: 'social',
+        authorId: 'demo_user_1',
+        authorName: 'AlphaHunter',
+        title: 'AAPL iPhone 16 Cycle Re-rating',
+        symbol: 'AAPL',
+        sentiment: GroupAnalysisSentiment.bullish,
+        thesis:
+            'Apple Intelligence rollout in iOS 18.1 driving upgrade cycle in key international markets. Services margin expansion continues to underwrite multiple.',
+        entryTarget: 226.00,
+        targetPrice: 250.00,
+        stopLoss: 215.00,
+        timeHorizon: GroupAnalysisTimeHorizon.longTerm,
+        likes: const ['demo_user_2'],
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+    ];
+  }
+
+  List<GroupActivity> _generateMockActivities() {
+    return [
+      GroupActivity(
+        id: 'mock_act_nvda',
+        groupId: 'social',
+        userId: 'demo_user_1',
+        userName: 'AlphaHunter',
+        type: GroupActivityType.trade,
+        side: 'buy',
+        quantity: 100,
+        price: 138.50,
+        assetType: 'equity',
+        title: 'Bought 100 shares of NVDA',
+        description: 'Filled at \$138.50 on Robinhood',
+        symbol: 'NVDA',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
+      ),
+      GroupActivity(
+        id: 'mock_act_spy',
+        groupId: 'social',
+        userId: 'demo_user_2',
+        userName: 'QuantumTheta',
+        type: GroupActivityType.trade,
+        side: 'buy',
+        quantity: 10,
+        price: 4.25,
+        assetType: 'option',
+        title: 'Bought 10 SPY 590 Calls',
+        description: 'Filled at \$4.25 on Charles Schwab',
+        symbol: 'SPY',
+        timestamp: DateTime.now().subtract(const Duration(hours: 3)),
+      ),
+      GroupActivity(
+        id: 'mock_act_tsla',
+        groupId: 'social',
+        userId: 'demo_user_3',
+        userName: 'VolHarvester',
+        type: GroupActivityType.trade,
+        side: 'sell',
+        quantity: 5,
+        price: 6.80,
+        assetType: 'option',
+        title: 'Sold 5 TSLA 250 Puts',
+        description: 'Filled at \$6.80 on Robinhood',
+        symbol: 'TSLA',
+        timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+      ),
+      GroupActivity(
+        id: 'mock_act_aapl',
+        groupId: 'social',
+        userId: 'demo_user_1',
+        userName: 'AlphaHunter',
+        type: GroupActivityType.trade,
+        side: 'buy',
+        quantity: 50,
+        price: 226.00,
+        assetType: 'equity',
+        title: 'Bought 50 shares of AAPL',
+        description: 'Filled at \$226.00 on Robinhood',
+        symbol: 'AAPL',
+        timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+    ];
   }
 }
 

@@ -169,12 +169,19 @@ class _InstrumentHistoricalPositionsWidgetState
       return card;
     }
 
+    final rawTitle = widget.title ?? 'Previous Positions';
+    final safeTitle = (rawTitle.startsWith('http://') ||
+            rawTitle.startsWith('https://') ||
+            rawTitle.contains('/instruments/'))
+        ? 'Previous Positions'
+        : rawTitle;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
           context: context,
-          title: widget.title ?? 'Previous Positions',
+          title: safeTitle,
           subtitle:
               '${widget.summary.totalRoundTrips} round trip${widget.summary.totalRoundTrips == 1 ? "" : "s"} • Cost Basis Lookback',
           icon: Icons.history_toggle_off_rounded,

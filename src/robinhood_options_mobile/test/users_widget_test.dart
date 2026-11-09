@@ -171,5 +171,23 @@ void main() {
 
       expect(semanticsFinder, findsOneWidget);
     });
+
+    testWidgets(
+        'populates mock traders for demo account when firestore is empty',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('AlphaHunter'), findsOneWidget);
+      expect(find.text('QuantumTheta'), findsOneWidget);
+      expect(find.text('VolHarvester'), findsOneWidget);
+    });
   });
 }

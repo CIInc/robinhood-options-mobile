@@ -14,50 +14,59 @@ import 'package:robinhood_options_mobile/widgets/trader_profile_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 class UserListTile extends StatelessWidget {
-  const UserListTile(
-      {super.key,
-      required this.document,
-      this.showNavigation = true,
-      required this.analytics,
-      required this.observer,
-      this.brokerageUser,
-      this.service});
+  const UserListTile({
+    super.key,
+    this.document,
+    this.user,
+    this.userId,
+    this.showNavigation = true,
+    required this.analytics,
+    required this.observer,
+    this.brokerageUser,
+    this.service,
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser? brokerageUser;
-  final DocumentSnapshot<User> document;
+  final DocumentSnapshot<User>? document;
+  final User? user;
+  final String? userId;
   final bool showNavigation;
   final IBrokerageService? service;
 
   @override
   Widget build(BuildContext context) {
-    User? user = document.data();
-    if (user == null) {
+    User? effectiveUser = user ?? document?.data();
+    String effectiveId = userId ?? document?.id ?? '';
+    if (effectiveUser == null) {
       return Container();
     }
-    final heroAsset = user.photoUrl != null
+    final heroAsset = effectiveUser.photoUrl != null
         ? CircleAvatar(
             radius: 20,
-            backgroundImage: CachedNetworkImageProvider(user.photoUrl!),
+            backgroundImage:
+                CachedNetworkImageProvider(effectiveUser.photoUrl!),
           )
         : const CircleAvatar(radius: 20, child: Icon(Icons.account_circle));
 
-    final name = user.name ?? user.providerId?.capitalize() ?? 'Guest';
+    final name =
+        effectiveUser.name ?? effectiveUser.providerId?.capitalize() ?? 'Guest';
     final List<String> details = [name];
-    if ((userRole == UserRole.admin || document.id == auth.currentUser?.uid) &&
-        (user.email != null || user.phoneNumber != null)) {
-      details.add(user.email ?? user.phoneNumber!);
-    } else if (user.location != null && user.location!.isNotEmpty) {
-      details.add(user.location!);
+    if ((userRole == UserRole.admin || effectiveId == auth.currentUser?.uid) &&
+        (effectiveUser.email != null || effectiveUser.phoneNumber != null)) {
+      details.add(effectiveUser.email ?? effectiveUser.phoneNumber!);
+    } else if (effectiveUser.location != null &&
+        effectiveUser.location!.isNotEmpty) {
+      details.add(effectiveUser.location!);
     }
 
-    if (user.followersCount > 0 || user.followingCount > 0) {
+    if (effectiveUser.followersCount > 0 || effectiveUser.followingCount > 0) {
       details.add(
-          '${user.followersCount} ${user.followersCount == 1 ? "follower" : "followers"}');
-      details.add(
-          ReputationTier.fromScore((user.followersCount * 2).clamp(0, 100))
-              .label);
+          '${effectiveUser.followersCount} ${effectiveUser.followersCount == 1 ? "follower" : "followers"}');
+      details.add(ReputationTier.fromScore(
+              (effectiveUser.followersCount * 2).clamp(0, 100))
+          .label);
     }
 
     final semanticLabel = details.join(', ');
@@ -67,141 +76,158 @@ class UserListTile extends StatelessWidget {
       button: showNavigation,
       label: semanticLabel,
       excludeSemantics: true,
-      child: ListTile(
-          leading: Hero(
-              tag: 'user_${document.id}',
-              placeholderBuilder: (context, size, child) {
-                return heroAsset;
-              },
-              child: heroAsset),
-          title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if ((userRole == UserRole.admin ||
-                      document.id == auth.currentUser?.uid) &&
-                  (user.email != null || user.phoneNumber != null))
-                Text(user.email ?? user.phoneNumber ?? '')
-              else if (user.location != null && user.location!.isNotEmpty)
-                Text(
-                  user.location!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                ),
-              if (user.followersCount > 0 || user.followingCount > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Row(
-                    children: [
-                      Icon(Icons.people_outline,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.outline),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${user.followersCount} ${user.followersCount == 1 ? "follower" : "followers"}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.outline,
-                            ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: ReputationTier.fromScore(
-                                  (user.followersCount * 2).clamp(0, 100))
-                              .color
-                              .withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+            leading: Hero(
+                tag: 'user_$effectiveId',
+                placeholderBuilder: (context, size, child) {
+                  return heroAsset;
+                },
+                child: heroAsset),
+            title: Text(effectiveUser.name ??
+                effectiveUser.providerId?.capitalize() ??
+                'Guest'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if ((userRole == UserRole.admin ||
+                        effectiveId == auth.currentUser?.uid) &&
+                    (effectiveUser.email != null ||
+                        effectiveUser.phoneNumber != null))
+                  Text(effectiveUser.email ?? effectiveUser.phoneNumber ?? '')
+                else if (effectiveUser.location != null &&
+                    effectiveUser.location!.isNotEmpty)
+                  Text(
+                    effectiveUser.location!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.outline,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              ReputationTier.fromScore(
-                                      (user.followersCount * 2).clamp(0, 100))
-                                  .icon,
-                              size: 10,
-                              color: ReputationTier.fromScore(
-                                      (user.followersCount * 2).clamp(0, 100))
-                                  .color,
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              ReputationTier.fromScore(
-                                      (user.followersCount * 2).clamp(0, 100))
-                                  .label,
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
+                  ),
+                if (effectiveUser.followersCount > 0 ||
+                    effectiveUser.followingCount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        Icon(Icons.people_outline,
+                            size: 14,
+                            color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${effectiveUser.followersCount} ${effectiveUser.followersCount == 1 ? "follower" : "followers"}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: ReputationTier.fromScore(
+                                    (effectiveUser.followersCount * 2)
+                                        .clamp(0, 100))
+                                .color
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                ReputationTier.fromScore(
+                                        (effectiveUser.followersCount * 2)
+                                            .clamp(0, 100))
+                                    .icon,
+                                size: 10,
                                 color: ReputationTier.fromScore(
-                                        (user.followersCount * 2).clamp(0, 100))
+                                        (effectiveUser.followersCount * 2)
+                                            .clamp(0, 100))
                                     .color,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 2),
+                              Text(
+                                ReputationTier.fromScore(
+                                        (effectiveUser.followersCount * 2)
+                                            .clamp(0, 100))
+                                    .label,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: ReputationTier.fromScore(
+                                          (effectiveUser.followersCount * 2)
+                                              .clamp(0, 100))
+                                      .color,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
-          trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
-          onTap: showNavigation
-              ? () {
-                  final isSelf = auth.currentUser?.uid == document.id;
-                  if (userRole == UserRole.admin && !isSelf) {
-                    // Admin user management view
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (BuildContext context) => Scaffold(
-                                  appBar: AppBar(
-                                    title: Text(user.name ??
-                                        user.providerId?.capitalize() ??
-                                        ''),
-                                  ),
-                                  body: UserWidget(
-                                    auth,
-                                    userId: document.id,
-                                    isProfileView: true,
-                                    onSignout: () async {
-                                      final authUtil = AuthUtil(auth);
-                                      userRole = await authUtil.userRole();
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                                content: Text('Signed out'),
-                                                behavior:
-                                                    SnackBarBehavior.floating));
-                                        Navigator.pop(context);
-                                      }
-                                    },
+              ],
+            ),
+            trailing: showNavigation ? const Icon(Icons.chevron_right) : null,
+            onTap: showNavigation
+                ? () {
+                    final isSelf = auth.currentUser?.uid == effectiveId;
+                    if (userRole == UserRole.admin && !isSelf) {
+                      // Admin user management view
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) => Scaffold(
+                                    appBar: AppBar(
+                                      title: Text(effectiveUser.name ??
+                                          effectiveUser.providerId
+                                              ?.capitalize() ??
+                                          ''),
+                                    ),
+                                    body: UserWidget(
+                                      auth,
+                                      userId: effectiveId,
+                                      isProfileView: true,
+                                      onSignout: () async {
+                                        final authUtil = AuthUtil(auth);
+                                        userRole = await authUtil.userRole();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(const SnackBar(
+                                                  content: Text('Signed out'),
+                                                  behavior: SnackBarBehavior
+                                                      .floating));
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                                      analytics: analytics,
+                                      observer: observer,
+                                      brokerageUser: brokerageUser,
+                                      service: service,
+                                    ),
+                                  )));
+                    } else {
+                      // Public trader profile view
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (BuildContext context) =>
+                                  TraderProfileWidget(
+                                    auth: auth,
+                                    userId: effectiveId,
                                     analytics: analytics,
                                     observer: observer,
                                     brokerageUser: brokerageUser,
                                     service: service,
-                                  ),
-                                )));
-                  } else {
-                    // Public trader profile view
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (BuildContext context) =>
-                                TraderProfileWidget(
-                                  auth: auth,
-                                  userId: document.id,
-                                  analytics: analytics,
-                                  observer: observer,
-                                  brokerageUser: brokerageUser,
-                                  service: service,
-                                )));
+                                  )));
+                    }
                   }
-                }
-              : null),
+                : null),
+      ),
     );
   }
 }

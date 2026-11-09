@@ -302,5 +302,43 @@ void main() {
       expect(find.byType(CupertinoSearchTextField), findsOneWidget);
       expect(find.text('Search traders by name'), findsOneWidget);
     });
+
+    testWidgets(
+        'Groups tab displays mock public groups, my groups, and invitations for demo account',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestWidget());
+      await tester.pumpAndSettle();
+
+      // Tap Groups tab (index 2)
+      await tester.tap(find.text('Groups'));
+      await tester.pumpAndSettle();
+
+      // All Groups (public) should show mock public groups
+      expect(find.text('Tech Momentum Alpha'), findsOneWidget);
+      expect(find.text('Theta Decay Syndicate'), findsOneWidget);
+      expect(find.text('Macro Trend Riders'), findsOneWidget);
+
+      // Switch to My Groups
+      await tester.tap(find.text('My Groups'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tech Momentum Alpha'), findsOneWidget);
+      expect(find.text('Demo Alpha Fund'), findsOneWidget);
+
+      // Switch to Invitations
+      await tester.tap(find.text('Invitations'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Theta Decay Syndicate'), findsOneWidget);
+      expect(find.text('Accept'), findsOneWidget);
+      expect(find.text('Decline'), findsOneWidget);
+    });
   });
 }

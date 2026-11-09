@@ -1729,6 +1729,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(0.0);
+        }
         try {
           final offlineSync =
               Provider.of<OfflineSyncService>(context, listen: false);

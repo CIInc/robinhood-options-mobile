@@ -7,6 +7,7 @@ RealizeAlpha is a professional-grade Flutter mobile app for multi-account broker
 *   **Product Overview & Scope:** [PRODUCT.md](PRODUCT.md) — Target personas, core product principles, capability pillars, and strategic scope boundaries.
 *   **Documentation Site:** [RealizeAlpha Docs](https://ciinc.github.io/robinhood-options-mobile/) ([`docs/index.md`](docs/index.md)) — Detailed feature guides, architecture references, and API research.
 *   **Roadmap & Release History:** [ROADMAP.md](ROADMAP.md) & [CHANGELOG.md](CHANGELOG.md) — Active development priorities and release notes.
+*   **Store Distribution & Release Assets:** [distribution/README.md](distribution/README.md) — App Store & Google Play screenshots, feature graphics, app icons, and release notes.
 *   **Coding Agent & Contributor Guide:** [AGENTS.md](AGENTS.md) — Repository layout, safety invariants, and verification commands.
 
 ## Features

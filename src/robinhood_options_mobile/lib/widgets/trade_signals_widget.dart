@@ -22,7 +22,14 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
+import 'package:robinhood_options_mobile/services/paper_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notifications_store.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notifications_page.dart';
@@ -1614,17 +1621,57 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
   Instrument? _instrument;
   Quote? _quote;
 
+  BrokerageUser? _getEffectiveBrokerageUser() {
+    if (widget.brokerageUser != null) {
+      return widget.brokerageUser;
+    }
+    try {
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      return userStore.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  IBrokerageService? _getEffectiveService(BrokerageUser? user) {
+    if (widget.service != null) {
+      return widget.service;
+    }
+    if (user == null) {
+      return null;
+    }
+    switch (user.source) {
+      case BrokerageSource.robinhood:
+        return RobinhoodService();
+      case BrokerageSource.schwab:
+        return SchwabService();
+      case BrokerageSource.fidelity:
+        return FidelityService();
+      case BrokerageSource.paper:
+        return PaperService();
+      case BrokerageSource.demo:
+      default:
+        return DemoService();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchInstrument();
-    _fetchQuote();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchInstrument();
+        _fetchQuote();
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant _TradeSignalCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.signal['symbol'] != oldWidget.signal['symbol']) {
+    if (widget.signal['symbol'] != oldWidget.signal['symbol'] ||
+        widget.brokerageUser != oldWidget.brokerageUser ||
+        widget.service != oldWidget.service) {
       _instrumentName = null;
       _instrument = null;
       _quote = null;
@@ -1635,15 +1682,23 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
 
   Future<void> _fetchQuote() async {
     final symbol = widget.signal['symbol'];
-    if (symbol == null ||
-        symbol == 'N/A' ||
-        widget.brokerageUser == null ||
-        widget.service == null) {
+    if (symbol == null || symbol == 'N/A') {
       return;
     }
 
     if (!mounted) return;
-    final quoteStore = Provider.of<QuoteStore>(context, listen: false);
+    final brokerageUser = _getEffectiveBrokerageUser();
+    final service = _getEffectiveService(brokerageUser);
+    if (brokerageUser == null || service == null) {
+      return;
+    }
+
+    QuoteStore? quoteStore;
+    try {
+      quoteStore = Provider.of<QuoteStore>(context, listen: false);
+    } catch (_) {}
+    if (quoteStore == null) return;
+
     // Check cache first
     final cached = quoteStore.items.firstWhereOrNull((q) => q.symbol == symbol);
     if (cached != null) {
@@ -1656,8 +1711,7 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
     }
 
     try {
-      final quote = await widget.service!
-          .getQuote(widget.brokerageUser!, quoteStore, symbol);
+      final quote = await service.getQuote(brokerageUser, quoteStore, symbol);
       if (mounted) {
         setState(() {
           _quote = quote;
@@ -1670,17 +1724,24 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
 
   Future<void> _fetchInstrument() async {
     final symbol = widget.signal['symbol'];
-    if (symbol == null ||
-        symbol == 'N/A' ||
-        widget.brokerageUser == null ||
-        widget.service == null) {
+    if (symbol == null || symbol == 'N/A') {
       return;
     }
 
-    // Check store first
     if (!mounted) return;
-    final instrumentStore =
-        Provider.of<InstrumentStore>(context, listen: false);
+    final brokerageUser = _getEffectiveBrokerageUser();
+    final service = _getEffectiveService(brokerageUser);
+    if (brokerageUser == null || service == null) {
+      return;
+    }
+
+    InstrumentStore? instrumentStore;
+    try {
+      instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
+    } catch (_) {}
+    if (instrumentStore == null) return;
+
+    // Check store first
     final cached =
         instrumentStore.items.where((i) => i.symbol == symbol).firstOrNull;
     if (cached != null) {
@@ -1695,8 +1756,8 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
 
     // Fetch if not in store
     try {
-      final instrument = await widget.service!.getInstrumentBySymbol(
-        widget.brokerageUser!,
+      final instrument = await service.getInstrumentBySymbol(
+        brokerageUser,
         instrumentStore,
         symbol,
       );
@@ -1905,26 +1966,46 @@ class _TradeSignalCardState extends State<_TradeSignalCard> {
         onTap: () async {
           if (symbol == 'N/A') return;
 
-          if (widget.brokerageUser == null || widget.service == null) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content:
-                    Text("Please link a brokerage account to view details.")));
-            return;
+          var brokerageUser = _getEffectiveBrokerageUser();
+          var service = _getEffectiveService(brokerageUser);
+          if (brokerageUser == null || service == null) {
+            brokerageUser =
+                BrokerageUser(BrokerageSource.demo, "Demo Account", null, null);
+            service = DemoService();
           }
-          final instrumentStore =
-              Provider.of<InstrumentStore>(context, listen: false);
+          InstrumentStore? instrumentStore;
+          try {
+            instrumentStore =
+                Provider.of<InstrumentStore>(context, listen: false);
+          } catch (_) {}
 
-          var instrument = await widget.service!.getInstrumentBySymbol(
-              widget.brokerageUser!, instrumentStore, symbol);
+          Instrument? instrument;
+          if (instrumentStore != null) {
+            try {
+              instrument = await service.getInstrumentBySymbol(
+                  brokerageUser, instrumentStore, symbol);
+            } catch (e) {
+              debugPrint('Error fetching instrument by symbol $symbol: $e');
+            }
 
-          if (!context.mounted || instrument == null) return;
+            instrument ??= instrumentStore.items
+                .firstWhereOrNull((element) => element.symbol == symbol);
+          }
+
+          instrument ??= Instrument.forSymbol(
+            symbol,
+            instrumentUrl:
+                'https://api.robinhood.com/instruments/dummy_id_${symbol.toLowerCase()}/',
+          );
+
+          if (!context.mounted) return;
           Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
-                        widget.brokerageUser!,
-                        widget.service!,
-                        instrument,
+                        brokerageUser!,
+                        service!,
+                        instrument!,
                         analytics: widget.analytics,
                         observer: widget.observer,
                         generativeService: widget.generativeService,

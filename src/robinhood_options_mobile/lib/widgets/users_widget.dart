@@ -8,6 +8,8 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/portfolio_privacy_settings.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
@@ -47,6 +49,10 @@ class _UsersWidgetState extends State<UsersWidget> {
   String? _searchTerm;
   // late CollectionReference<User> _usersCollection;
   late Stream<QuerySnapshot<User>> _stream;
+
+  bool get _isDemo =>
+      widget.brokerageUser?.source == BrokerageSource.demo ||
+      widget.service is DemoService;
 
   @override
   void initState() {
@@ -151,6 +157,9 @@ class _UsersWidgetState extends State<UsersWidget> {
                 builder:
                     (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
                   if (snapshot.hasError) {
+                    if (_isDemo) {
+                      return showSliverListWithUsers(_generateMockUsers());
+                    }
                     return SliverToBoxAdapter(
                         child: Padding(
                       padding: const EdgeInsets.all(24.0),
@@ -185,15 +194,27 @@ class _UsersWidgetState extends State<UsersWidget> {
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
+                    if (_isDemo) {
+                      return showSliverListWithUsers(_generateMockUsers());
+                    }
                     return const SliverToBoxAdapter(
                         child: Center(child: CircularProgressIndicator()));
                   }
+
+                  if ((snapshot.data == null || snapshot.data!.docs.isEmpty) &&
+                      _isDemo) {
+                    return showSliverListWithUsers(_generateMockUsers());
+                  }
+
                   return showSliverList(snapshot.data!);
                 }),
             const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
           ]);
           if (!widget.showAppBar) {
-            return scrollView;
+            return Material(
+              type: MaterialType.transparency,
+              child: scrollView,
+            );
           }
           return Scaffold(
             body: scrollView,
@@ -243,5 +264,93 @@ class _UsersWidgetState extends State<UsersWidget> {
               ),
             ),
           );
+  }
+
+  Widget showSliverListWithUsers(Map<String, User> mockUsers) {
+    final theme = Theme.of(context);
+    final filteredEntries = mockUsers.entries.where((entry) {
+      if (_searchTerm == null || _searchTerm!.trim().isEmpty) return true;
+      final q = _searchTerm!.trim().toLowerCase();
+      final name = (entry.value.name ?? '').toLowerCase();
+      final loc = (entry.value.location ?? '').toLowerCase();
+      return name.contains(q) || loc.contains(q);
+    }).toList();
+
+    return filteredEntries.isNotEmpty
+        ? SliverList(
+            delegate:
+                SliverChildBuilderDelegate((BuildContext context, int index) {
+              final entry = filteredEntries[index];
+              return UserListTile(
+                  user: entry.value,
+                  userId: entry.key,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  brokerageUser: widget.brokerageUser,
+                  service: widget.service);
+            }, childCount: filteredEntries.length),
+          )
+        : SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.people_outline,
+                        size: 48, color: theme.disabledColor),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No public traders found',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Traders must enable "Public Portfolio" in their privacy settings to be discoverable.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: theme.disabledColor),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+  }
+
+  Map<String, User> _generateMockUsers() {
+    return {
+      'demo_user_1': User(
+        name: 'AlphaHunter',
+        location: 'New York, NY',
+        followersCount: 342,
+        followingCount: 18,
+        dateCreated: DateTime.now().subtract(const Duration(days: 120)),
+        devices: const [],
+        brokerageUsers: const [],
+        portfolioPrivacy: const PortfolioPrivacySettings(isPublic: true),
+      ),
+      'demo_user_2': User(
+        name: 'QuantumTheta',
+        location: 'Chicago, IL',
+        followersCount: 215,
+        followingCount: 12,
+        dateCreated: DateTime.now().subtract(const Duration(days: 95)),
+        devices: const [],
+        brokerageUsers: const [],
+        portfolioPrivacy: const PortfolioPrivacySettings(isPublic: true),
+      ),
+      'demo_user_3': User(
+        name: 'VolHarvester',
+        location: 'San Francisco, CA',
+        followersCount: 168,
+        followingCount: 25,
+        dateCreated: DateTime.now().subtract(const Duration(days: 80)),
+        devices: const [],
+        brokerageUsers: const [],
+        portfolioPrivacy: const PortfolioPrivacySettings(isPublic: true),
+      ),
+    };
   }
 }
