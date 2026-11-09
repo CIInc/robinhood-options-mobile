@@ -175,7 +175,8 @@ const AUTO_TRADE_DIAGNOSTIC_TRIGGERS = new Set([
 ]);
 const AUTO_TRADE_DIAGNOSTIC_REASONS = new Set([
   "cycle_started", "cycle_completed", "cycle_error", "cycle_in_progress",
-  "lease_unavailable", "emergency_stop", "missing_dependencies",
+  "lease_unavailable", "lease_held", "lease_claim_failed",
+  "missing_user_document", "emergency_stop", "missing_dependencies",
   "auto_trade_disabled", "missing_live_account", "quote_source_unavailable",
   "quote_service_unavailable", "oauth_unavailable", "account_unavailable",
   "market_closed", "stale_quote", "config_missing", "cycle_blocked",

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.2] - 2026-11-09 (pre-release)
+**Startup Reliability, Quote Validation & Market-Data Timestamp Fixes**
+
+- **Startup Resilience:** Bound pre-`runApp` initialization so optional service stalls cannot hold the splash indefinitely; Firebase initialization failures show a retry screen. A native initialization call that never settles still requires an app restart before another attempt can begin.
+- **Auto-Trade Quote Safety:** Use positive executable-side prices with safe fallbacks, and reject stale, missing, or non-finite prices for fresh-quote BUY and TP/SL paths. Paper exits remain simulated.
+- **Background Diagnostics:** Distinguish cycle-lease outcomes, record the user-document read boundary, and retain sanitized platform error codes without exception messages.
+- **Market-Data Timestamps:** Normalize Twelve Data intraday timestamps as UTC, independent of the host timezone.
+- **Demo Position Hydration:** Skip unmatched instruments while preserving updates to all matching positions.
+
 ## [0.61.1] - 2026-11-06 (pre-release)
 **Backtest Input Bounds & On-Device Auto-Trade Diagnostics**
 

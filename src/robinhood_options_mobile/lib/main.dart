@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
@@ -82,31 +84,101 @@ PaperTradingStore get paperTradingStore =>
     _paperTradingStore ??= PaperTradingStore();
 PaperTradingStore? _paperTradingStore;
 
-void main() async {
+const _startupStepTimeout = Duration(seconds: 10);
+const _firebaseInitializationTimeout = Duration(seconds: 15);
+const _startupBudget = Duration(seconds: 45);
+Future<FirebaseApp>? _firebaseInitialization;
+
+Future<FirebaseApp> _initializeFirebaseApp() async {
+  if (Firebase.apps.isNotEmpty) return Firebase.app();
+
+  final initialization = _firebaseInitialization ??= Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  try {
+    return await initialization.timeout(_firebaseInitializationTimeout);
+  } catch (error) {
+    if (error is TimeoutException) {
+      unawaited(initialization.then<void>(
+        (_) {},
+        onError: (Object _) {
+          if (identical(_firebaseInitialization, initialization)) {
+            _firebaseInitialization = null;
+          }
+        },
+      ));
+    } else {
+      _firebaseInitialization = null;
+    }
+    rethrow;
+  }
+}
+
+Future<T?> _awaitStartupStep<T>(
+  String name,
+  Future<T> Function() start, {
+  required DateTime deadline,
+}) async {
+  final remaining = deadline.difference(DateTime.now());
+  if (remaining <= Duration.zero) {
+    debugPrint('Startup step "$name" skipped: startup deadline exceeded');
+    return null;
+  }
+  final timeout =
+      remaining < _startupStepTimeout ? remaining : _startupStepTimeout;
+  try {
+    return await start().timeout(timeout);
+  } catch (error) {
+    debugPrint('Startup step "$name" failed or timed out: $error');
+    return null;
+  }
+}
+
+Future<void> main() async {
   // Needed for Firebase
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  final startupDeadline = DateTime.now().add(_startupBudget);
 
   // Firebase
-  app = await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    app = await _initializeFirebaseApp();
+  } catch (error) {
+    debugPrint('Firebase initialization failed or timed out: $error');
+    FlutterNativeSplash.remove();
+    runApp(_FirebaseStartupFailureApp(onRetry: main));
+    return;
+  }
 
   if (!kIsWeb && !kDebugMode) {
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: const AndroidPlayIntegrityProvider(),
-      providerApple: const AppleDeviceCheckProvider(),
-    );
+    await _awaitStartupStep(
+        'App Check',
+        () => FirebaseAppCheck.instance.activate(
+              providerAndroid: const AndroidPlayIntegrityProvider(),
+              providerApple: const AppleDeviceCheckProvider(),
+            ),
+        deadline: startupDeadline);
   }
 
   if (!kIsWeb) {
-    await GoogleSignIn.instance.initialize(
-      serverClientId: Constants.googleServerClientId,
-    );
+    await _awaitStartupStep(
+        'Google Sign-In',
+        () => GoogleSignIn.instance.initialize(
+              serverClientId: Constants.googleServerClientId,
+            ),
+        deadline: startupDeadline);
   }
 
-  await RemoteConfigService.initialize();
-  await FeatureAccessService.initialize();
+  await _awaitStartupStep(
+    'Remote Config',
+    RemoteConfigService.initialize,
+    deadline: startupDeadline,
+  );
+  await _awaitStartupStep(
+    'Feature Access',
+    FeatureAccessService.initialize,
+    deadline: startupDeadline,
+  );
   SubscriptionService().initialize();
 
   auth = FirebaseAuth.instanceFor(app: app);
@@ -115,11 +187,24 @@ void main() async {
   // web), so auth.currentUser is null on a cold start until the first auth
   // state event fires. Wait for it so startup reads (user role, Firestore
   // paper account) run with the restored session instead of being denied.
-  await auth.authStateChanges().first;
-  await AgenticTradingBackgroundService.initialize();
+  await _awaitStartupStep(
+    'Firebase Auth restore',
+    () => auth.authStateChanges().first,
+    deadline: startupDeadline,
+  );
+  await _awaitStartupStep(
+    'Background task initialization',
+    AgenticTradingBackgroundService.initialize,
+    deadline: startupDeadline,
+  );
 
   authUtil = AuthUtil(auth);
-  userRole = await authUtil.userRole();
+  userRole = await _awaitStartupStep(
+        'User role',
+        authUtil.userRole,
+        deadline: startupDeadline,
+      ) ??
+      UserRole.user;
 
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
@@ -133,8 +218,16 @@ void main() async {
   if (!kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS)) {
-    await MobileAds.instance.initialize();
-    await HomeWidget.setAppGroupId(HomeWidgetService.appGroupId);
+    await _awaitStartupStep(
+      'Mobile Ads initialization',
+      MobileAds.instance.initialize,
+      deadline: startupDeadline,
+    );
+    await _awaitStartupStep(
+      'Home Widget initialization',
+      () => HomeWidget.setAppGroupId(HomeWidgetService.appGroupId),
+      deadline: startupDeadline,
+    );
   }
 
   /*
@@ -146,9 +239,72 @@ void main() async {
   */
 
   final brokerageUserStore = BrokerageUserStore([], 0);
-  await brokerageUserStore.load();
+  await _awaitStartupStep(
+    'Brokerage account cache',
+    brokerageUserStore.load,
+    deadline: startupDeadline,
+  );
 
   runApp(MyApp(brokerageUserStore: brokerageUserStore));
+}
+
+class _FirebaseStartupFailureApp extends StatefulWidget {
+  const _FirebaseStartupFailureApp({required this.onRetry});
+
+  final Future<void> Function() onRetry;
+
+  @override
+  State<_FirebaseStartupFailureApp> createState() =>
+      _FirebaseStartupFailureAppState();
+}
+
+class _FirebaseStartupFailureAppState
+    extends State<_FirebaseStartupFailureApp> {
+  bool _isRetrying = false;
+
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        home: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 40),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Unable to start the app',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Check your connection and try again.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _isRetrying ? null : _retry,
+                      icon: const Icon(Icons.refresh),
+                      label: Text(_isRetrying ? 'Retrying...' : 'Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _retry() async {
+    setState(() => _isRetrying = true);
+    try {
+      await widget.onRetry();
+    } finally {
+      if (mounted) setState(() => _isRetrying = false);
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {

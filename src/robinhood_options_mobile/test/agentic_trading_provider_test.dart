@@ -3,6 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -117,10 +119,19 @@ class EmergencyStopDuringProposalProvider {
   }
 }
 
-class FakeQuote {
-  final double? lastTradePrice;
-  final double? lastExtendedHoursTradePrice = null;
-  FakeQuote(this.lastTradePrice);
+class FakeQuote extends Quote {
+  FakeQuote(double? lastTradePrice)
+      : super(
+          askSize: 0,
+          bidSize: 0,
+          lastTradePrice: lastTradePrice,
+          symbol: 'AAPL',
+          tradingHalted: false,
+          hasTraded: true,
+          lastTradePriceSource: 'test',
+          instrument: '',
+          instrumentId: '',
+        );
 }
 
 class FakeQuoteService {
@@ -242,6 +253,20 @@ void main() {
         ),
         isFalse,
       );
+    });
+
+    test('background failure diagnostics retain platform code, not message',
+        () {
+      final error = PlatformException(
+        code: 'permission-denied',
+        message: 'Sensitive details',
+      );
+
+      final reason =
+          AgenticTradingBackgroundService.diagnosticFailureReason(error);
+
+      expect(reason, 'PlatformException:permission-denied');
+      expect(reason, isNot(contains('Sensitive details')));
     });
 
     test('background auto-trading selects the matching brokerage service', () {
@@ -863,6 +888,107 @@ void main() {
       );
     });
 
+    test('execution prices use the market side and fall back to last trade',
+        () {
+      final quote = Quote(
+        askPrice: 100.25,
+        askSize: 10,
+        bidPrice: 99.75,
+        bidSize: 12,
+        lastTradePrice: 100,
+        symbol: 'AAPL',
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'consolidated',
+        updatedAt: DateTime.now(),
+        instrument: '',
+        instrumentId: '',
+      );
+
+      expect(
+        AgenticTradingProvider.executablePriceFromQuote(
+          quote: quote,
+          isBuy: true,
+        ),
+        100.25,
+      );
+      expect(
+        AgenticTradingProvider.executablePriceFromQuote(
+          quote: quote,
+          isBuy: false,
+        ),
+        99.75,
+      );
+
+      final noSideQuote = Quote(
+        askSize: 0,
+        bidSize: 0,
+        lastTradePrice: 100,
+        symbol: 'AAPL',
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'consolidated',
+        instrument: '',
+        instrumentId: '',
+      );
+      expect(
+        AgenticTradingProvider.executablePriceFromQuote(
+          quote: noSideQuote,
+          isBuy: false,
+        ),
+        100,
+      );
+
+      final zeroLastTradeQuote = Quote(
+        askSize: 0,
+        bidSize: 0,
+        lastTradePrice: 0,
+        lastExtendedHoursTradePrice: 101.5,
+        symbol: 'AAPL',
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'consolidated',
+        instrument: '',
+        instrumentId: '',
+      );
+      expect(
+        AgenticTradingProvider.executablePriceFromQuote(
+          quote: zeroLastTradeQuote,
+          isBuy: false,
+        ),
+        101.5,
+      );
+
+      final nonFiniteQuote = Quote(
+        askPrice: double.infinity,
+        askSize: 0,
+        bidPrice: double.infinity,
+        bidSize: 0,
+        lastTradePrice: double.nan,
+        lastExtendedHoursTradePrice: double.infinity,
+        symbol: 'AAPL',
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: 'test',
+        instrument: '',
+        instrumentId: '',
+      );
+      expect(
+        AgenticTradingProvider.executablePriceFromQuote(
+          quote: nonFiniteQuote,
+          isBuy: false,
+        ),
+        isNull,
+      );
+      expect(
+        AgenticTradingProvider.isQuoteFresh(
+          updatedAt: DateTime.now(),
+          price: double.infinity,
+        ),
+        isFalse,
+      );
+    });
+
     test('approveOrder refuses and drops a BUY priced far from the live quote',
         () async {
       provider.loadConfigFromUser(null);
@@ -1118,18 +1244,23 @@ void main() {
       final userRef = firestore.collection('user').doc('u1');
 
       final firstLease = await provider.claimAutoTradeCycleLease(userRef);
-      expect(firstLease, isNotNull);
-      expect(await provider.claimAutoTradeCycleLease(userRef), isNull);
+      expect(firstLease.owner, isNotNull);
+      expect(firstLease.failureReason, isNull);
+      final blockedLease = await provider.claimAutoTradeCycleLease(userRef);
+      expect(blockedLease.owner, isNull);
+      expect(blockedLease.failureReason, 'lease_held');
 
-      await provider.releaseAutoTradeCycleLease(userRef, firstLease!);
+      await provider.releaseAutoTradeCycleLease(userRef, firstLease.owner!);
 
       final nextLease = await provider.claimAutoTradeCycleLease(userRef);
-      expect(nextLease, isNotNull);
-      await provider.releaseAutoTradeCycleLease(userRef, nextLease!);
+      expect(nextLease.owner, isNotNull);
+      await provider.releaseAutoTradeCycleLease(userRef, nextLease.owner!);
     });
 
     test('execution safeguards fail closed without a user document', () async {
-      expect(await provider.claimAutoTradeCycleLease(null), isNull);
+      final result = await provider.claimAutoTradeCycleLease(null);
+      expect(result.owner, isNull);
+      expect(result.failureReason, 'missing_user_document');
     });
 
     test('execution limits restore from persisted trade history', () {

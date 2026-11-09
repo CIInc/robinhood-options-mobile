@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
@@ -67,6 +68,7 @@ class AgenticTradingCycleDependencies {
         paperTradingStore:
             Provider.of<PaperTradingStore>(context, listen: false),
         quoteStore: Provider.of<QuoteStore>(context, listen: false),
+        requireFreshQuotes: true,
       );
 }
 
@@ -843,13 +845,13 @@ class AgenticTradingProvider with ChangeNotifier {
       return;
     }
 
-    final cycleLeaseId = await claimAutoTradeCycleLease(userDocRef);
-    if (cycleLeaseId == null) {
+    final leaseClaim = await claimAutoTradeCycleLease(userDocRef);
+    if (leaseClaim.owner == null) {
       await logCycleDiagnostic(
         cycleId: diagnosticCycleId,
         phase: 'blocked',
         trigger: trigger,
-        reason: 'lease_unavailable',
+        reason: leaseClaim.failureReason!,
         paperMode: _config.paperTradingMode,
         tradingMode: _config.tradingMode.name,
         quoteSource: _config.paperQuoteSource.name,
@@ -1194,6 +1196,8 @@ class AgenticTradingProvider with ChangeNotifier {
           brokerageService: cycleBrokerageService,
           instrumentStore: instrumentStore,
           paperTradingStore: paperTradingStore,
+          quoteStore: quoteStore,
+          requireFreshQuotes: cycleDependencies.requireFreshQuotes,
           userDocRef: userDocRef,
         );
         // _log(
@@ -1242,7 +1246,7 @@ class AgenticTradingProvider with ChangeNotifier {
       diagnosticPhase = 'failed';
       diagnosticReason = 'cycle_error';
     } finally {
-      await releaseAutoTradeCycleLease(userDocRef, cycleLeaseId);
+      await releaseAutoTradeCycleLease(userDocRef, leaseClaim.owner!);
       await logCycleDiagnostic(
         cycleId: diagnosticCycleId,
         phase: diagnosticPhase,
@@ -1267,9 +1271,11 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   @visibleForTesting
-  Future<String?> claimAutoTradeCycleLease(
+  Future<({String? owner, String? failureReason})> claimAutoTradeCycleLease(
       DocumentReference? userDocRef) async {
-    if (userDocRef == null) return null;
+    if (userDocRef == null) {
+      return (owner: null, failureReason: 'missing_user_document');
+    }
     final owner = const Uuid().v4();
     final leaseRef =
         userDocRef.collection('agentic_trading_cycles').doc('active');
@@ -1293,10 +1299,13 @@ class AgenticTradingProvider with ChangeNotifier {
           return true;
         },
       );
-      return claimed ? owner : null;
+      return claimed
+          ? (owner: owner, failureReason: null)
+          : (owner: null, failureReason: 'lease_held');
     } catch (error) {
-      _log('Could not claim auto-trade cycle lease; skipping: $error');
-      return null;
+      _log(
+          'Could not claim auto-trade cycle lease; skipping: ${error.runtimeType}');
+      return (owner: null, failureReason: 'lease_claim_failed');
     }
   }
 
@@ -2436,9 +2445,34 @@ class AgenticTradingProvider with ChangeNotifier {
     required double? price,
     DateTime? now,
   }) {
-    if (updatedAt == null || price == null || price <= 0) return false;
+    if (updatedAt == null || price == null || !price.isFinite || price <= 0) {
+      return false;
+    }
     final age = (now ?? DateTime.now()).difference(updatedAt);
     return age >= Duration.zero && age <= const Duration(minutes: 5);
+  }
+
+  @visibleForTesting
+  static double? executablePriceFromQuote({
+    required Quote quote,
+    required bool isBuy,
+  }) {
+    final sidePrice = isBuy ? quote.askPrice : quote.bidPrice;
+    if (sidePrice != null && sidePrice.isFinite && sidePrice > 0) {
+      return sidePrice;
+    }
+    final lastTradePrice = quote.lastTradePrice;
+    if (lastTradePrice != null &&
+        lastTradePrice.isFinite &&
+        lastTradePrice > 0) {
+      return lastTradePrice;
+    }
+    final extendedHoursPrice = quote.lastExtendedHoursTradePrice;
+    return extendedHoursPrice != null &&
+            extendedHoursPrice.isFinite &&
+            extendedHoursPrice > 0
+        ? extendedHoursPrice
+        : null;
   }
 
   /// Returns the live price to enter at, or null when the entry must be skipped.
@@ -2462,7 +2496,7 @@ class AgenticTradingProvider with ChangeNotifier {
           ? await brokerageService.refreshQuote(
               brokerageUser, quoteStore, symbol)
           : await brokerageService.getQuote(brokerageUser, quoteStore, symbol);
-      live = quote.lastTradePrice ?? quote.lastExtendedHoursTradePrice;
+      live = executablePriceFromQuote(quote: quote, isBuy: true);
       if (requireFreshQuote &&
           !isQuoteFresh(updatedAt: quote.updatedAt, price: live)) {
         _log('⏭️ Skipping BUY for $symbol: quote is stale or has no timestamp');
@@ -3575,6 +3609,8 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic instrumentStore,
     DocumentReference? userDocRef,
     PaperTradingStore? paperTradingStore,
+    QuoteStore? quoteStore,
+    bool requireFreshQuotes = false,
   }) async {
     if (await _shouldHaltForEmergencyStop(userDocRef)) {
       return {
@@ -3725,13 +3761,25 @@ class AgenticTradingProvider with ChangeNotifier {
             continue;
           }
 
-          final currentPrice =
-              position.instrumentObj?.quoteObj?.lastTradePrice ??
-                  position.instrumentObj?.quoteObj?.lastExtendedHoursTradePrice;
+          final cachedQuote = position.instrumentObj?.quoteObj;
+          final quote = requireFreshQuotes
+              ? quoteStore == null
+                  ? null
+                  : await brokerageService.refreshQuote(
+                      brokerageUser, quoteStore, symbol)
+              : cachedQuote;
+          final currentPrice = quote == null
+              ? null
+              : executablePriceFromQuote(quote: quote, isBuy: false);
 
-          if (currentPrice == null) {
+          if (currentPrice == null ||
+              (requireFreshQuotes &&
+                  !isQuoteFresh(
+                    updatedAt: quote.updatedAt,
+                    price: currentPrice,
+                  ))) {
             _log(
-                '⚠️ No current price available for $symbol, skipping TP/SL check');
+                '⚠️ No fresh executable quote available for $symbol, skipping TP/SL check');
             continue;
           }
 

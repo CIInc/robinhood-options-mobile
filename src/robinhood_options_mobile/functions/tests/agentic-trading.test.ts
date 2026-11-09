@@ -117,6 +117,24 @@ describe("agentic-trading callable functions auth checks", () => {
     expect(response).toEqual({ recorded: true });
   });
 
+  test.each([
+    "lease_held",
+    "lease_claim_failed",
+    "missing_user_document",
+  ])("logAgenticTradingCycle accepts lease result %s", async (reason) => {
+    const response = await (logAgenticTradingCycle as any).run({
+      auth: { uid: "user123", token: {} },
+      data: {
+        cycleId: "cycle_12345678",
+        phase: "blocked",
+        trigger: "background",
+        reason,
+      },
+    });
+
+    expect(response).toEqual({ recorded: true });
+  });
+
   test("logAgenticTradingCycle rejects invalid input", async () => {
     const callFn = () =>
       (logAgenticTradingCycle as any).run({

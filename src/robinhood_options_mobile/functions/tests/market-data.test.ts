@@ -1,5 +1,6 @@
 import { describe, expect, test, jest } from "@jest/globals";
 import { HttpsError } from "firebase-functions/v2/https";
+import { fetchWithRetry } from "../src/utils";
 
 // Mock node-fetch and utils to avoid actual network calls
 jest.mock("node-fetch", () => ({
@@ -35,7 +36,87 @@ jest.mock("firebase-admin/firestore", () => ({
   getFirestore: jest.fn(() => ({})),
 }));
 
-import { getQuotesCall } from "../src/market-data";
+import { fetchFromTwelveData, getQuotesCall } from "../src/market-data";
+
+const mockedFetchWithRetry = jest.mocked(fetchWithRetry);
+
+describe("fetchFromTwelveData timestamps", () => {
+  test.each([
+    ["2026-11-09 15:15:00", "2026-11-09T15:15:00Z"],
+    ["2026-10-30 14:15:00", "2026-10-30T14:15:00Z"],
+  ])("parses UTC intraday bars for %s", async (datetime, expected) => {
+    process.env.TWELVE_DATA_API_KEY = "test_key";
+    mockedFetchWithRetry.mockImplementationOnce(async () => ({
+      ok: true,
+      json: async () => ({
+        meta: {
+          symbol: "AAPL",
+          currency: "USD",
+          exchange: "NASDAQ",
+        },
+        values: [{
+          datetime,
+          open: "100.00",
+          high: "105.00",
+          low: "99.00",
+          close: "104.00",
+          volume: "1234",
+        }],
+      }),
+    } as any));
+
+    const result = await fetchFromTwelveData("AAPL", "15m", "1d");
+
+    expect(mockedFetchWithRetry).toHaveBeenCalledWith(
+      expect.stringContaining("timezone=UTC")
+    );
+    expect(result.timestamp).toEqual([
+      Math.floor(Date.parse(expected) / 1000),
+    ]);
+    expect(result.indicators.quote[0]).toEqual({
+      open: [100],
+      high: [105],
+      low: [99],
+      close: [104],
+      volume: [1234],
+    });
+  });
+
+  test("preserves daily date-only timestamps and OHLC values", async () => {
+    process.env.TWELVE_DATA_API_KEY = "test_key";
+    mockedFetchWithRetry.mockImplementationOnce(async () => ({
+      ok: true,
+      json: async () => ({
+        meta: {
+          symbol: "AAPL",
+          currency: "USD",
+          exchange: "NASDAQ",
+        },
+        values: [{
+          datetime: "2026-11-09",
+          open: "100.00",
+          high: "105.00",
+          low: "99.00",
+          close: "104.00",
+          volume: "1234",
+        }],
+      }),
+    } as any));
+
+    const result = await fetchFromTwelveData("AAPL", "1d", "1mo");
+
+    expect(result.timestamp).toEqual([
+      Math.floor(Date.parse("2026-11-09T00:00:00Z") / 1000),
+    ]);
+    expect(result.indicators.quote[0]).toEqual({
+      open: [100],
+      high: [105],
+      low: [99],
+      close: [104],
+      volume: [1234],
+    });
+  });
+});
 
 describe("getQuotesCall Security & Input Validation", () => {
   test("rejects unauthenticated request (null auth)", async () => {

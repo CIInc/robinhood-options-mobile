@@ -99,6 +99,20 @@ async function fetchQuotesFromTwelveData(symbols: string[]): Promise<any> {
 }
 
 /**
+ * Parses Twelve Data timestamps as UTC unless they include an offset.
+ * @param {string} datetime Timestamp returned by Twelve Data.
+ * @return {number} Unix timestamp in seconds.
+ */
+function parseTwelveDataTimestamp(datetime: string): number {
+  const normalizedDatetime = datetime.replace(" ", "T");
+  const utcDatetime = /^\d{4}-\d{2}-\d{2}$/.test(normalizedDatetime) ?
+    `${normalizedDatetime}T00:00:00Z` :
+    /(?:Z|[+-]\d{2}:?\d{2})$/i.test(normalizedDatetime) ?
+      normalizedDatetime : `${normalizedDatetime}Z`;
+  return Math.floor(Date.parse(utcDatetime) / 1000);
+}
+
+/**
  * Fetches market data for a given symbol from Twelve Data.
  * @param {string} symbol The stock symbol.
  * @param {string} interval The chart interval (1d, 1h, etc.)
@@ -145,7 +159,8 @@ export async function fetchFromTwelveData(
     else outputsize = barsPerDay * 5; // Default for intraday
   }
 
-  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${twelveInterval}&outputsize=${outputsize}&apikey=${apiKey}`;
+  const timezone = interval === "1d" ? "" : "&timezone=UTC";
+  const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${twelveInterval}&outputsize=${outputsize}${timezone}&apikey=${apiKey}`;
 
   try {
     const resp = await fetchWithRetry(url);
@@ -171,7 +186,7 @@ export async function fetchFromTwelveData(
         exchangeName: data.meta.exchange,
       },
       timestamp: values.map((v: any) =>
-        Math.floor(new Date(v.datetime).getTime() / 1000)),
+        parseTwelveDataTimestamp(v.datetime)),
       indicators: {
         quote: [{
           open: values.map((v: any) => parseFloat(v.open)),

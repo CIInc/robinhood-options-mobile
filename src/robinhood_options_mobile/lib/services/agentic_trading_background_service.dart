@@ -5,6 +5,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
@@ -122,6 +123,14 @@ class AgenticTradingBackgroundService {
       hasUserDocument && autoTradeEnabled;
 
   @visibleForTesting
+  static String diagnosticFailureReason(Object error) {
+    if (error is PlatformException) {
+      return '${error.runtimeType}:${error.code}';
+    }
+    return error.runtimeType.toString();
+  }
+
+  @visibleForTesting
   static bool isFreshQuote({
     required DateTime? updatedAt,
     required double? price,
@@ -186,7 +195,15 @@ class AgenticTradingBackgroundService {
     );
 
     final userDocRef = FirestoreService().userCollection.doc(firebaseUser.uid);
+    await _recordLocalEvent(
+      event: 'user_document_read_started',
+      cycleId: cycleId,
+    );
     final userSnapshot = await userDocRef.get();
+    await _recordLocalEvent(
+      event: 'user_document_read_completed',
+      cycleId: cycleId,
+    );
     final user = userSnapshot.data();
     final config = user?.agenticTradingConfig;
     if (config == null || !config.autoTradeEnabled) {
@@ -508,7 +525,7 @@ void agenticTradingBackgroundDispatcher() {
       final cycleId = AgenticTradingBackgroundService._activeCycleDiagnosticId;
       await AgenticTradingBackgroundService._recordLocalEvent(
         event: 'task_failed',
-        reason: error.runtimeType.toString(),
+        reason: AgenticTradingBackgroundService.diagnosticFailureReason(error),
         cycleId: cycleId,
       );
       if (cycleId != null) {
