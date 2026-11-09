@@ -1,4 +1,4 @@
-import { describe, expect, test, jest } from "@jest/globals";
+import { describe, expect, test, jest, beforeEach } from "@jest/globals";
 import { HttpsError } from "firebase-functions/v2/https";
 
 const mockSendEachForMulticast = jest.fn(async () => ({
@@ -16,6 +16,10 @@ jest.mock("firebase-admin/messaging", () => ({
 import { sendEachForMulticast } from "../src/messaging";
 
 describe("sendEachForMulticast Security Checks", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("rejects unauthenticated caller", async () => {
     const unauthenticatedRequest = {
       auth: null,
@@ -54,6 +58,97 @@ describe("sendEachForMulticast Security Checks", () => {
     });
   });
 
+  test("rejects missing or empty tokens array", async () => {
+    const emptyTokensRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        title: "Test Title",
+        body: "Test Body",
+        tokens: [],
+      },
+    };
+
+    const callFn = () =>
+      (sendEachForMulticast as any).run(emptyTokensRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects tokens exceeding 500 count limit", async () => {
+    const excessiveTokensRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        title: "Test Title",
+        body: "Test Body",
+        tokens: new Array(501).fill("token"),
+      },
+    };
+
+    const callFn = () =>
+      (sendEachForMulticast as any).run(excessiveTokensRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects invalid token elements (non-string or empty)", async () => {
+    const invalidTokenRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        title: "Test Title",
+        body: "Test Body",
+        tokens: ["token1", ""],
+      },
+    };
+
+    const callFn = () =>
+      (sendEachForMulticast as any).run(invalidTokenRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects missing or empty title/body", async () => {
+    const invalidTitleRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        title: "   ",
+        body: "Test Body",
+        tokens: ["token1"],
+      },
+    };
+
+    const callFn = () =>
+      (sendEachForMulticast as any).run(invalidTitleRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects oversized imageUrl or route", async () => {
+    const oversizedUrlRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        title: "Test Title",
+        body: "Test Body",
+        imageUrl: "http://example.com/" + "a".repeat(2048),
+        tokens: ["token1"],
+      },
+    };
+
+    const callFn = () =>
+      (sendEachForMulticast as any).run(oversizedUrlRequest);
+
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
   test("allows admin caller to send multicast message", async () => {
     const adminRequest = {
       auth: { uid: "admin123", token: { role: "admin" } },
@@ -85,4 +180,29 @@ describe("sendEachForMulticast Security Checks", () => {
       responses: [],
     });
   });
+
+  test("handles unexpected send errors securely with internal HttpsError",
+    async () => {
+      mockSendEachForMulticast.mockRejectedValueOnce(
+        new Error("FCM network error")
+      );
+
+      const adminRequest = {
+        auth: { uid: "admin123", token: { role: "admin" } },
+        data: {
+          title: "Test Title",
+          body: "Test Body",
+          tokens: ["token1"],
+        },
+      };
+
+      const callFn = () =>
+        (sendEachForMulticast as any).run(adminRequest);
+
+      await expect(callFn()).rejects.toMatchObject({
+        code: "internal",
+        message: "Failed to deliver multicast notifications.",
+      });
+    }
+  );
 });
