@@ -108,21 +108,26 @@ class TailRiskCard extends StatelessWidget {
   Widget _metric(
       BuildContext context, String label, String value, Color color) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: theme.textTheme.labelSmall),
-          const SizedBox(height: 4),
-          Text(value,
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(color: color, fontWeight: FontWeight.bold)),
-        ],
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$label: $value',
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: theme.textTheme.labelSmall),
+            const SizedBox(height: 4),
+            Text(value,
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
