@@ -7,6 +7,13 @@ import { getMarketData } from "./market-data";
 
 const db = getFirestore();
 
+const ALLOWED_INTERVALS = new Set([
+  "1m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo",
+]);
+// Prevent path traversal and limit contract ID / symbol formats
+const VALID_CONTRACT_REGEX = /^[A-Za-z0-9_.-]{1,30}$/;
+const VALID_SYMBOL_REGEX = /^[A-Za-z0-9_=.^/-]{1,30}$/;
+
 interface FuturesSignalConfig {
   tradeQuantity?: number;
   maxContracts?: number;
@@ -45,8 +52,18 @@ export async function performFuturesSignal(request: any) {
   const config: FuturesSignalConfig = data.config || {};
   const portfolioState = data.portfolioState || {};
 
-  if (!symbol || !contractId) {
-    return { status: "error", message: "symbol and contractId are required" };
+  if (
+    typeof symbol !== "string" ||
+    !VALID_SYMBOL_REGEX.test(symbol) ||
+    typeof contractId !== "string" ||
+    !VALID_CONTRACT_REGEX.test(contractId) ||
+    !ALLOWED_INTERVALS.has(interval) ||
+    contractId === "futures_watchlist"
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Invalid or disallowed symbol, contractId, or interval."
+    );
   }
 
   const marketData = await getMarketData(
@@ -267,10 +284,30 @@ export const getFuturesSignals = onCall(async (request) => {
       "Authentication is required to get futures signals."
     );
   }
+  // SECURITY: Non-admin users cannot mutate global signals or trigger
+  // notification broadcasts; enforce skipSignalUpdate for non-admins.
+  const isAdmin = request.auth.token?.role === "admin";
+  const sanitizedRequest = {
+    ...request,
+    data: {
+      ...request.data,
+      config: {
+        ...(request.data?.config || {}),
+        skipSignalUpdate: !isAdmin ||
+          request.data?.config?.skipSignalUpdate === true,
+      },
+    },
+  };
   try {
-    return await performFuturesSignal(request);
+    return await performFuturesSignal(sanitizedRequest);
   } catch (err) {
+    if (err instanceof HttpsError) {
+      throw err;
+    }
     logger.error("getFuturesSignals failed", err);
-    return { status: "error", message: (err as Error).message };
+    throw new HttpsError(
+      "internal",
+      "An unexpected error occurred while evaluating futures signals."
+    );
   }
 });
