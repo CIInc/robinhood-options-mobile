@@ -15,6 +15,8 @@ import {
   computeStochasticArray,
   computeBollingerBandsArray,
   computeBollingerBands,
+  computeATR,
+  computeATRArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
   computeScalarOBV,
@@ -733,6 +735,64 @@ describe("Technical Indicators", () => {
         expect(resEnd.signal).toBe(resSliced.signal);
         expect(resEnd.value).toBeCloseTo(resSliced.value as number, 5);
         expect(resEnd.reason).toBe(resSliced.reason);
+      }
+    });
+  });
+
+  describe("computeATRArray", () => {
+    it("should return array of nulls for insufficient data", () => {
+      const highs = [10, 12, 11];
+      const lows = [9, 10, 9];
+      const closes = [10, 11, 10];
+      const res = computeATRArray(highs, lows, closes, 14);
+      expect(res).toEqual([null, null, null]);
+    });
+
+    it("should correctly compute initial and smoothed ATR values", () => {
+      const N = 50;
+      const period = 14;
+      const highs = Array.from(
+        { length: N },
+        (_, i) => 105 + i * 0.2 + (i % 3)
+      );
+      const lows = Array.from(
+        { length: N },
+        (_, i) => 95 + i * 0.2 - (i % 2)
+      );
+      const closes = Array.from(
+        { length: N },
+        (_, i) => 100 + i * 0.2
+      );
+
+      const atrSeries = computeATRArray(highs, lows, closes, period);
+      expect(atrSeries.length).toBe(N);
+
+      for (let i = 0; i < period; i++) {
+        expect(atrSeries[i]).toBeNull();
+      }
+
+      // Check values against computeATR at each step
+      for (let i = period; i < N; i++) {
+        const scalarAtr = computeATR(highs, lows, closes, period, i + 1);
+        expect(atrSeries[i]).not.toBeNull();
+        expect(atrSeries[i]).toBeCloseTo(scalarAtr as number, 8);
+      }
+    });
+
+    it("should respect endIndex parameter", () => {
+      const N = 40;
+      const period = 10;
+      const highs = Array.from({ length: N }, (_, i) => 100 + i);
+      const lows = Array.from({ length: N }, (_, i) => 90 + i);
+      const closes = Array.from({ length: N }, (_, i) => 95 + i);
+
+      const end = 25;
+      const atrSeries = computeATRArray(highs, lows, closes, period, end);
+      expect(atrSeries.length).toBe(end);
+
+      const fullSeries = computeATRArray(highs, lows, closes, period);
+      for (let i = 0; i < end; i++) {
+        expect(atrSeries[i]).toBe(fullSeries[i]);
       }
     });
   });
