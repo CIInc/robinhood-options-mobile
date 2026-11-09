@@ -790,6 +790,80 @@ void main() {
         expect(find.text('LOS4'), findsNothing);
         expect(find.text('Show more (10 total)'), findsOneWidget);
       });
+
+      testWidgets(
+          'provides accessible semantics with gain/loss context and expanded state',
+          (WidgetTester tester) async {
+        final positions = [
+          buildPosition(
+              symbol: 'AAPL', price: 150, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'TSLA', price: 50, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'MSFT', price: 120, previousClose: 100, quantity: 1),
+          buildPosition(
+              symbol: 'NVDA', price: 80, previousClose: 100, quantity: 1),
+        ];
+
+        final accountStore = AccountStore();
+
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: accountStore,
+            child: MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: PortfolioMoversWidget(
+                    positions: positions,
+                    rowCount: 1,
+                    onMoverTap: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Check Semantics for winner row
+        expect(
+          find.bySemanticsLabel(RegExp(r'AAPL, gained \$50, 50(\.0)?% today')),
+          findsOneWidget,
+        );
+
+        // Check Semantics for loser row
+        expect(
+          find.bySemanticsLabel(RegExp(r'TSLA, lost \$50, 50(\.0)?% today')),
+          findsOneWidget,
+        );
+
+        // Check Semantics for expansion button
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is Semantics &&
+                w.properties.button == true &&
+                w.properties.expanded == false &&
+                (w.properties.label?.contains('Show more movers') ?? false),
+          ),
+          findsOneWidget,
+        );
+
+        // Tap expand and verify expanded property turns true
+        await tester.tap(find.text('Show more (4 total)'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is Semantics &&
+                w.properties.button == true &&
+                w.properties.expanded == true &&
+                (w.properties.label?.contains('Show fewer movers') ?? false),
+          ),
+          findsOneWidget,
+        );
+      });
     });
 
     group('Concentration Risk Alert and Navigation Tests', () {
