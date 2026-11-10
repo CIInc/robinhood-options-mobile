@@ -15,6 +15,8 @@ import {
   computeStochasticArray,
   computeBollingerBandsArray,
   computeBollingerBands,
+  computeATR,
+  computeATRArray,
   computeKeltnerChannels,
   computeKeltnerChannelsArray,
   computeScalarOBV,
@@ -573,6 +575,67 @@ describe("Technical Indicators", () => {
       expect(scalarRes!.middle).toBeCloseTo(lastArrayElem!.middle, 5);
       expect(scalarRes!.upper).toBeCloseTo(lastArrayElem!.upper, 5);
       expect(scalarRes!.lower).toBeCloseTo(lastArrayElem!.lower, 5);
+    });
+  });
+
+  describe("computeATRArray", () => {
+    it("should return array of nulls for insufficient data", () => {
+      const highs = [10, 11, 12];
+      const lows = [8, 9, 10];
+      const closes = [9, 10, 11];
+      const res = computeATRArray(highs, lows, closes, 14);
+      expect(res).toHaveLength(3);
+      expect(res.every((v) => v === null)).toBe(true);
+    });
+
+    it("should match scalar computeATR across trailing indices", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 60; i++) {
+        const base = 100 + Math.sin(i / 4) * 8 + i * 0.3;
+        highs.push(base + 2.5);
+        lows.push(base - 2.5);
+        closes.push(base + (i % 2 === 0 ? 0.8 : -0.8));
+      }
+
+      const period = 14;
+      const arr = computeATRArray(highs, lows, closes, period);
+
+      expect(arr).toHaveLength(closes.length);
+      // First `period` entries should be null
+      for (let i = 0; i < period; i++) {
+        expect(arr[i]).toBeNull();
+      }
+
+      // Remaining entries should match scalar computeATR with endIndex
+      for (let i = period + 1; i <= closes.length; i++) {
+        const scalar = computeATR(highs, lows, closes, period, i);
+        const fromArr = arr[i - 1];
+        expect(fromArr).not.toBeNull();
+        expect(scalar).not.toBeNull();
+        expect(fromArr).toBeCloseTo(scalar!, 5);
+      }
+    });
+
+    it("should respect custom endIndex parameter", () => {
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      for (let i = 0; i < 50; i++) {
+        const base = 100 + i * 0.2;
+        highs.push(base + 2);
+        lows.push(base - 2);
+        closes.push(base);
+      }
+
+      const period = 14;
+      const endIndex = 35;
+      const arr = computeATRArray(highs, lows, closes, period, endIndex);
+      expect(arr).toHaveLength(endIndex);
+
+      const scalar = computeATR(highs, lows, closes, period, endIndex);
+      expect(arr[endIndex - 1]).toBeCloseTo(scalar!, 5);
     });
   });
 
