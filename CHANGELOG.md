@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.3] - 2026-11-12 (pre-release)
+**Paper Auto-Trade Exit Reliability**
+
+- **Queued Paper TP/SL Exits:** If a simulated exit is triggered while the market is closed, it is retained as a pending Paper order and reconciled on a later eligible cycle. Filled exits update automated trade history and staged-exit tracking; no brokerage order is submitted.
+
 ## [0.61.2] - 2026-11-09 (pre-release)
 **Startup Reliability, Quote Validation & Market-Data Timestamp Fixes**
 
