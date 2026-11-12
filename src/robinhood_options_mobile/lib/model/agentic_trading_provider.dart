@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
@@ -226,25 +227,31 @@ class AgenticTradingProvider with ChangeNotifier {
     String action,
     String symbol,
     int quantity,
-    double price,
-  ) {
+    double price, {
+    String state = 'filled',
+    String? orderId,
+  }) {
     // Simulate successful order response
+    final id = orderId ?? 'paper_${DateTime.now().millisecondsSinceEpoch}';
+    final isFilled = state == 'filled';
     final simulatedResponse = {
-      'id': 'paper_${DateTime.now().millisecondsSinceEpoch}',
+      'id': id,
       'symbol': symbol,
       'side': action.toLowerCase(),
       'quantity': quantity,
       'price': price,
-      'state': 'filled',
+      'state': state,
       'type': 'market',
       'time_in_force': 'gtc',
-      'executions': [
-        {
-          'price': price.toString(),
-          'quantity': quantity.toString(),
-          'timestamp': DateTime.now().toIso8601String(),
-        }
-      ],
+      'executions': isFilled
+          ? [
+              {
+                'price': price.toString(),
+                'quantity': quantity.toString(),
+                'timestamp': DateTime.now().toIso8601String(),
+              }
+            ]
+          : [],
     };
 
     return http.Response(
@@ -1202,18 +1209,20 @@ class AgenticTradingProvider with ChangeNotifier {
         );
         // _log(
         //     '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
-        if (tpSlResult['exitsExecuted'] > 0) {
-          exitsExecuted = tpSlResult['exitsExecuted'] as int;
+        final exitsCount = (tpSlResult['exitsExecuted'] as int?) ?? 0;
+        final placedCount = (tpSlResult['exitsPlaced'] as int?) ?? 0;
+        if (exitsCount > 0 || placedCount > 0) {
+          exitsExecuted = exitsCount;
           _log('📊 TP/SL result: ${tpSlResult['message']}');
 
           // Merge exits into result for Last Execution display
-          final exits = tpSlResult['exits'] as List;
+          final exits = (tpSlResult['exits'] as List?) ?? [];
           final currentTrades = result['trades'] as List? ?? [];
           final allTrades = [...currentTrades, ...exits];
 
           result['trades'] = allTrades;
-          result['tradesExecuted'] = (result['tradesExecuted'] as int? ?? 0) +
-              (tpSlResult['exitsExecuted'] as int);
+          result['tradesExecuted'] =
+              (result['tradesExecuted'] as int? ?? 0) + exitsCount;
           ordersExecuted = result['tradesExecuted'] as int;
 
           if (tpSlResult['message'] != null &&
@@ -2532,25 +2541,50 @@ class AgenticTradingProvider with ChangeNotifier {
     PaperTradingStore? paperTradingStore,
   }) async {
     if (isPaperMode) {
+      String orderState = 'filled';
+      String? orderId;
       if (paperTradingStore != null && instrument != null) {
         try {
-          // Assume stock order for now as agentic trading focuses on stocks
-          // Cast instrument to required type if possible, or rely on dynamic dispatch
-          await paperTradingStore.executeStockOrder(
-            instrument: instrument,
+          Instrument? inst;
+          if (instrument is Instrument) {
+            inst = instrument;
+          } else if (instrument is Map<String, dynamic>) {
+            inst = Instrument.fromJson(instrument);
+          } else {
+            try {
+              inst = Instrument.fromJson((instrument as dynamic).toJson());
+            } catch (_) {
+              inst = Instrument.forSymbol(symbol);
+            }
+          }
+
+          final result = await paperTradingStore.submitStockOrder(
+            instrument: inst,
             quantity: quantity.toDouble(),
-            price: price,
             side: action.toLowerCase(),
             orderType: 'market',
+            marketPrice: price,
           );
+          orderState = result.state;
+          orderId = result.id;
         } catch (e) {
           _log('❌ Error persisting paper trade: $e');
           // Start simulation anyway so the loop continues, or fail?
           // If persistence fails, maybe we should fail the order.
           return http.Response('Error persisting paper trade: $e', 400);
         }
+      } else {
+        final marketOpen = MarketHours.isMarketOpen();
+        orderState = marketOpen ? 'filled' : 'confirmed';
       }
-      return _simulatePaperOrder(action, symbol, quantity, price);
+      return _simulatePaperOrder(
+        action,
+        symbol,
+        quantity,
+        price,
+        state: orderState,
+        orderId: orderId,
+      );
     }
     return await brokerageService.placeInstrumentOrder(
       brokerageUser,
@@ -3616,8 +3650,10 @@ class AgenticTradingProvider with ChangeNotifier {
       return {
         'success': false,
         'exitsExecuted': 0,
+        'exitsPlaced': 0,
         'message': 'Emergency stop is activated or unavailable',
         'exits': [],
+        'placedExits': [],
       };
     }
 
@@ -3627,8 +3663,10 @@ class AgenticTradingProvider with ChangeNotifier {
       return {
         'success': false,
         'exitsExecuted': 0,
+        'exitsPlaced': 0,
         'message': 'Exit monitor already running',
         'exits': [],
+        'placedExits': [],
       };
     }
     _isMonitoringExits = true;
@@ -3645,8 +3683,10 @@ class AgenticTradingProvider with ChangeNotifier {
         return {
           'success': false,
           'exitsExecuted': 0,
+          'exitsPlaced': 0,
           'message': 'Missing required parameters',
           'exits': [],
+          'placedExits': [],
         };
       }
 
@@ -3670,6 +3710,7 @@ class AgenticTradingProvider with ChangeNotifier {
       */
 
       final executedExits = <Map<String, dynamic>>[];
+      final placedExits = <Map<String, dynamic>>[];
       final tradesToRemove = <Map<String, dynamic>>[];
       // Shares still held per symbol, shared by every tracked lot of that symbol.
       final remainingBySymbol = <String, int>{};
@@ -3683,6 +3724,116 @@ class AgenticTradingProvider with ChangeNotifier {
         userDocRef: userDocRef,
         now: MarketHours.testTime ?? DateTime.now(),
       );
+
+      // Reconcile pending paper exits that were queued for market open
+      if (isPaperMode && paperTradingStore != null) {
+        final quotes = <String, double>{};
+        for (var p in positions) {
+          final sym = p.instrumentObj?.symbol;
+          final pr =
+              p.instrumentObj?.quoteObj?.lastTradePrice ?? p.averageBuyPrice;
+          if (sym != null && pr != null) {
+            quotes[sym] = pr;
+          }
+        }
+        if (quotes.isNotEmpty) {
+          await paperTradingStore.evaluatePendingOrders(stockPrices: quotes);
+        }
+
+        for (final buyTrade
+            in List<Map<String, dynamic>>.from(_automatedBuyTrades)) {
+          final pendingOrderId = buyTrade['pendingExitOrderId'] as String?;
+          if (pendingOrderId == null) continue;
+
+          final symbol = buyTrade['symbol'] as String?;
+          if (symbol == null) continue;
+
+          final isStillPending = paperTradingStore.pendingOrders
+              .any((o) => o.id == pendingOrderId);
+          if (isStillPending) {
+            // Still resting in pending orders, not filled yet
+            continue;
+          }
+
+          // Order has left pending orders! Reconcile as filled
+          final entryPrice =
+              (buyTrade['entryPrice'] as num?)?.toDouble() ?? 0.0;
+          final exitQty = (buyTrade['pendingExitQuantity'] as num?)?.toInt() ??
+              (buyTrade['quantity'] as num?)?.toInt() ??
+              0;
+          final exitReason = buyTrade['pendingExitReason'] as String? ??
+              'Take Profit / Stop Loss';
+          final stageIndex = buyTrade['pendingExitStageIndex'] as int?;
+
+          double? fillPrice;
+          final historyMatches = paperTradingStore.history.where(
+            (h) =>
+                (h['symbol'] as String?)?.toUpperCase() ==
+                    symbol.toUpperCase() &&
+                (h['side'] as String?)?.toLowerCase() == 'sell',
+          );
+          if (historyMatches.isNotEmpty) {
+            fillPrice = (historyMatches.first['price'] as num?)?.toDouble();
+          }
+          fillPrice ??=
+              positionMap[symbol]?.instrumentObj?.quoteObj?.lastTradePrice ??
+                  (buyTrade['pendingExitPrice'] as num?)?.toDouble() ??
+                  entryPrice;
+
+          final fillRecord = {
+            'timestamp': DateTime.now().toIso8601String(),
+            'symbol': symbol,
+            'action': 'SELL',
+            'quantity': exitQty,
+            'entryPrice': entryPrice,
+            'exitPrice': fillPrice,
+            'profitLoss': (fillPrice - entryPrice) * exitQty,
+            'profitLossPercent': entryPrice > 0
+                ? ((fillPrice - entryPrice) / entryPrice) * 100
+                : 0.0,
+            'reason': '$exitReason (executed at open)',
+            'status': 'filled',
+            'paperMode': true,
+            'enabledIndicators': buyTrade['enabledIndicators'] ?? [],
+          };
+
+          executedExits.add(fillRecord);
+          _executedOrderCount++;
+          _autoTradeHistory.insert(0, fillRecord);
+          _addTradeToHistoryFirestore(fillRecord, userDocRef);
+
+          if (_autoTradeHistory.length > 100) {
+            _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+          }
+
+          if (stageIndex != null) {
+            final executedStages =
+                List<int>.from(buyTrade['executedStages'] ?? []);
+            executedStages.add(stageIndex);
+            buyTrade['executedStages'] = executedStages;
+            final buyQuantity =
+                (buyTrade['quantity'] as num?)?.toInt() ?? exitQty;
+            buyTrade['quantity'] = buyQuantity - exitQty;
+            buyTrade.remove('pendingExitOrderId');
+            buyTrade.remove('pendingExitQuantity');
+            buyTrade.remove('pendingExitReason');
+            buyTrade.remove('pendingExitPrice');
+            buyTrade.remove('pendingExitStageIndex');
+            buyTrade.remove('pendingExitPlacedAt');
+
+            if (buyTrade['quantity'] <= 0) {
+              tradesToRemove.add(buyTrade);
+            } else if (userDocRef != null) {
+              unawaited(_saveAutomatedBuyTradesToFirestore(userDocRef));
+            }
+          } else {
+            tradesToRemove.add(buyTrade);
+          }
+
+          _log(
+              '✅ $symbol queued exit order executed at market open: SELL $exitQty at \$$fillPrice');
+        }
+      }
 
       // Pre-fetch signals for all relevant symbols in parallel to avoid sequential waits
       final technicalExitEnabled = _config.strategyConfig.rsiExitEnabled ||
@@ -3726,6 +3877,7 @@ class AgenticTradingProvider with ChangeNotifier {
       // Check each automated buy trade (copy: other cycles add trades while this awaits)
       for (final buyTrade in List.of(_automatedBuyTrades)) {
         if (await _shouldHaltForEmergencyStop(userDocRef)) break;
+        if (tradesToRemove.contains(buyTrade)) continue;
         try {
           final symbol = buyTrade['symbol'] as String?;
           final buyQuantity = buyTrade['quantity'] as int?;
@@ -3747,6 +3899,18 @@ class AgenticTradingProvider with ChangeNotifier {
           final tradePaperMode = buyTrade['paperMode'] as bool?;
           final currentMode = _config.paperTradingMode;
           if (tradePaperMode != null && tradePaperMode != currentMode) {
+            continue;
+          }
+
+          // If this paper trade already has a resting exit order placed and queued for market open, skip it
+          final pendingExitOrderId = buyTrade['pendingExitOrderId'] as String?;
+          if (isPaperMode &&
+              pendingExitOrderId != null &&
+              paperTradingStore != null &&
+              paperTradingStore.pendingOrders
+                  .any((o) => o.id == pendingExitOrderId)) {
+            _log(
+                '⏳ $symbol exit order already placed and queued for market open (orderId: $pendingExitOrderId)');
             continue;
           }
 
@@ -4144,8 +4308,10 @@ class AgenticTradingProvider with ChangeNotifier {
             }
 
             // Get instrument data
-            final instrument = await _getInstrument(
-                brokerageService, brokerageUser, instrumentStore, symbol);
+            final instrument = position.instrumentObj ??
+                await _getInstrument(
+                    brokerageService, brokerageUser, instrumentStore, symbol) ??
+                (isPaperMode ? Instrument.forSymbol(symbol) : null);
 
             if (instrument == null) {
               _log('⚠️ Could not find instrument for $symbol, skipping exit');
@@ -4207,6 +4373,49 @@ class AgenticTradingProvider with ChangeNotifier {
                         'Exit order was accepted; this does not confirm a fill.',
                   );
                 }
+
+                Map<String, dynamic>? parsedOrder;
+                try {
+                  parsedOrder =
+                      jsonDecode(orderResponse.body) as Map<String, dynamic>?;
+                } catch (_) {}
+                final orderState = parsedOrder?['state'] as String?;
+                final orderId = parsedOrder?['id'] as String?;
+                final isFilled = orderState == 'filled' ||
+                    (orderState == null && !isPaperMode);
+
+                if (isPaperMode && !isFilled) {
+                  buyTrade['pendingExitOrderId'] = orderId;
+                  buyTrade['pendingExitQuantity'] = quantityToSell;
+                  buyTrade['pendingExitReason'] = exitReason;
+                  buyTrade['pendingExitPrice'] = currentPrice;
+                  buyTrade['pendingExitStageIndex'] = stageIndexToMark;
+                  buyTrade['pendingExitPlacedAt'] =
+                      DateTime.now().toIso8601String();
+
+                  if (userDocRef != null) {
+                    await _saveAutomatedBuyTradesToFirestore(userDocRef);
+                  }
+
+                  final placedRecord = {
+                    'timestamp': DateTime.now().toIso8601String(),
+                    'symbol': symbol,
+                    'action': 'SELL',
+                    'quantity': quantityToSell,
+                    'entryPrice': entryPrice,
+                    'exitPrice': currentPrice,
+                    'reason': exitReason,
+                    'orderId': orderId,
+                    'status': orderState ?? 'confirmed',
+                    'paperMode': true,
+                  };
+                  placedExits.add(placedRecord);
+
+                  _log(
+                      '⏳ Exit order placed and queued for market open for $symbol: SELL $quantityToSell at \$$currentPrice ($exitReason, orderId: $orderId)');
+                  continue;
+                }
+
                 final exitRecord = {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
@@ -4413,14 +4622,18 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       final message = executedExits.isEmpty
-          ? 'No exits triggered'
-          : 'Executed ${executedExits.length} exit(s)';
+          ? (placedExits.isEmpty
+              ? 'No exits triggered'
+              : 'Placed ${placedExits.length} exit(s) queued for market open')
+          : 'Executed ${executedExits.length} exit(s)${placedExits.isNotEmpty ? ', placed ${placedExits.length} queued for market open' : ''}';
 
       return {
-        'success': executedExits.isNotEmpty,
+        'success': executedExits.isNotEmpty || placedExits.isNotEmpty,
         'exitsExecuted': executedExits.length,
+        'exitsPlaced': placedExits.length,
         'message': message,
         'exits': executedExits,
+        'placedExits': placedExits,
       };
     } catch (e) {
       _log('❌ Take profit/stop loss monitoring failed: $e');
@@ -4432,8 +4645,10 @@ class AgenticTradingProvider with ChangeNotifier {
       return {
         'success': false,
         'exitsExecuted': 0,
+        'exitsPlaced': 0,
         'message': 'Monitoring failed: ${e.toString()}',
         'exits': [],
+        'placedExits': [],
       };
     } finally {
       _isMonitoringExits = false;

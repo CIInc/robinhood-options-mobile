@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -120,7 +121,7 @@ class EmergencyStopDuringProposalProvider {
 }
 
 class FakeQuote extends Quote {
-  FakeQuote(double? lastTradePrice)
+  const FakeQuote(double? lastTradePrice)
       : super(
           askSize: 0,
           bidSize: 0,
@@ -532,6 +533,112 @@ void main() {
         isEmpty,
       );
       paperTradingStore.dispose();
+    });
+
+    test(
+        'Paper TP/SL outside market open places resting order and executes at market open',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          takeProfitPercent: 5.0,
+          stopLossPercent: 5.0,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      final quote = FakeQuote(165.0);
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      // 1. Establish initial stock position in paper store (bought at 150)
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 150.0,
+        side: 'buy',
+      );
+
+      // Track automated buy trade in provider
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 150.0,
+        'paperMode': true,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      // 2. Set test time to Sunday (market closed)
+      MarketHours.testTime = DateTime.utc(2023, 10, 22, 12, 0);
+
+      try {
+        // Monitor TP/SL while market is closed
+        final resultClosed = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Verify: Exit is placed/confirmed, NOT executed/filled
+        expect(resultClosed['success'], isTrue);
+        expect(resultClosed['exitsExecuted'], equals(0));
+        expect(resultClosed['exitsPlaced'], equals(1));
+        expect(resultClosed['message'],
+            contains('Placed 1 exit(s) queued for market open'));
+        expect(provider.autoTradeHistory, isEmpty);
+        expect(paperTradingStore.pendingOrders, hasLength(1));
+        expect(paperTradingStore.pendingOrders.first.symbol, equals('AAPL'));
+        expect(paperTradingStore.pendingOrders.first.side, equals('sell'));
+        expect(provider.automatedBuyTrades, hasLength(1));
+        final pendingOrderId =
+            provider.automatedBuyTrades.first['pendingExitOrderId'];
+        expect(pendingOrderId, isNotNull);
+        expect(
+            pendingOrderId, equals(paperTradingStore.pendingOrders.first.id));
+
+        // 3. Re-running while still closed skips the position because exit is already queued
+        final resultStillClosed = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+        expect(resultStillClosed['exitsExecuted'], equals(0));
+        expect(resultStillClosed['exitsPlaced'], equals(0));
+        expect(paperTradingStore.pendingOrders, hasLength(1));
+
+        // 4. Advance time to Wednesday 10:00 AM EDT (regular market open)
+        MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+        final resultOpen = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Verify: Resting order executed at market open and reconciled into history
+        expect(resultOpen['success'], isTrue);
+        expect(resultOpen['exitsExecuted'], equals(1));
+        expect(paperTradingStore.pendingOrders, isEmpty);
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['symbol'], equals('AAPL'));
+        expect(provider.autoTradeHistory.first['action'], equals('SELL'));
+        expect(provider.autoTradeHistory.first['quantity'], equals(10));
+        expect(provider.autoTradeHistory.first['status'], equals('filled'));
+        expect(provider.automatedBuyTrades, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
     });
 
     test('Live TP/SL monitoring still requires a brokerage account', () async {
