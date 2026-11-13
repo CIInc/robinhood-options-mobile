@@ -85,4 +85,77 @@ describe("sendEachForMulticast Security Checks", () => {
       responses: [],
     });
   });
+
+  test("rejects request if tokens is not an array or is empty", async () => {
+    const adminAuth = { uid: "admin123", token: { role: "admin" } };
+
+    const invalidRequests = [
+      { auth: adminAuth, data: { tokens: null } },
+      { auth: adminAuth, data: { tokens: "not-an-array" } },
+      { auth: adminAuth, data: { tokens: [] } },
+    ];
+
+    for (const req of invalidRequests) {
+      const callFn = () => (sendEachForMulticast as any).run(req);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    }
+  });
+
+  test("rejects request if tokens exceeds 500 limit", async () => {
+    const adminAuth = { uid: "admin123", token: { role: "admin" } };
+    const oversizedTokens = Array.from({ length: 501 }, (_, i) => `token_${i}`);
+
+    const req = {
+      auth: adminAuth,
+      data: {
+        tokens: oversizedTokens,
+      },
+    };
+
+    const callFn = () => (sendEachForMulticast as any).run(req);
+    await expect(callFn()).rejects.toThrow(HttpsError);
+    await expect(callFn()).rejects.toMatchObject({
+      code: "invalid-argument",
+    });
+  });
+
+  test("rejects request if tokens contains invalid entries", async () => {
+    const adminAuth = { uid: "admin123", token: { role: "admin" } };
+
+    const invalidTokenEntries = [
+      { auth: adminAuth, data: { tokens: ["token1", ""] } },
+      { auth: adminAuth, data: { tokens: ["token1", 12345] } },
+      { auth: adminAuth, data: { tokens: ["token1", "   "] } },
+    ];
+
+    for (const req of invalidTokenEntries) {
+      const callFn = () => (sendEachForMulticast as any).run(req);
+      await expect(callFn()).rejects.toThrow(HttpsError);
+      await expect(callFn()).rejects.toMatchObject({
+        code: "invalid-argument",
+      });
+    }
+  });
+
+  test("handles unexpected FCM failure with internal error", async () => {
+    mockSendEachForMulticast.mockImplementationOnce(() => {
+      throw new Error("FCM exploded");
+    });
+
+    const adminRequest = {
+      auth: { uid: "admin123", token: { role: "admin" } },
+      data: {
+        tokens: ["token1"],
+      },
+    };
+
+    const callFn = (sendEachForMulticast as any).run(adminRequest);
+    await expect(callFn).rejects.toThrow(HttpsError);
+    await expect(callFn).rejects.toMatchObject({
+      code: "internal",
+    });
+  });
 });
