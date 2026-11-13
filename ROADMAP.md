@@ -34,13 +34,13 @@ This document outlines the planned features, enhancements, and delivery mileston
 **Last reviewed:** November 13, 2026 · **Current app version:** 0.61.4 (pre-release)
 
 ### Quick Stats
-- **Completed checklist items:** 63 high-level capability blocks (465+ sub-features)
+- **Completed checklist items:** 64 high-level capability blocks (470+ sub-features)
 - **Planned checklist items:** 33 actionable tasks
 - **GitHub issues:** 134 total — 42 open and 92 closed (as of November 13, 2026)
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
 
 ### Key Highlights
-- ✅ **v0.61.4 Patch:** Deep-linked copy-trade push notifications directly to the target request in `CopyTradeRequestDetailWidget`, added full option/stock request parameter inspection with direct Approve/Reject actions, registered the `copy_trades` Android notification channel, and surfaced leader display names.
+- ✅ **v0.61.4 Patch:** Declared `FLUTTER_NOTIFICATION_CLICK` intent filter in `AndroidManifest.xml` and captured cold-start launch details so notifications reliably launch the app on Android; added `CopyTradeRequestDetailWidget` with full option leg inspection and direct Approve/Reject actions; registered `copy_trades` and `trade_signals` notification channels; and routed trade signal taps to Trade Signals with `InstrumentWidget` / `TradeInstrumentWidget` on action.
 - ✅ **v0.61.3 Patch:** Queue Paper TP/SL exits triggered outside market hours and reconcile fills on a later eligible cycle; exits remain simulated and do not reach the brokerage.
 - ✅ **v0.61.2 Patch:** Bound app startup waits, hardened auto-trade quote validation against stale and non-finite prices, improved background cycle diagnostics, and normalized Twelve Data intraday timestamps to UTC. Physical-device execution acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
 - ✅ **v0.61.1 Patch:** Bound and validated `runBacktest` symbol/date inputs ([PR #314](https://github.com/CIInc/robinhood-options-mobile/pull/314)); added local auto-trade lifecycle diagnostics and app-resume schedule reconciliation. Physical-device execution acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
@@ -64,7 +64,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 | **v0.61.1** | Pre-release | Backtest input bounds, local auto-trade lifecycle diagnostics, and app-resume Workmanager reconciliation; device-level acceptance remains open | [PR #314](https://github.com/CIInc/robinhood-options-mobile/pull/314), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.2** | Pre-release | Bounded startup waits, fresh finite quote checks for automatic BUY and TP/SL paths, expanded cycle diagnostics, and UTC intraday market-data timestamps | [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.3** | Pre-release | Queue market-closed Paper TP/SL exits in the simulated ledger and reconcile them on a later eligible cycle | [`docs/agentic-trading.md`](docs/agentic-trading.md) |
-| **v0.61.4** | Pre-release | Copy trading push notification deep linking, request detail inspection view, and Android notification channel registration | [`docs/copy-trading.md`](docs/copy-trading.md) |
+| **v0.61.4** | Pre-release | Push notification deep linking & intent resolution (`FLUTTER_NOTIFICATION_CLICK`), copy trade request detail view, trade signal routing, and Android channel registration | [`docs/copy-trading.md`](docs/copy-trading.md), [`docs/trade-signal-notifications.md`](docs/trade-signal-notifications.md) |
 | **v0.62.0+** | Planned 🚀 (Target: Q2/Q3 2027) | Plaid Multi-Broker Sync, Embedded Quant Webhook & REST API Gateway, Desktop & iPad Multi-Pane Floating Workspace, Dart 3 / Modern Linting Migration | [#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#125](https://github.com/CIInc/robinhood-options-mobile/issues/125), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140) |
 
 ---
@@ -259,6 +259,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 - [x] **Paper Trading Ledger**: Full simulated execution engine decoupling paper trades from live margin and circuit breaker constraints.
 
 ### Notifications & Multi-Channel Alerts
+- [x] **Trade Signal Push Notification Intent & Cold-Start Deep Linking** (v0.61.4, [docs](docs/trade-signal-notifications.md)): Declared `FLUTTER_NOTIFICATION_CLICK` intent filter in Android manifest, captured local notification launch details from terminated state, resolved fallback demo user for unhydrated stores, and routed to Trade Signals tab with `InstrumentWidget` / `TradeInstrumentWidget` on action.
 - [x] **Multi-Channel Alert Routing & Custom Sounds** (v0.59.0, [docs](docs/custom-alerts.md), [#115](https://github.com/CIInc/robinhood-options-mobile/issues/115)): Push, In-App, Email, SMS, and Webhook dispatch with critical-only gating, custom audio, quiet hours, and 5 dedicated Android/APNs priority notification channels.
 - [x] **Action Center Real-Time Alerts** (`PortfolioAlertService`): Actionable alert engine covering options expiration (0DTE/1DTE/2DTE), early assignment, earnings calendar, dividend reminders, unusual volume, and margin health.
 - [x] **Multi-Condition Alert Builder** (v0.38.0): Combine price, volume, RSI, and GEX levels into dynamic triggered notifications.

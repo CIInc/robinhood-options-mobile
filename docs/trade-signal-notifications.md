@@ -66,12 +66,18 @@ Notifications now support rich media content to provide immediate context withou
 *   **Data Tables**: Key metrics (e.g., Signal Strength, Indicator Summary) are presented in a concise table format.
 *   **Action Buttons**: Quick actions (e.g., "View Chart", "Place Trade") are available directly from the notification.
 
-### App Navigation
+### App Navigation & Deep Linking
 
-When a user taps on a trade signal notification, the app will:
-1. Open the app (if not already open)
-2. Navigate directly to the **Instrument Details** page for the symbol in the signal
-3. Load the relevant instrument data and chart
+> **Enhanced in v0.61.4:** Resilient Android intent matching, cold-start launch capture, and multi-broker instrument fallback.
+
+When a user taps on a trade signal notification or one of its action buttons:
+1. **Android Intent Resolution (`AndroidManifest.xml`):** `MainActivity` declares an `<intent-filter>` for `<action android:name="FLUTTER_NOTIFICATION_CLICK"/>` and `category.DEFAULT`, guaranteeing that Android resolves the notification pending intent and launches the app whether it is in the background or killed.
+2. **Cold-Start Launch Capture:** The app inspects both `FirebaseMessaging.instance.getInitialMessage()` (for remote FCM messages) and `flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails()` (for local foreground-alert launches) on startup.
+3. **Signals Tab as Base Context:** `NavigationStatefulWidget` switches to the **Trade Signals** tab (`_navigateToTradeSignals()`), ensuring the user returns to the active signals dashboard when dismissing details rather than landing on the generic home screen.
+4. **Resilient Instrument Resolution (`_fetchInstrument`):** If `BrokerageUserStore.items` has not yet finished hydrating on startup (or if the user is unlinked/guest), a fallback `BrokerageUser` in Demo mode is supplied. The app attempts primary brokerage lookup and seamlessly falls back to `RobinhoodService().getInstrumentBySymbol()` using Robinhood's public unauthenticated instrument endpoints.
+5. **Action-Specific Routing:**
+   - **Tapping the Notification Body or "View" Action:** Pushes `InstrumentWidget` displaying the live chart, 19 technical indicator analyses, and conviction score.
+   - **Tapping the "Trade" Action:** Directly pushes `TradeInstrumentWidget` pre-configured with the signal direction (`Buy` or `Sell`) and symbol.
 
 ## Technical Implementation
 
@@ -87,7 +93,7 @@ Both triggers:
 1. Check if the signal is actionable (BUY, SELL, or HOLD)
 2. Query all users with notification settings enabled
 3. Filter users based on their notification preferences
-4. Send FCM push notifications to matching users
+4. Send FCM push notifications to matching users with `click_action: "FLUTTER_NOTIFICATION_CLICK"` and `android.notification.clickAction: "FLUTTER_NOTIFICATION_CLICK"`
 
 ### Frontend (Flutter)
 
@@ -99,7 +105,7 @@ Both triggers:
 - `TradeSignalNotificationSettingsWidget` - UI for configuring notification preferences
 
 **Navigation**:
-- `NavigationStatefulWidget` handles incoming notification payloads and routes the user to the `InstrumentWidget` with the appropriate symbol and signal data. This ensures a seamless transition from notification to analysis.
+- `NavigationStatefulWidget` handles incoming notification payloads, manages the `FLUTTER_NOTIFICATION_CLICK` intent receiver, resolves cold-start launch details, and routes users to the Signals tab and `InstrumentWidget` / `TradeInstrumentWidget`.
 
 ### Data Storage
 

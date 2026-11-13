@@ -3,14 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 ## [0.61.4] - 2026-11-13 (pre-release)
-**Copy Trading Push Notification Deep Linking & Request Details View**
+**Push Notification Intent Resolution, Request Details & Trade Signals Deep Linking**
 
-- **Notification Deep Linking:** Tapping a `copy_trade` push notification routes directly to the specific request in `CopyTradeRequestDetailWidget` with `CopyTradeRequestsWidget` placed in the back-stack, resolving the issue where taps redirected to the default home screen.
-- **FCM Intent & Payload Alignment:** Cloud Functions (`onInstrumentOrderCreated`, `onOptionOrderCreated`, and `sendCopyTradeNotification`) now attach `recordId`, `sourceUserName`, and `click_action: "FLUTTER_NOTIFICATION_CLICK"` to notification data payloads, specify Android notification `clickAction`, and configure APNs category `COPY_TRADE`.
+- **Android Intent Resolution (`AndroidManifest.xml`):** Declared the `<intent-filter>` for `<action android:name="FLUTTER_NOTIFICATION_CLICK"/>` with category `DEFAULT` on `MainActivity`, resolving the platform defect where tapping push notifications in the Android notification shade failed to launch the application.
+- **Copy Trading Notification Deep Linking:** Tapping a `copy_trade` push notification routes directly to the specific request in `CopyTradeRequestDetailWidget` with `CopyTradeRequestsWidget` placed in the back-stack, resolving the issue where taps redirected to the default home screen.
 - **Request Details View (`CopyTradeRequestDetailWidget`):** Surface an interactive request inspection screen displaying leader identity (`sourceUserName`), symbol, side, inverse copy badge, estimated total cost, detailed multi-leg option parameters (strike, expiration, call/put, ratio), execution audit timestamps, a quick-action shortcut to inspect the instrument chart, and direct 1-tap Approve (with `RiskGuard` limit validation) or Reject buttons.
 - **Interactive Request Cards:** Pending request list cards in `CopyTradeRequestsWidget` are now interactive on tap, allowing followers to inspect request parameters before deciding, and resolve the leader's display name instead of truncated user IDs.
-- **Android Notification Channel Registration:** Register the dedicated high-priority `copy_trades` notification channel in `NavigationStatefulWidgetState`.
-- **Cold-Start Resilience:** Wrap notification message payload handling in `WidgetsBinding.instance.addPostFrameCallback` to ensure navigator availability during cold app starts, and add `FirebaseAuth.instance.currentUser` fallback resolution in `CopyTradingProvider` when fetching trade history or requests prior to user profile store hydration.
+- **Trade Signals Tab & Order Entry Routing:** Tapping a `trade_signal` notification switches to the Trade Signals tab as the base context and opens `InstrumentWidget` for the symbol; tapping the `TRADE` notification action switches to Trade Signals and opens `TradeInstrumentWidget` pre-configured with the signal direction (`Buy` or `Sell`).
+- **Resilient Instrument Lookup (`_fetchInstrument`):** Implemented primary service lookup with an automatic fallback to `RobinhoodService().getInstrumentBySymbol()` over Robinhood's public unauthenticated API so equity instrument metadata resolves reliably even when broker accounts are unauthenticated.
+- **Cold-Start Launch Capture & Unhydrated Store Fallback:** Added `flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails()` inspection during startup to process notification taps when the application is launched from a terminated state, and resolved fallback user `BrokerageUser(BrokerageSource.demo, 'Demo', null, null)` when `BrokerageUserStore.items` is empty during cold start.
+- **FCM Intent & Payload Alignment:** Cloud Functions (`trade-signal-notifications.ts`, `copy-trading.ts`, `custom-alerts-cron.ts`) now attach `recordId`, `sourceUserName`, and `click_action: "FLUTTER_NOTIFICATION_CLICK"` to notification data payloads, specify Android notification `clickAction`, and configure APNs categories (`COPY_TRADE`, `TRADE_SIGNAL`).
+- **Android Notification Channel Registration:** Registered the dedicated high-priority `copy_trades` and `trade_signals` notification channels in `NavigationStatefulWidgetState`.
 
 ## [0.61.3] - 2026-11-12 (pre-release)
 **Paper Auto-Trade Exit Reliability**
