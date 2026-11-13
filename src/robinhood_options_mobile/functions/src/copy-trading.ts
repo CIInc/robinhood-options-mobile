@@ -67,6 +67,7 @@ interface InvestorGroup {
  */
 interface CopyTradeRecord {
   sourceUserId: string;
+  sourceUserName?: string;
   targetUserId: string;
   groupId: string;
   orderType: "instrument" | "option";
@@ -438,10 +439,16 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               }
             }
 
+            let recordId: string | undefined;
+            const effectiveSide = settings.inverse ?
+              (orderData.side === "buy" ? "sell" : "buy") :
+              orderData.side;
+
             if (settings.autoExecute) {
               // Create a copy trade record (auto-execute)
-              await createCopyTradeRecord({
+              recordId = await createCopyTradeRecord({
                 sourceUserId: userId,
+                sourceUserName: await getSourceUserName(),
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "instrument",
@@ -449,9 +456,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
-                side: settings.inverse ?
-                  (orderData.side === "buy" ? "sell" : "buy") :
-                  orderData.side,
+                side: effectiveSide,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -472,8 +477,9 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               );
             } else {
               // Create a copy trade record (manual approval)
-              await createCopyTradeRecord({
+              recordId = await createCopyTradeRecord({
                 sourceUserId: userId,
+                sourceUserName: await getSourceUserName(),
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "instrument",
@@ -481,9 +487,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: orderData.instrumentObj?.symbol || "Unknown",
-                side: settings.inverse ?
-                  (orderData.side === "buy" ? "sell" : "buy") :
-                  orderData.side,
+                side: effectiveSide,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -509,11 +513,12 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               memberId,
               await getSourceUserName(),
               symbol,
-              orderData.side,
+              effectiveSide,
               quantity,
               "instrument",
               price,
-              settings.autoExecute
+              settings.autoExecute,
+              recordId
             );
           }
         }
@@ -749,10 +754,16 @@ export const onOptionOrderCreated = onDocumentCreated(
               }
             }
 
+            let recordId: string | undefined;
+            const effectiveDirection = settings.inverse ?
+              (orderData.direction === "debit" ? "credit" : "debit") :
+              orderData.direction;
+
             if (settings.autoExecute) {
               // Create a copy trade record (auto-execute)
-              await createCopyTradeRecord({
+              recordId = await createCopyTradeRecord({
                 sourceUserId: userId,
+                sourceUserName: await getSourceUserName(),
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "option",
@@ -760,9 +771,7 @@ export const onOptionOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
-                side: settings.inverse ?
-                  (orderData.direction === "debit" ? "credit" : "debit") :
-                  orderData.direction,
+                side: effectiveDirection,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -794,8 +803,9 @@ export const onOptionOrderCreated = onDocumentCreated(
               );
             } else {
               // Create a copy trade record (manual approval)
-              await createCopyTradeRecord({
+              recordId = await createCopyTradeRecord({
                 sourceUserId: userId,
+                sourceUserName: await getSourceUserName(),
                 targetUserId: memberId,
                 groupId: group.id,
                 orderType: "option",
@@ -803,9 +813,7 @@ export const onOptionOrderCreated = onDocumentCreated(
                 trigger: orderData.trigger,
                 originalOrderId: orderId,
                 symbol: symbol,
-                side: settings.inverse ?
-                  (orderData.direction === "debit" ? "credit" : "debit") :
-                  orderData.direction,
+                side: effectiveDirection,
                 originalQuantity: orderData.quantity,
                 copiedQuantity: quantity,
                 price: price,
@@ -842,11 +850,12 @@ export const onOptionOrderCreated = onDocumentCreated(
               memberId,
               await getSourceUserName(),
               symbol,
-              orderData.direction,
+              effectiveDirection,
               quantity,
               "option",
               price,
-              settings.autoExecute
+              settings.autoExecute,
+              recordId
             );
           }
         }
@@ -869,6 +878,7 @@ export const onOptionOrderCreated = onDocumentCreated(
  * @param {number} [price] Price of the trade
  * @param {boolean} autoExecute Whether the trade was auto-executed or
  *   requires approval
+ * @param {string} [recordId] Optional ID of the created copy trade record
  */
 async function sendCopyTradeNotification(
   userId: string,
@@ -878,7 +888,8 @@ async function sendCopyTradeNotification(
   quantity: number,
   orderType: string,
   price?: number,
-  autoExecute = true
+  autoExecute = true,
+  recordId?: string
 ): Promise<void> {
   try {
     // Fetch user's FCM tokens from devices
@@ -902,7 +913,9 @@ async function sendCopyTradeNotification(
     }
 
     // Prepare notification
-    const emoji = side.toLowerCase() === "buy" ? "📥" : "📤";
+    const isBuySide = side.toLowerCase() === "buy" ||
+      side.toLowerCase() === "debit";
+    const emoji = isBuySide ? "📥" : "📤";
     // Title: "📥 Copy Buy Executed: AAPL"
     const title = autoExecute ?
       `${emoji} Copy ${side} Executed: ${symbol}` :
@@ -929,6 +942,8 @@ async function sendCopyTradeNotification(
         quantity: quantity.toString(),
         orderType: orderType,
         action: autoExecute ? "executed" : "request",
+        ...(recordId ? { recordId: recordId } : {}),
+        click_action: "FLUTTER_NOTIFICATION_CLICK",
       },
       android: {
         priority: "high",
@@ -936,6 +951,7 @@ async function sendCopyTradeNotification(
           channelId: "copy_trades",
           priority: "high",
           sound: "default",
+          clickAction: "FLUTTER_NOTIFICATION_CLICK",
           // Group notifications by symbol
           // tag: symbol,
         },
@@ -945,6 +961,7 @@ async function sendCopyTradeNotification(
           aps: {
             sound: "default",
             badge: 1,
+            category: "COPY_TRADE",
             // Group notifications by symbol on iOS
             // threadId: symbol,
           },
@@ -985,9 +1002,11 @@ async function sendCopyTradeNotification(
  * Creates a copy trade record in Firestore
  *
  * @param {CopyTradeRecord} data Copy trade data
+ * @return {Promise<string>} The ID of the created document
  */
-async function createCopyTradeRecord(data: CopyTradeRecord): Promise<void> {
-  await db.collection("copy_trades").add(data);
+async function createCopyTradeRecord(data: CopyTradeRecord): Promise<string> {
+  const docRef = await db.collection("copy_trades").add(data);
+  return docRef.id;
 }
 
 /**

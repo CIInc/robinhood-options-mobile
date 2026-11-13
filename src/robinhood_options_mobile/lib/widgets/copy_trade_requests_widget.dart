@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -6,9 +7,12 @@ import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_request_detail_widget.dart';
 
 class CopyTradeRequestsWidget extends StatefulWidget {
-  const CopyTradeRequestsWidget({super.key});
+  final String? initialRecordId;
+
+  const CopyTradeRequestsWidget({super.key, this.initialRecordId});
 
   @override
   State<CopyTradeRequestsWidget> createState() =>
@@ -20,6 +24,29 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
   late TabController _tabController;
   final Set<String> _selectedRequestIds = {};
   bool _isSelectionMode = false;
+  bool _hasHandledInitialRecord = false;
+
+  void _checkInitialRecord(List<CopyTradeRecord> allRequests) {
+    if (_hasHandledInitialRecord || widget.initialRecordId == null) return;
+    _hasHandledInitialRecord = true;
+
+    final targetRecord =
+        allRequests.firstWhereOrNull((r) => r.id == widget.initialRecordId);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CopyTradeRequestDetailWidget(
+              record: targetRecord,
+              recordId: widget.initialRecordId,
+            ),
+          ),
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -104,6 +131,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
           }
 
           final allRequests = snapshot.data ?? [];
+          _checkInitialRecord(allRequests);
           final pendingRequests =
               allRequests.where((r) => r.status == 'pending_approval').toList();
           final historyRequests =
@@ -150,9 +178,20 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
             onLongPress: isPending
                 ? () => _toggleSelection(request.id)
                 : null, // Only allow selection in pending tab
-            onTap: _isSelectionMode && isPending
-                ? () => _toggleSelection(request.id)
-                : null,
+            onTap: () {
+              if (_isSelectionMode && isPending) {
+                _toggleSelection(request.id);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CopyTradeRequestDetailWidget(
+                      record: request,
+                    ),
+                  ),
+                );
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -232,7 +271,7 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'From: User ${request.sourceUserId.substring(0, 5)}...', // Ideally fetch user name
+                    'From: ${request.sourceUserName ?? (request.sourceUserId.length > 5 ? "User ${request.sourceUserId.substring(0, 5)}..." : request.sourceUserId)}',
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   Text(

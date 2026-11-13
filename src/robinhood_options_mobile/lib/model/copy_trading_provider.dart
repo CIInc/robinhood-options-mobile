@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -53,12 +54,16 @@ class CopyTradingProvider with ChangeNotifier {
     _subscription = null;
   }
 
+  String? get _effectiveUserId =>
+      _firebaseUserId ?? FirebaseAuth.instance.currentUser?.uid;
+
   void _startListening() {
-    if (_firebaseUserId == null) return;
+    final uid = _effectiveUserId;
+    if (uid == null) return;
 
     _subscription = FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .where('executed', isEqualTo: false)
         .where('status', whereIn: ['approved', 'pending_approval'])
         .snapshots()
@@ -66,11 +71,12 @@ class CopyTradingProvider with ChangeNotifier {
   }
 
   Stream<List<CopyTradeRecord>> getTradeHistory() {
-    if (_firebaseUserId == null) return Stream.value([]);
+    final uid = _effectiveUserId;
+    if (uid == null) return Stream.value([]);
 
     return FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -79,11 +85,12 @@ class CopyTradingProvider with ChangeNotifier {
   }
 
   Stream<List<CopyTradeRecord>> getRequests() {
-    if (_firebaseUserId == null) return Stream.value([]);
+    final uid = _effectiveUserId;
+    if (uid == null) return Stream.value([]);
 
     return FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .where('status', whereIn: ['pending_approval', 'rejected'])
         .orderBy('timestamp', descending: true)
         .snapshots()

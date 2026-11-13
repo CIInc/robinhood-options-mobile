@@ -37,6 +37,7 @@ class CopyTradeLeg {
 class CopyTradeRecord {
   final String id;
   final String sourceUserId;
+  final String? sourceUserName;
   final String targetUserId;
   final String groupId;
   final String orderType;
@@ -66,6 +67,7 @@ class CopyTradeRecord {
   CopyTradeRecord({
     required this.id,
     required this.sourceUserId,
+    this.sourceUserName,
     required this.targetUserId,
     required this.groupId,
     required this.orderType,
@@ -98,6 +100,7 @@ class CopyTradeRecord {
 
   CopyTradeRecord.fromJson(Map<String, dynamic> json, this.id)
       : sourceUserId = json['sourceUserId'],
+        sourceUserName = json['sourceUserName'],
         targetUserId = json['targetUserId'],
         groupId = json['groupId'],
         orderType = json['orderType'],
@@ -143,6 +146,7 @@ class CopyTradeRecord {
   Map<String, dynamic> toJson() {
     return {
       'sourceUserId': sourceUserId,
+      if (sourceUserName != null) 'sourceUserName': sourceUserName,
       'targetUserId': targetUserId,
       'groupId': groupId,
       'orderType': orderType,

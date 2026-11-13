@@ -55,6 +55,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_request_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/rebalancing_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/options_flow_widget.dart';
@@ -289,6 +290,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           enableVibration: true,
         ),
         AndroidNotificationChannel(
+          'copy_trades',
+          'Copy Trades',
+          description: 'Copy trade execution and approval request alerts',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        AndroidNotificationChannel(
           'silent_digest',
           'Silent & Low-Priority Alerts',
           description: 'Low-priority alerts delivered without sound',
@@ -318,7 +327,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           if (notificationResponse.payload != null) {
             try {
               final data = jsonDecode(notificationResponse.payload!);
-              _handleMessageData(data, actionId: notificationResponse.actionId);
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _handleMessageData(data,
+                      actionId: notificationResponse.actionId);
+                }
+              });
             } catch (e) {
               debugPrint('Error handling notification payload: $e');
             }
@@ -421,9 +435,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
               ? 'Custom Price & Technical Alerts'
               : channelId == 'options_flow'
                   ? 'Unusual Options Flow'
-                  : channelId == 'silent_digest'
-                      ? 'Silent & Low-Priority Alerts'
-                      : 'Trade Signals',
+                  : channelId == 'copy_trades'
+                      ? 'Copy Trades'
+                      : channelId == 'silent_digest'
+                          ? 'Silent & Low-Priority Alerts'
+                          : 'Trade Signals',
       channelDescription: 'Notifications for trade signals and alerts',
       styleInformation: bigPictureStyleInformation,
       importance: priorityStr == 'critical'
@@ -460,7 +476,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
   }
 
   void _handleMessage(RemoteMessage message) {
-    _handleMessageData(message.data);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _handleMessageData(message.data);
+      }
+    });
   }
 
   void _handleMessageData(Map<String, dynamic> data, {String? actionId}) {
@@ -502,12 +522,41 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
 
     if (data['type'] == 'copy_trade') {
+      final recordId = data['recordId'] as String?;
+      final symbol = data['symbol'] as String?;
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final brokerageUser =
+          userStore.currentUser ?? userStore.items.firstOrNull;
+      service = brokerageUser != null ? _getService(brokerageUser) : service;
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => const CopyTradeRequestsWidget(),
+          builder: (context) => CopyTradeRequestsWidget(
+            initialRecordId: recordId,
+          ),
         ),
       );
+
+      if ((recordId != null && recordId.isNotEmpty) ||
+          (symbol != null && symbol.isNotEmpty)) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CopyTradeRequestDetailWidget(
+              recordId: recordId,
+              symbol: symbol,
+              brokerageUser: brokerageUser,
+              service: service,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              generativeService: _generativeService,
+              user: user,
+              userDocRef: userDoc,
+            ),
+          ),
+        );
+      }
     } else if (data['type'] == 'trade_signal' ||
         data['type'] == 'custom_alert') {
       final symbol = data['symbol'];
