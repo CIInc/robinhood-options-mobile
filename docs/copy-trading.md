@@ -50,14 +50,20 @@ A centralized hub for managing all copy trading activities:
 
 ### 3. Approval Workflow
 
-> **New in v0.22.0**
+> **New in v0.22.0, Enhanced in v0.61.4**
 
 When "Auto-Execute" is enabled, trades may require approval before execution based on configuration:
 
 - **Request System**: New trades from the target user generate a "Copy Trade Request".
-- **Notification**: You receive a notification to review the request.
-- **Action**: Approve or Reject the request directly from the Dashboard or notification.
-- **Execution**: Approved requests are executed immediately via the brokerage API.
+- **Notification**: You receive a push notification to review the request with full trade details and leader attribution.
+- **Deep Linking to Request Details (`CopyTradeRequestDetailWidget`)**: Tapping the notification opens the dedicated request detail view directly (placing the requests list in the back-stack):
+  - **Comprehensive Parameters:** Symbol, side (Buy/Sell), inverse copying badge (if applicable), order quantity, signal price, stop price, and total estimated order value.
+  - **Options Leg Breakdown:** For multi-leg or single options trades, inspect strike prices, expiration dates, call/put types, and leg ratios.
+  - **Leader Identity:** Shows the leader's display name (`sourceUserName`) instead of raw IDs.
+  - **Execution Audit:** Review submission timestamps, current status (Pending, Approved, Rejected, Completed), and execution IDs.
+  - **Interactive Actions:** Direct 1-tap **Approve Request** (with client-side `RiskGuard` allocation and balance validation) or **Reject Request** buttons, alongside an **Inspect Chart** shortcut.
+- **Interactive Requests List (`CopyTradeRequestsWidget`)**: Single-tapping any pending or historical request card opens the detailed inspection screen.
+- **Execution**: Approved requests are submitted immediately via the connected brokerage API.
 
 ### 4. Manual Copy Trading
 
@@ -109,15 +115,16 @@ When auto-execute is enabled:
 - **Note**: Automatic order execution requires client-side implementation for security
 - Users will need to review and execute pending copy trades manually
 
-### 4. Notifications (Rich Push)
+### 4. Notifications (Rich Push & Deep Linking)
 
-> **Enhanced in v0.31.7**
+> **Enhanced in v0.31.7, Deep Linking & Channels Hardened in v0.61.4**
 
 Users receive **Rich Push Notifications** containing actionable data when copy trades occur:
 
-- **Rich Content**: Visual charts, trend context, and trade details (Trader Name, Symbol, Quantity, Side, Price).
-- **Action Buttons**: "View Trade", "Execute Now" (for manual), and "Approve" (for requests) directly from the notification.
-- **Deep Linking**: Tapping takes you straight to the relevant trade or request in the app.
+- **Rich Content**: Visual charts, trend context, and trade details (Leader Name via `sourceUserName`, Symbol, Quantity, Side, Price).
+- **Action Buttons & Intent Matching**: Tapping a notification directly dispatches an intent with `click_action: "FLUTTER_NOTIFICATION_CLICK"` and payload `recordId` routing straight to `CopyTradeRequestDetailWidget` without landing on the generic home page.
+- **Dedicated Android Notification Channel**: High-priority `copy_trades` notification channel registered with vibration, sound, and lighting to ensure timely delivery of perishable trade proposals.
+- **Cold-Start Resilience**: Message taps while the app process is suspended or killed are deferred until post-frame rendering via `WidgetsBinding.instance.addPostFrameCallback`, guaranteeing mounted navigation contexts.
 - **Triggers**:
   - A trader they're copying places a trade.
   - A new Copy Trade Request requires approval.
@@ -205,6 +212,7 @@ Created by backend functions in Firestore collection `copy_trades`:
 ```typescript
 {
   sourceUserId: string;
+  sourceUserName?: string;
   targetUserId: string;
   groupId: string;
   orderType: 'instrument' | 'option';
@@ -232,8 +240,8 @@ Triggered when a new instrument (stock/ETF) order is created:
 2. Finds all investor groups the user belongs to
 3. Identifies members who are copying from this user
 4. Applies quantity and amount limits
-5. Creates copy trade records
-6. **Sends push notifications** to target users with trade details
+5. Creates copy trade records (capturing `docRef.id` as `recordId`)
+6. **Sends push notifications** to target users with trade details, `recordId`, and deep-linking action intents
 
 #### onOptionOrderCreated
 
@@ -243,8 +251,8 @@ Triggered when a new option order is created:
 2. Finds all investor groups the user belongs to
 3. Identifies members who are copying from this user
 4. Applies quantity and amount limits (accounting for 100 shares per contract)
-5. Creates copy trade records
-6. **Sends push notifications** to target users with trade details
+5. Creates copy trade records (capturing `docRef.id` as `recordId`)
+6. **Sends push notifications** to target users with trade details, `recordId`, and deep-linking action intents
 
 #### Notification System
 
@@ -252,7 +260,9 @@ Push notifications are sent using Firebase Cloud Messaging (FCM):
 
 - Fetches user's FCM tokens from registered devices
 - Sends multicast notification to all user devices
-- Includes trade details (symbol, side, quantity, order type)
+- Attaches `recordId`, `sourceUserName`, and `click_action: "FLUTTER_NOTIFICATION_CLICK"` in notification data
+- Configures Android `clickAction: "FLUTTER_NOTIFICATION_CLICK"` and APNs category `"COPY_TRADE"`
+- Routes directly to `copy_trades` Android notification channel
 - High priority notifications with sound and badge
 - Handles notification failures gracefully with logging
 

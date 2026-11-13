@@ -31,15 +31,16 @@ This document outlines the planned features, enhancements, and delivery mileston
 
 **RealizeAlpha** is a professional-grade mobile trading and analytics platform designed for multi-account investing, quantitative derivatives risk modeling, and safety-first automated execution. This roadmap outlines current development priorities, upcoming release milestones, and completed platform capabilities.
 
-**Last reviewed:** November 12, 2026 · **Current app version:** 0.61.3 (pre-release)
+**Last reviewed:** November 13, 2026 · **Current app version:** 0.61.4 (pre-release)
 
 ### Quick Stats
-- **Completed checklist items:** 62 high-level capability blocks (460+ sub-features)
+- **Completed checklist items:** 63 high-level capability blocks (465+ sub-features)
 - **Planned checklist items:** 33 actionable tasks
-- **GitHub issues:** 134 total — 42 open and 92 closed (as of November 12, 2026)
+- **GitHub issues:** 134 total — 42 open and 92 closed (as of November 13, 2026)
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
 
 ### Key Highlights
+- ✅ **v0.61.4 Patch:** Deep-linked copy-trade push notifications directly to the target request in `CopyTradeRequestDetailWidget`, added full option/stock request parameter inspection with direct Approve/Reject actions, registered the `copy_trades` Android notification channel, and surfaced leader display names.
 - ✅ **v0.61.3 Patch:** Queue Paper TP/SL exits triggered outside market hours and reconcile fills on a later eligible cycle; exits remain simulated and do not reach the brokerage.
 - ✅ **v0.61.2 Patch:** Bound app startup waits, hardened auto-trade quote validation against stale and non-finite prices, improved background cycle diagnostics, and normalized Twelve Data intraday timestamps to UTC. Physical-device execution acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
 - ✅ **v0.61.1 Patch:** Bound and validated `runBacktest` symbol/date inputs ([PR #314](https://github.com/CIInc/robinhood-options-mobile/pull/314)); added local auto-trade lifecycle diagnostics and app-resume schedule reconciliation. Physical-device execution acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
@@ -63,6 +64,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 | **v0.61.1** | Pre-release | Backtest input bounds, local auto-trade lifecycle diagnostics, and app-resume Workmanager reconciliation; device-level acceptance remains open | [PR #314](https://github.com/CIInc/robinhood-options-mobile/pull/314), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.2** | Pre-release | Bounded startup waits, fresh finite quote checks for automatic BUY and TP/SL paths, expanded cycle diagnostics, and UTC intraday market-data timestamps | [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.3** | Pre-release | Queue market-closed Paper TP/SL exits in the simulated ledger and reconcile them on a later eligible cycle | [`docs/agentic-trading.md`](docs/agentic-trading.md) |
+| **v0.61.4** | Pre-release | Copy trading push notification deep linking, request detail inspection view, and Android notification channel registration | [`docs/copy-trading.md`](docs/copy-trading.md) |
 | **v0.62.0+** | Planned 🚀 (Target: Q2/Q3 2027) | Plaid Multi-Broker Sync, Embedded Quant Webhook & REST API Gateway, Desktop & iPad Multi-Pane Floating Workspace, Dart 3 / Modern Linting Migration | [#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#125](https://github.com/CIInc/robinhood-options-mobile/issues/125), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140) |
 
 ---
@@ -229,6 +231,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 - [x] **Alpha Factor Discovery & Event Study Analyzer**: Dynamic volatility, beta, and correlation tracking around earnings and catalyst windows.
 
 ### Copy Trading & Risk Guardian
+- [x] **Copy Trade Request Detail View & Push Deep Linking** (v0.61.4, [docs](docs/copy-trading.md)): Direct notification routing to `CopyTradeRequestDetailWidget`, option leg/stock parameter verification, leader name resolution, and 1-tap Approve/Reject with RiskGuard validation.
 - [x] **Trader Comparison & Normalized Analytics** (v0.52.0, [#141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Side-by-side performance comparison of potential leaders with risk-adjusted metrics.
 - [x] **Copy-Trading Slippage & Fill Divergence Analytics** (v0.52.0): Track execution latency (ms), fill price delta vs. leader, and performance drift.
 - [x] **Automated Copy-Trading Risk Guardian** (v0.52.0, [#141](https://github.com/CIInc/robinhood-options-mobile/issues/141)): Follower protective guardrails specifying max capital allocation per trade, auto-disconnect on leader drawdown divergence, and max slippage abort.

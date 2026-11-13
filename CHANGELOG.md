@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.4] - 2026-11-13 (pre-release)
+**Copy Trading Push Notification Deep Linking & Request Details View**
+
+- **Notification Deep Linking:** Tapping a `copy_trade` push notification routes directly to the specific request in `CopyTradeRequestDetailWidget` with `CopyTradeRequestsWidget` placed in the back-stack, resolving the issue where taps redirected to the default home screen.
+- **FCM Intent & Payload Alignment:** Cloud Functions (`onInstrumentOrderCreated`, `onOptionOrderCreated`, and `sendCopyTradeNotification`) now attach `recordId`, `sourceUserName`, and `click_action: "FLUTTER_NOTIFICATION_CLICK"` to notification data payloads, specify Android notification `clickAction`, and configure APNs category `COPY_TRADE`.
+- **Request Details View (`CopyTradeRequestDetailWidget`):** Surface an interactive request inspection screen displaying leader identity (`sourceUserName`), symbol, side, inverse copy badge, estimated total cost, detailed multi-leg option parameters (strike, expiration, call/put, ratio), execution audit timestamps, a quick-action shortcut to inspect the instrument chart, and direct 1-tap Approve (with `RiskGuard` limit validation) or Reject buttons.
+- **Interactive Request Cards:** Pending request list cards in `CopyTradeRequestsWidget` are now interactive on tap, allowing followers to inspect request parameters before deciding, and resolve the leader's display name instead of truncated user IDs.
+- **Android Notification Channel Registration:** Register the dedicated high-priority `copy_trades` notification channel in `NavigationStatefulWidgetState`.
+- **Cold-Start Resilience:** Wrap notification message payload handling in `WidgetsBinding.instance.addPostFrameCallback` to ensure navigator availability during cold app starts, and add `FirebaseAuth.instance.currentUser` fallback resolution in `CopyTradingProvider` when fetching trade history or requests prior to user profile store hydration.
+
 ## [0.61.3] - 2026-11-12 (pre-release)
 **Paper Auto-Trade Exit Reliability**
 
