@@ -2370,6 +2370,23 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  String? _marketCloseEntryBlockReason() {
+    if (!_config.strategyConfig.marketCloseExitEnabled) return null;
+
+    final session = MarketHours.getCurrentTradingSession();
+    if (session == TradingSession.afterHours) {
+      return 'Market-close exit mode is active; new entries are disabled after the regular close';
+    }
+
+    final minutesUntilClose = MarketHours.minutesUntilMarketClose();
+    final exitWindowMinutes = _config.strategyConfig.marketCloseExitMinutes;
+    if (minutesUntilClose != null && minutesUntilClose <= exitWindowMinutes) {
+      return 'Market-close exit window is active; new entries are disabled';
+    }
+
+    return null;
+  }
+
   /// Checks if auto-trading can proceed based on configured limits
   /// Returns null if allowed, or a reason string if not allowed
   String? _checkAutoTradeConditions() {
@@ -2394,6 +2411,11 @@ class AgenticTradingProvider with ChangeNotifier {
       allowAfterHours: _config.allowAfterHoursTrading,
     )) {
       return 'Market is closed';
+    }
+
+    final marketCloseEntryBlockReason = _marketCloseEntryBlockReason();
+    if (marketCloseEntryBlockReason != null) {
+      return marketCloseEntryBlockReason;
     }
 
     // Check daily trade limit
@@ -2540,6 +2562,14 @@ class AgenticTradingProvider with ChangeNotifier {
     required bool isPaperMode,
     PaperTradingStore? paperTradingStore,
   }) async {
+    if (action.toUpperCase() == 'BUY') {
+      final entryBlockReason = _marketCloseEntryBlockReason();
+      if (entryBlockReason != null) {
+        _log('⏸️ $entryBlockReason');
+        return http.Response(entryBlockReason, 409);
+      }
+    }
+
     if (isPaperMode) {
       String orderState = 'filled';
       String? orderId;
@@ -3315,6 +3345,23 @@ class AgenticTradingProvider with ChangeNotifier {
                       : 'unknown',
                   message: 'Order response ${orderResponse.statusCode}',
                 );
+                if (orderResponse.statusCode == 409 &&
+                    orderResponse.body.startsWith('Market-close exit')) {
+                  final processedSignalIndex = processedSignals.indexWhere(
+                    (processedSignal) =>
+                        processedSignal['symbol'] == symbol &&
+                        processedSignal['timestamp'] == signal['timestamp'] &&
+                        processedSignal['interval'] == signal['interval'],
+                  );
+                  if (processedSignalIndex != -1) {
+                    processedSignals[processedSignalIndex]
+                      ..['processedStatus'] = 'Retry'
+                      ..['rejectionReason'] =
+                          'Market-close entry cutoff began before order submission; retrying next eligible cycle';
+                  }
+                  _log(
+                      '⏳ Market-close entry cutoff started before order submission for $symbol; signal will be retried next eligible cycle');
+                }
                 _log(
                     '❌ Order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
                 _analytics.logEvent(

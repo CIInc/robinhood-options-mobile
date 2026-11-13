@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.5] - 2026-11-13 (pre-release)
+**Market-Close Entry Safety**
+
+- **Pre-Close BUY Guard ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):** When Market Close Exit is enabled, block automated BUY entries once the configured pre-close window begins and during after-hours trading. Recheck immediately before order submission, including pending BUY approvals; SELL exits remain available. A proposal that reaches the cutoff before submission is rejected without consuming its signal, so it remains eligible for a later cycle. Broader lifecycle and physical-device acceptance for #282 remains open.
+
 ## [0.61.4] - 2026-11-13 (pre-release)
 **Push Notification Intent Resolution, Request Details & Trade Signals Deep Linking**
 

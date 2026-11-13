@@ -72,7 +72,11 @@ class FailingTradeSignalsProvider {
 
 class ApprovingTradeSignalsProvider {
   Map<String, dynamic> proposalData;
-  ApprovingTradeSignalsProvider({this.proposalData = const {}});
+  final void Function()? beforeProposalComplete;
+  ApprovingTradeSignalsProvider({
+    this.proposalData = const {},
+    this.beforeProposalComplete,
+  });
 
   Future<Map<String, dynamic>> initiateTradeProposal({
     required String symbol,
@@ -82,6 +86,7 @@ class ApprovingTradeSignalsProvider {
     String? interval,
     bool skipSignalUpdate = false,
   }) async {
+    beforeProposalComplete?.call();
     return {
       'status': 'approved',
       'proposal': {
@@ -1144,6 +1149,71 @@ void main() {
       expect(provider.autoTradeHistory, isEmpty);
     });
 
+    test('approveOrder keeps a BUY pending during the market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final approved = await provider.approveOrder(
+          provider.pendingOrders.first,
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: FakeQuoteService(100),
+          quoteStore: 'store',
+        );
+
+        expect(approved, isFalse);
+        expect(provider.pendingOrders, hasLength(1));
+        expect(provider.autoTradeHistory, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('approveOrder can still execute a SELL during the market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'SELL',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final approved = await provider.approveOrder(
+          provider.pendingOrders.first,
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: null,
+        );
+
+        expect(approved, isTrue);
+        expect(provider.pendingOrders, isEmpty);
+        expect(provider.autoTradeHistory.single['action'], 'SELL');
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
     test('approveOrder fills a BUY at the live quote when it is close',
         () async {
       provider.loadConfigFromUser(null);
@@ -2100,6 +2170,139 @@ void main() {
 
         expect(result['blocked'], isTrue);
         expect(result['message'], contains('Market is closed'));
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('blocks new entries during the configured market-close exit window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      final proposalProvider = FailingTradeSignalsProvider('should not run');
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('exit window'));
+        expect(proposalProvider.calls, 0);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('blocks after-hours entries when market-close exit mode is enabled',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.allowAfterHoursTrading = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+      );
+      final proposalProvider = FailingTradeSignalsProvider('should not run');
+      MarketHours.testTime = DateTime.utc(2026, 11, 12, 22);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('after the regular close'));
+        expect(proposalProvider.calls, 0);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('keeps entries eligible before the configured market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 30);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isNot(true));
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('retries a BUY when the market-close cutoff starts during proposal',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 30);
+
+      final signal = {
+        'symbol': 'CTRA',
+        'currentPrice': 40.0,
+        'timestamp': 123,
+      };
+      final proposalProvider = ApprovingTradeSignalsProvider(
+        proposalData: {'action': 'BUY', 'quantity': 1},
+        beforeProposalComplete: () {
+          MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+        },
+      );
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+        final processedSignal =
+            (result['processedSignals'] as List<Map<String, dynamic>>).single;
+
+        expect(processedSignal['processedStatus'], 'Retry');
+        provider.rememberProcessedSignals([signal], result);
+        expect(provider.hasProcessedSignal('CTRA', 123), isFalse);
+        expect(provider.autoTradeHistory, isEmpty);
       } finally {
         MarketHours.testTime = null;
       }

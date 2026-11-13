@@ -4,18 +4,18 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  cloud_firestore
   desktop_webview_window
   dynamic_color
-  firebase_core
-  cloud_firestore
   firebase_app_check
   firebase_auth
+  firebase_core
   firebase_remote_config
   flutter_secure_storage_windows
   local_auth_windows
   permission_handler_windows
-  url_launcher_windows
   share_plus
+  url_launcher_windows
   window_to_front
 )
 

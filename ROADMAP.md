@@ -31,7 +31,7 @@ This document outlines the planned features, enhancements, and delivery mileston
 
 **RealizeAlpha** is a professional-grade mobile trading and analytics platform designed for multi-account investing, quantitative derivatives risk modeling, and safety-first automated execution. This roadmap outlines current development priorities, upcoming release milestones, and completed platform capabilities.
 
-**Last reviewed:** November 13, 2026 · **Current app version:** 0.61.4 (pre-release)
+**Last reviewed:** November 13, 2026 · **Current app version:** 0.61.5 (pre-release)
 
 ### Quick Stats
 - **Completed checklist items:** 64 high-level capability blocks (470+ sub-features)
@@ -40,6 +40,7 @@ This document outlines the planned features, enhancements, and delivery mileston
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
 
 ### Key Highlights
+- ✅ **v0.61.5 Patch:** Block new automated BUY entries during the configured Market Close Exit window and after-hours, recheck at order submission, and keep late-cutoff signals retryable. Broader lifecycle and physical-device acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
 - ✅ **v0.61.4 Patch:** Declared `FLUTTER_NOTIFICATION_CLICK` intent filter in `AndroidManifest.xml` and captured cold-start launch details so notifications reliably launch the app on Android; added `CopyTradeRequestDetailWidget` with full option leg inspection and direct Approve/Reject actions; registered `copy_trades` and `trade_signals` notification channels; and routed trade signal taps to Trade Signals with `InstrumentWidget` / `TradeInstrumentWidget` on action.
 - ✅ **v0.61.3 Patch:** Queue Paper TP/SL exits triggered outside market hours and reconcile fills on a later eligible cycle; exits remain simulated and do not reach the brokerage.
 - ✅ **v0.61.2 Patch:** Bound app startup waits, hardened auto-trade quote validation against stale and non-finite prices, improved background cycle diagnostics, and normalized Twelve Data intraday timestamps to UTC. Physical-device execution acceptance for [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) remains open.
@@ -65,6 +66,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 | **v0.61.2** | Pre-release | Bounded startup waits, fresh finite quote checks for automatic BUY and TP/SL paths, expanded cycle diagnostics, and UTC intraday market-data timestamps | [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.3** | Pre-release | Queue market-closed Paper TP/SL exits in the simulated ledger and reconcile them on a later eligible cycle | [`docs/agentic-trading.md`](docs/agentic-trading.md) |
 | **v0.61.4** | Pre-release | Push notification deep linking & intent resolution (`FLUTTER_NOTIFICATION_CLICK`), copy trade request detail view, trade signal routing, and Android channel registration | [`docs/copy-trading.md`](docs/copy-trading.md), [`docs/trade-signal-notifications.md`](docs/trade-signal-notifications.md) |
+| **v0.61.5** | Pre-release | Block new automated BUY entries during Market Close Exit cutoff and after-hours; recheck before submission and retry cutoff-rejected signals | [`docs/agentic-trading.md`](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.62.0+** | Planned 🚀 (Target: Q2/Q3 2027) | Plaid Multi-Broker Sync, Embedded Quant Webhook & REST API Gateway, Desktop & iPad Multi-Pane Floating Workspace, Dart 3 / Modern Linting Migration | [#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#125](https://github.com/CIInc/robinhood-options-mobile/issues/125), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140) |
 
 ---

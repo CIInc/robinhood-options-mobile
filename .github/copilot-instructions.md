@@ -6,6 +6,7 @@ Keep guidance concise and actionable. Only change behavior when confident and fo
 Key facts (quick):
 - Stock market value and dollar P&L remain signed by position quantity; return percentages use absolute position cost/prior value and gross aggregate exposure so short losses retain their negative sign.
 - Auto-trade proposal retries are limited to transient network/unavailable/deadline failures; permanent callable errors are rejected. Never replay a brokerage submission with an unknown outcome; reconcile it through execution claims.
+- When Market Close Exit is enabled, block new automated BUY entries during the configured pre-close window and after-hours. Recheck in the shared order executor, including pending BUY approvals; SELL exits remain available. A final cutoff rejection leaves the signal retryable, and disabling the setting preserves overnight-entry behavior.
 - Paper stock positions are matched by normalized ticker across instrument URLs in both client and server fill paths; ambiguous legacy duplicate rows reject orders until reconciled from fill history.
 - Flutter mobile app (Dart) in `src/robinhood_options_mobile/`.
 - Backend helpers and server code live under `src/robinhood_options_mobile/functions/` and `src/robinhood_options_mobile/firebase/` (Firebase Functions + admin tooling).
