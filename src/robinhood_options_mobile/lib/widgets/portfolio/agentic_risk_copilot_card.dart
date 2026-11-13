@@ -100,17 +100,24 @@ class AgenticRiskCopilotCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: severityColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${report.overallScore.toStringAsFixed(0)}/100 · ${report.overallSeverity.label}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: severityColor,
-                    fontWeight: FontWeight.bold,
+              Semantics(
+                container: true,
+                excludeSemantics: true,
+                label:
+                    'Risk score: ${report.overallScore.toStringAsFixed(0)} out of 100, ${report.overallSeverity.label}',
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: severityColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${report.overallScore.toStringAsFixed(0)}/100 · ${report.overallSeverity.label}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: severityColor,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -161,39 +168,45 @@ class AgenticRiskCopilotCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Headline or Top Mitigation
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: severityColor.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: severityColor.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  report.overallSeverity == RiskCopilotSeverity.normal
-                      ? Icons.check_circle_outline
-                      : Icons.warning_amber_rounded,
-                  size: 18,
-                  color: severityColor,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    report.topMitigations.isNotEmpty
-                        ? report.topMitigations.first.title
-                        : report.statusHeadline,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label:
+                'Recommendation: ${report.topMitigations.isNotEmpty ? report.topMitigations.first.title : report.statusHeadline}',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: severityColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: severityColor.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    report.overallSeverity == RiskCopilotSeverity.normal
+                        ? Icons.check_circle_outline
+                        : Icons.warning_amber_rounded,
+                    size: 18,
+                    color: severityColor,
                   ),
-                ),
-                const SizedBox(width: 6),
-                Icon(Icons.chevron_right,
-                    size: 18, color: theme.colorScheme.onSurfaceVariant),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      report.topMitigations.isNotEmpty
+                          ? report.topMitigations.first.title
+                          : report.statusHeadline,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.chevron_right,
+                      size: 18, color: theme.colorScheme.onSurfaceVariant),
+                ],
+              ),
             ),
           ),
         ],
@@ -208,35 +221,41 @@ class AgenticRiskCopilotCard extends StatelessWidget {
     required Color color,
   }) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontSize: 10,
+    return Semantics(
+      container: true,
+      excludeSemantics: true,
+      label: '$title: $value',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 10,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
