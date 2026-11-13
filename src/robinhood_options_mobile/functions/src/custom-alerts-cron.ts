@@ -485,6 +485,7 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
                   channelId: resolvedDelivery.channelId,
                   priority: resolvedDelivery.priority,
                   sound: resolvedDelivery.sound || "silent",
+                  click_action: "FLUTTER_NOTIFICATION_CLICK",
                 },
                 android: {
                   priority: resolvedDelivery.fcmAndroidPriority,
@@ -493,6 +494,7 @@ export const checkCustomAlerts = onSchedule("every 5 minutes", async () => {
                     ...(resolvedDelivery.sound ?
                       { sound: resolvedDelivery.sound } :
                       {}),
+                    clickAction: "FLUTTER_NOTIFICATION_CLICK",
                   },
                 },
                 apns: {

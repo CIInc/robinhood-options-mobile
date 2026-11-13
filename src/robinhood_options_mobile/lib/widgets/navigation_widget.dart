@@ -50,6 +50,7 @@ import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
@@ -339,6 +340,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           }
         });
 
+    // Handle local notification launch when opened from a terminated state
+    final notificationLaunchDetails =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    if (notificationLaunchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = notificationLaunchDetails?.notificationResponse?.payload;
+      if (payload != null && payload.isNotEmpty) {
+        try {
+          final data = jsonDecode(payload);
+          if (data is Map<String, dynamic>) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _handleMessageData(data,
+                    actionId: notificationLaunchDetails
+                        ?.notificationResponse?.actionId);
+              }
+            });
+          }
+        } catch (e) {
+          debugPrint('Error handling local notification launch payload: $e');
+        }
+      }
+    }
+
     // Get any messages which caused the application to open from
     // a terminated state.
     RemoteMessage? initialMessage =
@@ -483,40 +507,65 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     });
   }
 
+  Future<Instrument?> _fetchInstrument(
+    IBrokerageService activeService,
+    BrokerageUser brokerageUser,
+    InstrumentStore instrumentStore,
+    String symbol,
+  ) async {
+    try {
+      final instrument = await activeService.getInstrumentBySymbol(
+          brokerageUser, instrumentStore, symbol);
+      if (instrument != null) return instrument;
+    } catch (e) {
+      debugPrint('Error fetching instrument with primary service: $e');
+    }
+    try {
+      final rhService = RobinhoodService();
+      return await rhService.getInstrumentBySymbol(
+          brokerageUser, instrumentStore, symbol);
+    } catch (e) {
+      debugPrint(
+          'Error fetching instrument with fallback RobinhoodService: $e');
+    }
+    return null;
+  }
+
   void _handleMessageData(Map<String, dynamic> data, {String? actionId}) {
     if (actionId == 'TRADE') {
-      final symbol = data['symbol'];
-      final signal = data['signal']; // BUY or SELL
-      if (symbol != null) {
-        final userStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
-        final instrumentStore =
-            Provider.of<InstrumentStore>(context, listen: false);
-        if (userStore.items.isNotEmpty) {
-          var brokerageUser = userStore.currentUser ?? userStore.items.first;
-          service = _getService(brokerageUser);
+      final symbol = data['symbol'] as String?;
+      final signal = data['signal'] as String?; // BUY or SELL
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final brokerageUser = userStore.currentUser ??
+          userStore.items.firstOrNull ??
+          BrokerageUser(BrokerageSource.demo, 'Demo', null, null);
+      final activeService = service ?? _getService(brokerageUser);
+      service = activeService;
 
-          service!
-              .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
-              .then((instrument) {
-            if (instrument != null) {
-              final positionType = signal == 'BUY' ? 'Buy' : 'Sell';
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TradeInstrumentWidget(
-                    brokerageUser,
-                    service!,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    instrument: instrument,
-                    positionType: positionType,
-                  ),
+      _navigateToTradeSignals(context);
+
+      if (symbol != null && symbol.isNotEmpty) {
+        _fetchInstrument(activeService, brokerageUser, instrumentStore, symbol)
+            .then((instrument) {
+          if (instrument != null && mounted) {
+            final positionType = signal == 'BUY' ? 'Buy' : 'Sell';
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TradeInstrumentWidget(
+                  brokerageUser,
+                  activeService,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  instrument: instrument,
+                  positionType: positionType,
                 ),
-              );
-            }
-          });
-        }
+              ),
+            );
+          }
+        });
       }
       return;
     }
@@ -557,38 +606,73 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           ),
         );
       }
-    } else if (data['type'] == 'trade_signal' ||
-        data['type'] == 'custom_alert') {
-      final symbol = data['symbol'];
-      if (symbol != null) {
-        final userStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
-        final instrumentStore =
-            Provider.of<InstrumentStore>(context, listen: false);
-        if (userStore.items.isNotEmpty) {
-          var brokerageUser = userStore.currentUser ?? userStore.items.first;
-          service = _getService(brokerageUser);
+    } else if (data['type'] == 'trade_signal') {
+      final symbol = data['symbol'] as String?;
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final brokerageUser = userStore.currentUser ??
+          userStore.items.firstOrNull ??
+          BrokerageUser(BrokerageSource.demo, 'Demo', null, null);
+      final activeService = service ?? _getService(brokerageUser);
+      service = activeService;
 
-          service!
-              .getInstrumentBySymbol(brokerageUser, instrumentStore, symbol)
-              .then((instrument) {
-            if (instrument != null) {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => InstrumentWidget(
-                            brokerageUser,
-                            service!,
-                            instrument,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            generativeService: _generativeService,
-                            user: user,
-                            userDocRef: userDoc,
-                          )));
-            }
-          });
-        }
+      _navigateToTradeSignals(context);
+
+      if (symbol != null && symbol.isNotEmpty) {
+        _fetchInstrument(activeService, brokerageUser, instrumentStore, symbol)
+            .then((instrument) {
+          if (instrument != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                  brokerageUser,
+                  activeService,
+                  instrument,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: _generativeService,
+                  user: user,
+                  userDocRef: userDoc,
+                ),
+              ),
+            );
+          }
+        });
+      }
+    } else if (data['type'] == 'custom_alert') {
+      final symbol = data['symbol'] as String?;
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final brokerageUser = userStore.currentUser ??
+          userStore.items.firstOrNull ??
+          BrokerageUser(BrokerageSource.demo, 'Demo', null, null);
+      final activeService = service ?? _getService(brokerageUser);
+      service = activeService;
+
+      if (symbol != null && symbol.isNotEmpty) {
+        _fetchInstrument(activeService, brokerageUser, instrumentStore, symbol)
+            .then((instrument) {
+          if (instrument != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
+                  brokerageUser,
+                  activeService,
+                  instrument,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                  generativeService: _generativeService,
+                  user: user,
+                  userDocRef: userDoc,
+                ),
+              ),
+            );
+          }
+        });
       }
     } else if (data['type'] == 'options_flow_alert') {
       final symbol = data['symbol'] as String?;
