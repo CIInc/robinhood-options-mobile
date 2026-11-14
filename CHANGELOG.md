@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.6] - 2026-11-13 (pre-release)
+
+**Monte Carlo Derivatives Stress Engine & Copy-Trading Option Guardrails**
+
+### Added
+- **Monte Carlo Derivatives & Portfolio Stress Engine ([#303](https://github.com/CIInc/robinhood-options-mobile/issues/303)):**
+  - **On-Device Path Simulator (`lib/services/monte_carlo_simulator.dart`):** Implemented `MonteCarloSimulator` over pre-allocated `Float64List` buffers (`1,000`–`5,000` paths across `30d`, `90d`, `180d`, and `365d` horizons) supporting **Geometric Brownian Motion (GBM)**, fat-tailed **Student's $t$** innovations (Marsaglia polar Box-Muller + $\chi^2_\nu$ scaling), and **Historical Bootstrap** daily return resampling, with isolate execution support for responsive mobile rendering.
+  - **Non-Linear Options Greek Decay:** Aggregates dollar-normalized option sensitivities (`MonteCarloGreekExposure.fromPositions`) and evaluates second-order Taylor-series option repricing ($\Delta S \cdot \Delta + \frac{1}{2} \Gamma (\Delta S)^2 + \Theta \cdot \Delta t + \mathcal{V} \cdot \Delta \sigma$) alongside simulated equity paths.
+  - **Path-Dependent Risk Metrics & Interactive Fan Chart (`lib/widgets/portfolio/analytics/monte_carlo_risk_card.dart`):** Computes 95% and 99% terminal Value-at-Risk (VaR) and Expected Shortfall (CVaR), median and 95th-percentile maximum drawdown, and probability of ruin / margin breach against `ruinDrawdownThreshold` (default 50% drawdown or total loss). Integrated `MonteCarloRiskCard` into Tier 5 of `RiskSectionPage` (`lib/widgets/portfolio/risk_section_page.dart`) with a `CustomPainter` percentile fan chart (`P5`, `P25`, `P50`, `P75`, `P95`), horizon/model/path-count selector chips, methodology info sheet, full `AccountStore` balance masking, and screen-reader semantics.
+- **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading ([#279](https://github.com/CIInc/robinhood-options-mobile/issues/279)):**
+  - **Defined-Risk Inverse Option Guardrail (`functions/src/copy-trading.ts`, `lib/services/copy_trade_risk_guardian_service.dart`):** Hard safety rule in `buildCopyOptionOrderPlan` and `CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail` that blocks naked short option generation when copying single-leg long options in `inverse: true` mode, automatically adapting `Buy Call` $\leftrightarrow$ `Buy Put` into defined-risk opposite-direction long contracts while verifying protective long legs on multi-leg spreads.
+  - **Small-Account Option Contract Adapter (`lib/services/copy_trade_risk_guardian_service.dart`, `lib/model/copy_trading_provider.dart`):** Added `OptionContractAdaptation` and `CopyTradeRiskGuardianService.suggestOptionAdaptations` to rank cheaper liquid OTM single-leg strikes and defined-risk vertical debit spreads within the follower's `maxAllocationPerTrade` budget whenever 1 contract of the leader's option exceeds the cap, plus `CopyTradingProvider.approveAdaptedRequest`, `applyDefinedRiskInverse`, and multi-leg spread order submission.
+  - **Interactive Guardrail & Contract Adapter UI (`lib/widgets/copy_trade_request_detail_widget.dart`, `lib/widgets/copy_trade_requests_widget.dart`):** Added inverse guardrail banners, contract-adaptation badges (`needsContractAdaptation`, `inverseAdaptation`), and an interactive option adaptation selector card in `CopyTradeRequestDetailWidget` with one-tap `Approve Adapted` execution while enforcing `pending_approval` review for adapted option trades.
+
 ## [0.61.5] - 2026-11-13 (pre-release)
 **Market-Close Entry Safety**
 
