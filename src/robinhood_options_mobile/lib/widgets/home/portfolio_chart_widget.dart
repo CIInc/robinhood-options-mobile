@@ -724,42 +724,52 @@ class _PortfolioChartWidgetState extends State<PortfolioChartWidget> {
                           ),
                           const SizedBox(height: 12),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: changeColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: changeColor.withValues(alpha: 0.15),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      changeInPeriod >= 0
-                                          ? Icons.trending_up_rounded
-                                          : Icons.trending_down_rounded,
-                                      size: 20,
-                                      color: changeColor,
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 9),
+                                  decoration: BoxDecoration(
+                                    color: changeColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color:
+                                          changeColor.withValues(alpha: 0.15),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      showBalances
-                                          ? '$returnText ($returnPercentText)'
-                                          : '•••••• ($returnPercentText)',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        changeInPeriod >= 0
+                                            ? Icons.trending_up_rounded
+                                            : Icons.trending_down_rounded,
+                                        size: 20,
                                         color: changeColor,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: FittedBox(
+                                          alignment: Alignment.centerLeft,
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            showBalances
+                                                ? '$returnText ($returnPercentText)'
+                                                : '•••••• ($returnPercentText)',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                              color: changeColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
