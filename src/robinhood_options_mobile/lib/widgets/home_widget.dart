@@ -1122,35 +1122,44 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void _loadData() {
     if (widget.brokerageUser == null || widget.service == null) return;
 
-    final existingAccountStore =
-        Provider.of<AccountStore>(context, listen: false);
-    if (existingAccountStore.items.isEmpty) {
-      _restoreFromOfflineCache();
+    final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    if (!_isAggregateMode() &&
+        userStore.currentUser != null &&
+        widget.brokerageUser != userStore.currentUser) {
+      return;
     }
 
+    final requestedUser = widget.brokerageUser;
+
     if (_isAggregateMode()) {
-      futureAccounts = _loadAggregatedData();
+      final accountsFuture = _loadAggregatedData();
+      futureAccounts = accountsFuture;
       futurePortfolios = null;
       futureNummusHoldings = null;
       futureOptionPositions = null;
       futureStockPositions = null;
-      futureAccounts!.then((accounts) {
-        if (mounted && accounts.isNotEmpty) {
-          final accountStore =
-              Provider.of<AccountStore>(context, listen: false);
-          setState(() {
-            final selectedNo = accountStore.selectedAccountNumber;
-            account = (selectedNo != null)
-                ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
-                    orElse: () => accounts[0])
-                : accounts[0];
-            _loadPortfolioHistoricals();
-          });
-          _persistCurrentPortfolioSnapshot();
+      accountsFuture.then((accounts) {
+        if (!mounted ||
+            !identical(futureAccounts, accountsFuture) ||
+            widget.brokerageUser != requestedUser ||
+            accounts.isEmpty) {
+          return;
         }
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+        setState(() {
+          final selectedNo = accountStore.selectedAccountNumber;
+          account = (selectedNo != null)
+              ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                  orElse: () => accounts[0])
+              : accounts[0];
+          _loadPortfolioHistoricals();
+        });
+        _persistCurrentPortfolioSnapshot();
       }).catchError((error) async {
         debugPrint('Error loading aggregated accounts: $error');
-        if (mounted) {
+        if (mounted &&
+            identical(futureAccounts, accountsFuture) &&
+            widget.brokerageUser == requestedUser) {
           try {
             Provider.of<OfflineSyncService>(context, listen: false)
                 .setOffline(true, reason: error.toString());
@@ -1167,7 +1176,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       });
     }
 
-    futureAccounts = widget.service!.getAccounts(
+    final accountsFuture = widget.service!.getAccounts(
         widget.brokerageUser!,
         Provider.of<AccountStore>(context, listen: false),
         Provider.of<PortfolioStore>(context, listen: false),
@@ -1175,38 +1184,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         instrumentPositionStore:
             Provider.of<InstrumentPositionStore>(context, listen: false),
         userDoc: widget.userDoc);
+    futureAccounts = accountsFuture;
 
-    futureAccounts!.then((accounts) async {
-      if (mounted && accounts.isNotEmpty) {
-        // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
-        widget.brokerageUser!.accounts = accounts;
-        final userStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
-        final accountStore = Provider.of<AccountStore>(context, listen: false);
-
-        if (accountStore.selectedAccountNumber == null) {
-          await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
-        }
-        await userStore.save();
-
-        setState(() {
-          final selectedNo = accountStore.selectedAccountNumber;
-          account = (selectedNo != null)
-              ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
-                  orElse: () => accounts[0])
-              : accounts[0];
-          _loadPortfolioHistoricals();
-        });
-
-        if (accountStore.selectedAccountNumber == null) {
-          accountStore.setSelectedAccountNumber(account!.accountNumber);
-        }
-        await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
-        _persistCurrentPortfolioSnapshot();
+    accountsFuture.then((accounts) async {
+      if (!mounted ||
+          !identical(futureAccounts, accountsFuture) ||
+          widget.brokerageUser != requestedUser ||
+          accounts.isEmpty) {
+        return;
       }
+      // Added to fix missing accounts in SharedPreferences after refresh. TODO: Confirm if this is necessary.
+      requestedUser!.accounts = accounts;
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final accountStore = Provider.of<AccountStore>(context, listen: false);
+
+      if (accountStore.selectedAccountNumber == null) {
+        await accountStore.loadSelectedAccountNumber(_selectionStorageKey());
+      }
+      await userStore.save();
+      if (!mounted ||
+          !identical(futureAccounts, accountsFuture) ||
+          widget.brokerageUser != requestedUser) {
+        return;
+      }
+
+      setState(() {
+        final selectedNo = accountStore.selectedAccountNumber;
+        account = (selectedNo != null)
+            ? accounts.firstWhere((a) => a.accountNumber == selectedNo,
+                orElse: () => accounts[0])
+            : accounts[0];
+        _loadPortfolioHistoricals();
+      });
+
+      if (accountStore.selectedAccountNumber != account!.accountNumber) {
+        accountStore.setSelectedAccountNumber(account!.accountNumber);
+      }
+      await accountStore.saveSelectedAccountNumber(_selectionStorageKey());
+      _persistCurrentPortfolioSnapshot();
     }).catchError((error) async {
       debugPrint('Error loading accounts: $error');
-      if (mounted) {
+      if (mounted &&
+          identical(futureAccounts, accountsFuture) &&
+          widget.brokerageUser == requestedUser) {
         try {
           Provider.of<OfflineSyncService>(context, listen: false)
               .setOffline(true, reason: error.toString());
@@ -1447,6 +1467,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     final userChanged = widget.brokerageUser != oldWidget.brokerageUser;
     if (userChanged || widget.service != oldWidget.service) {
       if (userChanged) {
+        account = null;
+        futuresAccountId = null;
         _lastSelectedAccountNumber = null;
       }
       _updatePaperStoreBinding();
@@ -1642,7 +1664,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     if (!mounted) return false;
     try {
       final snapshot = await OfflineCacheService.loadPortfolioSnapshot();
-      if (snapshot == null) return false;
+      if (!mounted || snapshot == null) return false;
+
+      final isPaperUser = widget.brokerageUser?.source == BrokerageSource.paper;
+      final matchingAccounts = snapshot.accounts
+          .where((a) => isPaperUser
+              ? a.accountNumber == 'paper_account'
+              : a.accountNumber != 'paper_account')
+          .toList();
+      if (matchingAccounts.isEmpty && snapshot.accounts.isNotEmpty) {
+        return false;
+      }
 
       final accountStore = Provider.of<AccountStore>(context, listen: false);
       final portfolioStore =
@@ -1655,9 +1687,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       final futuresStore =
           Provider.of<FuturesPositionStore>(context, listen: false);
 
-      if (accountStore.items.isEmpty && snapshot.accounts.isNotEmpty) {
+      if (accountStore.items.isEmpty && matchingAccounts.isNotEmpty) {
         accountStore.removeAll();
-        for (final a in snapshot.accounts) {
+        for (final a in matchingAccounts) {
           accountStore.add(a);
         }
       }

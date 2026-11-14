@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
@@ -217,5 +218,46 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(mockBrokerageUserStore.currentUser, same(schwabUser));
+  });
+
+  testWidgets(
+      'switching from paper trading to Robinhood clears paper_account from AccountStore',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final paperUser =
+        BrokerageUser(BrokerageSource.paper, 'paper-user', null, null);
+    final robinhoodUser =
+        BrokerageUser(BrokerageSource.robinhood, 'rh-account', null, null);
+    mockBrokerageUserStore = BrokerageUserStore([
+      paperUser,
+      robinhoodUser,
+    ], 0);
+    mockAccountStore.add(Account(
+      'paper_account',
+      10000.0,
+      'paper_account',
+      'Paper Account',
+      10000.0,
+      'Level 3',
+      0.0,
+      0.0,
+      0.0,
+    ));
+    mockAccountStore.setSelectedAccountNumber('paper_account');
+
+    await tester.pumpWidget(
+      buildWidget(auth: MockFirebaseAuth(user: MockFirebaseUser())),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Paper • paper_account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('rh-account'));
+    await tester.pumpAndSettle();
+
+    expect(mockBrokerageUserStore.currentUser, same(robinhoodUser));
+    expect(mockAccountStore.items, isEmpty);
+    expect(mockAccountStore.selectedAccountNumber, isNull);
+    expect(mockAccountStore.selectedAccount, isNull);
   });
 }

@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -1295,14 +1296,21 @@ class _UserWidgetState extends State<UserWidget> {
                                                                   await confirmLiveBrokerageSwitch(
                                                                       context,
                                                                       brokerageUser);
-                                                              if (!confirmed) {
+                                                              if (!confirmed ||
+                                                                  !context
+                                                                      .mounted) {
                                                                 return;
                                                               }
-                                                              Provider.of<AccountStore>(
+                                                              final accountStore =
+                                                                  Provider.of<
+                                                                          AccountStore>(
                                                                       context,
                                                                       listen:
-                                                                          false)
+                                                                          false);
+                                                              accountStore
                                                                   .removeAll();
+                                                              accountStore
+                                                                  .clearSelection();
                                                               Provider.of<PortfolioStore>(
                                                                       context,
                                                                       listen:
@@ -1328,6 +1336,13 @@ class _UserWidgetState extends State<UserWidget> {
                                                                       listen:
                                                                           false)
                                                                   .removeAll();
+                                                              try {
+                                                                Provider.of<FuturesPositionStore>(
+                                                                        context,
+                                                                        listen:
+                                                                            false)
+                                                                    .removeAll();
+                                                              } catch (_) {}
 
                                                               userStore
                                                                   .setAggregateAllAccounts(

@@ -956,7 +956,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
     }
 
     if (shouldReload) {
+      userInfo = currentUser?.userInfo;
+      service = currentUser != null ? _getService(currentUser) : null;
       _initFuture = _loadData(userStore);
+      _buildTabs(userStore);
     }
 
     return FutureBuilder(
