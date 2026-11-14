@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.7] - 2026-11-14 (pre-release)
+
+**Higher-Order Portfolio Greeks & 2D Spot × IV Cross-Shock Stress Matrix**
+
+### Added
+- **Closed-Form Higher-Order Portfolio Greeks ([#335](https://github.com/CIInc/robinhood-options-mobile/issues/335)):**
+  - **Closed-Form Black-Scholes Formulations (`AnalyticsUtils.calculateBlackScholesHigherOrderGreeks`, `DeltaNeutralService.calculateBlackScholesGreeks`):** Analytical implementations of **Vanna** ($\partial \Delta / \partial \sigma = -n'(d_1) \frac{d_2}{\sigma}$, expressed as delta change per 1.0% change in volatility), **Charm** ($-\partial \Delta / \partial \tau$, annualized and scaled to daily $\Delta / \text{day}$ and 3-day weekend delta bleed $\text{dailyCharm} \times 3.0$), and **Vomma/Volga** ($\partial \mathcal{V} / \partial \sigma = \text{Vega} \times \frac{d_1 d_2}{\sigma}$, expressed as vega dollar sensitivity per 1.0% IV move).
+  - **Multi-Position Greek Aggregation (`AnalyticsUtils.calculatePortfolioHigherOrderGreeks`, `DeltaPositionLeg`, `DeltaNeutralAnalysis`):** Extended `DeltaPositionLeg` with `unitVanna`, `unitCharm`, `unitVomma` and getters for `totalVanna`, `totalCharmDaily`, `totalWeekendCharm`, `totalVomma` multiplying by contract multiplier (100) and signed `sideMultiplier`. Extended `DeltaNeutralAnalysis` with `netVanna`, `netCharmDaily`, `weekendCharmDrift`, `netVomma`, and full JSON serialization.
+- **2D Spot × IV Cross-Shock Stress Matrix ([#335](https://github.com/CIInc/robinhood-options-mobile/issues/335)):**
+  - **Quantitative Non-Linear Grid Engine (`AnalyticsUtils.calculatePortfolioCrossShockMatrix`, `DeltaNeutralService.calculateCrossShockMatrix`):** Evaluates a 5×5 cross-shock matrix ($\Delta S \in [-10\%, -5\%, 0\%, +5\%, +10\%] \times \Delta\text{IV} \in [-20\%, -10\%, 0\%, +10\%, +20\%]$) computing theoretical post-shock projected net P&L (\$) and post-shock net delta ($\Delta$) with non-linear interaction terms (Gamma $\times \Delta S^2$, Vega $\times \Delta\text{IV}$, Vanna $\times \Delta S \cdot \Delta\text{IV}$, and Vomma $\times \Delta\text{IV}^2$).
+  - **Interactive UI Matrix in `PortfolioGreeksCard` & `DeltaNeutralBuilderWidget`:** Integrated responsive 6-column `Table` (using `FlexColumnWidth` without horizontal scroll clipping) into `PortfolioGreeksCard` (`lib/widgets/portfolio/portfolio_greeks_card.dart`) and `DeltaNeutralBuilderWidget` (`lib/widgets/delta_neutral_builder_widget.dart`). Features segment toggling between **P&L (\$)** and **Net Delta ($\Delta$)**, color coding (green/red for P&L, green/amber/red for delta neutrality drift), interactive cell selection with detailed inspection chip, and educational methodology explanation bottom sheet.
+  - **Weekend Charm Delta Bleed Alert:** Surfaces a prominent warning banner when 3-day weekend charm drift exceeds $\pm 10.0$ delta equivalents, quantifying expected net delta bleed into Monday morning's open and advising weekend delta hedge adjustments.
+  - **Privacy & Screen-Reader Accessibility:** Enforced strict balance masking via `AccountStore.showBalances` (`$••••••`) across all matrix P&L cells and Greek dollar displays, with comprehensive spoken `Semantics` on every matrix cell.
+
 ## [0.61.6] - 2026-11-13 (pre-release)
 
 **Monte Carlo Derivatives Stress Engine & Copy-Trading Option Guardrails**
