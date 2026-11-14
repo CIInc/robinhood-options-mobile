@@ -50,6 +50,207 @@ interface CopyTradeSettings {
   riskGuardianTrippedAt?: string;
 }
 
+export interface CopyOptionLeg {
+  expirationDate?: string;
+  strikePrice?: number;
+  optionType?: string;
+  side: string;
+  positionEffect?: string;
+  ratioQuantity?: number;
+}
+
+export interface CopyOptionOrderPlan {
+  effectiveDirection: string;
+  legs: CopyOptionLeg[];
+  quantity: number;
+  needsContractAdaptation: boolean;
+  inverseAdaptation?: string;
+  requiresManualApproval: boolean;
+}
+
+/**
+ * Checks whether every open short leg in a multi-leg option order has a
+ * protective long leg with matching optionType and expirationDate.
+ * @param {CopyOptionLeg[]} legs Option legs to validate.
+ * @return {boolean} True when all open short legs are covered.
+ */
+function hasProtectiveLongForAllShorts(legs: CopyOptionLeg[]): boolean {
+  for (const leg of legs) {
+    const side = (leg.side || "").toLowerCase();
+    const effect = (leg.positionEffect || "open").toLowerCase();
+    if (side === "sell" && effect !== "close") {
+      const hasCover = legs.some((other) => {
+        const otherSide = (other.side || "").toLowerCase();
+        const otherEffect = (other.positionEffect || "open").toLowerCase();
+        return (
+          otherSide === "buy" &&
+          otherEffect !== "close" &&
+          other.optionType === leg.optionType &&
+          other.expirationDate === leg.expirationDate
+        );
+      });
+      if (!hasCover) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * Builds a copy-trade option order plan enforcing:
+ * 1. Defined-risk inverse guardrails (never generate naked short options)
+ * 2. Allocation cap quantity clamping and small-account adaptation flags
+ * @param {any} orderData Leader option order payload.
+ * @param {CopyTradeSettings} settings Follower copy-trade settings.
+ * @return {CopyOptionOrderPlan} Validated copy-trade option order plan.
+ */
+export function buildCopyOptionOrderPlan(
+  orderData: any,
+  settings: CopyTradeSettings
+): CopyOptionOrderPlan {
+  let quantity = orderData.quantity || 0;
+  const price = orderData.price || 0;
+
+  if (settings.copyPercentage) {
+    quantity = Math.floor(quantity * (settings.copyPercentage / 100));
+    if (quantity < 1) quantity = 1;
+  }
+
+  if (settings.maxQuantity && quantity > settings.maxQuantity) {
+    quantity = settings.maxQuantity;
+  }
+
+  let needsContractAdaptation = false;
+  const effectiveMaxOptionAmount =
+    settings.maxAllocationPerTrade || settings.maxAmount;
+  if (effectiveMaxOptionAmount && price > 0) {
+    const totalAmount = quantity * price * 100;
+    if (totalAmount > effectiveMaxOptionAmount) {
+      quantity = Math.floor(effectiveMaxOptionAmount / (price * 100));
+      if (quantity < 1) {
+        quantity = 0;
+        needsContractAdaptation = true;
+      }
+    }
+  }
+
+  const rawLegs: any[] = orderData.legs || [];
+  let effectiveDirection = orderData.direction || "debit";
+  let inverseAdaptation: string | undefined;
+  let requiresManualApproval = needsContractAdaptation;
+
+  let legs: CopyOptionLeg[];
+
+  if (!settings.inverse) {
+    legs = rawLegs.map((leg: any) => ({
+      expirationDate: leg.expiration_date,
+      strikePrice: leg.strike_price,
+      optionType: leg.option_type,
+      side: leg.side,
+      positionEffect: leg.position_effect,
+      ratioQuantity: leg.ratio_quantity,
+    }));
+  } else if (rawLegs.length === 1) {
+    const leg = rawLegs[0];
+    const origSide = (leg.side || "buy").toLowerCase();
+    const posEffect = (leg.position_effect || "open").toLowerCase();
+    const origType = (leg.option_type || "call").toLowerCase();
+
+    if (origSide === "buy" && posEffect !== "close") {
+      // Never convert a long option into a naked short option.
+      // Map to defined-risk opposite-direction long option.
+      const flippedType = origType === "call" ? "put" : "call";
+      effectiveDirection = "debit";
+      inverseAdaptation = "defined_risk_opposite_option";
+      requiresManualApproval = true;
+      legs = [
+        {
+          expirationDate: leg.expiration_date,
+          strikePrice: leg.strike_price,
+          optionType: flippedType,
+          side: "buy",
+          positionEffect: leg.position_effect,
+          ratioQuantity: leg.ratio_quantity,
+        },
+      ];
+    } else if (origSide === "sell" && posEffect !== "close") {
+      // Flipping short -> long is inherently defined risk.
+      effectiveDirection = "debit";
+      inverseAdaptation = "defined_risk_long_flip";
+      requiresManualApproval = true;
+      legs = [
+        {
+          expirationDate: leg.expiration_date,
+          strikePrice: leg.strike_price,
+          optionType: origType,
+          side: "buy",
+          positionEffect: leg.position_effect,
+          ratioQuantity: leg.ratio_quantity,
+        },
+      ];
+    } else {
+      effectiveDirection =
+        orderData.direction === "debit" ? "credit" : "debit";
+      requiresManualApproval = true;
+      legs = [
+        {
+          expirationDate: leg.expiration_date,
+          strikePrice: leg.strike_price,
+          optionType: leg.option_type,
+          side: origSide === "buy" ? "sell" : "buy",
+          positionEffect: leg.position_effect,
+          ratioQuantity: leg.ratio_quantity,
+        },
+      ];
+    }
+  } else {
+    const flippedLegs: CopyOptionLeg[] = rawLegs.map((leg: any) => ({
+      expirationDate: leg.expiration_date,
+      strikePrice: leg.strike_price,
+      optionType: leg.option_type,
+      side: leg.side === "buy" ? "sell" : "buy",
+      positionEffect: leg.position_effect,
+      ratioQuantity: leg.ratio_quantity,
+    }));
+
+    if (hasProtectiveLongForAllShorts(flippedLegs)) {
+      effectiveDirection =
+        orderData.direction === "debit" ? "credit" : "debit";
+      inverseAdaptation = "defined_risk_spread_flip";
+      requiresManualApproval = true;
+      legs = flippedLegs;
+    } else {
+      // Block uncovered short legs by converting them to defined-risk longs.
+      effectiveDirection = "debit";
+      inverseAdaptation = "uncovered_short_blocked";
+      requiresManualApproval = true;
+      legs = rawLegs.map((leg: any) => {
+        const origSide = (leg.side || "buy").toLowerCase();
+        const origType = (leg.option_type || "call").toLowerCase();
+        const flippedType = origType === "call" ? "put" : "call";
+        return {
+          expirationDate: leg.expiration_date,
+          strikePrice: leg.strike_price,
+          optionType: origSide === "buy" ? flippedType : origType,
+          side: "buy",
+          positionEffect: leg.position_effect,
+          ratioQuantity: leg.ratio_quantity,
+        };
+      });
+    }
+  }
+
+  return {
+    effectiveDirection,
+    legs,
+    quantity,
+    needsContractAdaptation,
+    inverseAdaptation,
+    requiresManualApproval,
+  };
+}
+
 /**
  * Interface for investor group document
  */
@@ -96,6 +297,8 @@ interface CopyTradeRecord {
   executionResult?: string;
   error?: string;
   isInverse?: boolean;
+  needsContractAdaptation?: boolean;
+  inverseAdaptation?: string;
   executedPrice?: number;
   fillLatencyMs?: number;
   priceSlippage?: number;
@@ -719,8 +922,7 @@ export const onOptionOrderCreated = onDocumentCreated(
               autoExecute: settings.autoExecute,
             });
 
-            // Calculate adjusted quantity based on limits
-            let quantity = orderData.quantity || 0;
+            // Calculate adjusted quantity & defined-risk inverse option plan
             let price = orderData.price || 0;
             let stopPrice = orderData.stop_price;
 
@@ -732,34 +934,22 @@ export const onOptionOrderCreated = onDocumentCreated(
               price = price * (1 + settings.takeProfitAdjustment / 100);
             }
 
-            if (settings.copyPercentage) {
-              quantity = quantity * (settings.copyPercentage / 100);
-              // Options must be integers, floor to be safe
-              quantity = Math.floor(quantity);
-              // Ensure at least 1 contract if copying
-              if (quantity < 1) quantity = 1;
-            }
-
-            if (settings.maxQuantity && quantity > settings.maxQuantity) {
-              quantity = settings.maxQuantity;
-            }
-
-            const effectiveMaxOptionAmount =
-              settings.maxAllocationPerTrade || settings.maxAmount;
-            if (effectiveMaxOptionAmount && price > 0) {
-              const totalAmount =
-                quantity * price * 100; // Options are per 100 shares
-              if (totalAmount > effectiveMaxOptionAmount) {
-                quantity = Math.floor(effectiveMaxOptionAmount / (price * 100));
-              }
-            }
+            const plan = buildCopyOptionOrderPlan(
+              { ...orderData, price },
+              settings
+            );
+            const quantity = plan.quantity;
+            const effectiveDirection = plan.effectiveDirection;
+            const shouldAutoExecute =
+              settings.autoExecute && !plan.requiresManualApproval;
 
             let recordId: string | undefined;
-            const effectiveDirection = settings.inverse ?
-              (orderData.direction === "debit" ? "credit" : "debit") :
-              orderData.direction;
 
-            if (settings.autoExecute) {
+            const extraMeta = plan.inverseAdaptation ?
+              { inverseAdaptation: plan.inverseAdaptation } :
+              {};
+
+            if (shouldAutoExecute) {
               // Create a copy trade record (auto-execute)
               recordId = await createCopyTradeRecord({
                 sourceUserId: userId,
@@ -777,20 +967,13 @@ export const onOptionOrderCreated = onDocumentCreated(
                 price: price,
                 stopPrice: stopPrice,
                 strategy: orderData.strategy,
-                legs: (orderData.legs || []).map((leg: any) => ({
-                  expirationDate: leg.expiration_date,
-                  strikePrice: leg.strike_price,
-                  optionType: leg.option_type,
-                  side: settings.inverse ?
-                    (leg.side === "buy" ? "sell" : "buy") :
-                    leg.side,
-                  positionEffect: leg.position_effect,
-                  ratioQuantity: leg.ratio_quantity,
-                })),
+                legs: plan.legs,
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false, // Would be true after actual order placement
                 status: "approved",
                 isInverse: settings.inverse || false,
+                needsContractAdaptation: plan.needsContractAdaptation,
+                ...extraMeta,
               });
 
               logger.info(
@@ -819,20 +1002,13 @@ export const onOptionOrderCreated = onDocumentCreated(
                 price: price,
                 stopPrice: stopPrice,
                 strategy: orderData.strategy,
-                legs: (orderData.legs || []).map((leg: any) => ({
-                  expirationDate: leg.expiration_date,
-                  strikePrice: leg.strike_price,
-                  optionType: leg.option_type,
-                  side: settings.inverse ?
-                    (leg.side === "buy" ? "sell" : "buy") :
-                    leg.side,
-                  positionEffect: leg.position_effect,
-                  ratioQuantity: leg.ratio_quantity,
-                })),
+                legs: plan.legs,
                 timestamp: FieldValue.serverTimestamp(),
                 executed: false,
                 status: "pending_approval",
                 isInverse: settings.inverse || false,
+                needsContractAdaptation: plan.needsContractAdaptation,
+                ...extraMeta,
               });
 
               logger.info(
@@ -854,7 +1030,7 @@ export const onOptionOrderCreated = onDocumentCreated(
               quantity,
               "option",
               price,
-              settings.autoExecute,
+              shouldAutoExecute,
               recordId
             );
           }

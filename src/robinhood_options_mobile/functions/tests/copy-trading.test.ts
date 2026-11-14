@@ -137,6 +137,7 @@ jest.mock("firebase-admin/messaging", () => ({
 }));
 
 import {
+  buildCopyOptionOrderPlan,
   onInstrumentOrderCreated,
   onOptionOrderCreated,
 } from "../src/copy-trading";
@@ -193,5 +194,126 @@ describe("Copy Trading N+1 query benchmark/test", () => {
 
     expect(mockCopyTradesAdd).toHaveBeenCalledTimes(4);
     expect(sourceUserGetCount).toBe(1);
+  });
+});
+
+describe("buildCopyOptionOrderPlan inverse & allocation guardrails", () => {
+  test("maps inverse long call to defined-risk long put", () => {
+    const plan = buildCopyOptionOrderPlan(
+      {
+        quantity: 2,
+        price: 3.0,
+        direction: "debit",
+        legs: [
+          {
+            expiration_date: "2027-01-15",
+            strike_price: 200,
+            option_type: "call",
+            side: "buy",
+            position_effect: "open",
+            ratio_quantity: 1,
+          },
+        ],
+      },
+      { enabled: true, autoExecute: true, inverse: true }
+    );
+
+    expect(plan.effectiveDirection).toBe("debit");
+    expect(plan.legs).toHaveLength(1);
+    expect(plan.legs[0].side).toBe("buy");
+    expect(plan.legs[0].optionType).toBe("put");
+    expect(plan.inverseAdaptation).toBe("defined_risk_opposite_option");
+    expect(plan.requiresManualApproval).toBe(true);
+  });
+
+  test("maps inverse long put to defined-risk long call", () => {
+    const plan = buildCopyOptionOrderPlan(
+      {
+        quantity: 1,
+        price: 2.5,
+        direction: "debit",
+        legs: [
+          {
+            expiration_date: "2027-01-15",
+            strike_price: 180,
+            option_type: "put",
+            side: "buy",
+            position_effect: "open",
+            ratio_quantity: 1,
+          },
+        ],
+      },
+      { enabled: true, autoExecute: true, inverse: true }
+    );
+
+    expect(plan.effectiveDirection).toBe("debit");
+    expect(plan.legs[0].side).toBe("buy");
+    expect(plan.legs[0].optionType).toBe("call");
+    expect(plan.inverseAdaptation).toBe("defined_risk_opposite_option");
+    expect(plan.requiresManualApproval).toBe(true);
+  });
+
+  test("preserves defined-risk vertical spread in inverse mode", () => {
+    const plan = buildCopyOptionOrderPlan(
+      {
+        quantity: 1,
+        price: 1.5,
+        direction: "debit",
+        legs: [
+          {
+            expiration_date: "2027-01-15",
+            strike_price: 200,
+            option_type: "call",
+            side: "buy",
+            position_effect: "open",
+            ratio_quantity: 1,
+          },
+          {
+            expiration_date: "2027-01-15",
+            strike_price: 210,
+            option_type: "call",
+            side: "sell",
+            position_effect: "open",
+            ratio_quantity: 1,
+          },
+        ],
+      },
+      { enabled: true, autoExecute: true, inverse: true }
+    );
+
+    expect(plan.effectiveDirection).toBe("credit");
+    expect(plan.legs[0].side).toBe("sell");
+    expect(plan.legs[1].side).toBe("buy");
+    expect(plan.inverseAdaptation).toBe("defined_risk_spread_flip");
+    expect(plan.requiresManualApproval).toBe(true);
+  });
+
+  test("flags contract adaptation when 1 contract exceeds cap", () => {
+    const plan = buildCopyOptionOrderPlan(
+      {
+        quantity: 1,
+        price: 5.0, // $500 per contract
+        direction: "debit",
+        legs: [
+          {
+            expiration_date: "2027-01-15",
+            strike_price: 200,
+            option_type: "call",
+            side: "buy",
+            position_effect: "open",
+            ratio_quantity: 1,
+          },
+        ],
+      },
+      {
+        enabled: true,
+        autoExecute: true,
+        maxAllocationPerTrade: 250,
+      }
+    );
+
+    expect(plan.quantity).toBe(0);
+    expect(plan.needsContractAdaptation).toBe(true);
+    expect(plan.requiresManualApproval).toBe(true);
   });
 });

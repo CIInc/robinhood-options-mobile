@@ -101,7 +101,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
   - Warn when strategy indicators have correlation $> 0.80$ to eliminate redundant oscillator/trend signals and prevent curve-fitting.
 
 #### Copy Trading Risk & Guardrails
-- [ ] **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading** (v0.61.0, [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)):
+- [x] **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading** (v0.61.0, [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [Tracking: #141](https://github.com/CIInc/robinhood-options-mobile/issues/141)):
   - Block naked short option generation in inverse copy mode by mapping short contracts to defined-risk opposite-direction spreads (e.g. short call $\to$ long put or defined bear call spread).
   - Suggest delta/DTE-matched strikes or vertical spreads when a single contract exceeds the follower's configured per-trade capital allocation cap.
 

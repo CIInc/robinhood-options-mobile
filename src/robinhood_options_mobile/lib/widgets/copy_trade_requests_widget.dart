@@ -246,6 +246,30 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
                                 ),
                               ),
                             ),
+                          if (request.needsContractAdaptation ||
+                              (request.orderType == 'option' &&
+                                  request.copiedQuantity < 1))
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border:
+                                      Border.all(color: Colors.amber.shade700),
+                                ),
+                                child: Text(
+                                  'Needs Adaptation',
+                                  style: TextStyle(
+                                    color: Colors.amber.shade800,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
                           _buildStatusChip(request.status),
                         ],
                       ),
@@ -455,6 +479,10 @@ class _CopyTradeRequestsWidgetState extends State<CopyTradeRequestsWidget>
       }
 
       for (final request in selectedRequests) {
+        if (request.needsContractAdaptation ||
+            (request.orderType == 'option' && request.copiedQuantity < 1)) {
+          continue;
+        }
         // RiskGuard Check
         try {
           final riskResult = await FirebaseFunctions.instance

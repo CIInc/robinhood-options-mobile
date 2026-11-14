@@ -55,6 +55,8 @@ class CopyTradeRecord {
   final String? error;
   final String status; // pending_approval, approved, rejected
   final bool isInverse;
+  final bool needsContractAdaptation;
+  final String? inverseAdaptation;
   final DateTime? executionTime;
   final double? executedPrice;
   final int? fillLatencyMs;
@@ -85,6 +87,8 @@ class CopyTradeRecord {
     this.error,
     this.status = 'approved',
     this.isInverse = false,
+    this.needsContractAdaptation = false,
+    this.inverseAdaptation,
     this.executionTime,
     this.executedPrice,
     this.fillLatencyMs,
@@ -126,6 +130,8 @@ class CopyTradeRecord {
         error = json['error'],
         status = json['status'] ?? 'approved',
         isInverse = json['isInverse'] ?? false,
+        needsContractAdaptation = json['needsContractAdaptation'] ?? false,
+        inverseAdaptation = json['inverseAdaptation'],
         executionTime = json['executionTime'] != null
             ? (json['executionTime'] is Timestamp
                 ? (json['executionTime'] as Timestamp).toDate()
@@ -174,6 +180,8 @@ class CopyTradeRecord {
       if (error != null) 'error': error,
       'status': status,
       'isInverse': isInverse,
+      if (needsContractAdaptation) 'needsContractAdaptation': true,
+      if (inverseAdaptation != null) 'inverseAdaptation': inverseAdaptation,
       if (executionTime != null)
         'executionTime': Timestamp.fromDate(executionTime!),
       if (executedPrice != null) 'executedPrice': executedPrice,

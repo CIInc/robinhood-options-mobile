@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:robinhood_options_mobile/model/copy_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/services/copy_trade_risk_guardian_service.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_request_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/copy_trade_requests_widget.dart';
 
@@ -291,6 +292,96 @@ void main() {
       expect(find.byType(CopyTradeRequestDetailWidget), findsOneWidget);
       expect(find.text('MSFT'), findsWidgets);
       expect(find.text('SatyaTrader'), findsOneWidget);
+    });
+
+    testWidgets(
+        'shows Defined-Risk Inverse Guardrail and Contract Adapter options',
+        (tester) async {
+      final exp = DateTime(2027, 1, 15);
+      final record = CopyTradeRecord(
+        id: 'opt-adapt-1',
+        sourceUserId: 'leader-1',
+        sourceUserName: 'OptionsLeader',
+        targetUserId: 'follower-1',
+        groupId: 'group-1',
+        orderType: 'option',
+        originalOrderId: 'orig-opt-1',
+        symbol: 'NVDA',
+        side: 'credit',
+        originalQuantity: 1,
+        copiedQuantity: 0,
+        price: 5.0,
+        timestamp: testTimestamp,
+        executed: false,
+        status: 'pending_approval',
+        isInverse: true,
+        needsContractAdaptation: true,
+        legs: [
+          CopyTradeLeg(
+            expirationDate: exp,
+            strikePrice: 140,
+            optionType: 'call',
+            side: 'sell',
+            positionEffect: 'open',
+            ratioQuantity: 1,
+          ),
+        ],
+      );
+
+      final adaptations = [
+        OptionContractAdaptation(
+          adaptationType: 'otm_strike',
+          title: '\$150 PUT',
+          subtitle: 'Liquid strike · Est. \$180 (within \$250 cap)',
+          legs: [
+            CopyTradeLeg(
+              expirationDate: exp,
+              strikePrice: 150,
+              optionType: 'put',
+              side: 'buy',
+              positionEffect: 'open',
+              ratioQuantity: 1,
+            ),
+          ],
+          estimatedPrice: 1.80,
+          estimatedTotalCost: 180.0,
+          maxRisk: 180.0,
+        ),
+      ];
+
+      final mockProvider = _MockCopyTradingProvider([record]);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<CopyTradingProvider>.value(
+                value: mockProvider),
+            ChangeNotifierProvider(create: (_) => AccountStore()),
+            ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+            ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+            ChangeNotifierProvider(create: (_) => InstrumentStore()),
+          ],
+          child: MaterialApp(
+            home: CopyTradeRequestDetailWidget(
+              record: record,
+              initialAdaptations: adaptations,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Naked Short Option Blocked'), findsOneWidget);
+      expect(find.text('Convert to Defined-Risk'), findsOneWidget);
+      expect(find.text('Contract Adapter (Capital Cap)'), findsOneWidget);
+      expect(find.text('\$150 PUT'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('\$150 PUT'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('\$150 PUT'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Approve Adapted Trade'), findsOneWidget);
     });
   });
 }

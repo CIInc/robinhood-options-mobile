@@ -12,7 +12,9 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/copy_trade_risk_guardian_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -28,6 +30,8 @@ class CopyTradeRequestDetailWidget extends StatefulWidget {
   final GenerativeService? generativeService;
   final User? user;
   final DocumentReference<User>? userDocRef;
+  final List<OptionContractAdaptation>? initialAdaptations;
+  final double? maxAllocationCap;
 
   const CopyTradeRequestDetailWidget({
     super.key,
@@ -41,6 +45,8 @@ class CopyTradeRequestDetailWidget extends StatefulWidget {
     this.generativeService,
     this.user,
     this.userDocRef,
+    this.initialAdaptations,
+    this.maxAllocationCap,
   });
 
   @override
@@ -51,6 +57,19 @@ class CopyTradeRequestDetailWidget extends StatefulWidget {
 class _CopyTradeRequestDetailWidgetState
     extends State<CopyTradeRequestDetailWidget> {
   bool _isProcessing = false;
+  List<OptionContractAdaptation> _adaptations = const [];
+  OptionContractAdaptation? _selectedAdaptation;
+  bool _loadingAdaptations = false;
+  bool _loadedAdaptations = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialAdaptations != null) {
+      _adaptations = widget.initialAdaptations!;
+      _loadedAdaptations = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +189,22 @@ class _CopyTradeRequestDetailWidgetState
     final sideColor = isBuy ? Colors.green : Colors.orange;
     final totalEstimatedValue =
         record.copiedQuantity * record.price * (isOption ? 100 : 1);
+    final inverseGuardrail =
+        CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail(
+      record: record,
+    );
+    final needsAdaptation = isOption &&
+        (record.needsContractAdaptation || record.copiedQuantity < 1);
+    if (isPending &&
+        needsAdaptation &&
+        !_loadedAdaptations &&
+        !_loadingAdaptations &&
+        widget.service != null &&
+        widget.brokerageUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadOptionAdaptations(record);
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -505,6 +540,21 @@ class _CopyTradeRequestDetailWidgetState
               const SizedBox(height: 16),
             ],
 
+            // Defined-Risk Inverse Option Guardrail Banner
+            if (isOption &&
+                record.isInverse &&
+                (!inverseGuardrail.isAllowed ||
+                    record.inverseAdaptation != null)) ...[
+              _buildInverseGuardrailCard(context, record, inverseGuardrail),
+              const SizedBox(height: 16),
+            ],
+
+            // Small-Account Option Contract Adapter Card
+            if (isPending && needsAdaptation) ...[
+              _buildContractAdapterCard(context, record, currencyFormat),
+              const SizedBox(height: 16),
+            ],
+
             // Action Buttons for Pending Requests
             if (isPending) ...[
               const SizedBox(height: 8),
@@ -517,11 +567,17 @@ class _CopyTradeRequestDetailWidgetState
                 )
               else ...[
                 ElevatedButton.icon(
-                  onPressed: () => _handleApprove(record),
+                  onPressed: (!inverseGuardrail.isAllowed ||
+                          (needsAdaptation && _selectedAdaptation == null))
+                      ? null
+                      : () => _handleApprove(record),
                   icon: const Icon(Icons.check_circle_outline),
-                  label: const Text(
-                    'Approve Request',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    _selectedAdaptation != null
+                        ? 'Approve Adapted Trade'
+                        : 'Approve Request',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
@@ -671,12 +727,17 @@ class _CopyTradeRequestDetailWidgetState
         portfolioState['cashAvailable'] = accountStore.items[0].portfolioCash;
       }
 
+      final effectiveQuantity =
+          _selectedAdaptation != null ? 1.0 : record.copiedQuantity;
+      final effectivePrice =
+          _selectedAdaptation?.estimatedPrice ?? record.price;
+
       final riskResult =
           await FirebaseFunctions.instance.httpsCallable('riskguardTask').call({
         'proposal': {
           'symbol': record.symbol,
-          'quantity': record.copiedQuantity,
-          'price': record.price,
+          'quantity': effectiveQuantity,
+          'price': effectivePrice,
           'action': record.side.toUpperCase(),
           'multiplier': record.orderType == 'option' ? 100 : 1,
         },
@@ -715,7 +776,11 @@ class _CopyTradeRequestDetailWidgetState
 
       if (!mounted) return;
       final provider = Provider.of<CopyTradingProvider>(context, listen: false);
-      await provider.approveRequest(record);
+      if (_selectedAdaptation != null) {
+        await provider.approveAdaptedRequest(record, _selectedAdaptation!);
+      } else {
+        await provider.approveRequest(record);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -733,6 +798,273 @@ class _CopyTradeRequestDetailWidgetState
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  Future<void> _loadOptionAdaptations(CopyTradeRecord record) async {
+    if (_loadingAdaptations || _loadedAdaptations) return;
+    setState(() => _loadingAdaptations = true);
+    try {
+      final service = widget.service;
+      final user = widget.brokerageUser;
+      final legs = record.legs;
+      if (service == null || user == null || legs == null || legs.isEmpty) {
+        return;
+      }
+
+      final instrumentStore =
+          Provider.of<InstrumentStore>(context, listen: false);
+      final optionInstrumentStore =
+          Provider.of<OptionInstrumentStore>(context, listen: false);
+      final instrument = await service.getInstrumentBySymbol(
+          user, instrumentStore, record.symbol);
+      if (instrument == null) return;
+
+      final leg = legs.first;
+      final expStr = leg.expirationDate?.toIso8601String().substring(0, 10);
+      final chain = await service
+          .streamOptionInstruments(
+            user,
+            optionInstrumentStore,
+            instrument,
+            expStr,
+            leg.optionType,
+          )
+          .first;
+
+      if (chain.isNotEmpty) {
+        final mdList = await service.getOptionMarketDataByIds(
+          user,
+          chain.map((e) => e.id).take(30).toList(),
+        );
+        final mdById = {for (final m in mdList) m.instrumentId: m};
+        for (final opt in chain) {
+          opt.optionMarketData ??= mdById[opt.id];
+        }
+      }
+
+      final cap = widget.maxAllocationCap ??
+          (record.price > 0 ? record.price * 100.0 * 0.75 : 250.0);
+      final suggestions = CopyTradeRiskGuardianService.suggestOptionAdaptations(
+        record: record,
+        maxAllocationAmount: cap,
+        chain: chain,
+      );
+      if (mounted) {
+        setState(() {
+          _adaptations = suggestions;
+          if (suggestions.isNotEmpty) {
+            _selectedAdaptation = suggestions.first;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load option contract adaptations: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingAdaptations = false;
+          _loadedAdaptations = true;
+        });
+      }
+    }
+  }
+
+  Widget _buildInverseGuardrailCard(
+    BuildContext context,
+    CopyTradeRecord record,
+    InverseOptionGuardrailResult guardrail,
+  ) {
+    final blocked = !guardrail.isAllowed;
+    final color = blocked ? Colors.red : Colors.purple;
+    final title = blocked
+        ? 'Naked Short Option Blocked'
+        : 'Defined-Risk Inverse Guardrail Active';
+    final body = blocked
+        ? (guardrail.blockReason ??
+            'Inverse copy mode cannot open naked short options. Convert to a defined-risk opposite long option before approving.')
+        : 'Inverse copy mode mapped this trade to a defined-risk opposite-direction long option to cap downside risk.';
+
+    return Semantics(
+      label: '$title. $body',
+      child: Card(
+        color: color.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withValues(alpha: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    blocked ? Icons.shield_outlined : Icons.verified_user,
+                    color: color,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(body, style: const TextStyle(fontSize: 13)),
+              if (blocked && guardrail.suggestedDefinedRiskRecord != null) ...[
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: _isProcessing
+                      ? null
+                      : () async {
+                          final provider = Provider.of<CopyTradingProvider>(
+                              context,
+                              listen: false);
+                          await provider.applyDefinedRiskInverse(
+                            record,
+                            guardrail.suggestedDefinedRiskRecord!,
+                          );
+                        },
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: const Text('Convert to Defined-Risk'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContractAdapterCard(
+    BuildContext context,
+    CopyTradeRecord record,
+    NumberFormat currencyFormat,
+  ) {
+    return Semantics(
+      label: 'Small-account option contract adapter',
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.amber.shade700.withValues(alpha: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.tune, color: Colors.amber.shade800, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Contract Adapter (Capital Cap)',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '1 original contract (${currencyFormat.format(record.price * 100)}) exceeds your per-trade cap. Select a smaller-risk alternative:',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 10),
+              if (_loadingAdaptations)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_adaptations.isEmpty)
+                const Text(
+                  'No liquid strikes or spreads within your capital cap were found for this expiration.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                )
+              else
+                ..._adaptations.map((opt) {
+                  final selected = _selectedAdaptation == opt;
+                  return Semantics(
+                    selected: selected,
+                    label: '${opt.title}. ${opt.subtitle}',
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          _selectedAdaptation = opt;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer
+                                  .withValues(alpha: 0.35)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              selected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              color: selected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    opt.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    opt.subtitle,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _handleReject(CopyTradeRecord record) async {

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 /// Result of evaluating capital allocation limits for a copy trade
 class AllocationEvaluationResult {
@@ -10,6 +11,7 @@ class AllocationEvaluationResult {
   final double tradeAmount;
   final double? maxPermittedAmount;
   final String? abortReason;
+  final bool needsContractAdaptation;
 
   const AllocationEvaluationResult({
     required this.isAllowed,
@@ -18,6 +20,45 @@ class AllocationEvaluationResult {
     required this.tradeAmount,
     this.maxPermittedAmount,
     this.abortReason,
+    this.needsContractAdaptation = false,
+  });
+}
+
+/// Result of evaluating defined-risk inverse option guardrails
+class InverseOptionGuardrailResult {
+  final bool isAllowed;
+  final bool hasNakedShortRisk;
+  final String? blockReason;
+  final CopyTradeRecord? suggestedDefinedRiskRecord;
+
+  const InverseOptionGuardrailResult({
+    required this.isAllowed,
+    this.hasNakedShortRisk = false,
+    this.blockReason,
+    this.suggestedDefinedRiskRecord,
+  });
+}
+
+/// Candidate small-account option contract adaptation (cheaper strike or vertical spread)
+class OptionContractAdaptation {
+  final String adaptationType; // 'otm_strike' | 'vertical_spread'
+  final String title;
+  final String subtitle;
+  final List<CopyTradeLeg> legs;
+  final double estimatedPrice; // per-share debit
+  final double estimatedTotalCost; // per-contract * 100
+  final double maxRisk;
+  final double? deltaEstimate;
+
+  const OptionContractAdaptation({
+    required this.adaptationType,
+    required this.title,
+    required this.subtitle,
+    required this.legs,
+    required this.estimatedPrice,
+    required this.estimatedTotalCost,
+    required this.maxRisk,
+    this.deltaEstimate,
   });
 }
 
@@ -66,17 +107,20 @@ class CopyTradeRiskGuardianService {
     double? accountEquity,
   }) {
     final originalQty = record.copiedQuantity;
+    final isOption = record.orderType == 'option';
     if (originalQty <= 0) {
       return AllocationEvaluationResult(
         isAllowed: false,
         originalQuantity: originalQty,
         allowedQuantity: 0,
         tradeAmount: 0,
-        abortReason: 'Invalid copied quantity: $originalQty',
+        needsContractAdaptation: isOption && record.needsContractAdaptation,
+        abortReason: isOption && record.needsContractAdaptation
+            ? '1 option contract exceeds your allocation cap and requires contract adaptation.'
+            : 'Invalid copied quantity: $originalQty',
       );
     }
 
-    final isOption = record.orderType == 'option';
     final multiplier = isOption ? 100.0 : 1.0;
     final unitPrice = record.price * multiplier;
     final tradeAmount = unitPrice * originalQty;
@@ -150,6 +194,7 @@ class CopyTradeRiskGuardianService {
           allowedQuantity: 0,
           tradeAmount: tradeAmount,
           maxPermittedAmount: effectiveMaxAmount,
+          needsContractAdaptation: true,
           abortReason:
               'Option trade value (\$${tradeAmount.toStringAsFixed(2)}) exceeds max allocation cap of \$${effectiveMaxAmount.toStringAsFixed(2)} (minimum 1 contract = \$${unitPrice.toStringAsFixed(2)})',
         );
@@ -319,5 +364,276 @@ class CopyTradeRiskGuardianService {
     settings.isRiskGuardianTripped = false;
     settings.riskGuardianTripReason = null;
     settings.riskGuardianTrippedAt = null;
+  }
+
+  /// Hard safety rule preventing `inverse: true` from converting long options
+  /// into uncovered/naked short options.
+  static InverseOptionGuardrailResult evaluateInverseOptionGuardrail({
+    required CopyTradeRecord record,
+  }) {
+    if (record.orderType != 'option' || !record.isInverse) {
+      return const InverseOptionGuardrailResult(isAllowed: true);
+    }
+
+    final legs = record.legs ?? const <CopyTradeLeg>[];
+    if (legs.isEmpty) {
+      return const InverseOptionGuardrailResult(isAllowed: true);
+    }
+
+    bool hasUncoveredShort = false;
+    for (final leg in legs) {
+      final side = (leg.side ?? '').toLowerCase();
+      final effect = (leg.positionEffect ?? 'open').toLowerCase();
+      if (side == 'sell' && effect != 'close') {
+        final hasCover = legs.any((other) {
+          final otherSide = (other.side ?? '').toLowerCase();
+          final otherEffect = (other.positionEffect ?? 'open').toLowerCase();
+          return otherSide == 'buy' &&
+              otherEffect != 'close' &&
+              other.optionType == leg.optionType &&
+              other.expirationDate == leg.expirationDate;
+        });
+        if (!hasCover) {
+          hasUncoveredShort = true;
+          break;
+        }
+      }
+    }
+
+    if (!hasUncoveredShort) {
+      return const InverseOptionGuardrailResult(isAllowed: true);
+    }
+
+    final adaptedLegs = legs.map((leg) {
+      final side = (leg.side ?? '').toLowerCase();
+      final effect = (leg.positionEffect ?? 'open').toLowerCase();
+      final origType = (leg.optionType ?? 'call').toLowerCase();
+      if (side == 'sell' && effect != 'close') {
+        final flippedType = origType == 'call' ? 'put' : 'call';
+        return CopyTradeLeg(
+          expirationDate: leg.expirationDate,
+          strikePrice: leg.strikePrice,
+          optionType: flippedType,
+          side: 'buy',
+          positionEffect: leg.positionEffect ?? 'open',
+          ratioQuantity: leg.ratioQuantity ?? 1,
+        );
+      }
+      return leg;
+    }).toList();
+
+    final suggested = CopyTradeRecord(
+      id: record.id,
+      sourceUserId: record.sourceUserId,
+      sourceUserName: record.sourceUserName,
+      targetUserId: record.targetUserId,
+      groupId: record.groupId,
+      orderType: record.orderType,
+      originalOrderId: record.originalOrderId,
+      symbol: record.symbol,
+      side: 'debit',
+      originalQuantity: record.originalQuantity,
+      copiedQuantity: record.copiedQuantity,
+      price: record.price,
+      strategy: record.strategy,
+      legs: adaptedLegs,
+      timestamp: record.timestamp,
+      executed: false,
+      status: 'pending_approval',
+      isInverse: true,
+      needsContractAdaptation: record.needsContractAdaptation,
+      inverseAdaptation: 'defined_risk_opposite_option',
+    );
+
+    return InverseOptionGuardrailResult(
+      isAllowed: false,
+      hasNakedShortRisk: true,
+      blockReason:
+          'Inverse copy blocked naked short option. Mapped to defined-risk opposite long option.',
+      suggestedDefinedRiskRecord: suggested,
+    );
+  }
+
+  /// Suggests liquid OTM strikes or defined-risk vertical debit spreads
+  /// that fit within [maxAllocationAmount] when 1 original contract exceeds the cap.
+  static List<OptionContractAdaptation> suggestOptionAdaptations({
+    required CopyTradeRecord record,
+    required double maxAllocationAmount,
+    required List<OptionInstrument> chain,
+  }) {
+    if (record.orderType != 'option' ||
+        maxAllocationAmount <= 0 ||
+        chain.isEmpty) {
+      return const [];
+    }
+
+    final legs = record.legs ?? const <CopyTradeLeg>[];
+    if (legs.isEmpty) return const [];
+
+    final primaryLeg = legs.first;
+    final targetType = (primaryLeg.optionType ?? 'call').toLowerCase();
+    final targetExp = primaryLeg.expirationDate;
+    final origStrike = primaryLeg.strikePrice;
+
+    // Filter matching expiration & option type with usable price data
+    final candidates = chain.where((opt) {
+      if (opt.type.toLowerCase() != targetType) return false;
+      if (opt.strikePrice == null) return false;
+      if (targetExp != null && opt.expirationDate != null) {
+        if (opt.expirationDate!.year != targetExp.year ||
+            opt.expirationDate!.month != targetExp.month ||
+            opt.expirationDate!.day != targetExp.day) {
+          return false;
+        }
+      }
+      final md = opt.optionMarketData;
+      final ask = md?.askPrice ?? md?.markPrice;
+      return ask != null && ask > 0;
+    }).toList();
+
+    if (candidates.isEmpty) return const [];
+
+    double askOf(OptionInstrument opt) =>
+        opt.optionMarketData?.askPrice ??
+        opt.optionMarketData?.markPrice ??
+        0.0;
+    double bidOf(OptionInstrument opt) =>
+        opt.optionMarketData?.bidPrice ??
+        opt.optionMarketData?.markPrice ??
+        0.0;
+
+    // Sort by closeness to original strike (or highest delta if strike missing)
+    candidates.sort((a, b) {
+      if (origStrike != null) {
+        final distA = (a.strikePrice! - origStrike).abs();
+        final distB = (b.strikePrice! - origStrike).abs();
+        return distA.compareTo(distB);
+      }
+      final dA = (a.optionMarketData?.delta ?? 0).abs();
+      final dB = (b.optionMarketData?.delta ?? 0).abs();
+      return dB.compareTo(dA);
+    });
+
+    final results = <OptionContractAdaptation>[];
+
+    // 1. Cheaper liquid single-leg OTM strike within maxAllocationAmount
+    final singleCandidates = candidates.where((opt) {
+      final totalCost = askOf(opt) * 100.0;
+      if (totalCost > maxAllocationAmount) return false;
+      final md = opt.optionMarketData;
+      if (md != null && (md.openInterest > 0 || md.volume > 0)) {
+        return true;
+      }
+      return md == null || (md.openInterest == 0 && md.volume == 0);
+    }).toList();
+
+    if (singleCandidates.isNotEmpty) {
+      // Prefer liquid (openInterest > 0) first, then closest strike
+      singleCandidates.sort((a, b) {
+        final liqA = (a.optionMarketData?.openInterest ?? 0) > 0 ? 0 : 1;
+        final liqB = (b.optionMarketData?.openInterest ?? 0) > 0 ? 0 : 1;
+        if (liqA != liqB) return liqA.compareTo(liqB);
+        if (origStrike != null) {
+          return (a.strikePrice! - origStrike)
+              .abs()
+              .compareTo((b.strikePrice! - origStrike).abs());
+        }
+        return askOf(b).compareTo(askOf(a));
+      });
+
+      final best = singleCandidates.first;
+      final ask = askOf(best);
+      final cost = ask * 100.0;
+      final delta = best.optionMarketData?.delta;
+      results.add(
+        OptionContractAdaptation(
+          adaptationType: 'otm_strike',
+          title:
+              '\$${best.strikePrice!.toStringAsFixed(best.strikePrice! % 1 == 0 ? 0 : 2)} ${targetType.toUpperCase()}',
+          subtitle:
+              'Liquid strike · Est. \$${cost.toStringAsFixed(0)} (within \$${maxAllocationAmount.toStringAsFixed(0)} cap)',
+          legs: [
+            CopyTradeLeg(
+              expirationDate: best.expirationDate ?? targetExp,
+              strikePrice: best.strikePrice,
+              optionType: targetType,
+              side: 'buy',
+              positionEffect: primaryLeg.positionEffect ?? 'open',
+              ratioQuantity: 1,
+            ),
+          ],
+          estimatedPrice: ask,
+          estimatedTotalCost: cost,
+          maxRisk: cost,
+          deltaEstimate: delta,
+        ),
+      );
+    }
+
+    // 2. Defined-risk vertical debit spread within maxAllocationAmount
+    // For calls: buy lower strike, sell higher strike
+    // For puts: buy higher strike, sell lower strike
+    final byStrike = List<OptionInstrument>.from(candidates)
+      ..sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
+
+    OptionContractAdaptation? bestSpread;
+    for (int i = 0; i < byStrike.length; i++) {
+      for (int j = 0; j < byStrike.length; j++) {
+        if (i == j) continue;
+        final longOpt = byStrike[i];
+        final shortOpt = byStrike[j];
+        final isBullCall = targetType == 'call' &&
+            longOpt.strikePrice! < shortOpt.strikePrice!;
+        final isBearPut =
+            targetType == 'put' && longOpt.strikePrice! > shortOpt.strikePrice!;
+        if (!isBullCall && !isBearPut) continue;
+
+        final longAsk = askOf(longOpt);
+        final shortBid = bidOf(shortOpt);
+        final netDebit = longAsk - shortBid;
+        if (netDebit <= 0.05) continue;
+
+        final totalCost = netDebit * 100.0;
+        if (totalCost > maxAllocationAmount) continue;
+
+        // Prefer spread anchored nearest to origStrike
+        bestSpread ??= OptionContractAdaptation(
+          adaptationType: 'vertical_spread',
+          title:
+              '${targetType.toUpperCase()} Spread \$${longOpt.strikePrice!.toStringAsFixed(0)}/\$${shortOpt.strikePrice!.toStringAsFixed(0)}',
+          subtitle:
+              'Defined-risk vertical · Net debit \$${totalCost.toStringAsFixed(0)}',
+          legs: [
+            CopyTradeLeg(
+              expirationDate: longOpt.expirationDate ?? targetExp,
+              strikePrice: longOpt.strikePrice,
+              optionType: targetType,
+              side: 'buy',
+              positionEffect: 'open',
+              ratioQuantity: 1,
+            ),
+            CopyTradeLeg(
+              expirationDate: shortOpt.expirationDate ?? targetExp,
+              strikePrice: shortOpt.strikePrice,
+              optionType: targetType,
+              side: 'sell',
+              positionEffect: 'open',
+              ratioQuantity: 1,
+            ),
+          ],
+          estimatedPrice: netDebit,
+          estimatedTotalCost: totalCost,
+          maxRisk: totalCost,
+          deltaEstimate: (longOpt.optionMarketData?.delta ?? 0) -
+              (shortOpt.optionMarketData?.delta ?? 0),
+        );
+      }
+    }
+
+    if (bestSpread != null) {
+      results.add(bestSpread);
+    }
+
+    return results;
   }
 }
