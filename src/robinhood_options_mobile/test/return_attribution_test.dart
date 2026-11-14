@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/return_attribution.dart';
+import 'package:robinhood_options_mobile/model/stock_loan.dart';
 import 'package:robinhood_options_mobile/services/return_attribution_service.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_csv_export.dart';
 
@@ -265,6 +266,134 @@ void main() {
     });
   });
 
+  group('Disaggregated Income & Yield Attribution (#278)', () {
+    final start = DateTime(2026, 11, 2);
+    final end = DateTime(2026, 11, 2, 23, 59, 59);
+
+    test(
+        'sums paid dividends, interest, and SLIP payments while filtering voids',
+        () {
+      final breakdown = S.calculateIncomeBreakdown(
+        dividends: const [
+          {'state': 'paid', 'payable_date': '2026-11-02', 'amount': '10.00'},
+          {'state': 'pending', 'payable_date': '2026-11-02', 'amount': '50.00'},
+        ],
+        interest: const [
+          {'state': 'paid', 'pay_date': '2026-11-02', 'amount': '2.50'},
+          {'state': 'voided', 'pay_date': '2026-11-02', 'amount': '19.00'},
+        ],
+        stockLoanPayments: [
+          StockLoanPayment(
+            id: 'slp_1',
+            accountNumber: 'RH123',
+            paymentDate: DateTime(2026, 11, 2, 10, 0),
+            amount: 4.25,
+            status: 'paid',
+          ),
+          StockLoanPayment(
+            id: 'slp_pending',
+            accountNumber: 'RH123',
+            paymentDate: DateTime(2026, 11, 2, 10, 0),
+            amount: 99.0,
+            status: 'pending',
+          ),
+          {
+            'id': 'slp_2',
+            'payment_date': '2026-11-02T14:30:00',
+            'net_amount': '1.75',
+            'status': 'settled',
+          },
+          {
+            'id': 'slp_void',
+            'payment_date': '2026-11-02',
+            'amount': '88.00',
+            'status': 'cancelled',
+          },
+        ],
+        start: start,
+        end: end,
+      );
+
+      expect(breakdown.dividendIncome, closeTo(10.0, 1e-12));
+      expect(breakdown.interestAndSweepIncome, closeTo(2.50, 1e-12));
+      expect(breakdown.stockLoanIncome, closeTo(6.00, 1e-12));
+      expect(breakdown.dailySweepAccrualEstimate, 0);
+      expect(breakdown.dailyStockLoanAccrualEstimate, 0);
+      expect(breakdown.totalIncomePnL, closeTo(18.50, 1e-12));
+      expect(breakdown.hasBreakdown, isTrue);
+    });
+
+    test('estimates daily sweep and SLIP accrual when enrolled with no payout',
+        () {
+      const sweeps = SweepsInterest(
+        isEnrolled: true,
+        currentEffectiveApy: 0.05,
+        sweepBalance: 36500.0, // $1825/yr -> $5.00/day
+      );
+      const slip = SlipEligibility(
+        isEnrolled: true,
+        status: SlipEnrollmentStatus.enrolled,
+        totalLoanedValue: 36500.0,
+        estimatedAnnualizedYield: 0.04, // $1460/yr -> $4.00/day
+      );
+
+      final breakdown = S.calculateIncomeBreakdown(
+        sweepsInterest: sweeps,
+        slipEligibility: slip,
+        start: start,
+        end: end,
+      );
+
+      expect(breakdown.dividendIncome, 0);
+      expect(breakdown.dailySweepAccrualEstimate, closeTo(5.0, 1e-9));
+      expect(breakdown.interestAndSweepIncome, closeTo(5.0, 1e-9));
+      expect(breakdown.dailyStockLoanAccrualEstimate, closeTo(4.0, 1e-9));
+      expect(breakdown.stockLoanIncome, closeTo(4.0, 1e-9));
+      expect(breakdown.totalIncomePnL, closeTo(9.0, 1e-9));
+
+      // Paid payouts prevent double-counting accrual estimates in the window.
+      final withPaid = S.calculateIncomeBreakdown(
+        interest: const [
+          {'state': 'paid', 'pay_date': '2026-11-02', 'amount': '12.00'},
+        ],
+        stockLoanPayments: const [
+          {'payment_date': '2026-11-02', 'amount': '8.00', 'status': 'paid'},
+        ],
+        sweepsInterest: sweeps,
+        slipEligibility: slip,
+        start: start,
+        end: end,
+      );
+      expect(withPaid.dailySweepAccrualEstimate, 0);
+      expect(withPaid.interestAndSweepIncome, closeTo(12.0, 1e-12));
+      expect(withPaid.dailyStockLoanAccrualEstimate, 0);
+      expect(withPaid.stockLoanIncome, closeTo(8.0, 1e-12));
+    });
+
+    test('does not accrue sweeps or SLIP when not enrolled', () {
+      const sweeps = SweepsInterest(
+        isEnrolled: false,
+        currentEffectiveApy: 0.05,
+        sweepBalance: 36500.0,
+      );
+      const slip = SlipEligibility(
+        isEnrolled: false,
+        status: SlipEnrollmentStatus.eligible,
+        totalLoanedValue: 36500.0,
+        estimatedAnnualizedYield: 0.04,
+      );
+
+      final breakdown = S.calculateIncomeBreakdown(
+        sweepsInterest: sweeps,
+        slipEligibility: slip,
+        start: start,
+        end: end,
+      );
+      expect(breakdown.totalIncomePnL, 0);
+      expect(breakdown.hasBreakdown, isFalse);
+    });
+  });
+
   group('Options Greek attribution', () {
     test('Taylor terms sum with implied vega to the observed P&L', () {
       // Δ=.5, Γ=.02, Θ=−.05, ν=.12; ΔS=+2; option +1.10; 1 long contract.
@@ -383,9 +512,14 @@ void main() {
             S.sectorReturnsFromQuotes(attributionSectorQuotes()),
         benchmarkSymbol: 'SPY',
       );
+      const breakdown = IncomeAttributionBreakdown(
+        dividendIncome: 2.0,
+        interestAndSweepIncome: 1.25,
+        stockLoanIncome: 0.75,
+      );
       final options = S.calculateOptionsGreekAttribution(
         positions: const [],
-        incomePnL: 4,
+        incomeBreakdown: breakdown,
       );
 
       final rows = AnalyticsCsvExport.buildRows(
@@ -402,9 +536,27 @@ void main() {
       final totalRow =
           rows.firstWhere((r) => r.isNotEmpty && r.first == 'Total');
       expect(totalRow.last as double, closeTo(brinson.activeReturn, 1e-12));
+      expect(
+        rows.firstWhere((r) => r.isNotEmpty && r.first == 'Dividends P&L').last,
+        closeTo(2.0, 1e-12),
+      );
+      expect(
+        rows
+            .firstWhere(
+                (r) => r.isNotEmpty && r.first == 'Cash Sweeps & Interest P&L')
+            .last,
+        closeTo(1.25, 1e-12),
+      );
+      expect(
+        rows
+            .firstWhere(
+                (r) => r.isNotEmpty && r.first == 'SLIP Securities Lending P&L')
+            .last,
+        closeTo(0.75, 1e-12),
+      );
       final incomeRow =
           rows.firstWhere((r) => r.isNotEmpty && r.first == 'Income/Yield P&L');
-      expect(incomeRow.last, 4);
+      expect(incomeRow.last, closeTo(4.0, 1e-12));
     });
 
     test('omits attribution sections when not supplied', () {

@@ -156,6 +156,15 @@ class AnalyticsCsvExport {
       rows.add(['Theta P&L', options.totalThetaPnL]);
       rows.add(['Vega P&L (implied)', options.totalVegaPnL]);
       rows.add(['Residual P&L', options.totalResidualPnL]);
+      rows.add(['Dividends P&L', options.incomeBreakdown.dividendIncome]);
+      rows.add([
+        'Cash Sweeps & Interest P&L',
+        options.incomeBreakdown.interestAndSweepIncome,
+      ]);
+      rows.add([
+        'SLIP Securities Lending P&L',
+        options.incomeBreakdown.stockLoanIncome,
+      ]);
       rows.add(['Income/Yield P&L', options.totalIncomePnL]);
       rows.add(['Total Options P&L', options.totalOptionPnL]);
       rows.add(['Total incl. Income', options.totalPnL]);

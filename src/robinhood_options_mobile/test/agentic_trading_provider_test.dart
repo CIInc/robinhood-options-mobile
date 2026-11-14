@@ -5,7 +5,9 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
@@ -34,6 +36,47 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
 }
 
 class FakeBrokerageService extends Fake implements IBrokerageService {}
+
+class RecordingSchwabBrokerageService extends Fake
+    implements IBrokerageService {
+  final List<Map<String, dynamic>> placedInstrumentOrders = [];
+  int orderStatusCode;
+  String orderResponseBody;
+
+  RecordingSchwabBrokerageService({
+    this.orderStatusCode = 200,
+    this.orderResponseBody = '{"id":"schwab-order-1"}',
+  });
+
+  @override
+  Future<dynamic> placeInstrumentOrder(
+    BrokerageUser user,
+    Account account,
+    Instrument instrument,
+    String symbol,
+    String side,
+    double? price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+    String? taxLotSelectionType,
+    List<Map<String, dynamic>>? taxLots,
+  }) async {
+    placedInstrumentOrders.add({
+      'source': user.source,
+      'accountNumber': account.accountNumber,
+      'symbol': symbol,
+      'side': side,
+      'price': price,
+      'quantity': quantity,
+      'type': type,
+    });
+    return http.Response(orderResponseBody, orderStatusCode);
+  }
+}
 
 class RejectingTradeSignalsProvider {
   Future<Map<String, dynamic>> initiateTradeProposal({
@@ -2427,6 +2470,313 @@ void main() {
           store, [position('A1', 'new')], {'A1'});
 
       expect(store.items.map((p) => p.instrumentId), ['new']);
+    });
+  });
+
+  group('Schwab Market-Close Exit & Market-Calendar Acceptance (#282)', () {
+    late AgenticTradingProvider provider;
+    late FakeFirebaseFirestore firestore;
+    late DocumentReference<Map<String, dynamic>> userRef;
+    late BrokerageUser schwabUser;
+    late Account schwabAccount;
+
+    InstrumentPosition buildSchwabPosition(String symbol, double price,
+        {String quantity = '5.0000'}) {
+      final position = InstrumentPosition.fromJson({
+        'url': 'https://api.schwabapi.com/positions/SCHWAB-123/$symbol',
+        'instrument': 'https://api.schwabapi.com/instruments/$symbol',
+        'account': 'https://api.schwabapi.com/accounts/SCHWAB-123',
+        'account_number': 'SCHWAB-123',
+        'quantity': quantity,
+        'average_buy_price': '145.0000',
+        'avg_cost_affected': false,
+      });
+      position.instrumentObj = Instrument.forSymbol(symbol)
+        ..quoteObj = FakeQuote(price);
+      return position;
+    }
+
+    setUp(() async {
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        autoTradeEnabled: true,
+        paperTradingMode: false,
+        strategyConfig: TradeStrategyConfig(
+          marketCloseExitEnabled: true,
+          marketCloseExitMinutes: 15,
+          takeProfitPercent: 50.0,
+          stopLossPercent: 50.0,
+        ),
+      ));
+      firestore = FakeFirebaseFirestore();
+      userRef = firestore.collection('user').doc('schwab-u1');
+      await userRef.set({'agenticTradingEmergencyStop': false});
+      schwabUser =
+          BrokerageUser(BrokerageSource.schwab, 'schwab-u1', null, null);
+      schwabAccount = Account(
+        'https://api.schwabapi.com/accounts/SCHWAB-123',
+        25000.0,
+        'SCHWAB-123',
+        'margin',
+        25000.0,
+        'tier_2',
+        0.0,
+        0.0,
+        0.0,
+      );
+    });
+
+    tearDown(() {
+      MarketHours.testTime = null;
+      provider.dispose();
+    });
+
+    test('completes Schwab EOD exit in regular 15:46 ET window once per day',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      // Wednesday Nov 26, 2025 at 15:46 EST (20:46 UTC): 14 min to 16:00 close
+      final tradingDate = DateTime.utc(2025, 11, 26);
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 20, 46);
+      expect(MarketHours.minutesUntilMarketClose(), 14);
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['exitsExecuted'], 1);
+      expect(service.placedInstrumentOrders, hasLength(1));
+      expect(service.placedInstrumentOrders.single['source'],
+          BrokerageSource.schwab);
+      expect(service.placedInstrumentOrders.single['side'], 'sell');
+      expect(service.placedInstrumentOrders.single['quantity'], 5);
+      expect(provider.automatedBuyTrades, isEmpty);
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'completed');
+      expect(statusDoc.data()?['symbol'], 'AAPL');
+
+      // Re-tracking the same trade in the same session cannot submit twice.
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final duplicateRun = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(duplicateRun['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+    });
+
+    test('completes Schwab EOD exit during 1:00 PM ET early-close window',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-28T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      // Day After Thanksgiving (Nov 28, 2025) closes at 13:00 EST -> 12:46 EST = 17:46 UTC
+      final tradingDate = DateTime.utc(2025, 11, 28);
+      MarketHours.testTime = DateTime.utc(2025, 11, 28, 17, 46);
+      expect(MarketHours.minutesUntilMarketClose(), 14);
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['exitsExecuted'], 1);
+      expect(service.placedInstrumentOrders, hasLength(1));
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'completed');
+    });
+
+    test(
+        'records attempted status and blocks duplicate retry on Schwab failure',
+        () async {
+      final service = RecordingSchwabBrokerageService(
+        orderStatusCode: 500,
+        orderResponseBody: 'Schwab order rejected',
+      );
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      final tradingDate = DateTime.utc(2025, 11, 26);
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 20, 46);
+
+      final firstAttempt = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(firstAttempt['success'], isFalse);
+      expect(firstAttempt['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+      expect(provider.automatedBuyTrades, hasLength(1));
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'attempted');
+      expect(statusDoc.data()?['message'], contains('500'));
+
+      // Second monitor cycle does not blindly retry a claimed failed EOD exit.
+      final secondAttempt = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(secondAttempt['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+    });
+
+    test(
+        'reconciles missed exits after regular close, early close, and holidays without after-hours orders',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final regularTrade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      final completedTrade = {
+        'symbol': 'AAPL',
+        'quantity': 2,
+        'entryPrice': 140.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:10:00.000Z',
+      };
+      provider.automatedBuyTrades
+          .addAll([regularTrade, Map<String, dynamic>.from(completedTrade)]);
+      final position = buildSchwabPosition('AAPL', 150.0, quantity: '7.0000');
+
+      final regularDate = DateTime.utc(2025, 11, 26);
+      await provider.claimMarketCloseExitAttempt(
+        userDocRef: userRef,
+        trade: completedTrade,
+        tradingDate: regularDate,
+        quantity: 2,
+      );
+      await provider.updateMarketCloseExitStatus(
+        userDocRef: userRef,
+        trade: completedTrade,
+        tradingDate: regularDate,
+        status: 'completed',
+        message: 'Order accepted.',
+      );
+
+      // Wednesday 16:05 EST (21:05 UTC): after regular close.
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 21, 5);
+      final afterHoursResult = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(afterHoursResult['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, isEmpty);
+
+      final missedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              regularTrade, regularDate))
+          .get();
+      expect(missedDoc.data()?['status'], 'missed');
+
+      final completedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              completedTrade, regularDate))
+          .get();
+      expect(completedDoc.data()?['status'], 'completed');
+
+      // Thanksgiving Day (2025-11-27) is a market holiday; Day After Thanksgiving closes at 13:00 EST.
+      expect(MarketHours.isMarketHoliday(DateTime.utc(2025, 11, 27)), isTrue);
+
+      provider.automatedBuyTrades.clear();
+      final earlyCloseTrade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-28T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(earlyCloseTrade);
+
+      // Friday Nov 28, 2025 at 13:05 EST (18:05 UTC) and Saturday Nov 29 resolve to 2025-11-28.
+      final earlyDate = DateTime.utc(2025, 11, 28);
+      await provider.reconcileMissedMarketCloseExits(
+        positions: [position],
+        userDocRef: userRef,
+        now: DateTime.utc(2025, 11, 28, 18, 5),
+      );
+      final earlyMissedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              earlyCloseTrade, earlyDate))
+          .get();
+      expect(earlyMissedDoc.data()?['status'], 'missed');
+      expect(service.placedInstrumentOrders, isEmpty);
     });
   });
 }

@@ -219,6 +219,8 @@ class _PerformanceSectionPageState extends State<PerformanceSectionPage> {
     final ctx = widget.sectionContext;
     return ReturnAttributionCard(
       benchmarkSymbol: benchmarkSymbol,
+      user: ctx.brokerageUser,
+      service: ctx.service,
       instrumentPositions:
           _maybeWatch<InstrumentPositionStore>(context)?.items.toList() ??
               const [],
