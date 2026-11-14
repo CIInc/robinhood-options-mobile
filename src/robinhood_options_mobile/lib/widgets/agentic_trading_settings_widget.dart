@@ -59,17 +59,129 @@ class _BackgroundActivityPanel extends StatefulWidget {
 
 class _BackgroundActivityPanelState extends State<_BackgroundActivityPanel> {
   late Future<List<Map<String, dynamic>>> _entries;
+  late Future<BackgroundExecutionReadiness> _readiness;
 
   @override
   void initState() {
     super.initState();
     _entries = AgenticTradingRunJournal.recent(limit: 8);
+    _readiness = AgenticTradingBackgroundService.inspectPlatformReadiness();
   }
 
   void _refresh() {
     setState(() {
       _entries = AgenticTradingRunJournal.recent(limit: 8);
+      _readiness = AgenticTradingBackgroundService.inspectPlatformReadiness();
     });
+  }
+
+  Future<void> _openBackgroundSettings() async {
+    await AgenticTradingBackgroundService.openPlatformBackgroundSettings();
+    if (!mounted) return;
+    _refresh();
+  }
+
+  Widget _buildReadinessBanner(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return FutureBuilder<BackgroundExecutionReadiness>(
+      future: _readiness,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: LinearProgressIndicator(),
+          );
+        }
+        final readiness = snapshot.data;
+        if (readiness == null) {
+          return const SizedBox.shrink();
+        }
+        final isRestrictedPlatform = !readiness.isReady &&
+            (readiness.platform == 'ios' || readiness.platform == 'android');
+        final accentColor = readiness.isReady
+            ? Colors.green
+            : isRestrictedPlatform
+                ? colorScheme.error
+                : colorScheme.onSurfaceVariant;
+        final bgColor = readiness.isReady
+            ? Colors.green.withValues(alpha: 0.08)
+            : isRestrictedPlatform
+                ? colorScheme.errorContainer.withValues(alpha: 0.35)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
+        final icon = readiness.isReady
+            ? Icons.verified_user_outlined
+            : isRestrictedPlatform
+                ? Icons.warning_amber_rounded
+                : Icons.info_outline;
+
+        return Container(
+          key: const ValueKey('background-platform-readiness-card'),
+          width: double.infinity,
+          margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 18, color: accentColor),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      readiness.statusSummary,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              for (final warning in readiness.warnings) ...[
+                const SizedBox(height: 6),
+                Text(
+                  warning,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+              if (readiness.remediationHint != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  readiness.remediationHint!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+              if (!readiness.isReady && readiness.canOpenSettings) ...[
+                const SizedBox(height: 6),
+                TextButton.icon(
+                  key: const ValueKey('open-background-settings-button'),
+                  onPressed: _openBackgroundSettings,
+                  icon: const Icon(Icons.settings_outlined, size: 16),
+                  label: const Text('Configure Background Settings'),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -86,6 +198,7 @@ class _BackgroundActivityPanelState extends State<_BackgroundActivityPanel> {
               icon: const Icon(Icons.refresh),
             ),
           ),
+          _buildReadinessBanner(context),
           FutureBuilder<List<Map<String, dynamic>>>(
             future: _entries,
             builder: (context, snapshot) {

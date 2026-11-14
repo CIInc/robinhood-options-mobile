@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -470,6 +473,107 @@ void main() {
         {'priceMovement', 'marketDirection', 'macd'},
       );
       expect(agenticTradingProvider.config.autoTradeEnabled, isFalse);
+    });
+
+    testWidgets(
+        'Background activity shows Samsung battery warning and opens settings (#282)',
+        (WidgetTester tester) async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        AgenticTradingBackgroundService.backgroundExecutionChannel,
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getPlatformReadiness') {
+            return {
+              'platform': 'android',
+              'ignoringBatteryOptimizations': false,
+              'powerSaveMode': false,
+              'backgroundRestricted': false,
+              'manufacturer': 'Samsung',
+              'model': 'SM-S928U',
+              'canOpenSettings': true,
+            };
+          }
+          if (call.method == 'openBatteryOptimizationSettings') {
+            return true;
+          }
+          return null;
+        },
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final agenticTradingProvider = AgenticTradingProvider();
+      try {
+        testUserDocRef = FirebaseFirestore.instance
+            .collection('user')
+            .doc('test_user_123')
+            .withConverter<User>(
+              fromFirestore: (snapshot, _) =>
+                  User.fromJson(snapshot.data() ?? {}),
+              toFirestore: (user, _) => user.toJson(),
+            );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<AgenticTradingProvider>.value(
+                    value: agenticTradingProvider),
+                ChangeNotifierProvider(
+                    create: (_) => BrokerageUserStore([], 0)),
+                ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+                ChangeNotifierProvider<BacktestingProvider>(
+                    create: (_) => MockBacktestingProvider()),
+              ],
+              child: AgenticTradingSettingsWidget(
+                user: testUser,
+                userDocRef: testUserDocRef,
+                service: mockService,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        final bgTile = find.text('Background activity');
+        await tester.ensureVisible(bgTile);
+        await tester.tap(bgTile);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('background-platform-readiness-card')),
+          findsOneWidget,
+        );
+        expect(
+            find.text('Android battery optimization active'), findsOneWidget);
+        expect(find.textContaining('Samsung One UI:'), findsOneWidget);
+
+        final configureButton =
+            find.byKey(const ValueKey('open-background-settings-button'));
+        expect(configureButton, findsOneWidget);
+        await tester.ensureVisible(configureButton);
+        await tester.tap(configureButton);
+        await tester.pumpAndSettle();
+
+        expect(
+          calls.map((c) => c.method),
+          containsAll([
+            'getPlatformReadiness',
+            'openBatteryOptimizationSettings',
+          ]),
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+          AgenticTradingBackgroundService.backgroundExecutionChannel,
+          null,
+        );
+        agenticTradingProvider.dispose();
+      }
     });
   });
 }

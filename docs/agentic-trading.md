@@ -26,6 +26,15 @@ Scheduling follows the signed-in user's auto-trading toggle, independently of qu
 
 On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier with `BGTaskScheduler` before Dart submits the first request. The identifier must match `BGTaskSchedulerPermittedIdentifiers` in `ios/Runner/Info.plist` and `AgenticTradingBackgroundService.taskName`; registering only previously scheduled handlers is insufficient on a fresh install.
 
+### Native Background Readiness & Remediation
+
+To help users diagnose OS throttling before a trading session starts, RealizeAlpha exposes a `com.realizealpha.background_execution` `MethodChannel` queried by `AgenticTradingBackgroundService.inspectPlatformReadiness()` and parsed into `BackgroundExecutionReadiness`:
+
+- **iOS (`ios/Runner/AppDelegate.swift`):** Verifies `BGTaskSchedulerPermittedIdentifiers` registration for `com.cidevelop.robinhoodOptionsMobile.agenticTrading`, `UIBackgroundModes` (`fetch`), `UIApplication.shared.backgroundRefreshStatus` (`available` vs. `denied` / `restricted`), and `ProcessInfo.processInfo.isLowPowerModeEnabled`.
+- **Android (`android/app/src/main/kotlin/com/cidevelop/robinhood_options_mobile/MainActivity.kt`):** Inspects `PowerManager.isIgnoringBatteryOptimizations`, `PowerManager.isPowerSaveMode`, `ActivityManager.isBackgroundRestricted`, and `Build.MANUFACTURER` / `Build.MODEL` to produce OEM-specific remediation hints for **Samsung One UI**, **Xiaomi / MIUI / HyperOS**, **OnePlus / OPPO / Realme**, **Huawei / Honor**, and **Google Pixel**.
+- **In-App Background Activity Panel (`AgenticTradingSettingsWidget`):** Expanding **Background activity** under Execution Settings displays the live readiness card (`background-platform-readiness-card`), OS warnings, OEM battery guidance, the recent background run journal, and a 1-tap **Configure Background Settings** button (`openPlatformBackgroundSettings()`) that deep-links directly into iOS App Settings or Android Battery Optimization Settings (with fallback to App Details).
+- **Safe Fallback:** Unsupported platforms, web builds, and test environments without a bound native channel fall back cleanly to `BackgroundExecutionReadiness.unsupported(...)` so headless workers and widget tests never throw `MissingPluginException`.
+
 ### Scheduling Scope and Market Data
 
 The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.

@@ -22,6 +22,63 @@ import workmanager_apple
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     LiveActivityPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "LiveActivityPlugin")!)
+    BackgroundExecutionPlugin.register(with: engineBridge.pluginRegistry.registrar(forPlugin: "BackgroundExecutionPlugin")!)
+  }
+}
+
+public class BackgroundExecutionPlugin: NSObject, FlutterPlugin {
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    let channel = FlutterMethodChannel(
+      name: "com.realizealpha.background_execution",
+      binaryMessenger: registrar.messenger()
+    )
+    let instance = BackgroundExecutionPlugin()
+    registrar.addMethodCallDelegate(instance, channel: channel)
+  }
+
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "getPlatformReadiness":
+      let permittedIdentifiers = Bundle.main.object(
+        forInfoDictionaryKey: "BGTaskSchedulerPermittedIdentifiers"
+      ) as? [String] ?? []
+      let backgroundModes = Bundle.main.object(
+        forInfoDictionaryKey: "UIBackgroundModes"
+      ) as? [String] ?? []
+      let refreshStatus: String
+      switch UIApplication.shared.backgroundRefreshStatus {
+      case .available:
+        refreshStatus = "available"
+      case .denied:
+        refreshStatus = "denied"
+      case .restricted:
+        refreshStatus = "restricted"
+      @unknown default:
+        refreshStatus = "unknown"
+      }
+      result([
+        "platform": "ios",
+        "bgTaskIdentifierRegistered": permittedIdentifiers.contains(
+          "com.cidevelop.robinhoodOptionsMobile.agenticTrading"
+        ),
+        "fetchModeEnabled": backgroundModes.contains("fetch"),
+        "backgroundRefreshStatus": refreshStatus,
+        "lowPowerMode": ProcessInfo.processInfo.isLowPowerModeEnabled,
+        "canOpenSettings": true,
+      ])
+    case "openBackgroundSettings":
+      DispatchQueue.main.async {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else {
+          result(false)
+          return
+        }
+        UIApplication.shared.open(url, options: [:]) { success in
+          result(success)
+        }
+      }
+    default:
+      result(FlutterMethodNotImplemented)
+    }
   }
 }
 
