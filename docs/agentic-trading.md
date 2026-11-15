@@ -470,20 +470,37 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
   4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment flips to `RISK_OFF` (`enableMacroRegimeStop`).
   5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 30%).
 
-### Order Approval Workflow
+### Order Approval Workflow & Pending Approvals Center
 
-For users who want the benefits of AI signal generation but prefer manual control over execution, the system offers an **Order Approval Workflow**.
+For users who want the benefits of AI signal generation but prefer manual oversight before capital is committed, the system offers an **Order Approval Workflow** backed by a dedicated review interface (`AutomatedTradingApprovalsWidget`).
 
 **How it works:**
 1. **Enable Approval:** Toggle `requireApproval` in Agentic Trading Settings.
-2. **Signal Generation:** The system generates trade proposals as usual based on signals and risk checks.
-3. **Pending State:** Instead of executing immediately, orders are placed in a "Pending Approval" queue.
-4. **Notification:** The user receives a notification about the pending order.
-5. **Review & Action:**
-   - Users can review pending orders in the Agentic Trading Settings.
-   - **Approve:** The order is sent to the brokerage for execution.
-   - **Reject:** The order is discarded.
-   - **Timeout:** Pending orders may expire if not acted upon within a certain timeframe (configurable).
+2. **Signal Generation:** The system evaluates market data, macro regimes, and multi-indicator technical signals to generate proposals.
+3. **Pending Queue:** Instead of executing automatically, proposals are persisted to the user's `pending_orders` Firestore subcollection and represented as typed `AutomatedTradeProposal` objects.
+4. **Push Notification:** The user receives a high-priority push notification (`agentic_approval`) containing the proposal ID.
+5. **Contextual Discovery:**
+   - **Home Screen Banner:** A high-visibility amber action banner appears on the `AgenticTradingCardWidget` displaying pending proposal counts and aggregate capital impact.
+   - **Status Badge:** The `AutoTradeStatusBadgeWidget` renders an amber `Review` badge state (`$pendingCount PENDING`).
+   - **Settings Button:** `AgenticTradingSettingsWidget` features an `Open Full Approvals View` button.
+   - **Deep Linking:** Tapping the notification opens `AutomatedTradingApprovalsWidget` and automatically pops the specific proposal's detail inspection sheet.
+
+**Dedicated Approvals Center (`AutomatedTradingApprovalsWidget`):**
+- **Dual Tabs:**
+  - **Pending:** Real-time view of active proposals awaiting action.
+  - **History:** Searchable audit trail of past approvals, executions, and rejections.
+- **Summary Metrics Header:** Displays total pending count, aggregate capital commitment (with strict `AccountStore.showBalances` `$••••••` masking), average AI conviction score, active execution mode (Live vs. Paper), and warning banners for Emergency Stop lockouts or Market Close cutoffs.
+- **Search & Filtering:** Text search by ticker symbol or strategy name, segmented action chips (`ALL`, `BUY`, `SELL`), qualification filter (`ALL`, `CONFIRMED`, `PENDING WATCH`), and sorting (`Newest First`, `Highest Confidence`, `Largest Capital`, `Symbol A-Z`).
+- **Batch Actions (`batchApproveOrders`, `batchRejectOrders`):** Interactive multi-selection mode with checkboxes allowing users to `Select All`, `Approve Selected`, `Reject Selected`, `Approve All`, and `Reject All` with confirmation dialogs.
+- **Deep Inspection Sheet (`AutomatedTradeProposalDetailWidget`):**
+  - Order parameters: Symbol, Action, Quantity, Execution Type, Limit/Signal Price, Estimated Total Cost.
+  - AI Conviction: Confidence score pill, signal provenance breakdown, and generative reasoning thesis.
+  - RiskGuard Audit: Volatility filter, sector concentration, correlation limits.
+  - GEX Levels & Macro Regime: Positive transition (`pTrans`), negative transition (`nTrans`), gamma flip levels, macro regime status, and direct link to interactive candlestick charts (`InstrumentWidget`).
+- **Safety Invariants During Approval:**
+  - **Live-Quote BUY Guard:** Approving an order validates the proposal against fresh live quotes; price deviations $> 3\%$ block execution.
+  - **Rejection Audit Trail:** Rejections append an entry with `status: 'rejected'` to `autoTradeHistory` and persist to Firestore `auto_trade_history` for compliance.
+  - **Paper Mode Isolation:** Paper approvals execute exclusively through the local simulated paper trading store without broker interaction.
 
 ### Advanced Performance Analytics
 

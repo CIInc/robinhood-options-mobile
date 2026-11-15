@@ -26,8 +26,28 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_brokerage_service_factory.dart';
 import 'package:robinhood_options_mobile/services/agentic_trading_run_journal.dart';
 import 'package:robinhood_options_mobile/model/macro_assessment.dart';
+import 'package:robinhood_options_mobile/model/automated_trade_proposal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+
+/// Summary result of a batch approval execution over multiple pending proposals.
+class BatchApprovalResult {
+  final int totalRequested;
+  final int approvedCount;
+  final int failedCount;
+  final int droppedCount;
+  final List<String> successfulSymbols;
+  final List<String> failedSymbols;
+
+  const BatchApprovalResult({
+    required this.totalRequested,
+    required this.approvedCount,
+    required this.failedCount,
+    required this.droppedCount,
+    required this.successfulSymbols,
+    required this.failedSymbols,
+  });
+}
 
 class AgenticTradingCycleDependencies {
   final BrokerageUserStore userStore;
@@ -673,6 +693,21 @@ class AgenticTradingProvider with ChangeNotifier {
       _latestMarketCloseExitStatus;
   List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
   List<Map<String, dynamic>> get pendingOrders => _pendingOrders;
+
+  /// Strongly typed access to pending trade proposals.
+  List<AutomatedTradeProposal> get pendingProposals =>
+      _pendingOrders.map((m) => AutomatedTradeProposal.fromMap(m)).toList();
+
+  /// Total count of pending proposals awaiting approval.
+  int get pendingApprovalsCount => _pendingOrders.length;
+
+  /// Total estimated capital required for all pending proposals.
+  double get totalPendingCapital => _pendingOrders.fold<double>(
+      0.0,
+      (total, o) =>
+          total +
+          ((o['quantity'] as num? ?? 0).toDouble() *
+              (o['price'] as num? ?? 0).toDouble()));
   DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
   int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
   // Is this property needed if we have autoTradeHistory?
@@ -3655,17 +3690,110 @@ class AgenticTradingProvider with ChangeNotifier {
     return false;
   }
 
-  /// Rejects a pending order
+  /// Rejects a pending order and appends an audit record to history.
   Future<void> rejectOrder(Map<String, dynamic> staleOrder,
       {DocumentReference? userDocRef}) async {
     final order = _findPendingOrder(staleOrder);
     if (order != null) {
+      final symbol = (order['symbol'] as String?)?.toUpperCase() ?? 'UNKNOWN';
+      final action = (order['action'] as String?)?.toUpperCase() ?? 'BUY';
+      final quantity = (order['quantity'] as num?)?.toInt() ?? 0;
+      final price = (order['price'] as num?)?.toDouble() ?? 0.0;
+      final isPaperMode = _config.paperTradingMode;
+
+      final rejectRecord = {
+        'timestamp': DateTime.now().toIso8601String(),
+        'symbol': symbol,
+        'action': action,
+        'quantity': quantity,
+        'price': price,
+        'paperMode': isPaperMode,
+        'status': 'rejected',
+        'reason': order['reason'],
+        'rejected': true,
+      };
+
+      _autoTradeHistory.insert(0, rejectRecord);
+      _addTradeToHistoryFirestore(rejectRecord, userDocRef);
+      if (_autoTradeHistory.length > 100) {
+        _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+      }
+
       _pendingOrders.remove(order);
       if (userDocRef != null) {
         await _removePendingOrderFromFirestore(userDocRef, order);
       }
       notifyListeners();
-      _log('🚫 Order manually rejected for ${order['symbol']}');
+      _log('🚫 Order manually rejected for $symbol');
+    }
+  }
+
+  /// Approves multiple pending orders sequentially.
+  /// Each order is verified individually against live quotes and available balances.
+  Future<BatchApprovalResult> batchApproveOrders(
+    List<Map<String, dynamic>> orders, {
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    DocumentReference? userDocRef,
+    PaperTradingStore? paperTradingStore,
+    double? Function(String symbol)? getHeldQuantity,
+    dynamic quoteStore,
+  }) async {
+    int approved = 0;
+    int failed = 0;
+    int dropped = 0;
+    final successSymbols = <String>[];
+    final failedSymbols = <String>[];
+
+    final ordersToProcess = List<Map<String, dynamic>>.from(orders);
+
+    for (final order in ordersToProcess) {
+      final symbol = (order['symbol'] as String?)?.toUpperCase() ?? '';
+      final heldQty = getHeldQuantity != null ? getHeldQuantity(symbol) : null;
+
+      final success = await approveOrder(
+        order,
+        brokerageUser: brokerageUser,
+        account: account,
+        brokerageService: brokerageService,
+        userDocRef: userDocRef,
+        paperTradingStore: paperTradingStore,
+        heldQuantity: heldQty,
+        quoteStore: quoteStore,
+      );
+
+      if (success) {
+        approved++;
+        if (symbol.isNotEmpty) successSymbols.add(symbol);
+      } else {
+        if (_findPendingOrder(order) == null) {
+          dropped++;
+        } else {
+          failed++;
+          if (symbol.isNotEmpty) failedSymbols.add(symbol);
+        }
+      }
+    }
+
+    return BatchApprovalResult(
+      totalRequested: ordersToProcess.length,
+      approvedCount: approved,
+      failedCount: failed,
+      droppedCount: dropped,
+      successfulSymbols: successSymbols,
+      failedSymbols: failedSymbols,
+    );
+  }
+
+  /// Rejects multiple pending orders sequentially.
+  Future<void> batchRejectOrders(
+    List<Map<String, dynamic>> orders, {
+    DocumentReference? userDocRef,
+  }) async {
+    final ordersToReject = List<Map<String, dynamic>>.from(orders);
+    for (final order in ordersToReject) {
+      await rejectOrder(order, userDocRef: userDocRef);
     }
   }
 

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
+import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
@@ -20,7 +24,18 @@ enum PerformanceViewMode { all, real, paper }
 /// - Average profit per trade
 /// - Best and worst trades
 class AgenticTradingPerformanceWidget extends StatefulWidget {
-  const AgenticTradingPerformanceWidget({super.key});
+  final User? user;
+  final DocumentReference<User>? userDocRef;
+  final IBrokerageService? service;
+  final int initialTabIndex;
+
+  const AgenticTradingPerformanceWidget({
+    super.key,
+    this.user,
+    this.userDocRef,
+    this.service,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<AgenticTradingPerformanceWidget> createState() =>
@@ -40,7 +55,11 @@ class _AgenticTradingPerformanceWidgetState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
   }
 
   @override
@@ -69,6 +88,25 @@ class _AgenticTradingPerformanceWidgetState
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.fact_check_outlined),
+            tooltip: 'Proposals & Audit Log',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AutomatedTradingApprovalsWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    service: widget.service,
+                    initialTabIndex: 1,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: colorScheme.primary,
@@ -204,20 +242,78 @@ class _AgenticTradingPerformanceWidgetState
     }
     final history = _filterHistory(allHistory);
 
+    final auditButton = Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.fact_check_outlined, size: 18),
+        label: const Text('Audit AI Proposals, GEX & Rejections'),
+        style: OutlinedButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AutomatedTradingApprovalsWidget(
+                user: widget.user,
+                userDocRef: widget.userDocRef,
+                service: widget.service,
+                initialTabIndex: 1,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
     if (history.isEmpty) {
-      return _buildEmptyState(
-        'No trade history',
-        'Executed trades will be listed here',
-        Icons.history,
-        colorScheme,
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.history,
+                size: 80,
+                color: colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No trade history',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Executed trades will be listed here',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(height: 20),
+              auditButton,
+            ],
+          ),
+        ),
       );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: history.length,
+      itemCount: history.length + 1,
       itemBuilder: (context, index) {
-        final trade = history[index];
+        if (index == 0) return auditButton;
+        final trade = history[index - 1];
         return _buildTradeCard(trade, colorScheme);
       },
     );

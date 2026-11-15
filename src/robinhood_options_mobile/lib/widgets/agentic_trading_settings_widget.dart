@@ -29,6 +29,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
+import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -2851,11 +2852,28 @@ class _AgenticTradingSettingsWidgetState
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _buildSummaryItem(
-                              context,
-                              'Today',
-                              '${AgenticTradingProvider.countTradesOn(agenticTradingProvider.autoTradeHistory, DateTime.now())} trades',
-                              Icons.today,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        AgenticTradingPerformanceWidget(
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                      service: widget.service,
+                                      initialTabIndex: 1,
+                                    ),
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: _buildSummaryItem(
+                                context,
+                                'Today',
+                                '${AgenticTradingProvider.countTradesOn(agenticTradingProvider.autoTradeHistory, DateTime.now())} trades',
+                                Icons.today,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -2866,7 +2884,11 @@ class _AgenticTradingSettingsWidgetState
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const AgenticTradingPerformanceWidget(),
+                                        AgenticTradingPerformanceWidget(
+                                      user: widget.user,
+                                      userDocRef: widget.userDocRef,
+                                      service: widget.service,
+                                    ),
                                   ),
                                 );
                               },
@@ -3187,10 +3209,63 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildPendingOrders(
       BuildContext context, AgenticTradingProvider agenticTradingProvider) {
-    if (agenticTradingProvider.pendingOrders.isEmpty) {
-      return const SizedBox.shrink();
-    }
     final colorScheme = Theme.of(context).colorScheme;
+
+    if (agenticTradingProvider.pendingOrders.isEmpty) {
+      final historyCount = agenticTradingProvider.autoTradeHistory.length;
+      return Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        elevation: 0,
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.fact_check_outlined,
+              color: colorScheme.primary,
+              size: 22,
+            ),
+          ),
+          title: const Text(
+            'Trade Proposals & Audit Log',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          subtitle: Text(
+            historyCount > 0
+                ? 'Inspect $historyCount historical AI proposals, GEX levels & rejections'
+                : 'Audit AI reasoning thesis, institutional GEX levels & rejections',
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          trailing: const Icon(Icons.chevron_right, size: 20),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AutomatedTradingApprovalsWidget(
+                  user: widget.user,
+                  userDocRef: widget.userDocRef,
+                  service: widget.service,
+                  initialTabIndex: 1,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
     return Column(
       children: [
         Row(
@@ -3227,6 +3302,27 @@ class _AgenticTradingSettingsWidgetState
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.tonalIcon(
+            icon: const Icon(Icons.open_in_new, size: 18),
+            label: Text(
+                'Open Full Approvals View (${agenticTradingProvider.pendingOrders.length})'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AutomatedTradingApprovalsWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                    service: widget.service,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
         const SizedBox(height: 12),
         if (agenticTradingProvider.emergencyStopActivated)
           Padding(
@@ -3240,12 +3336,24 @@ class _AgenticTradingSettingsWidgetState
               ),
             ),
           ),
-        ...agenticTradingProvider.pendingOrders.map((order) {
+        Builder(builder: (context) {
+          final sortedPendingOrders = List<Map<String, dynamic>>.from(
+              agenticTradingProvider.pendingOrders)
+            ..sort((a, b) {
+              final tA = DateTime.tryParse(a['timestamp'] as String? ?? '') ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              final tB = DateTime.tryParse(b['timestamp'] as String? ?? '') ??
+                  DateTime.fromMillisecondsSinceEpoch(0);
+              return tB.compareTo(tA);
+            });
+          final order = sortedPendingOrders.first;
           final symbol = order['symbol'] as String;
           final action = order['action'] as String;
           final quantity = order['quantity'] as int;
           final price = order['price'] as double;
-          final timestamp = DateTime.parse(order['timestamp']);
+          final timestamp =
+              DateTime.tryParse(order['timestamp']?.toString() ?? '') ??
+                  DateTime.now();
           final reason = order['reason'] as String?;
           final confidence = order['confidence'] as num?;
           final assessment = order['assessment'] as Map<String, dynamic>?;
@@ -3621,6 +3729,18 @@ class _AgenticTradingSettingsWidgetState
             ),
           );
         }),
+        if (agenticTradingProvider.pendingOrders.length > 1) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: Text(
+              '+ ${agenticTradingProvider.pendingOrders.length - 1} more pending approval(s) in Full View',
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
       ],
     );

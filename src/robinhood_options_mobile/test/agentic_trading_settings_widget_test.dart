@@ -18,6 +18,9 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'firebase_mocks.dart';
 
 class MockBacktestingProvider extends ChangeNotifier
@@ -415,6 +418,86 @@ void main() {
       );
       final approveButton = find.widgetWithText(FilledButton, 'Approve');
       expect(tester.widget<FilledButton>(approveButton).onPressed, isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      agenticTradingProvider.dispose();
+    });
+
+    testWidgets(
+        'pending approvals section only displays the last approval and Today cell navigates to performance history',
+        (WidgetTester tester) async {
+      final agenticTradingProvider = AgenticTradingProvider();
+      agenticTradingProvider.loadConfigFromUser(null);
+
+      final now = DateTime.now();
+      // Add older pending order
+      agenticTradingProvider.pendingOrders.add({
+        'id': 'pending-1',
+        'timestamp':
+            now.subtract(const Duration(minutes: 10)).toIso8601String(),
+        'symbol': 'AAPL',
+        'action': 'BUY',
+        'quantity': 5,
+        'price': 150.0,
+      });
+      // Add newer (latest) pending order
+      agenticTradingProvider.pendingOrders.add({
+        'id': 'pending-2',
+        'timestamp': now.toIso8601String(),
+        'symbol': 'NVDA',
+        'action': 'BUY',
+        'quantity': 10,
+        'price': 120.0,
+      });
+
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AgenticTradingProvider>.value(
+                value: agenticTradingProvider),
+            ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+            ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+            ChangeNotifierProvider<BacktestingProvider>(
+                create: (_) => MockBacktestingProvider()),
+            ChangeNotifierProvider<PaperTradingStore>(
+                create: (_) => PaperTradingStore()),
+            ChangeNotifierProvider<AccountStore>(create: (_) => AccountStore()),
+          ],
+          child: MaterialApp(
+            home: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Only the last (latest) approval (NVDA) is displayed in the card
+      expect(find.text('NVDA'), findsOneWidget);
+      expect(find.text('AAPL'), findsNothing);
+      expect(find.text('+ 1 more pending approval(s) in Full View'),
+          findsOneWidget);
+
+      // Verify "Today" summary cell is tappable and navigates to AgenticTradingPerformanceWidget
+      final todayFinder = find.text('Today');
+      expect(todayFinder, findsOneWidget);
+      await tester.ensureVisible(todayFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(todayFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AgenticTradingPerformanceWidget), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       agenticTradingProvider.dispose();

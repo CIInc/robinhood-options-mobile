@@ -69,6 +69,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 | **v0.61.5** | Pre-release | Block new automated BUY entries during Market Close Exit cutoff and after-hours; recheck before submission and retry cutoff-rejected signals | [`docs/agentic-trading.md`](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282) |
 | **v0.61.6** | Pre-release | Monte Carlo Derivatives & Portfolio Stress Engine (GBM, Student's $t$, bootstrap fan charts, Greek Taylor decay, path-dependent VaR/CVaR & ruin probability) and Copy Trading Defined-Risk Inverse Option Guardrails & Contract Adapter | [`docs/copy-trading.md`](docs/copy-trading.md), [#279](https://github.com/CIInc/robinhood-options-mobile/issues/279), [#303](https://github.com/CIInc/robinhood-options-mobile/issues/303) |
 | **v0.61.7** | Pre-release | Closed-Form Higher-Order Greeks (Vanna, Charm daily/weekend bleed, Vomma) and 2D Spot × IV Cross-Shock Stress Matrix with privacy balance masking | [#335](https://github.com/CIInc/robinhood-options-mobile/issues/335) |
+| **v0.61.8** | Pre-release | Dedicated Automated Trading Pending Approvals & Batch Review Center (`AutomatedTradingApprovalsWidget`, `AutomatedTradeProposalDetailWidget`, batch actions, rejection audit history, live-quote BUY guards, balance masking) | [`docs/agentic-trading.md`](docs/agentic-trading.md), [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282), [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137) |
 | **v0.62.0+** | Planned 🚀 (Target: Q2/Q3 2027) | Plaid Multi-Broker Sync, Embedded Quant Webhook & REST API Gateway, Desktop & iPad Multi-Pane Floating Workspace, Dart 3 / Modern Linting Migration | [#15](https://github.com/CIInc/robinhood-options-mobile/issues/15), [#125](https://github.com/CIInc/robinhood-options-mobile/issues/125), [#140](https://github.com/CIInc/robinhood-options-mobile/issues/140) |
 
 ---
@@ -107,6 +108,12 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
   - Suggest delta/DTE-matched strikes or vertical spreads when a single contract exceeds the follower's configured per-trade capital allocation cap.
 
 #### Execution & Cross-Broker Optimization
+- [x] **Automated Trading Pending Approvals Dedicated View & Batch Review Center** (v0.61.8, [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282), [Tracking: #137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):
+  - Standalone review interface (`AutomatedTradingApprovalsWidget`) with Pending and History tabs, action and qualification filtering, multi-field sorting, and summary metrics with balance masking.
+  - Deep proposal inspection screen (`AutomatedTradeProposalDetailWidget`) displaying AI conviction quotes, institutional GEX levels, macro regime status, RiskGuard compliance, and live chart links.
+  - Multi-selection batch approval and rejection (`AgenticTradingProvider.batchApproveOrders`, `batchRejectOrders`) with individual live-quote deviation guards and confirmation sheets.
+  - Rejection audit tracking in `AgenticTradingProvider` and Firestore (`auto_trade_history` collection) recording `status: 'rejected'` entries.
+  - Contextual discovery from Home card pending banner, Settings action button, review status badge, and push notification deep linking (`agentic_approval`, `pending_approval`).
 - [ ] **Smart Order Routing (SOR) & Cross-Broker Margin & Borrow Optimizer** (v0.61.0, [#108](https://github.com/CIInc/robinhood-options-mobile/issues/108)):
 - [ ] **Schwab Market-Data & Order-Lifecycle Parity** ([#138](https://github.com/CIInc/robinhood-options-mobile/issues/138)): Complete the remaining quote, OHLCV, fundamentals, movers, order-preview, margin-check, and in-flight replacement coverage.
 - [ ] **Reusable Crypto & Forex Order Templates** ([#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): Save and reuse instrument-specific order configurations while preserving live price and risk validation.

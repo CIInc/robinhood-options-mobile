@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.61.8] - 2026-11-14 (pre-release)
+
+**Automated Trading Pending Approvals Dedicated View & Batch Review Center**
+
+### Added
+- **Automated Trading Pending Approvals Dedicated Screen (`AutomatedTradingApprovalsWidget`, [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - **First-Class Review Center:** Elevated pending automated trade proposals (`requireApproval: true`) out of the cramped settings drawer into a standalone dual-tab screen featuring **Pending** and **History** tabs.
+  - **Summary Metrics Header:** Real-time visibility into total pending proposals, aggregate capital impact (with full `AccountStore.showBalances` `$••••••` masking), average AI conviction score, live vs. paper execution mode badge, and sticky warnings for emergency stops and pre-close market entry cutoffs.
+  - **Search, Filtering & Multi-Criteria Sorting:** Quick search bar filtering by ticker symbol or strategy, segmented action chips (`ALL`, `BUY`, `SELL`), qualification filter (`ALL`, `CONFIRMED`, `PENDING WATCH`), and sorting dropdown (`Newest First`, `Highest Confidence`, `Largest Capital`, `Symbol A-Z`).
+  - **Multi-Selection Batch Actions (`BatchApprovalResult`, `AgenticTradingProvider.batchApproveOrders`, `batchRejectOrders`):** Interactive multi-selection mode enabling bulk execution with `Select All`, `Approve Selected`, `Reject Selected`, `Approve All`, and `Reject All` with confirmation dialogs and individual live-quote deviation protection.
+- **Deep Proposal Inspection Sheet (`AutomatedTradeProposalDetailWidget`, [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - Comprehensive inspection view surfacing full proposal metadata: symbol, action, quantity, price, estimated cost, order type, and formatted generation timestamp.
+  - **AI Conviction & Reasoning:** Displays AI confidence score badge, quantitative signal breakdown, and full generative reasoning narrative explaining trade thesis.
+  - **RiskGuard Compliance & GEX Architecture:** Detailed audit of risk checks (volatility, correlation, sector allocation), institutional Gamma Exposure levels (`pTrans`, `nTrans`, `gammaFlip`), and macroeconomic regime classification (`macroStatus`, `macroReason`).
+  - **Live Chart Navigation & Sticky Action Bar:** Direct link to interactive candlestick charts (`InstrumentWidget`) and persistent bottom action buttons for single-tap `Approve` (with live-quote check) or `Reject`.
+- **Rejection Audit Persistence & Execution History ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - Enhanced `AgenticTradingProvider.rejectOrder` to append an audit trail entry with `status: 'rejected'` to `autoTradeHistory` and persist to the user's Firestore `auto_trade_history` collection.
+  - Rejections and completed executions are searchable and inspectable in the Approvals **History** tab.
+- **Contextual Discovery & Notification Deep Linking ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282), [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Home Screen Pending Action Banner:** Prominent amber action banner atop `AgenticTradingCardWidget` when pending approvals exist, displaying proposal count and total capital with direct tap routing to the review screen.
+  - **Settings Integration:** Primary `Open Full Approvals View` button embedded within the pending orders card in `AgenticTradingSettingsWidget`.
+  - **Status Badge State:** Added amber `Review` badge state (`$pendingCount PENDING`) to `AutoTradeStatusBadgeWidget`.
+  - **Push Notification Deep Linking:** Configured `NavigationStatefulWidget` to capture `type: 'agentic_approval'`, `'auto_trade_approval'`, or `'pending_approval'` notifications with `proposalId` payloads, routing directly to `AutomatedTradingApprovalsWidget` and auto-opening the proposal details sheet.
+
+- **Permanent Audit Log Access & Cross-Linking ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - **Always-Accessible Settings Tile:** When no proposals are pending (or when `requireApproval` is disabled), `AgenticTradingSettingsWidget` renders a permanent **"Trade Proposals & Audit Log"** tile to inspect past AI proposals, GEX levels, and rejections.
+  - **Performance Screen Cross-Link:** Added an AppBar action icon and an interactive banner in the History tab of `AgenticTradingPerformanceWidget` allowing users to jump directly from financial P&L to operational AI reasoning and risk audits.
+  - **History Card Inspection:** Tapping any history card in `AutomatedTradingApprovalsWidget` opens `AutomatedTradeProposalDetailWidget` for complete diagnostics.
+
 ## [0.61.7] - 2026-11-14 (pre-release)
 
 **Higher-Order Portfolio Greeks & 2D Spot × IV Cross-Shock Stress Matrix**

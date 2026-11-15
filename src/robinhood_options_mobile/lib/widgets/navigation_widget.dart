@@ -71,6 +71,7 @@ import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_wid
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/group_watchlist_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 import 'package:robinhood_options_mobile/services/paper_service.dart';
 import 'package:robinhood_options_mobile/widgets/tab_navigation.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
@@ -606,6 +607,31 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
           ),
         );
       }
+    } else if (data['type'] == 'agentic_approval' ||
+        data['type'] == 'auto_trade_approval' ||
+        data['type'] == 'pending_approval') {
+      final proposalId =
+          data['proposalId'] as String? ?? data['recordId'] as String?;
+      final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      final brokerageUser =
+          userStore.currentUser ?? userStore.items.firstOrNull;
+      service = brokerageUser != null ? _getService(brokerageUser) : service;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AutomatedTradingApprovalsWidget(
+            user: user,
+            userDocRef: userDoc,
+            service: service,
+            brokerageUser: brokerageUser,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            generativeService: _generativeService,
+            initialProposalId: proposalId,
+          ),
+        ),
+      );
     } else if (data['type'] == 'trade_signal') {
       final symbol = data['symbol'] as String?;
       final userStore = Provider.of<BrokerageUserStore>(context, listen: false);
@@ -746,7 +772,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const AgenticTradingPerformanceWidget(),
+            builder: (context) => AgenticTradingPerformanceWidget(
+              user: user,
+              userDocRef: userDoc,
+              service: service,
+            ),
           ),
         );
       }
