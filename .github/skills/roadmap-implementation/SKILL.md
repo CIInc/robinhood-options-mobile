@@ -71,12 +71,24 @@ roadmap item, pick the next feature, or continue planned product work.
    Add or update focused unit and widget tests for the new behavior. Do not commit,
    push, deploy, or mutate GitHub issue states unless explicitly requested.
 
-6. **Reconcile local documentation.** Update `ROADMAP.md` only when the selected
-   work corresponds to an entry and its completion is verified. Mark the task
-   complete (`[x]`) and ensure the GitHub issue link
-   (`[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`)
-   is included. Update `CHANGELOG.md` or `docs/` if user-visible behavior or
-   configuration changed. Do not mark a parent item complete while child tasks remain.
+6. **Reconcile local documentation.**
+   - **Update Documentation & PRODUCT.md**: Add or update dedicated feature documentation
+     in `docs/` (architecture, algorithms, configuration, or operational guides)
+     whenever user-visible behavior, risk models, services, or workflows change.
+     Update `PRODUCT.md` to reflect new product capabilities, domain models, or
+     architectural additions. Update `README.md`, `.github/copilot-instructions.md`,
+     or `CHANGELOG.md` when user-facing features, configuration keys, or developer
+     conventions change.
+   - **Update ROADMAP.md & Limit Completed Features Size**: Update `ROADMAP.md` only
+     when the selected work corresponds to an entry and its completion is verified.
+     Mark the task complete (`[x]`) and ensure the GitHub issue link
+     (`[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`)
+     is included. Do not mark a parent item complete while child tasks remain.
+     Keep `## Completed Features ✅` bounded in size: maintain focus on high-level
+     capability blocks for recent minor releases, and consolidate or summarize older
+     granular historical items so the roadmap remains readable and executive-focused,
+     deferring exhaustive chronological version notes to `CHANGELOG.md`. Reconcile
+     `Quick Stats` (completed vs planned counts) accordingly.
 
 7. **Verify the change.** Run the narrowest relevant checks first, following `AGENTS.md`:
    - **Flutter Mobile (`src/robinhood_options_mobile`):**
@@ -99,4 +111,6 @@ roadmap item, pick the next feature, or continue planned product work.
 
 Report the selected roadmap item and/or issue link, why it was chosen over other
 candidates, the files modified and behavior delivered, validation commands run
-and test results, and documentation/`ROADMAP.md` updates.
+and test results, documentation updates made in `docs/`, `PRODUCT.md`, `README.md`, and other
+markdown files, and `ROADMAP.md` status/reconciliation.
+

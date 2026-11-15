@@ -70,7 +70,15 @@ impact.
    - Ensure linked issues in `ROADMAP.md` are accurate and verified.
    - Update the **Quick Stats** table in `ROADMAP.md` (active open issues, completed
      features count, planned items).
-   - Add a new entry to the **Release Versions & Timeline** section in `ROADMAP.md`.
+   - Maintain the **Key Highlights** section as a strictly limited list (at most 3–5 items)
+     covering only the most recent major deliveries and highest-impact capabilities;
+     prune older entries as new releases ship so it remains a concise executive summary
+     rather than an unbounded changelog.
+   - Limit the size of **Completed Features ✅**: keep the completed checklist
+     bounded to high-level capability blocks for recent active minor releases,
+     consolidating or summarizing older historical releases so `ROADMAP.md` stays lean,
+     relying on `CHANGELOG.md` for exhaustive historical logs.
+   - Add a new entry to the **Release Cadence & Milestone Overview** section in `ROADMAP.md`.
    - Do not close, reopen, or edit GitHub issues unless explicitly requested.
 
 7. **Review agent and developer guidance.** Check `AGENTS.md`, `.agents/`, and

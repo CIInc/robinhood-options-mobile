@@ -8,6 +8,7 @@ RealizeAlpha is a professional-grade Flutter mobile app for multi-account broker
 *   **Documentation Site:** [RealizeAlpha Docs](https://ciinc.github.io/robinhood-options-mobile/) ([`docs/index.md`](docs/index.md)) — Detailed feature guides, architecture references, and API research.
 *   **Roadmap & Release History:** [ROADMAP.md](ROADMAP.md) & [CHANGELOG.md](CHANGELOG.md) — Active development priorities and release notes.
 *   **Store Distribution & Release Assets:** [distribution/README.md](distribution/README.md) — App Store & Google Play screenshots, feature graphics, app icons, and release notes.
+*   **App Stores, Firebase & Cloud Consoles:** [App Stores & Consoles Directory](#app-stores-firebase--cloud-consoles) — Centralized links to App Store Connect, TestFlight, Google Play Console, Firebase Admin, and Google Cloud services.
 *   **Coding Agent & Contributor Guide:** [AGENTS.md](AGENTS.md) — Repository layout, safety invariants, and verification commands.
 
 ## Features
@@ -73,6 +74,59 @@ RealizeAlpha utilizes a combination of technologies:
 *   **Database/Storage:** Cloud Firestore stores user documents, preferences, and portfolio telemetry (see [Entity-Relationship Diagram](docs/er-diagram.md)).
 *   **Hosting & CI/CD:** Firebase Hosting is used for web components, with GitHub Actions CI/CD automation (see [Mobile CI Setup](docs/mobile-ci-setup.md)).
 
+
+## App Stores, Firebase & Cloud Consoles
+
+Centralized reference of production distribution channels, developer consoles, and cloud administrative portals for **RealizeAlpha** (Firebase / Google Cloud Project: `realizealpha`).
+
+### App Stores & Distribution
+
+| Platform | Channel / Portal | URL / Identifier |
+| :--- | :--- | :--- |
+| **iOS / iPadOS / macOS** | **TestFlight Public Beta** | [testflight.apple.com/join/ARmsGSN8](https://testflight.apple.com/join/ARmsGSN8) |
+| **iOS / iPadOS / macOS** | **App Store Connect** | [appstoreconnect.apple.com/apps](https://appstoreconnect.apple.com/apps) |
+| **iOS / iPadOS / macOS** | **Apple Developer Portal** | [developer.apple.com/account](https://developer.apple.com/account/) |
+| **iOS / iPadOS / macOS** | **Bundle Identifier** | `com.cidevelop.robinhoodOptionsMobile` (Deployment guide: [`docs/TESTFLIGHT_DEPLOYMENT.md`](docs/TESTFLIGHT_DEPLOYMENT.md)) |
+| **Android** | **Google Play Internal Testing** | [play.google.com/apps/internaltest/4701722902176245187](https://play.google.com/apps/internaltest/4701722902176245187) |
+| **Android** | **Google Play Store (Listing)** | [play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile](https://play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile) |
+| **Android** | **Google Play Console** | [play.google.com/console (App Dashboard)](https://play.google.com/console/u/0/developers/5732598047340940161/app/4973125863461919438/app-dashboard) |
+| **Android** | **Application ID / Package** | `com.cidevelop.robinhood_options_mobile` (Developer ID: `5732598047340940161`, App ID: `4973125863461919438`) |
+| **Web** | **Production Web App** | [realizealpha.web.app](https://realizealpha.web.app) & [realizealpha.firebaseapp.com](https://realizealpha.firebaseapp.com) |
+
+### Firebase Admin URLs (`realizealpha`)
+
+| Service | Description | Console URL |
+| :--- | :--- | :--- |
+| **Project Overview** | Dashboard, usage, and project-wide analytics | [console.firebase.google.com/project/realizealpha/overview](https://console.firebase.google.com/project/realizealpha/overview) |
+| **Authentication** | User directory, auth providers, and custom claims | [console.firebase.google.com/project/realizealpha/authentication/users](https://console.firebase.google.com/project/realizealpha/authentication/users) |
+| **Cloud Firestore** | Production database collections & documents | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/data](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/data) |
+| **Firestore Security Rules** | Rules editor, testing simulator, and release history | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules) |
+| **Firestore Indexes** | Composite indexes status and exemptions | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes) |
+| **Cloud Functions** | Functions health, logs, memory, and call metrics | [console.firebase.google.com/project/realizealpha/functions](https://console.firebase.google.com/project/realizealpha/functions) |
+| **Firebase Hosting** | Deployment history, custom domains, and previews | [console.firebase.google.com/project/realizealpha/hosting](https://console.firebase.google.com/project/realizealpha/hosting) |
+| **Remote Config** | Feature flags, kill switches, and rollout parameters | [console.firebase.google.com/project/realizealpha/config](https://console.firebase.google.com/project/realizealpha/config) |
+| **App Check** | Attestation enforcement for DeviceCheck, App Attest, and Play Integrity | [console.firebase.google.com/project/realizealpha/appcheck](https://console.firebase.google.com/project/realizealpha/appcheck) |
+| **Project Settings** | App registrations, web/iOS/Android configs | [console.firebase.google.com/project/realizealpha/settings/general](https://console.firebase.google.com/project/realizealpha/settings/general) |
+| **Service Accounts** | Firebase Admin SDK credentials and private keys | [console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk](https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk) |
+
+### Google Cloud Console URLs (`realizealpha`)
+
+| Service | Purpose | Console URL |
+| :--- | :--- | :--- |
+| **Welcome / Dashboard** | GCP project resource summary, billing, and APIs | [console.cloud.google.com/welcome?project=realizealpha](https://console.cloud.google.com/welcome?project=realizealpha) |
+| **IAM & Admin** | Service accounts, roles, and CI/CD permissions | [console.cloud.google.com/iam-admin/iam?project=realizealpha](https://console.cloud.google.com/iam-admin/iam?project=realizealpha) |
+| **Service Accounts** | CI/CD (`github-action-deploy`) & runtime credentials | [console.cloud.google.com/iam-admin/serviceaccounts?project=realizealpha](https://console.cloud.google.com/iam-admin/serviceaccounts?project=realizealpha) |
+| **APIs & Services** | Enabled Google Cloud APIs, quotas, and credentials | [console.cloud.google.com/apis/dashboard?project=realizealpha](https://console.cloud.google.com/apis/dashboard?project=realizealpha) |
+| **Cloud Functions (GCP)** | Serverless backend execution, triggers, and concurrency | [console.cloud.google.com/functions/list?project=realizealpha](https://console.cloud.google.com/functions/list?project=realizealpha) |
+| **Cloud Scheduler** | Agentic trading and market-data cron jobs | [console.cloud.google.com/cloudscheduler?project=realizealpha](https://console.cloud.google.com/cloudscheduler?project=realizealpha) |
+| **Secret Manager** | Encrypted runtime secrets (`GEMINI_API_KEY`, tokens) | [console.cloud.google.com/security/secret-manager?project=realizealpha](https://console.cloud.google.com/security/secret-manager?project=realizealpha) |
+| **Cloud Build** | Container build history, CI triggers, and image logs | [console.cloud.google.com/cloud-build/builds?project=realizealpha](https://console.cloud.google.com/cloud-build/builds?project=realizealpha) |
+| **Artifact Registry** | Container image repositories for Cloud Functions v2 | [console.cloud.google.com/artifacts?project=realizealpha](https://console.cloud.google.com/artifacts?project=realizealpha) |
+| **Logs Explorer** | Centralized streaming logs across Functions and Firestore | [console.cloud.google.com/logs/query?project=realizealpha](https://console.cloud.google.com/logs/query?project=realizealpha) |
+| **Cloud Monitoring** | Custom dashboards, alerts, latency, and uptime checks | [console.cloud.google.com/monitoring?project=realizealpha](https://console.cloud.google.com/monitoring?project=realizealpha) |
+| **Vertex AI** | Gemini foundation models and AI agent infrastructure | [console.cloud.google.com/vertex-ai?project=realizealpha](https://console.cloud.google.com/vertex-ai?project=realizealpha) |
+
+---
 
 ### Latest Release
 
@@ -275,7 +329,11 @@ firebase functions:shell
 
 ## Publish
 
+*For complete console links and credentials, see the [App Stores, Firebase & Cloud Consoles](#app-stores-firebase--cloud-consoles) directory.*
+
 ### Firebase Hosting
+
+Console: [Firebase Hosting Dashboard](https://console.firebase.google.com/project/realizealpha/hosting) | Production URLs: [realizealpha.web.app](https://realizealpha.web.app) · [realizealpha.firebaseapp.com](https://realizealpha.firebaseapp.com)
 
 `firebase.json` was changed to modify the `hosting` property `"source": "."` to `"public": "build/web"` in order to deploy custom builds.
 
@@ -307,6 +365,8 @@ Previously, the public folder was deployed with this configuration:
 
 ### Firebase Functions
 
+Consoles: [Firebase Functions Console](https://console.firebase.google.com/project/realizealpha/functions) · [Google Cloud Functions Console](https://console.cloud.google.com/functions/list?project=realizealpha) · [Secret Manager](https://console.cloud.google.com/security/secret-manager?project=realizealpha)
+
 Functions will automatically deploy with hosting deployments with `firebase deploy`. To deploy only the functions, use the following command.
 
 ```bash
@@ -324,6 +384,8 @@ firebase functions:secrets:access GEMINI_API_KEY
 
 ### Firebase Firestore
 
+Console: [Firebase Firestore Console](https://console.firebase.google.com/project/realizealpha/firestore) · [Firestore Security Rules](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules) · [Firestore Indexes](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes)
+
 To deploy the Firestore rules and indexes, use the following command.
 
 ```bash
@@ -340,6 +402,8 @@ firebase firestore:indexes > ./firebase/firestore.indexes.json
 
 ### Android Play Store
 
+Consoles: [Google Play Console Dashboard](https://play.google.com/console/u/0/developers/5732598047340940161/app/4973125863461919438/app-dashboard) | Testing: [Google Play Internal Testing](https://play.google.com/apps/internaltest/4701722902176245187) | Production: [Google Play Store](https://play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile)
+
 #### Build app bundle
 
 ```bash
@@ -355,6 +419,8 @@ flutter build apk --release
 ```
 
 ### Apple App Store
+
+Consoles: [App Store Connect](https://appstoreconnect.apple.com/apps) · [Apple Developer Account](https://developer.apple.com/account/) | Testing: [TestFlight Beta](https://testflight.apple.com/join/ARmsGSN8)
 
 #### Build IPA
 
