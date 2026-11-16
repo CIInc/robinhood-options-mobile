@@ -209,7 +209,7 @@ void main() {
 
       expect(find.text('Trading Approvals'), findsOneWidget);
       expect(find.text('All Caught Up!'), findsOneWidget);
-      expect(find.text('Review Trading Strategy'), findsOneWidget);
+      expect(find.text('Review Trading Strategy'), findsNothing);
     });
 
     testWidgets(

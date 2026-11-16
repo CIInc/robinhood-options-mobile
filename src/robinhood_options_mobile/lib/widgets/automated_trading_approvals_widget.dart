@@ -663,12 +663,6 @@ class _AutomatedTradingApprovalsWidgetState
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.tune_rounded, size: 18),
-                label: const Text('Review Trading Strategy'),
-                onPressed: _openSettings,
-              ),
             ],
           ),
         ),

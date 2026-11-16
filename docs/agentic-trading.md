@@ -280,9 +280,66 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 ### Trading Strategy Management
 
-> **New in v0.28.1**
+> **Updated in v0.62.0**
 
-The system now offers centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
+The system provides centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
+
+#### Curated Strategy Archetypes (1-Tap Presets with Walk-Forward Badges)
+
+To eliminate the friction of configuring 35+ granular parameters (indicator weights, sequential stops, risk limits, and position sizing), RealizeAlpha introduces **4 Curated Strategy Archetypes** directly in the Agentic Trading settings. Each archetype is backed by empirical 1-year out-of-sample walk-forward backtest metrics:
+
+1. **Conservative Core** (`archetype_conservative_core`):
+   - **Tag & Philosophy:** *Capital Preservation*. High-probability trend-following with tight structural risk bounds, strict 20% sector exposure caps, and defined GEX stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** Low Volatility Bull / Neutral.
+   - **Key Indicators:** Market Direction (SMA 50/200), Bollinger Bands, RSI momentum, Volume confirmation, Floor Pivot Points, and ATR sizing.
+   - **Risk & Stops:** 1.0% risk per trade, 20% max portfolio concentration, 8% max drawdown limit, +6% take profit, -3% stop loss, 2% trailing stop, 15% trailing peak stop, GEX structural stop, and 20% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 68.5%
+     - 🔵 **Profit Factor:** 1.88
+     - 🟠 **Max Drawdown:** 5.4%
+     - 🟣 **Sharpe Ratio:** 1.72 (24.5% 1-Yr Return, 52 sample trades)
+
+2. **Momentum Breakout** (`archetype_momentum_breakout`):
+   - **Tag & Philosophy:** *Directional Expansion*. Aggressive trend capture on volume expansion, MACD histogram crossovers, and VWAP trend confirmation with dynamic ATR trailing stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** High Volatility Expansion / Bull.
+   - **Key Indicators:** Price Action patterns, Momentum (RSI), MACD, Volume, ADX trend strength (> 25), VWAP anchor, Chaikin Money Flow, and ATR.
+   - **Risk & Stops:** 2.0% risk per trade, 30% max portfolio concentration, 15% max drawdown limit, +12% take profit, -4.5% stop loss, 3.5% trailing stop, 20% trailing peak stop, and 25% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 57.8%
+     - 🔵 **Profit Factor:** 2.14
+     - 🟠 **Max Drawdown:** 10.8%
+     - 🟣 **Sharpe Ratio:** 1.58 (42.1% 1-Yr Return, 86 sample trades)
+
+3. **Options Income Harvester** (`archetype_options_income_harvester`):
+   - **Tag & Philosophy:** *High-Yield Premium*. Systematic premium selling and range-bound mean reversion exploiting dealer gamma pinning, Stochastic oscillators, and 5-tier GEX sequential stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** Range-Bound / Low-to-Moderate Volatility.
+   - **Key Indicators:** Gamma Exposure (GEX pinning & flip level), Bollinger Bands, Stochastic, RSI, Williams %R, Pivot Points, and ATR buffer.
+   - **Risk & Stops:** 1.5% risk per trade, 25% max portfolio concentration, 12% max drawdown limit, +15% take profit, -18% stop loss, 4% trailing stop, GEX structural stop, Time-Theta stop (min 14 DTE, 5 stalled sessions limit), and 35% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 76.2%
+     - 🔵 **Profit Factor:** 1.95
+     - 🟠 **Max Drawdown:** 7.2%
+     - 🟣 **Sharpe Ratio:** 1.84 (31.8% 1-Yr Return, 64 sample trades)
+
+4. **Reasoning AI Agent** (`archetype_reasoning_ai_agent`):
+   - **Tag & Philosophy:** *Autonomous Gemini AI*. Multimodal Gemini AI reasoning synthesizing technical convergence across all 19 indicators, macro regime context, and chain-of-thought verification.
+   - **Trading Mode:** Reasoning (`TradingMode.reasoning`).
+   - **Target Market Regime:** All Regimes / Adaptive.
+   - **Key Indicators:** All 19 technical indicators enabled with analytical reasonings + GEX + Macro regime filter (min signal strength 75.0%).
+   - **Risk & Stops:** 2.0% risk per trade, dynamic position sizing, 25% max portfolio concentration, 10% max drawdown limit, +10% take profit, -5% stop loss, 3% trailing stop, 20% trailing peak stop, Macro regime defensive stop, and 30% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 64.6%
+     - 🔵 **Profit Factor:** 1.82
+     - 🟠 **Max Drawdown:** 8.6%
+     - 🟣 **Sharpe Ratio:** 1.65 (28.4% 1-Yr Return, 58 sample trades)
+
+#### 1-Tap Application & Preset Cloning
+
+- **1-Tap Apply:** Selecting an archetype opens the detail sheet showing complete strategy philosophy, walk-forward validation matrix, and risk parameter breakdown. Tapping "Apply Archetype" confirms changes and immediately updates the active `AgenticTradingConfig` (including setting the corresponding `TradingMode`), syncing to Firestore without requiring manual entry of 35+ parameters.
+- **Clone to Custom Preset:** Tapping "Clone Preset" generates an editable user template (`TradeStrategyTemplate`) saved in the user's custom template library (`BacktestingProvider.saveTemplate`), allowing unrestricted customization and multi-timeframe backtesting.
 
 **Strategies Page:**
 - **Access:** Navigate to the new "Trading Strategies" page from the Agentic Trading Settings.

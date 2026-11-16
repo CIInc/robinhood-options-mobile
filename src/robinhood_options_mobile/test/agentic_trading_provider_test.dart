@@ -1964,6 +1964,17 @@ void main() {
 
       expect(AgenticTradingProvider.countTradesOn(history, day), equals(2));
       expect(AgenticTradingProvider.countTradesOn([], day), equals(0));
+
+      final historyWithRejected = [
+        {'timestamp': DateTime(2026, 10, 14, 9, 45).toIso8601String()},
+        {
+          'timestamp': DateTime(2026, 10, 14, 11).toIso8601String(),
+          'rejected': true,
+          'status': 'rejected',
+        },
+      ];
+      expect(AgenticTradingProvider.countTradesOn(historyWithRejected, day),
+          equals(1));
     });
 
     test('withDerivedProfitLoss backfills dollar P&L on legacy exits', () {

@@ -58,7 +58,7 @@ enum FeatureBundle {
   String get displayName => switch (this) {
         FeatureBundle.advancedResearch => 'Advanced Research & Flow',
         FeatureBundle.aiResearch => 'AI Market Copilot & Assistant',
-        FeatureBundle.advancedTrading => 'Advanced Trading (Multi-Leg Spreads)',
+        FeatureBundle.advancedTrading => 'Advanced Trading',
         FeatureBundle.backtesting => 'Strategy Backtesting',
         FeatureBundle.riskGuardrails =>
           'Risk Circuit Breakers & Tilt Guardrails',
@@ -66,8 +66,8 @@ enum FeatureBundle {
         FeatureBundle.investorGroups => 'Investor Groups & Channels',
         FeatureBundle.accountTools => 'Tax, Margin & Account Tools',
         FeatureBundle.extendedBrokerages => 'Extended Brokerages',
-        FeatureBundle.automatedTrading => 'Automated & Algorithmic Orders',
-        FeatureBundle.agenticTrading => 'Autonomous Agentic Trading (AI)',
+        FeatureBundle.automatedTrading => 'Automated Trading',
+        FeatureBundle.agenticTrading => 'Autonomous Agentic Trading',
         FeatureBundle.macroIntelligence => 'Macro Assessment & Economic Radar',
       };
 
@@ -91,7 +91,7 @@ enum FeatureBundle {
         FeatureBundle.extendedBrokerages =>
           'Connect alternative brokerage accounts (Fidelity CSV import, Plaid).',
         FeatureBundle.automatedTrading =>
-          'Rule-based bracket orders, trailing stop triggers, and automated execution.',
+          'Automated trading strategies, systematic execution, bracket orders, and trailing stop triggers.',
         FeatureBundle.agenticTrading =>
           'Autonomous AI agent market reasoning and algorithmic order placement.',
         FeatureBundle.macroIntelligence =>

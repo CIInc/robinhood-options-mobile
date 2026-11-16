@@ -8,7 +8,6 @@ import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
-import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 
@@ -88,25 +87,6 @@ class _AgenticTradingPerformanceWidgetState
         backgroundColor: colorScheme.surface,
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.fact_check_outlined),
-            tooltip: 'Proposals & Audit Log',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AutomatedTradingApprovalsWidget(
-                    user: widget.user,
-                    userDocRef: widget.userDocRef,
-                    service: widget.service,
-                    initialTabIndex: 1,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: colorScheme.primary,
@@ -242,34 +222,6 @@ class _AgenticTradingPerformanceWidgetState
     }
     final history = _filterHistory(allHistory);
 
-    final auditButton = Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: OutlinedButton.icon(
-        icon: const Icon(Icons.fact_check_outlined, size: 18),
-        label: const Text('Audit AI Proposals, GEX & Rejections'),
-        style: OutlinedButton.styleFrom(
-          visualDensity: VisualDensity.compact,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AutomatedTradingApprovalsWidget(
-                user: widget.user,
-                userDocRef: widget.userDocRef,
-                service: widget.service,
-                initialTabIndex: 1,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
     if (history.isEmpty) {
       return Center(
         child: Padding(
@@ -300,8 +252,6 @@ class _AgenticTradingPerformanceWidgetState
                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
-              const SizedBox(height: 20),
-              auditButton,
             ],
           ),
         ),
@@ -310,10 +260,9 @@ class _AgenticTradingPerformanceWidgetState
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: history.length + 1,
+      itemCount: history.length,
       itemBuilder: (context, index) {
-        if (index == 0) return auditButton;
-        final trade = history[index - 1];
+        final trade = history[index];
         return _buildTradeCard(trade, colorScheme);
       },
     );

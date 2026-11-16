@@ -72,12 +72,12 @@ void main() {
       expect(find.text('Admin Only'), findsWidgets);
 
       // Verify titles
-      expect(find.text('Advanced Trading (Multi-Leg Spreads)'), findsOneWidget);
+      expect(find.text('Advanced Trading'), findsOneWidget);
       expect(find.text('Strategy Backtesting'), findsOneWidget);
       expect(
           find.text('Risk Circuit Breakers & Tilt Guardrails'), findsOneWidget);
       expect(find.text('Investor Groups & Channels'), findsOneWidget);
-      expect(find.text('Automated & Algorithmic Orders'), findsOneWidget);
+      expect(find.text('Automated Trading'), findsOneWidget);
     });
 
     testWidgets(
@@ -143,8 +143,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Find switch for Advanced Trading
-      final switchFinder = find.widgetWithText(
-          SwitchListTile, 'Advanced Trading (Multi-Leg Spreads)');
+      final switchFinder =
+          find.widgetWithText(SwitchListTile, 'Advanced Trading');
       expect(switchFinder, findsOneWidget);
 
       // Tap to enable

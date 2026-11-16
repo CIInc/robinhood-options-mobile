@@ -2259,6 +2259,7 @@ class AgenticTradingProvider with ChangeNotifier {
     double totalPnL = 0.0;
 
     for (final trade in _autoTradeHistory) {
+      if (trade['rejected'] == true || trade['status'] == 'rejected') continue;
       final ts = trade['timestamp'];
       DateTime? dt;
       if (ts is String) {
@@ -2337,6 +2338,9 @@ class AgenticTradingProvider with ChangeNotifier {
       Iterable<Map<String, dynamic>> history, DateTime day) {
     var count = 0;
     for (final trade in history) {
+      if (trade['rejected'] == true || trade['status'] == 'rejected') {
+        continue;
+      }
       final ts = trade['timestamp'];
       final DateTime? dt = switch (ts) {
         String s => DateTime.tryParse(s)?.toLocal(),
@@ -2366,6 +2370,9 @@ class AgenticTradingProvider with ChangeNotifier {
 
     DateTime? latestTrade;
     for (final trade in _autoTradeHistory) {
+      if (trade['rejected'] == true || trade['status'] == 'rejected') {
+        continue;
+      }
       final rawTimestamp = trade['timestamp'];
       final timestamp = switch (rawTimestamp) {
         String value => DateTime.tryParse(value)?.toLocal(),
