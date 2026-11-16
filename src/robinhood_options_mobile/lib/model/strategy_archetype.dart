@@ -62,6 +62,21 @@ class StrategyArchetype {
         'config': config.toJson(),
       };
 
+  static IconData _iconForId(String id) {
+    switch (id) {
+      case 'archetype_conservative_core':
+        return Icons.shield_outlined;
+      case 'archetype_momentum_breakout':
+        return Icons.trending_up;
+      case 'archetype_options_income':
+        return Icons.account_balance_wallet_outlined;
+      case 'archetype_reasoning_ai_agent':
+        return Icons.psychology_outlined;
+      default:
+        return Icons.auto_graph;
+    }
+  }
+
   factory StrategyArchetype.fromJson(Map<String, dynamic> json) {
     return StrategyArchetype(
       id: json['id'] as String,
@@ -69,10 +84,7 @@ class StrategyArchetype {
       tag: json['tag'] as String,
       description: json['description'] as String,
       detailedPhilosophy: json['detailedPhilosophy'] as String? ?? '',
-      icon: IconData(
-        json['iconCodePoint'] as int? ?? Icons.auto_graph.codePoint,
-        fontFamily: json['iconFontFamily'] as String?,
-      ),
+      icon: _iconForId(json['id'] as String? ?? ''),
       accentColor: Color(json['accentColorValue'] as int? ?? 0xFF10B981),
       tradingMode: TradingMode.values.firstWhere(
         (m) => m.name == json['tradingMode'],

@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.0] - 2026-11-15
+
+**1-Tap Strategy Archetypes, Strategy Style Controls, Macro Economic Radar & Beta Labs Demos**
+
+### Added
+- **1-Tap Curated Strategy Archetypes & Walk-Forward Performance Badges ([#343](https://github.com/CIInc/robinhood-options-mobile/issues/343)):**
+  - **Curated Archetypes:** Pre-configured strategy archetypes (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) that calibrate indicators, profit targets, stop losses, and position sizing bounds with a single tap.
+  - **Walk-Forward Performance Badges:** Empirical validation badges displaying historical 1-year win rate, profit factor, and maximum drawdown for each strategy.
+  - **One-Tap Adoption & Customization:** Quick-apply modal bottom sheet allowing users to review archetype characteristics, adjust capital, and clone directly to custom strategy configurations.
+- **Macro Assessment & Economic Radar Integration ([#351](https://github.com/CIInc/robinhood-options-mobile/issues/351), [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Economic Cycle Phases:** Classification into canonical economic stages (`Expansion`, `Late-Cycle`, `Recession Watch`) driven by yield curve structure and multi-factor scoring.
+  - **Inflation YoY & Yield Curve Benchmarks:** Embedded macroeconomic radar metrics with Inflation YoY (`2.4%`, `3.1%`, `1.8%`) and Yield Curve Spreads (`+18 bps`, `+2 bps`, `-24 bps`).
+  - **TIPS Breakeven Inflation:** Ingested market-implied inflation expectations via the `TIP` ETF as the 21st macro indicator in `functions/src/macro-agent.ts`.
+  - **Economic Cycle Radar Section (`MacroAssessmentDashboardWidget`):** Added a dedicated visual phase track, environment summary, and interactive metric cards on the macro dashboard.
+  - **Search Card Macro Pill (`MacroAssessmentWidget`):** Surfaced cycle phase, inflation, and curve spread badges directly on the Search screen macro card.
+- **Beta Labs Interactive Demos & Deep Navigation:**
+  - **Interactive Previews (`_BetaFeatureDemoSheet`):** Modal preview sheets across all 12 feature bundles allowing users to explore features, adjust simulation parameters, and test prompts prior to activation.
+  - **Deep Feature Navigation:** Directly routes enabled features to their destination screens (e.g., `Search > Macro Market State`, `AgenticTradingSettingsWidget`, `BacktestingWidget`).
+  - **Responsive Narrow Viewport Hardening:** Layout optimizations down to 320px screen widths without `RenderFlex` overflows.
+
+### Changed
+- **Strategy Style & Execution Controls:**
+  - Rebranded execution modes to Strategy Style ("Systematic" and "Agentic") for clearer cognitive distinction between deterministic indicator rules and multi-factor AI reasoning.
+  - Flattened nested cards in the primary Auto-Trading card into seamless, borderless `SwitchListTile` rows with standard dividers.
+  - Added dynamic amber `AUTO` badge state when `Require Approval` is disabled to clearly signal automated order routing.
+  - Aligned Beta Labs toggle settings to disable style selection when autonomous agentic trading is inactive.
+
 ## [0.61.8] - 2026-11-14 (pre-release)
 
 **Automated Trading Pending Approvals Dedicated View & Batch Review Center**
