@@ -118,25 +118,23 @@ impact.
 
    Do not build platform binaries locally for routine release preparation.
    The canonical release builds are produced by GitHub Actions:
-   - `.github/workflows/release.yml`: Triggered by `v*.*.*` tags or manual dispatch;
-     builds Android APK and iOS IPA, attaching them to draft GitHub Releases.
-   - `.github/workflows/cd.yml`: Handles continuous store deployment pipelines.
+   - `.github/workflows/cd.yml`: Handles the continuous deployment and release pipeline. When a new version is detected in `pubspec.yaml`, it runs quality gates, builds signed Android (`.apk` and `.aab`) and iOS (`.ipa`) binaries, publishes to Google Play Internal and Apple TestFlight, deploys Firebase resources, tags the release (`v<version>`), and creates the GitHub Release with attached assets.
+   - `.github/workflows/promote.yml`: Promotes validated internal/TestFlight builds to Google Play and Apple App Store production tracks with staged rollouts.
 
 10. **Ask before committing and triggering deployment.** After release
     preparation and validation checks pass cleanly, summarize the changes and ask
-    whether the user wants you to commit, push the release changes, and push a
-    `v<major.minor.patch>` tag. Explain that pushing this tag triggers
-    `.github/workflows/release.yml`.
+    whether the user wants you to commit and push the release changes to `main`.
+    Explain that pushing a new `pubspec.yaml` version triggers
+    `.github/workflows/cd.yml`, which creates the git tag and draft release automatically.
 
     Do not stage, commit, push, or tag until the user explicitly approves.
 
     If approved:
-    - Recheck the branch, worktree, and remote. Ensure `pubspec.yaml` matches the tag.
+    - Recheck the branch, worktree, and remote. Ensure `pubspec.yaml` matches the intended release.
     - Stage only the changes prepared for this release. Exclude unrelated user changes.
-    - Commit and push release changes to the remote branch first. If the branch push
-      fails, stop; do not push a tag.
-    - Create and push the version tag (`git tag v<version> && git push origin v<version>`).
-    - Verify workflow execution on GitHub Actions and report the deployment status.
+    - Commit and push release changes to the remote branch.
+    - Verify workflow execution on GitHub Actions (`.github/workflows/cd.yml`) and report the deployment status.
+    - Once the build is verified on Google Play Internal testing and TestFlight, use `.github/workflows/promote.yml` to promote to production.
 
     If declined, leave changes uncommitted and untagged. Report any missing credentials
     or review steps plainly.

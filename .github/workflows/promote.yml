@@ -1,0 +1,205 @@
+name: Promote App Store Builds to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform to promote"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      android_from_track:
+        description: "Google Play source track"
+        required: true
+        default: "internal"
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+      android_to_track:
+        description: "Google Play destination track"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - beta
+          - alpha
+      android_rollout:
+        description: "Google Play rollout percentage (for production)"
+        required: true
+        default: "10%"
+        type: choice
+        options:
+          - "5%"
+          - "10%"
+          - "20%"
+          - "50%"
+          - "100%"
+      ios_version:
+        description: "iOS App Store version (blank = infer from pubspec.yaml)"
+        required: false
+        type: string
+      ios_build_number:
+        description: "iOS TestFlight build number (blank = infer from pubspec.yaml)"
+        required: false
+        type: string
+      ios_phased_release:
+        description: "Enable 7-day phased release on iOS"
+        required: true
+        default: true
+        type: boolean
+      ios_submit_for_review:
+        description: "Submit iOS build for App Review (false = attach build to version draft)"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  resolve_metadata:
+    name: Resolve Target Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      version_name: ${{ steps.version.outputs.version_name }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      ios_target_version: ${{ steps.targets.outputs.ios_target_version }}
+      ios_target_build: ${{ steps.targets.outputs.ios_target_build }}
+      android_user_fraction: ${{ steps.targets.outputs.android_user_fraction }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Parse pubspec.yaml version
+        id: version
+        working-directory: src/robinhood_options_mobile
+        run: |
+          RAW_VERSION=$(grep '^version: ' pubspec.yaml | sed 's/version: //' | tr -d ' "\r')
+          VERSION_NAME=$(echo "$RAW_VERSION" | sed 's/+.*//')
+          BUILD_NUMBER=$(echo "$RAW_VERSION" | sed 's/.*+//')
+
+          echo "Parsed version_name=$VERSION_NAME"
+          echo "Parsed build_number=$BUILD_NUMBER"
+
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Resolve target versions and rollout fractions
+        id: targets
+        run: |
+          # Resolve iOS target version & build number
+          INPUT_IOS_VER="${{ inputs.ios_version }}"
+          INPUT_IOS_BUILD="${{ inputs.ios_build_number }}"
+          PUB_VER="${{ steps.version.outputs.version_name }}"
+          PUB_BUILD="${{ steps.version.outputs.build_number }}"
+
+          TARGET_IOS_VER="${INPUT_IOS_VER:-$PUB_VER}"
+          TARGET_IOS_BUILD="${INPUT_IOS_BUILD:-$PUB_BUILD}"
+
+          echo "ios_target_version=$TARGET_IOS_VER" >> $GITHUB_OUTPUT
+          echo "ios_target_build=$TARGET_IOS_BUILD" >> $GITHUB_OUTPUT
+
+          # Resolve Android rollout fraction
+          ROLLOUT="${{ inputs.android_rollout }}"
+          TO_TRACK="${{ inputs.android_to_track }}"
+          USER_FRACTION=""
+
+          if [ "$TO_TRACK" = "production" ]; then
+            case "$ROLLOUT" in
+              "5%")  USER_FRACTION="0.05" ;;
+              "10%") USER_FRACTION="0.1" ;;
+              "20%") USER_FRACTION="0.2" ;;
+              "50%") USER_FRACTION="0.5" ;;
+              "100%") USER_FRACTION="" ;;
+            esac
+          fi
+
+          echo "android_user_fraction=$USER_FRACTION" >> $GITHUB_OUTPUT
+          echo "Android target track: $TO_TRACK, user_fraction: ${USER_FRACTION:-full (100%)}"
+
+  promote_android:
+    name: Promote Android (Google Play)
+    needs: resolve_metadata
+    if: inputs.platform == 'all' || inputs.platform == 'android'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Validate Google Play Credentials
+        run: |
+          if [ -z "${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "::error::PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON secret is missing or empty."
+            exit 1
+          fi
+
+      - name: Promote Release with Staged Rollout
+        if: needs.resolve_metadata.outputs.android_user_fraction != ''
+        uses: kevin-david/promote-play-release@v1
+        with:
+          service-account-json-raw: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
+          package-name: com.cidevelop.robinhood_options_mobile
+          from-track: ${{ inputs.android_from_track }}
+          to-track: ${{ inputs.android_to_track }}
+          user-fraction: ${{ needs.resolve_metadata.outputs.android_user_fraction }}
+
+      - name: Promote Release to 100% (Completed)
+        if: needs.resolve_metadata.outputs.android_user_fraction == ''
+        uses: kevin-david/promote-play-release@v1
+        with:
+          service-account-json-raw: ${{ secrets.PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON }}
+          package-name: com.cidevelop.robinhood_options_mobile
+          from-track: ${{ inputs.android_from_track }}
+          to-track: ${{ inputs.android_to_track }}
+
+  promote_ios:
+    name: Promote iOS (App Store Connect)
+    needs: resolve_metadata
+    if: inputs.platform == 'all' || inputs.platform == 'ios'
+    runs-on: macos-latest
+    environment:
+      name: production
+    env:
+      APP_STORE_CONNECT_API_KEY_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_KEY: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
+      APP_STORE_CONNECT_API_KEY_IS_KEY_CONTENT_BASE64: false
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile/ios
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Validate App Store Connect Credentials
+        run: |
+          if [ -z "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" ] || [ -z "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}" ] || [ -z "${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}" ]; then
+            echo "::error::App Store Connect API key secrets are missing or incomplete."
+            exit 1
+          fi
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: src/robinhood_options_mobile/ios
+
+      - name: Promote TestFlight Build to App Store Version
+        env:
+          TARGET_VERSION: ${{ needs.resolve_metadata.outputs.ios_target_version }}
+          TARGET_BUILD: ${{ needs.resolve_metadata.outputs.ios_target_build }}
+          PHASED_RELEASE: ${{ inputs.ios_phased_release }}
+          SUBMIT_FOR_REVIEW: ${{ inputs.ios_submit_for_review }}
+        run: |
+          bundle exec fastlane promote_to_app_store \
+            app_version:"$TARGET_VERSION" \
+            build_number:"$TARGET_BUILD" \
+            phased_release:"$PHASED_RELEASE" \
+            submit_for_review:"$SUBMIT_FOR_REVIEW"

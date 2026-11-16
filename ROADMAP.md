@@ -7,7 +7,7 @@ This document outlines the planned features, enhancements, and delivery mileston
 - [Summary](#summary)
 - [Release Cadence & Milestone Overview](#release-cadence--milestone-overview)
 - [Planned Enhancements 🚀](#planned-enhancements-)
-  - [v0.62.x: Execution Safety, Resilient Exits & Simplified Auto-Trading (Target: Q1 2027)](#v062x-execution-safety-resilient-exits--simplified-auto-trading-target-q1-2027)
+  - [v0.62.0: 1-Tap Strategy Archetypes, Macro Economic Radar & Beta Labs Demos (Target: Q1 2027)](#v0620-1-tap-strategy-archetypes-macro-economic-radar--beta-labs-demos-target-q1-2027)
   - [v0.63.0: Advanced Derivatives, Institutional Flow & Cross-Broker Rebalancing (Target: Q2 2027)](#v0630-advanced-derivatives-institutional-flow--cross-broker-rebalancing-target-q2-2027)
   - [v0.64.0+: Multi-Broker Expansion, Market-Neutral StatArb & Quant Platform (Target: Q3/Q4 2027)](#v0640-multi-broker-expansion-market-neutral-statarb--quant-platform-target-q3q4-2027)
   - [Active Risk Register & Safeguards](#active-risk-register--safeguards)
@@ -66,7 +66,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 
 ## Planned Enhancements 🚀
 
-### v0.62.x: Execution Safety, Resilient Exits & Simplified Auto-Trading (Target: Q1 2027)
+### v0.62.0: 1-Tap Strategy Archetypes, Macro Economic Radar & Beta Labs Demos (Target: Q1 2027)
 
 #### Auto-Trading Experience & Workflow Simplification
 - [x] **1-Tap Curated Strategy Archetypes (Presets) with Walk-Forward Performance Badges** (v0.62.0, [#343](https://github.com/CIInc/robinhood-options-mobile/issues/343), [Tracking: #84](https://github.com/CIInc/robinhood-options-mobile/issues/84), [#109](https://github.com/CIInc/robinhood-options-mobile/issues/109)):

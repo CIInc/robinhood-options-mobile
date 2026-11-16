@@ -137,6 +137,43 @@ storeFile=upload-keystore.jks
 
 ---
 
+## Production Release Promotion Workflow
+
+To safely promote tested builds from internal testing to production, run the **Promote App Store Builds to Production** workflow (`.github/workflows/promote.yml`) via `workflow_dispatch` in the GitHub Actions tab.
+
+This workflow adheres to the **"Build Once, Promote Everywhere"** principle: it does not recompile or re-sign binaries. Instead, it promotes the exact, pre-verified artifacts that were tested on Google Play Internal testing and Apple TestFlight.
+
+### Workflow Inputs
+
+| Input | Description | Default | Options |
+| :--- | :--- | :--- | :--- |
+| `platform` | Target platform to promote | `all` | `all`, `android`, `ios` |
+| `android_from_track` | Source track on Google Play | `internal` | `internal`, `alpha`, `beta` |
+| `android_to_track` | Destination track on Google Play | `production` | `production`, `beta`, `alpha` |
+| `android_rollout` | Staged rollout fraction for Google Play production | `10%` | `5%`, `10%`, `20%`, `50%`, `100%` |
+| `ios_version` | Target App Store version (blank = infer from `pubspec.yaml`) | _(blank)_ | e.g. `0.62.0` |
+| `ios_build_number` | TestFlight build number to attach (blank = infer from `pubspec.yaml`) | _(blank)_ | e.g. `206` |
+| `ios_phased_release` | Enable Apple 7-day phased rollout for production | `true` | `true`, `false` |
+| `ios_submit_for_review` | Submit attached build for Apple App Review immediately | `false` | `false` (drafts version), `true` |
+
+### Platform Behaviors
+
+1. **Google Play (Android):**
+   - Promotes the release across tracks without re-uploading the `.aab`.
+   - When promoting to `production`, it supports staged rollouts (`5%` to `50%` with `inProgress` status) before full `100%` (`completed`) rollout.
+   - Uses the existing `PLAY_STORE_UPLOAD_SERVICE_ACCOUNT_JSON` secret.
+
+2. **Apple App Store Connect (iOS):**
+   - Uses Fastlane `deliver` configured in `src/robinhood_options_mobile/ios/fastlane/` to locate the verified TestFlight build by build number and attach it to the target App Store version.
+   - Supports 7-day phased release by default.
+   - When `ios_submit_for_review` is `false` (recommended), it attaches the build to the App Store draft version so the release manager can perform final checks in App Store Connect before submission.
+   - Uses the existing `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_API_ISSUER_ID`, and `APP_STORE_CONNECT_API_PRIVATE_KEY` secrets.
+
+### GitHub Environment Protection (Optional but Recommended)
+Both promotion jobs run under the `production` GitHub Actions environment (`environment: production`). Repository owners can configure environment protection rules under **Settings > Environments > production** in GitHub to require manual approval from designated release reviewers before the promotion commands execute.
+
+---
+
 ## Troubleshooting
 
 ### iOS App Groups Error

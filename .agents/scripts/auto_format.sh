@@ -6,8 +6,10 @@ cat > /dev/null
 WORKSPACE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$WORKSPACE_DIR" || exit 0
 
-# Run dart format
-dart format . > /dev/null 2>&1
+# Run dart format if executable
+if dart --version > /dev/null 2>&1; then
+  dart format . > /dev/null 2>&1
+fi
 
 # PostToolUse requires empty JSON on stdout
 echo "{}"
