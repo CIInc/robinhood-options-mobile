@@ -79,6 +79,9 @@ class MockAgenticTradingProvider extends ChangeNotifier
   int autoTradeCountdownSeconds = 300;
 
   @override
+  List<Map<String, dynamic>> pendingOrders = [];
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
