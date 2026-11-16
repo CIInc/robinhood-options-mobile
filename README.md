@@ -463,7 +463,7 @@ RealizeAlpha provides structured agent skills for roadmap planning, implementati
 
 - **Roadmap Ideation ([`.github/skills/roadmap-ideation/SKILL.md`](.github/skills/roadmap-ideation/SKILL.md)):** Propose evidence-backed roadmap items and link GitHub issues (`> /roadmap-ideation`).
 - **Roadmap Execution ([`.agents/skills/roadmap/SKILL.md`](.agents/skills/roadmap/SKILL.md)):** Implement the highest-priority actionable feature from [ROADMAP.md](ROADMAP.md) end-to-end with tests and docs (`> /roadmap`).
-- **Automated Documentation Sync ([`.agents/skills/update-docs/SKILL.md`](.agents/skills/update-docs/SKILL.md)):** Increment the app version and synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, and `.github/copilot-instructions.md` (`> /update-docs [nextversion]`).
+- **Automated Documentation Sync ([`.github/skills/update-docs/SKILL.md`](.github/skills/update-docs/SKILL.md)):** Increment the app version and synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, and `.github/copilot-instructions.md` (`> /update-docs [nextversion]`).
 
 ## Future Enhancements
 

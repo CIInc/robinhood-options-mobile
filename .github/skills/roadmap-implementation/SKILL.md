@@ -10,6 +10,10 @@ open GitHub issues, implement it end to end, and report the evidence for the
 selection and verification. Use this workflow when asked to work on the next
 roadmap item, pick the next feature, or continue planned product work.
 
+## Argument Hint
+
+Optional constraints or a roadmap area to prioritize (for example, "focus on portfolio analytics", "options flow", or "pick the smallest safe item").
+
 ## Workflow
 
 1. **Understand the current worktree and project rules.** Read `AGENTS.md`,
@@ -36,17 +40,20 @@ roadmap item, pick the next feature, or continue planned product work.
    actionable roadmap tasks and relevant open issues. Treat a roadmap task and
    issue as one candidate when they describe the same work. Exclude completed
    items, closed issues, duplicates, blocked work, and speculative future
-   proposals. Prioritize candidates that:
-   - Address an active, high-priority open GitHub issue
-   - Align with the current milestone or earliest unreleased version
-   - Have clear acceptance criteria and code ownership
-   - Deliver high user value in a safe, independently testable slice
+   proposals. Prioritize candidates in this order:
+   - Explicit user constraints supplied with this prompt (e.g., focus area or specific capability)
+   - Items tied to an active, high-priority open GitHub issue
+   - The earliest unreleased version or active milestone
+   - A concrete item with a clear existing code owner and manageable scope
+   - Dependencies and safety: prefer work that can be implemented and tested without credentials, production data, or unrelated migrations
+   - User value, then smallest independently testable and shippable slice
 
 4. **Choose one item and state the rationale.** Before coding, briefly identify
    the selected roadmap entry and/or issue, its acceptance criteria, relevant
-   dependencies, and why it is the best ready candidate. If no candidate is
-   actionable, explain the blocker rather than inventing work. Ask the user only
-   when a material product, financial safety, risk limit, or broker integration
+   dependencies, and why it is the best ready candidate. State a short hypothesis
+   about the missing behavior and one focused check that could disprove it. If no
+   candidate is actionable, explain the blocker rather than inventing work. Ask the user
+   only when a material product, financial safety, risk limit, or broker integration
    decision is required; otherwise make conservative choices consistent with
    `PRODUCT.md` and `AGENTS.md`.
 
@@ -68,8 +75,12 @@ roadmap item, pick the next feature, or continue planned product work.
    - **Accessibility & Responsive UI**: Provide `Semantics` labels on financial rows
      and prevent layout overflows down to `320px` viewports.
 
-   Add or update focused unit and widget tests for the new behavior. Do not commit,
-   push, deploy, or mutate GitHub issue states unless explicitly requested.
+   Add or update focused unit and widget tests for the new behavior. Fix
+   regressions caused by this change; do not rewrite unrelated failures.
+   When requested by the user to commit, reference the associated GitHub issue in
+   commit messages (e.g., `feat: ... (#<issue-num>)` or `closes #<issue-num>`).
+   Do not commit, push, deploy, or mutate GitHub issue states unless explicitly
+   requested.
 
 6. **Reconcile local documentation.**
    - **Update Documentation & PRODUCT.md**: Add or update dedicated feature documentation
@@ -78,7 +89,19 @@ roadmap item, pick the next feature, or continue planned product work.
      Update `PRODUCT.md` to reflect new product capabilities, domain models, or
      architectural additions. Update `README.md`, `.github/copilot-instructions.md`,
      or `CHANGELOG.md` when user-facing features, configuration keys, or developer
-     conventions change.
+     conventions change. When updating `CHANGELOG.md`, group entries into standard
+     categories (`Added`, `Changed`, `Fixed`, `Performance`) and link verified GitHub
+     issues (`[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`).
+   - **Technical Accuracy & Link Consistency**: Verify that documented file paths,
+     class names, API signatures, and configuration keys match the implementation
+     across `src/robinhood_options_mobile/`, `src/robinhood_options_mobile/functions/`,
+     and `src/robinhood_options_mobile/firebase/`. Validate relative markdown links
+     and section anchors between touched documentation files.
+   - **Firestore Rules & Composite Indexes**: If the feature introduces new Firestore
+     collections, schema changes, or complex queries (e.g. multi-field ordering or filtering),
+     ensure `src/robinhood_options_mobile/firebase/firestore.rules` is updated
+     (delegate authoring to the `firestore-rules-author` subagent) and composite indexes
+     are registered in `src/robinhood_options_mobile/firebase/firestore.indexes.json`.
    - **Update ROADMAP.md & Limit Completed Features Size**: Update `ROADMAP.md` only
      when the selected work corresponds to an entry and its completion is verified.
      Mark the task complete (`[x]`) and ensure the GitHub issue link
@@ -89,6 +112,8 @@ roadmap item, pick the next feature, or continue planned product work.
      granular historical items so the roadmap remains readable and executive-focused,
      deferring exhaustive chronological version notes to `CHANGELOG.md`. Reconcile
      `Quick Stats` (completed vs planned counts) accordingly.
+   - **GitHub Issue Reconciliation**: If explicitly requested by the user, close or
+     update the associated GitHub issue (`gh issue close <num>`) once verification passes.
 
 7. **Verify the change.** Run the narrowest relevant checks first, following `AGENTS.md`:
    - **Flutter Mobile (`src/robinhood_options_mobile`):**
@@ -103,14 +128,20 @@ roadmap item, pick the next feature, or continue planned product work.
      cd src/robinhood_options_mobile/functions && npm run build
      cd src/robinhood_options_mobile/functions && npm test
      ```
+     *(Functions enforce Google ESLint rules with `max-len <= 80`; run `npm run lint -- --fix` to auto-resolve mechanical line-length and lint issues.)*
    - If connected to a running Flutter session, perform hot reload or hot restart
      to verify UI rendering.
-   - Review the final diff to ensure unrelated worktree changes remain untouched.
+   - Review the final diff for accidental generated files, secrets, unrelated
+     formatting, and incomplete references, ensuring unrelated worktree changes
+     remain untouched.
 
 ## Completion Report
 
-Report the selected roadmap item and/or issue link, why it was chosen over other
-candidates, the files modified and behavior delivered, validation commands run
-and test results, documentation updates made in `docs/`, `PRODUCT.md`, `README.md`, and other
-markdown files, and `ROADMAP.md` status/reconciliation.
+Report:
+- The selected roadmap item and/or issue link, and why it was chosen over other candidates
+- Files modified and behavior delivered
+- Tests and validation commands run, including any pre-existing failures
+- Documentation updates made in `docs/`, `PRODUCT.md`, `README.md`, `.github/copilot-instructions.md`, and `ROADMAP.md` status/reconciliation
+- GitHub issue update or closure status (if explicitly requested)
+- Any remaining dependency, credential, or follow-up that prevents the item from being fully complete
 
