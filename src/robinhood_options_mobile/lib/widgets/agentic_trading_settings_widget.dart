@@ -259,6 +259,7 @@ class _AgenticTradingSettingsWidgetState
     extends State<AgenticTradingSettingsWidget> {
   final _formKey = GlobalKey<FormState>();
   final GlobalKey _entryStrategiesKey = GlobalKey();
+  final GlobalKey _riskManagementKey = GlobalKey();
   // Pending orders currently being approved or rejected, keyed by symbol and action.
   final Set<String> _busyOrders = {};
   late TextEditingController _tradeQuantityController;
@@ -343,6 +344,18 @@ class _AgenticTradingSettingsWidgetState
         if (_entryStrategiesKey.currentContext != null) {
           Scrollable.ensureVisible(
             _entryStrategiesKey.currentContext!,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+            alignment: 0.0,
+          );
+        }
+      });
+    } else if (widget.initialSection == 'riskManagement') {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (_riskManagementKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _riskManagementKey.currentContext!,
             duration: const Duration(milliseconds: 500),
             curve: Curves.easeInOut,
             alignment: 0.0,
@@ -1495,7 +1508,8 @@ class _AgenticTradingSettingsWidgetState
                     // _buildSignalQueue(context, agenticTradingProvider),
                     _buildTemplateList(context),
                     _buildExecutionSettings(context, agenticTradingProvider),
-                    _buildRiskManagement(context, agenticTradingProvider),
+                    _buildRiskManagement(context, agenticTradingProvider,
+                        key: _riskManagementKey),
                     _buildEntryStrategies(context, agenticTradingProvider,
                         initiallyExpanded:
                             widget.initialSection == 'entryStrategies',
@@ -2039,6 +2053,7 @@ class _AgenticTradingSettingsWidgetState
                               userDocRef: widget.userDocRef,
                               userRole: widget.user.role,
                               featureAccessService: _featureAccessService,
+                              service: widget.service,
                             ),
                           ),
                         ).then((_) {
@@ -2226,6 +2241,7 @@ class _AgenticTradingSettingsWidgetState
                               userDocRef: widget.userDocRef,
                               userRole: widget.user.role,
                               featureAccessService: _featureAccessService,
+                              service: widget.service,
                             ),
                           ),
                         ).then((_) {
@@ -4839,8 +4855,10 @@ class _AgenticTradingSettingsWidgetState
   }
 
   Widget _buildRiskManagement(
-      BuildContext context, AgenticTradingProvider agenticTradingProvider) {
+      BuildContext context, AgenticTradingProvider agenticTradingProvider,
+      {Key? key}) {
     return _buildSection(
+      key: key,
       context: context,
       title: 'Risk Management',
       icon: Icons.security,

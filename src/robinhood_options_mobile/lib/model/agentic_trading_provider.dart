@@ -340,6 +340,8 @@ class AgenticTradingProvider with ChangeNotifier {
       status: 'BULLISH',
       score: 72,
       confidence: 84,
+      economicCycle: 'Expansion',
+      inflationYoY: 2.4,
       signalDivergence: SignalDivergence(
         bullishCount: 14,
         bearishCount: 3,
@@ -411,6 +413,11 @@ class AgenticTradingProvider with ChangeNotifier {
           value: 2.15,
           signal: 'BULLISH',
           trend: 'Broad Participation',
+        ),
+        inflationExpectations: MacroIndicator(
+          value: 2.32,
+          signal: 'BULLISH',
+          trend: 'Anchored 2.3%',
         ),
       ),
       sectorRotation: SectorRotation(

@@ -37,7 +37,7 @@ Users manage local opt-ins and public-mode opt-outs in **Beta Labs** (`UserWidge
 | :--- | :--- | :--- | :--- |
 | `beta_self_opt_in_enabled` | *Master Switch* | `true` | Master kill-switch controlling whether user self-serve opt-in is allowed. |
 | `beta_advanced_research` | `FeatureBundle.advancedResearch` | `betaOptIn` | Options flow, GEX charts, stock screeners, and SEC filings research. |
-| `beta_ai_research` | `FeatureBundle.aiResearch` | `betaOptIn` | Market Assistant Copilot, macro sentiment analyzers, AI trade coaches, and Investment Profile settings. |
+| `beta_ai_research` | `FeatureBundle.aiResearch` | `betaOptIn` | Market Assistant Copilot, macro sentiment analyzers, AI trade coaches, and Copilot Investment Profile settings. |
 | `beta_advanced_trading` | `FeatureBundle.advancedTrading` | `betaOptIn` | Multi-leg spread builder, complex option strategy templates, and combo orders. |
 | `beta_backtesting` | `FeatureBundle.backtesting` | `betaOptIn` | Historical strategy backtesting, performance analytics, and simulation. |
 | `beta_risk_guardrails` | `FeatureBundle.riskGuardrails` | `betaOptIn` | Autonomous account loss limits, peak-to-trough drawdown protection, rapid-cancel loop detection, and tilt cooling-off locks. |
