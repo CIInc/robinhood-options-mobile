@@ -24,6 +24,19 @@ sign-out proceeds, including MCP tokens and their connection metadata; a secure
 deletion failure cancels sign-out and is surfaced to the user. Disconnecting
 MCP uses the same token cleanup.
 
+## iOS background brokerage access
+
+Brokerage OAuth credentials use Keychain `AfterFirstUnlock` accessibility so
+Workmanager tasks can read them while the device is locked after it has been
+unlocked once following reboot. They remain unavailable before that first
+unlock. This policy is scoped to brokerage storage; MCP tokens continue using
+the generic secure-storage default (`WhenUnlocked`).
+
+When a foreground brokerage-store load can read an existing credential, the
+store persists it through the brokerage configuration. The plugin searches
+previous accessibility levels and replaces entries using the selected policy.
+This changes credential availability, not background scheduling guarantees.
+
 ## Platform and backup behavior
 
 The plugin uses Apple Keychain on iOS and Android's encrypted secure-storage

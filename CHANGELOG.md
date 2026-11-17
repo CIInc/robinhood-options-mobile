@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.1] - 2026-11-16
+
+**iOS Background Brokerage OAuth Availability**
+
+### Fixed
+- Brokerage OAuth credentials use iOS Keychain `AfterFirstUnlock` accessibility so background tasks can access them while the device is locked after its first unlock following reboot. Generic secure storage, including MCP tokens, retains its existing default policy. Broader secure-storage and hardware-backed key enforcement under [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88) remains open.
+
 ## [0.62.0] - 2026-11-15
 
 **1-Tap Strategy Archetypes, Strategy Style Controls, Macro Economic Radar & Beta Labs Demos**

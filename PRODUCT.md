@@ -29,7 +29,7 @@ Retail and semi-professional traders often manage fragmented accounts (taxable b
    - Model outputs and AI insights are descriptive analytical tools and adversarial critiques—never unverified promises of return or personalized fiduciary/tax/legal advice.
 
 4. **Privacy-First Multi-Account & Social Architecture**
-   - Brokerage and MCP OAuth tokens are encrypted in platform hardware/keychain storage (`SecureTokenStorage`).
+   - Brokerage and MCP OAuth tokens are encrypted in platform secure storage (`SecureTokenStorage`). On iOS, brokerage credentials use Keychain `AfterFirstUnlock` accessibility for background tasks after the first unlock following reboot; MCP tokens retain the generic `WhenUnlocked` default.
    - Sensitive dollar balances, P&L, and chart axes/tooltips can be masked globally with 1 tap (`AccountStore` balance visibility toggle) and in public social profiles (`$***`).
    - Cross-account tax and wash-sale detection executes locally in Dart over hydrated account stores without exposing raw multi-broker tax lots to shared cloud collections.
 

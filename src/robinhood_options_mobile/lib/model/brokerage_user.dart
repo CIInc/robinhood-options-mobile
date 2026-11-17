@@ -43,8 +43,8 @@ class BrokerageUser {
       String? secureCredentialsKey,
       SecureTokenStorage? secureTokenStorage})
       : secureCredentialsKey = secureCredentialsKey ?? const Uuid().v4(),
-        _secureTokenStorage =
-            secureTokenStorage ?? PlatformSecureTokenStorage();
+        _secureTokenStorage = secureTokenStorage ??
+            PlatformSecureTokenStorage.forBackgroundBrokerage();
 
   BrokerageUser.fromJson(Map<String, dynamic> json,
       {SecureTokenStorage? secureTokenStorage})
@@ -53,8 +53,8 @@ class BrokerageUser {
         credentials = json['credentials'],
         secureCredentialsKey =
             json['secureCredentialsKey'] as String? ?? const Uuid().v4(),
-        _secureTokenStorage =
-            secureTokenStorage ?? PlatformSecureTokenStorage(),
+        _secureTokenStorage = secureTokenStorage ??
+            PlatformSecureTokenStorage.forBackgroundBrokerage(),
         refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'

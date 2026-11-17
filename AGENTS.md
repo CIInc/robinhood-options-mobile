@@ -26,6 +26,7 @@ For detailed file-by-file references, also consult [`.github/copilot-instruction
 
 1. **Zero Plaintext Credentials (`SecureTokenStorage`)**
    - Brokerage OAuth tokens and local MCP credentials must be stored exclusively via `SecureTokenStorage` (`lib/services/secure_token_storage.dart`) backed by `flutter_secure_storage` (iOS/macOS Keychain, Android Keystore).
+   - On iOS, brokerage credentials use Keychain `first_unlock` accessibility for background reads after the first unlock following reboot; MCP tokens retain the generic `unlocked` default.
    - Never write plaintext OAuth tokens, refresh tokens, or API keys to `SharedPreferences`, Firestore documents, or source code. Backend secrets belong in Google Cloud Secret Manager (`firebase functions:secrets:set`).
 
 2. **Feature Access Precedence (`FeatureAccessService`)**
