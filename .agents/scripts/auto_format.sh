@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Consume stdin payload
-cat > /dev/null
+# Disabled: Per-tool auto-formatting hooks caused 6-8s latency per edit.
+# Formatting is authoritatively handled during skill verification steps
+# ('dart format .' in src/robinhood_options_mobile) and CI/CD pipelines.
 
-# Move to workspace root (parent of .agents)
-WORKSPACE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-cd "$WORKSPACE_DIR" || exit 0
+# Consume any stdin without hanging
+if [ ! -t 0 ]; then
+  cat > /dev/null
+fi
 
-# Run dart format
-dart format . > /dev/null 2>&1
-
-# PostToolUse requires empty JSON on stdout
 echo "{}"

@@ -5,13 +5,16 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
@@ -33,6 +36,47 @@ class FakeFirebaseAnalytics extends Fake implements FirebaseAnalytics {
 }
 
 class FakeBrokerageService extends Fake implements IBrokerageService {}
+
+class RecordingSchwabBrokerageService extends Fake
+    implements IBrokerageService {
+  final List<Map<String, dynamic>> placedInstrumentOrders = [];
+  int orderStatusCode;
+  String orderResponseBody;
+
+  RecordingSchwabBrokerageService({
+    this.orderStatusCode = 200,
+    this.orderResponseBody = '{"id":"schwab-order-1"}',
+  });
+
+  @override
+  Future<dynamic> placeInstrumentOrder(
+    BrokerageUser user,
+    Account account,
+    Instrument instrument,
+    String symbol,
+    String side,
+    double? price,
+    int quantity, {
+    String type = 'limit',
+    String trigger = 'immediate',
+    double? stopPrice,
+    String timeInForce = 'gtc',
+    Map<String, dynamic>? trailingPeg,
+    String? taxLotSelectionType,
+    List<Map<String, dynamic>>? taxLots,
+  }) async {
+    placedInstrumentOrders.add({
+      'source': user.source,
+      'accountNumber': account.accountNumber,
+      'symbol': symbol,
+      'side': side,
+      'price': price,
+      'quantity': quantity,
+      'type': type,
+    });
+    return http.Response(orderResponseBody, orderStatusCode);
+  }
+}
 
 class RejectingTradeSignalsProvider {
   Future<Map<String, dynamic>> initiateTradeProposal({
@@ -71,7 +115,11 @@ class FailingTradeSignalsProvider {
 
 class ApprovingTradeSignalsProvider {
   Map<String, dynamic> proposalData;
-  ApprovingTradeSignalsProvider({this.proposalData = const {}});
+  final void Function()? beforeProposalComplete;
+  ApprovingTradeSignalsProvider({
+    this.proposalData = const {},
+    this.beforeProposalComplete,
+  });
 
   Future<Map<String, dynamic>> initiateTradeProposal({
     required String symbol,
@@ -81,6 +129,7 @@ class ApprovingTradeSignalsProvider {
     String? interval,
     bool skipSignalUpdate = false,
   }) async {
+    beforeProposalComplete?.call();
     return {
       'status': 'approved',
       'proposal': {
@@ -120,7 +169,7 @@ class EmergencyStopDuringProposalProvider {
 }
 
 class FakeQuote extends Quote {
-  FakeQuote(double? lastTradePrice)
+  const FakeQuote(double? lastTradePrice)
       : super(
           askSize: 0,
           bidSize: 0,
@@ -534,6 +583,112 @@ void main() {
       paperTradingStore.dispose();
     });
 
+    test(
+        'Paper TP/SL outside market open places resting order and executes at market open',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          takeProfitPercent: 5.0,
+          stopLossPercent: 5.0,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      final quote = FakeQuote(165.0);
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      // 1. Establish initial stock position in paper store (bought at 150)
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 150.0,
+        side: 'buy',
+      );
+
+      // Track automated buy trade in provider
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 150.0,
+        'paperMode': true,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      // 2. Set test time to Sunday (market closed)
+      MarketHours.testTime = DateTime.utc(2023, 10, 22, 12, 0);
+
+      try {
+        // Monitor TP/SL while market is closed
+        final resultClosed = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Verify: Exit is placed/confirmed, NOT executed/filled
+        expect(resultClosed['success'], isTrue);
+        expect(resultClosed['exitsExecuted'], equals(0));
+        expect(resultClosed['exitsPlaced'], equals(1));
+        expect(resultClosed['message'],
+            contains('Placed 1 exit(s) queued for market open'));
+        expect(provider.autoTradeHistory, isEmpty);
+        expect(paperTradingStore.pendingOrders, hasLength(1));
+        expect(paperTradingStore.pendingOrders.first.symbol, equals('AAPL'));
+        expect(paperTradingStore.pendingOrders.first.side, equals('sell'));
+        expect(provider.automatedBuyTrades, hasLength(1));
+        final pendingOrderId =
+            provider.automatedBuyTrades.first['pendingExitOrderId'];
+        expect(pendingOrderId, isNotNull);
+        expect(
+            pendingOrderId, equals(paperTradingStore.pendingOrders.first.id));
+
+        // 3. Re-running while still closed skips the position because exit is already queued
+        final resultStillClosed = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+        expect(resultStillClosed['exitsExecuted'], equals(0));
+        expect(resultStillClosed['exitsPlaced'], equals(0));
+        expect(paperTradingStore.pendingOrders, hasLength(1));
+
+        // 4. Advance time to Wednesday 10:00 AM EDT (regular market open)
+        MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+        final resultOpen = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Verify: Resting order executed at market open and reconciled into history
+        expect(resultOpen['success'], isTrue);
+        expect(resultOpen['exitsExecuted'], equals(1));
+        expect(paperTradingStore.pendingOrders, isEmpty);
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['symbol'], equals('AAPL'));
+        expect(provider.autoTradeHistory.first['action'], equals('SELL'));
+        expect(provider.autoTradeHistory.first['quantity'], equals(10));
+        expect(provider.autoTradeHistory.first['status'], equals('filled'));
+        expect(provider.automatedBuyTrades, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
     test('Live TP/SL monitoring still requires a brokerage account', () async {
       provider.loadConfigFromUser(null);
       provider.config.paperTradingMode = false;
@@ -553,6 +708,276 @@ void main() {
           contains('Missing required parameters for take profit/stop loss'),
         ),
       );
+    });
+
+    test(
+        'Dynamic ATR stop-loss triggers when price breaches ATR-calibrated stop loss',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrProfitMultiplier: 3.0,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      final quote = FakeQuote(96.50); // Entry 100, ATR 2.0 -> stop at 97.0
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Stop Loss'));
+        expect(provider.autoTradeHistory.first['reason'], contains('1.5x ATR'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test(
+        'Dynamic ATR take-profit triggers when price reaches ATR-calibrated target',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrProfitMultiplier: 3.0,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      final quote = FakeQuote(106.50); // Entry 100, ATR 2.0 -> target at 106.0
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Take Profit'));
+        expect(provider.autoTradeHistory.first['reason'], contains('3.0x ATR'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test('Dynamic ATR trailing stop trails from highest price reached',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          trailingStopEnabled: true,
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      // Entry 100, Peak 110, ATR 2.0 -> Trail stop at 110 - (2.0 * 1.5) = 107.0
+      final quote = FakeQuote(106.50);
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'highestPrice': 110.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Trailing Stop'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test(
+        'Adaptive Volatility Ratchet widens in compression and tightens in expansion',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 2.0,
+          atrRatchetEnabled: true,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      // Case A: Low Volatility Compression (NATR < 1.0%)
+      // Entry 100, ATR 0.5 (NATR = 0.5%). Base stop: 2.0x, widened to 2.5x -> stop = 100 - (0.5 * 2.5) = 98.75
+      // Current price = 98.90 (would breach unadjusted 2.0x ATR at 99.00, but saved by compression widening)
+      final quoteA = FakeQuote(98.90);
+      final instrumentA = Instrument.forSymbol('AAPL')..quoteObj = quoteA;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrumentA,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 0.5,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final resultA = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Position was preserved thanks to compression widening
+        expect(resultA['exitsExecuted'], equals(0));
+        expect(provider.autoTradeHistory, isEmpty);
+
+        // Case B: High Volatility Expansion (NATR > 3.0%)
+        // Entry 100, ATR 4.0 (NATR = 4.0%). Base stop 2.0x, tightened to 1.5x -> stop = 100 - (4.0 * 1.5) = 94.00
+        // Current price = 93.50 -> breaches tightened stop
+        provider.automatedBuyTrades.clear();
+        final quoteB = FakeQuote(93.50);
+        final instrumentB = Instrument.forSymbol('NVDA')..quoteObj = quoteB;
+
+        await paperTradingStore.executeStockOrder(
+          instrument: instrumentB,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        provider.automatedBuyTrades.add({
+          'symbol': 'NVDA',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'atr': 4.0,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+
+        final resultB = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(resultB['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['symbol'], equals('NVDA'));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Expansion (Tightened 0.75x)'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
     });
 
     test('autoTrade should fail when auto-trade is not enabled', () async {
@@ -1035,6 +1460,71 @@ void main() {
       expect(approved, isFalse);
       expect(provider.pendingOrders, hasLength(1));
       expect(provider.autoTradeHistory, isEmpty);
+    });
+
+    test('approveOrder keeps a BUY pending during the market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'BUY',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final approved = await provider.approveOrder(
+          provider.pendingOrders.first,
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: FakeQuoteService(100),
+          quoteStore: 'store',
+        );
+
+        expect(approved, isFalse);
+        expect(provider.pendingOrders, hasLength(1));
+        expect(provider.autoTradeHistory, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('approveOrder can still execute a SELL during the market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.paperTradingMode = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      provider.pendingOrders.add({
+        'symbol': 'MPC',
+        'action': 'SELL',
+        'quantity': 1,
+        'price': 100.0,
+      });
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final approved = await provider.approveOrder(
+          provider.pendingOrders.first,
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: null,
+        );
+
+        expect(approved, isTrue);
+        expect(provider.pendingOrders, isEmpty);
+        expect(provider.autoTradeHistory.single['action'], 'SELL');
+      } finally {
+        MarketHours.testTime = null;
+      }
     });
 
     test('approveOrder fills a BUY at the live quote when it is close',
@@ -1744,6 +2234,17 @@ void main() {
 
       expect(AgenticTradingProvider.countTradesOn(history, day), equals(2));
       expect(AgenticTradingProvider.countTradesOn([], day), equals(0));
+
+      final historyWithRejected = [
+        {'timestamp': DateTime(2026, 10, 14, 9, 45).toIso8601String()},
+        {
+          'timestamp': DateTime(2026, 10, 14, 11).toIso8601String(),
+          'rejected': true,
+          'status': 'rejected',
+        },
+      ];
+      expect(AgenticTradingProvider.countTradesOn(historyWithRejected, day),
+          equals(1));
     });
 
     test('withDerivedProfitLoss backfills dollar P&L on legacy exits', () {
@@ -1998,6 +2499,139 @@ void main() {
       }
     });
 
+    test('blocks new entries during the configured market-close exit window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      final proposalProvider = FailingTradeSignalsProvider('should not run');
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('exit window'));
+        expect(proposalProvider.calls, 0);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('blocks after-hours entries when market-close exit mode is enabled',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.allowAfterHoursTrading = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+      );
+      final proposalProvider = FailingTradeSignalsProvider('should not run');
+      MarketHours.testTime = DateTime.utc(2026, 11, 12, 22);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal('CTRA', 1)],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isTrue);
+        expect(result['message'], contains('after the regular close'));
+        expect(proposalProvider.calls, 0);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('keeps entries eligible before the configured market-close window',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 30);
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [],
+          tradeSignalsProvider: null,
+          portfolioState: {},
+          brokerageUser: 'mock',
+          account: 'mock',
+          brokerageService: 'mock',
+          instrumentStore: 'mock',
+        );
+
+        expect(result['blocked'], isNot(true));
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('retries a BUY when the market-close cutoff starts during proposal',
+        () async {
+      provider.loadConfigFromUser(null);
+      provider.config.autoTradeEnabled = true;
+      provider.config.paperTradingMode = true;
+      provider.config.tradingMode = TradingMode.reasoning;
+      provider.config.strategyConfig = provider.config.strategyConfig.copyWith(
+        marketCloseExitEnabled: true,
+        marketCloseExitMinutes: 15,
+      );
+      MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 30);
+
+      final signal = {
+        'symbol': 'CTRA',
+        'currentPrice': 40.0,
+        'timestamp': 123,
+      };
+      final proposalProvider = ApprovingTradeSignalsProvider(
+        proposalData: {'action': 'BUY', 'quantity': 1},
+        beforeProposalComplete: () {
+          MarketHours.testTime = DateTime.utc(2026, 11, 27, 17, 45);
+        },
+      );
+
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: [signal],
+          tradeSignalsProvider: proposalProvider,
+          portfolioState: {'buyingPower': 10000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+        final processedSignal =
+            (result['processedSignals'] as List<Map<String, dynamic>>).single;
+
+        expect(processedSignal['processedStatus'], 'Retry');
+        provider.rememberProcessedSignals([signal], result);
+        expect(provider.hasProcessedSignal('CTRA', 123), isFalse);
+        expect(provider.autoTradeHistory, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
     test('turning Require Approval off re-evaluates queued signals', () {
       provider.loadConfigFromUser(AgenticTradingConfig(
         strategyConfig: TradeStrategyConfig(),
@@ -2117,6 +2751,313 @@ void main() {
           store, [position('A1', 'new')], {'A1'});
 
       expect(store.items.map((p) => p.instrumentId), ['new']);
+    });
+  });
+
+  group('Schwab Market-Close Exit & Market-Calendar Acceptance (#282)', () {
+    late AgenticTradingProvider provider;
+    late FakeFirebaseFirestore firestore;
+    late DocumentReference<Map<String, dynamic>> userRef;
+    late BrokerageUser schwabUser;
+    late Account schwabAccount;
+
+    InstrumentPosition buildSchwabPosition(String symbol, double price,
+        {String quantity = '5.0000'}) {
+      final position = InstrumentPosition.fromJson({
+        'url': 'https://api.schwabapi.com/positions/SCHWAB-123/$symbol',
+        'instrument': 'https://api.schwabapi.com/instruments/$symbol',
+        'account': 'https://api.schwabapi.com/accounts/SCHWAB-123',
+        'account_number': 'SCHWAB-123',
+        'quantity': quantity,
+        'average_buy_price': '145.0000',
+        'avg_cost_affected': false,
+      });
+      position.instrumentObj = Instrument.forSymbol(symbol)
+        ..quoteObj = FakeQuote(price);
+      return position;
+    }
+
+    setUp(() async {
+      provider = AgenticTradingProvider(analytics: FakeFirebaseAnalytics());
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        autoTradeEnabled: true,
+        paperTradingMode: false,
+        strategyConfig: TradeStrategyConfig(
+          marketCloseExitEnabled: true,
+          marketCloseExitMinutes: 15,
+          takeProfitPercent: 50.0,
+          stopLossPercent: 50.0,
+        ),
+      ));
+      firestore = FakeFirebaseFirestore();
+      userRef = firestore.collection('user').doc('schwab-u1');
+      await userRef.set({'agenticTradingEmergencyStop': false});
+      schwabUser =
+          BrokerageUser(BrokerageSource.schwab, 'schwab-u1', null, null);
+      schwabAccount = Account(
+        'https://api.schwabapi.com/accounts/SCHWAB-123',
+        25000.0,
+        'SCHWAB-123',
+        'margin',
+        25000.0,
+        'tier_2',
+        0.0,
+        0.0,
+        0.0,
+      );
+    });
+
+    tearDown(() {
+      MarketHours.testTime = null;
+      provider.dispose();
+    });
+
+    test('completes Schwab EOD exit in regular 15:46 ET window once per day',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      // Wednesday Nov 26, 2025 at 15:46 EST (20:46 UTC): 14 min to 16:00 close
+      final tradingDate = DateTime.utc(2025, 11, 26);
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 20, 46);
+      expect(MarketHours.minutesUntilMarketClose(), 14);
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['exitsExecuted'], 1);
+      expect(service.placedInstrumentOrders, hasLength(1));
+      expect(service.placedInstrumentOrders.single['source'],
+          BrokerageSource.schwab);
+      expect(service.placedInstrumentOrders.single['side'], 'sell');
+      expect(service.placedInstrumentOrders.single['quantity'], 5);
+      expect(provider.automatedBuyTrades, isEmpty);
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'completed');
+      expect(statusDoc.data()?['symbol'], 'AAPL');
+
+      // Re-tracking the same trade in the same session cannot submit twice.
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final duplicateRun = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(duplicateRun['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+    });
+
+    test('completes Schwab EOD exit during 1:00 PM ET early-close window',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-28T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      // Day After Thanksgiving (Nov 28, 2025) closes at 13:00 EST -> 12:46 EST = 17:46 UTC
+      final tradingDate = DateTime.utc(2025, 11, 28);
+      MarketHours.testTime = DateTime.utc(2025, 11, 28, 17, 46);
+      expect(MarketHours.minutesUntilMarketClose(), 14);
+
+      final result = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['exitsExecuted'], 1);
+      expect(service.placedInstrumentOrders, hasLength(1));
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'completed');
+    });
+
+    test(
+        'records attempted status and blocks duplicate retry on Schwab failure',
+        () async {
+      final service = RecordingSchwabBrokerageService(
+        orderStatusCode: 500,
+        orderResponseBody: 'Schwab order rejected',
+      );
+      final trade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(Map<String, dynamic>.from(trade));
+      final position = buildSchwabPosition('AAPL', 150.0);
+
+      final tradingDate = DateTime.utc(2025, 11, 26);
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 20, 46);
+
+      final firstAttempt = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+
+      expect(firstAttempt['success'], isFalse);
+      expect(firstAttempt['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+      expect(provider.automatedBuyTrades, hasLength(1));
+
+      final statusId =
+          AgenticTradingProvider.marketCloseExitStatusDocId(trade, tradingDate);
+      final statusDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(statusId)
+          .get();
+      expect(statusDoc.data()?['status'], 'attempted');
+      expect(statusDoc.data()?['message'], contains('500'));
+
+      // Second monitor cycle does not blindly retry a claimed failed EOD exit.
+      final secondAttempt = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(secondAttempt['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, hasLength(1));
+    });
+
+    test(
+        'reconciles missed exits after regular close, early close, and holidays without after-hours orders',
+        () async {
+      final service = RecordingSchwabBrokerageService();
+      final regularTrade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:00:00.000Z',
+      };
+      final completedTrade = {
+        'symbol': 'AAPL',
+        'quantity': 2,
+        'entryPrice': 140.0,
+        'paperMode': false,
+        'timestamp': '2025-11-26T15:10:00.000Z',
+      };
+      provider.automatedBuyTrades
+          .addAll([regularTrade, Map<String, dynamic>.from(completedTrade)]);
+      final position = buildSchwabPosition('AAPL', 150.0, quantity: '7.0000');
+
+      final regularDate = DateTime.utc(2025, 11, 26);
+      await provider.claimMarketCloseExitAttempt(
+        userDocRef: userRef,
+        trade: completedTrade,
+        tradingDate: regularDate,
+        quantity: 2,
+      );
+      await provider.updateMarketCloseExitStatus(
+        userDocRef: userRef,
+        trade: completedTrade,
+        tradingDate: regularDate,
+        status: 'completed',
+        message: 'Order accepted.',
+      );
+
+      // Wednesday 16:05 EST (21:05 UTC): after regular close.
+      MarketHours.testTime = DateTime.utc(2025, 11, 26, 21, 5);
+      final afterHoursResult = await provider.monitorTakeProfitStopLoss(
+        positions: [position],
+        brokerageUser: schwabUser,
+        account: schwabAccount,
+        brokerageService: service,
+        instrumentStore: 'mock',
+        userDocRef: userRef,
+      );
+      expect(afterHoursResult['exitsExecuted'], 0);
+      expect(service.placedInstrumentOrders, isEmpty);
+
+      final missedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              regularTrade, regularDate))
+          .get();
+      expect(missedDoc.data()?['status'], 'missed');
+
+      final completedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              completedTrade, regularDate))
+          .get();
+      expect(completedDoc.data()?['status'], 'completed');
+
+      // Thanksgiving Day (2025-11-27) is a market holiday; Day After Thanksgiving closes at 13:00 EST.
+      expect(MarketHours.isMarketHoliday(DateTime.utc(2025, 11, 27)), isTrue);
+
+      provider.automatedBuyTrades.clear();
+      final earlyCloseTrade = {
+        'symbol': 'AAPL',
+        'quantity': 5,
+        'entryPrice': 145.0,
+        'paperMode': false,
+        'timestamp': '2025-11-28T15:00:00.000Z',
+      };
+      provider.automatedBuyTrades.add(earlyCloseTrade);
+
+      // Friday Nov 28, 2025 at 13:05 EST (18:05 UTC) and Saturday Nov 29 resolve to 2025-11-28.
+      final earlyDate = DateTime.utc(2025, 11, 28);
+      await provider.reconcileMissedMarketCloseExits(
+        positions: [position],
+        userDocRef: userRef,
+        now: DateTime.utc(2025, 11, 28, 18, 5),
+      );
+      final earlyMissedDoc = await userRef
+          .collection('agentic_trading_exit_status')
+          .doc(AgenticTradingProvider.marketCloseExitStatusDocId(
+              earlyCloseTrade, earlyDate))
+          .get();
+      expect(earlyMissedDoc.data()?['status'], 'missed');
+      expect(service.placedInstrumentOrders, isEmpty);
     });
   });
 }

@@ -1,0 +1,35 @@
+# Fastlane Fastfile for RealizeAlpha iOS
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Promote an existing TestFlight build to App Store release"
+  lane :promote_to_app_store do |options|
+    app_version = options[:app_version]
+    build_number = options[:build_number]
+    phased_release = options[:phased_release].to_s == "true"
+    submit_for_review = options[:submit_for_review].to_s == "true"
+
+    UI.user_error!("Missing :app_version option") if app_version.nil? || app_version.empty?
+    UI.user_error!("Missing :build_number option") if build_number.nil? || build_number.empty?
+
+    UI.message("Promoting TestFlight build to App Store version:")
+    UI.message("  App Identifier: com.cidevelop.robinhoodOptionsMobile")
+    UI.message("  App Version: #{app_version}")
+    UI.message("  Build Number: #{build_number}")
+    UI.message("  7-Day Phased Release: #{phased_release}")
+    UI.message("  Submit for Review: #{submit_for_review}")
+
+    deliver(
+      app_identifier: "com.cidevelop.robinhoodOptionsMobile",
+      app_version: app_version,
+      build_number: build_number,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: true,
+      phased_release: phased_release,
+      submit_for_review: submit_for_review,
+      force: true
+    )
+  end
+end

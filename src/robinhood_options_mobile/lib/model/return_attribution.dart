@@ -137,6 +137,34 @@ class GreekPnLAttribution {
   double get explainedPnL => deltaPnL + gammaPnL + thetaPnL + vegaPnL;
 }
 
+/// Disaggregated same-day income and yield attribution across dividends,
+/// cash sweeps / interest, and SLIP securities lending.
+class IncomeAttributionBreakdown {
+  final double dividendIncome;
+  final double interestAndSweepIncome;
+  final double stockLoanIncome;
+  final double dailySweepAccrualEstimate;
+  final double dailyStockLoanAccrualEstimate;
+
+  const IncomeAttributionBreakdown({
+    this.dividendIncome = 0,
+    this.interestAndSweepIncome = 0,
+    this.stockLoanIncome = 0,
+    this.dailySweepAccrualEstimate = 0,
+    this.dailyStockLoanAccrualEstimate = 0,
+  });
+
+  double get totalIncomePnL =>
+      dividendIncome + interestAndSweepIncome + stockLoanIncome;
+
+  bool get hasBreakdown =>
+      dividendIncome.abs() > 0 ||
+      interestAndSweepIncome.abs() > 0 ||
+      stockLoanIncome.abs() > 0 ||
+      dailySweepAccrualEstimate.abs() > 0 ||
+      dailyStockLoanAccrualEstimate.abs() > 0;
+}
+
 /// Aggregate options and income attribution.
 class OptionsAttributionResult {
   final double totalDeltaPnL;
@@ -145,6 +173,7 @@ class OptionsAttributionResult {
   final double totalVegaPnL;
   final double totalResidualPnL;
   final double totalIncomePnL;
+  final IncomeAttributionBreakdown incomeBreakdown;
   final int contractCount;
   final List<GreekPnLAttribution> positions;
   final String windowLabel;
@@ -162,10 +191,11 @@ class OptionsAttributionResult {
     required this.totalVegaPnL,
     required this.totalResidualPnL,
     required this.totalIncomePnL,
+    IncomeAttributionBreakdown? incomeBreakdown,
     required this.contractCount,
     required this.positions,
     required this.windowLabel,
-  });
+  }) : incomeBreakdown = incomeBreakdown ?? const IncomeAttributionBreakdown();
 
   /// Mark-to-market option P&L (sum of the Greek buckets and residual).
   double get totalOptionPnL =>
@@ -175,8 +205,12 @@ class OptionsAttributionResult {
       totalVegaPnL +
       totalResidualPnL;
 
-  /// Option P&L plus dividend and interest income in the window.
+  /// Option P&L plus dividend, interest/sweep, and stock-lending income.
   double get totalPnL => totalOptionPnL + totalIncomePnL;
 
-  bool get isEmpty => positions.isEmpty && totalIncomePnL == 0;
+  bool get isEmpty =>
+      positions.isEmpty &&
+      contractCount == 0 &&
+      totalIncomePnL == 0 &&
+      !incomeBreakdown.hasBreakdown;
 }

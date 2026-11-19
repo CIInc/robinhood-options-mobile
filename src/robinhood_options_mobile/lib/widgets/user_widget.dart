@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -32,7 +33,6 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
-import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared/live_brokerage_switch_confirmation.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
@@ -1295,14 +1295,21 @@ class _UserWidgetState extends State<UserWidget> {
                                                                   await confirmLiveBrokerageSwitch(
                                                                       context,
                                                                       brokerageUser);
-                                                              if (!confirmed) {
+                                                              if (!confirmed ||
+                                                                  !context
+                                                                      .mounted) {
                                                                 return;
                                                               }
-                                                              Provider.of<AccountStore>(
+                                                              final accountStore =
+                                                                  Provider.of<
+                                                                          AccountStore>(
                                                                       context,
                                                                       listen:
-                                                                          false)
+                                                                          false);
+                                                              accountStore
                                                                   .removeAll();
+                                                              accountStore
+                                                                  .clearSelection();
                                                               Provider.of<PortfolioStore>(
                                                                       context,
                                                                       listen:
@@ -1328,6 +1335,13 @@ class _UserWidgetState extends State<UserWidget> {
                                                                       listen:
                                                                           false)
                                                                   .removeAll();
+                                                              try {
+                                                                Provider.of<FuturesPositionStore>(
+                                                                        context,
+                                                                        listen:
+                                                                            false)
+                                                                    .removeAll();
+                                                              } catch (_) {}
 
                                                               userStore
                                                                   .setAggregateAllAccounts(
@@ -2191,37 +2205,11 @@ class _UserWidgetState extends State<UserWidget> {
                                                     user: user,
                                                     userDocRef:
                                                         userDocumentReference,
+                                                    service: widget.service,
                                                   ),
                                                 ),
                                               );
                                               if (mounted) setState(() {});
-                                            },
-                                          ),
-                                          // Investment Profile
-                                          _buildFeatureTile(
-                                            context,
-                                            icon: Icons.assessment_outlined,
-                                            title: 'Investment Profile',
-                                            subtitle: const Text(
-                                                'Configure goals and risk tolerance for personalized recommendations'),
-                                            requiresLogin: true,
-                                            requiresUserDoc: true,
-                                            featureBundle:
-                                                FeatureBundle.aiResearch,
-                                            userRole: userRole,
-                                            user: user,
-                                            onTap: () async {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      InvestmentProfileSettingsWidget(
-                                                    user: user!,
-                                                    firestoreService:
-                                                        _firestoreService,
-                                                  ),
-                                                ),
-                                              );
                                             },
                                           ),
                                           // Connected Agents & Apps

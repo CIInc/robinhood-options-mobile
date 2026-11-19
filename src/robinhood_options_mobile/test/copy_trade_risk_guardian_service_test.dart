@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/copy_trade_record.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/services/copy_trade_risk_guardian_service.dart';
 
 void main() {
@@ -417,6 +419,206 @@ void main() {
       expect(settings.isRiskGuardianTripped, isFalse);
       expect(settings.riskGuardianTripReason, isNull);
       expect(settings.riskGuardianTrippedAt, isNull);
+    });
+  });
+
+  group('CopyTradeRiskGuardianService - Inverse & Contract Adaptation', () {
+    final now = DateTime(2026, 11, 13, 10, 0, 0);
+    final exp = DateTime(2027, 1, 15);
+
+    test('blocks naked short inverse option and suggests defined-risk long put',
+        () {
+      final record = CopyTradeRecord(
+        id: 'inv-1',
+        sourceUserId: 'leader1',
+        targetUserId: 'follower1',
+        groupId: 'grp1',
+        orderType: 'option',
+        originalOrderId: 'o1',
+        symbol: 'AAPL',
+        side: 'credit',
+        originalQuantity: 1,
+        copiedQuantity: 1,
+        price: 3.0,
+        timestamp: now,
+        executed: false,
+        isInverse: true,
+        legs: [
+          CopyTradeLeg(
+            expirationDate: exp,
+            strikePrice: 220,
+            optionType: 'call',
+            side: 'sell',
+            positionEffect: 'open',
+            ratioQuantity: 1,
+          ),
+        ],
+      );
+
+      final result =
+          CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail(
+        record: record,
+      );
+
+      expect(result.isAllowed, isFalse);
+      expect(result.hasNakedShortRisk, isTrue);
+      expect(result.suggestedDefinedRiskRecord, isNotNull);
+      expect(result.suggestedDefinedRiskRecord!.side, 'debit');
+      expect(result.suggestedDefinedRiskRecord!.legs!.first.side, 'buy');
+      expect(result.suggestedDefinedRiskRecord!.legs!.first.optionType, 'put');
+    });
+
+    test('allows defined-risk spread in inverse mode', () {
+      final record = CopyTradeRecord(
+        id: 'inv-2',
+        sourceUserId: 'leader1',
+        targetUserId: 'follower1',
+        groupId: 'grp1',
+        orderType: 'option',
+        originalOrderId: 'o2',
+        symbol: 'AAPL',
+        side: 'credit',
+        originalQuantity: 1,
+        copiedQuantity: 1,
+        price: 1.5,
+        timestamp: now,
+        executed: false,
+        isInverse: true,
+        legs: [
+          CopyTradeLeg(
+            expirationDate: exp,
+            strikePrice: 220,
+            optionType: 'call',
+            side: 'sell',
+            positionEffect: 'open',
+            ratioQuantity: 1,
+          ),
+          CopyTradeLeg(
+            expirationDate: exp,
+            strikePrice: 230,
+            optionType: 'call',
+            side: 'buy',
+            positionEffect: 'open',
+            ratioQuantity: 1,
+          ),
+        ],
+      );
+
+      final result =
+          CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail(
+        record: record,
+      );
+
+      expect(result.isAllowed, isTrue);
+      expect(result.hasNakedShortRisk, isFalse);
+    });
+
+    test(
+        'suggestOptionAdaptations finds cheaper OTM strike and vertical spread',
+        () {
+      OptionInstrument makeOpt(
+          String id, double strike, double bid, double ask) {
+        final opt = OptionInstrument(
+          'chain1',
+          'AAPL',
+          now,
+          exp,
+          id,
+          now,
+          const MinTicks(0.05, 0.01, 3.0),
+          'tradable',
+          'active',
+          strike,
+          'tradable',
+          'call',
+          now,
+          'https://api.robinhood.com/options/instruments/$id/',
+          null,
+          'long',
+          'short',
+        );
+        opt.optionMarketData = OptionMarketData(
+          (bid + ask) / 2,
+          ask,
+          10,
+          bid,
+          10,
+          strike + ask,
+          ask,
+          opt.url,
+          id,
+          ask,
+          1,
+          bid,
+          (bid + ask) / 2,
+          500,
+          null,
+          null,
+          100,
+          'AAPL',
+          'AAPL',
+          0.3,
+          0.7,
+          0.35,
+          0.02,
+          0.25,
+          0.01,
+          -0.05,
+          0.1,
+          ask,
+          bid,
+          ask,
+          bid,
+          now,
+        );
+        return opt;
+      }
+
+      final chain = [
+        makeOpt('opt-220', 220, 4.80, 5.00), // $500 (over $250 cap)
+        makeOpt('opt-230', 230, 1.80, 2.00), // $200 (fits $250 cap)
+        makeOpt('opt-235', 235, 0.90, 1.00), // $100
+      ];
+
+      final record = CopyTradeRecord(
+        id: 'adapt-1',
+        sourceUserId: 'leader1',
+        targetUserId: 'follower1',
+        groupId: 'grp1',
+        orderType: 'option',
+        originalOrderId: 'o3',
+        symbol: 'AAPL',
+        side: 'debit',
+        originalQuantity: 1,
+        copiedQuantity: 0,
+        price: 5.0,
+        timestamp: now,
+        executed: false,
+        needsContractAdaptation: true,
+        legs: [
+          CopyTradeLeg(
+            expirationDate: exp,
+            strikePrice: 220,
+            optionType: 'call',
+            side: 'buy',
+            positionEffect: 'open',
+            ratioQuantity: 1,
+          ),
+        ],
+      );
+
+      final suggestions = CopyTradeRiskGuardianService.suggestOptionAdaptations(
+        record: record,
+        maxAllocationAmount: 250.0,
+        chain: chain,
+      );
+
+      expect(suggestions.length, 2);
+      expect(suggestions.first.adaptationType, 'otm_strike');
+      expect(suggestions.first.estimatedTotalCost, lessThanOrEqualTo(250.0));
+      expect(suggestions.last.adaptationType, 'vertical_spread');
+      expect(suggestions.last.legs.length, 2);
+      expect(suggestions.last.estimatedTotalCost, lessThanOrEqualTo(250.0));
     });
   });
 }

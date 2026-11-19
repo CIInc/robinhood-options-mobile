@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
 import 'package:robinhood_options_mobile/widgets/correlation_matrix_widget.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/analytics_filter_bar.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/metric_presentation.dart';
+import 'package:robinhood_options_mobile/widgets/portfolio/analytics/monte_carlo_risk_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/portfolio_health_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/risk_analytics_card.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/rolling_statistics_dashboard.dart';
@@ -167,6 +168,11 @@ class _RiskSectionPageState extends State<RiskSectionPage> {
                   ),
                 if (isAdvancedResearchEnabled) ...[
                   PortfolioStressTestCard(positions: store.items),
+                  MonteCarloRiskCard(
+                    positions: store.items,
+                    optionPositions: optionStore.items,
+                    metrics: metrics,
+                  ),
                   TailRiskCard(
                     positions: store.items,
                     optionPositions: optionStore.items,

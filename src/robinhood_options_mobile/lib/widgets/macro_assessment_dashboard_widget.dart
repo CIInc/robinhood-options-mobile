@@ -102,6 +102,10 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             _buildSummarySection(context, assessment),
             const SizedBox(height: 16),
 
+            // Economic Cycle & Macro Radar Section
+            _buildEconomicCycleSection(context, assessment),
+            const SizedBox(height: 16),
+
             // Recent Changes (if any)
             if (macroData.previousAssessment != null) ...[
               _buildRecentChangesSection(
@@ -544,7 +548,8 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'Put/Call',
       'Credit (HYG)',
       'Dollar (DXY)',
-      'Yield Curve'
+      'Yield Curve',
+      'TIPS Inflation',
     ];
     final curMap = {
       'VIX': current.indicators.vix.signal,
@@ -555,6 +560,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'Credit (HYG)': current.indicators.hyg?.signal,
       'Dollar (DXY)': current.indicators.dxy?.signal,
       'Yield Curve': current.indicators.yieldCurve?.signal,
+      'TIPS Inflation': current.indicators.inflationExpectations?.signal,
     };
     final prevMap = {
       'VIX': previous.indicators.vix.signal,
@@ -565,6 +571,7 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
       'Credit (HYG)': previous.indicators.hyg?.signal,
       'Dollar (DXY)': previous.indicators.dxy?.signal,
       'Yield Curve': previous.indicators.yieldCurve?.signal,
+      'TIPS Inflation': previous.indicators.inflationExpectations?.signal,
     };
 
     for (final key in signalKeys) {
@@ -757,6 +764,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
             unit: '%',
           ),
         ],
+        if (assessment.indicators.inflationExpectations != null) ...[
+          const SizedBox(height: 12),
+          buildIndicatorCard(
+            context,
+            "TIP",
+            "TIPS Inflation Expectations",
+            assessment.indicators.inflationExpectations!,
+            "10-Year TIPS Breakeven Inflation Rate. Derived from Treasury Inflation-Protected Securities (TIP) vs nominal Treasuries, reflecting financial market expectations of consumer price inflation over the next decade. Values between 2.0% and 2.5% indicate stable price expectations supportive of economic expansion.",
+            Icons.price_change_outlined,
+            unit: '%',
+          ),
+        ],
         if (assessment.indicators.putCallRatio != null) ...[
           const SizedBox(height: 12),
           buildIndicatorCard(
@@ -933,6 +952,237 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildEconomicCycleSection(
+      BuildContext context, MacroAssessment assessment) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final currentPhase = assessment.cyclePhase;
+
+    final phases = [
+      (
+        name: 'Expansion',
+        inflation: '2.4%',
+        curve: '+18 bps',
+        description:
+            'Healthy economic growth, robust liquidity & steepening yield curve.',
+        color: Colors.green,
+        icon: Icons.trending_up,
+      ),
+      (
+        name: 'Late-Cycle',
+        inflation: '3.1%',
+        curve: '+2 bps',
+        description:
+            'Tightening policy, elevated inflation & yield curve flattening.',
+        color: Colors.orange,
+        icon: Icons.speed,
+      ),
+      (
+        name: 'Recession Watch',
+        inflation: '1.8%',
+        curve: '-24 bps',
+        description:
+            'Yield curve inversion, contracting demand & defensive flight to safety.',
+        color: Colors.red,
+        icon: Icons.warning_amber_rounded,
+      ),
+    ];
+
+    final activePhaseInfo = phases.firstWhere(
+      (p) => p.name.toLowerCase() == currentPhase.toLowerCase(),
+      orElse: () => phases[0],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: activePhaseInfo.color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: activePhaseInfo.color.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.cyclone, size: 20, color: activePhaseInfo.color),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Economic Cycle Radar',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: activePhaseInfo.color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: activePhaseInfo.color.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Text(
+                  activePhaseInfo.name,
+                  style: TextStyle(
+                    color: activePhaseInfo.color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            activePhaseInfo.description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.75),
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 14),
+          // 3-Phase Stage Track
+          Row(
+            children: phases.map((phase) {
+              final isCurrent =
+                  phase.name.toLowerCase() == currentPhase.toLowerCase();
+              return Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: isCurrent
+                        ? phase.color.withValues(alpha: 0.18)
+                        : colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isCurrent
+                          ? phase.color
+                          : colorScheme.outline.withValues(alpha: 0.1),
+                      width: isCurrent ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        phase.icon,
+                        size: 16,
+                        color: isCurrent
+                            ? phase.color
+                            : colorScheme.onSurface.withValues(alpha: 0.4),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        phase.name,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight:
+                              isCurrent ? FontWeight.bold : FontWeight.w500,
+                          color: isCurrent
+                              ? phase.color
+                              : colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 14),
+          // Metrics Row: Economic Cycle | Inflation YoY | Yield Curve
+          Row(
+            children: [
+              Expanded(
+                child: _buildCycleMetricCard(
+                  context,
+                  label: 'Economic Cycle',
+                  value: assessment.cyclePhase,
+                  color: activePhaseInfo.color,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCycleMetricCard(
+                  context,
+                  label: 'Inflation YoY',
+                  value:
+                      '${assessment.effectiveInflationYoY.toStringAsFixed(1)}%',
+                  color: colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCycleMetricCard(
+                  context,
+                  label: 'Yield Curve',
+                  value: assessment.yieldCurveSpreadDisplay,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCycleMetricCard(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontSize: 9,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 

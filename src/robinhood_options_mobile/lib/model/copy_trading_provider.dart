@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -53,12 +54,16 @@ class CopyTradingProvider with ChangeNotifier {
     _subscription = null;
   }
 
+  String? get _effectiveUserId =>
+      _firebaseUserId ?? FirebaseAuth.instance.currentUser?.uid;
+
   void _startListening() {
-    if (_firebaseUserId == null) return;
+    final uid = _effectiveUserId;
+    if (uid == null) return;
 
     _subscription = FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .where('executed', isEqualTo: false)
         .where('status', whereIn: ['approved', 'pending_approval'])
         .snapshots()
@@ -66,11 +71,12 @@ class CopyTradingProvider with ChangeNotifier {
   }
 
   Stream<List<CopyTradeRecord>> getTradeHistory() {
-    if (_firebaseUserId == null) return Stream.value([]);
+    final uid = _effectiveUserId;
+    if (uid == null) return Stream.value([]);
 
     return FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -79,11 +85,12 @@ class CopyTradingProvider with ChangeNotifier {
   }
 
   Stream<List<CopyTradeRecord>> getRequests() {
-    if (_firebaseUserId == null) return Stream.value([]);
+    final uid = _effectiveUserId;
+    if (uid == null) return Stream.value([]);
 
     return FirebaseFirestore.instance
         .collection('copy_trades')
-        .where('targetUserId', isEqualTo: _firebaseUserId)
+        .where('targetUserId', isEqualTo: uid)
         .where('status', whereIn: ['pending_approval', 'rejected'])
         .orderBy('timestamp', descending: true)
         .snapshots()
@@ -98,6 +105,59 @@ class CopyTradingProvider with ChangeNotifier {
         .doc(record.id)
         .update({
       'status': 'approved',
+      'actionTime': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> approveAdaptedRequest(
+    CopyTradeRecord record,
+    OptionContractAdaptation adaptation,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection('copy_trades')
+        .doc(record.id)
+        .update({
+      'status': 'approved',
+      'copiedQuantity': 1.0,
+      'price': adaptation.estimatedPrice,
+      'needsContractAdaptation': false,
+      'strategy': adaptation.adaptationType == 'vertical_spread'
+          ? 'vertical_debit_spread'
+          : record.strategy,
+      'legs': adaptation.legs
+          .map((e) => {
+                'expirationDate': e.expirationDate?.toIso8601String(),
+                'strikePrice': e.strikePrice,
+                'optionType': e.optionType,
+                'side': e.side,
+                'positionEffect': e.positionEffect,
+                'ratioQuantity': e.ratioQuantity,
+              })
+          .toList(),
+      'actionTime': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> applyDefinedRiskInverse(
+    CopyTradeRecord record,
+    CopyTradeRecord definedRiskRecord,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection('copy_trades')
+        .doc(record.id)
+        .update({
+      'side': definedRiskRecord.side,
+      'inverseAdaptation': definedRiskRecord.inverseAdaptation,
+      'legs': (definedRiskRecord.legs ?? const <CopyTradeLeg>[])
+          .map((e) => {
+                'expirationDate': e.expirationDate?.toIso8601String(),
+                'strikePrice': e.strikePrice,
+                'optionType': e.optionType,
+                'side': e.side,
+                'positionEffect': e.positionEffect,
+                'ratioQuantity': e.ratioQuantity,
+              })
+          .toList(),
       'actionTime': FieldValue.serverTimestamp(),
     });
   }
@@ -144,6 +204,14 @@ class CopyTradingProvider with ChangeNotifier {
       final settings = group.getCopyTradeSettings(_firebaseUserId!);
 
       if (settings != null && settings.autoExecute && settings.enabled) {
+        // Adapted or inverse-mapped option trades must always be reviewed manually
+        if (record.needsContractAdaptation ||
+            record.inverseAdaptation != null ||
+            (record.orderType == 'option' && record.copiedQuantity < 1)) {
+          debugPrint(
+              'Skipping auto-execute for ${record.id}: manual review required.');
+          return;
+        }
         if (settings.isRiskGuardianTripped) {
           debugPrint('Risk Guardian tripped. Aborting auto-execution.');
           await FirebaseFirestore.instance
@@ -362,6 +430,27 @@ class CopyTradingProvider with ChangeNotifier {
       final account = accounts.first; // Use first account for now
       final accountEquity = account.totalValue ?? account.buyingPower;
 
+      // Risk Guardian Check: Defined-Risk Inverse Option Guardrail
+      final inverseGuardrail =
+          CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail(
+        record: record,
+      );
+      if (!inverseGuardrail.isAllowed) {
+        await FirebaseFirestore.instance
+            .collection('copy_trades')
+            .doc(record.id)
+            .update({
+          'status': 'aborted',
+          'executionResult': 'aborted_naked_short_inverse',
+          'error': inverseGuardrail.blockReason ??
+              'Naked short option blocked in inverse copy mode',
+          'executionTime': FieldValue.serverTimestamp(),
+        });
+        debugPrint(
+            'Copy trade aborted by inverse option guardrail: ${inverseGuardrail.blockReason}');
+        return;
+      }
+
       // Risk Guardian Check: Max Capital Allocation per trade
       final effectiveSettings = settings ?? CopyTradeSettings();
       final allocResult = CopyTradeRiskGuardianService.evaluateAllocation(
@@ -458,12 +547,6 @@ class CopyTradingProvider with ChangeNotifier {
         if (record.legs == null || record.legs!.isEmpty) {
           throw Exception('No legs for option order');
         }
-        final leg = record.legs!.first; // Assuming single leg for now
-        if (leg.expirationDate == null ||
-            leg.strikePrice == null ||
-            leg.optionType == null) {
-          throw Exception('Incomplete leg data');
-        }
 
         // 3. Get Underlying Instrument
         final instrument = await _service!.getInstrumentBySymbol(
@@ -472,36 +555,97 @@ class CopyTradingProvider with ChangeNotifier {
           throw Exception('Instrument not found: ${record.symbol}');
         }
 
-        // 4. Find Option Instrument
-        final expirationDateStr =
-            leg.expirationDate!.toIso8601String().substring(0, 10);
-        final options = await _service!
-            .streamOptionInstruments(_brokerageUser!, _optionInstrumentStore,
-                instrument, expirationDateStr, leg.optionType)
-            .first;
+        if (record.legs!.length > 1) {
+          // Multi-leg option order (e.g., adapted vertical spread)
+          final brokerageLegs = <Map<String, dynamic>>[];
+          for (final leg in record.legs!) {
+            if (leg.expirationDate == null ||
+                leg.strikePrice == null ||
+                leg.optionType == null) {
+              throw Exception('Incomplete multi-leg option data');
+            }
+            final expStr =
+                leg.expirationDate!.toIso8601String().substring(0, 10);
+            final options = await _service!
+                .streamOptionInstruments(_brokerageUser!,
+                    _optionInstrumentStore, instrument, expStr, leg.optionType)
+                .first;
+            final optInst = options.firstWhere(
+                (o) =>
+                    o.strikePrice == leg.strikePrice &&
+                    o.type == leg.optionType &&
+                    (o.expirationDate != null &&
+                        o.expirationDate!.toIso8601String().substring(0, 10) ==
+                            expStr),
+                orElse: () => throw Exception('Option instrument not found'));
+            final legSide = (leg.side ?? 'buy').toLowerCase();
+            final effect = (leg.positionEffect ?? 'open').toLowerCase();
+            brokerageLegs.add({
+              'side': legSide,
+              'position_effect': effect,
+              'ratio_quantity': (leg.ratioQuantity ?? 1).toInt(),
+              'option': optInst.url,
+              'symbol': optInst.chainSymbol,
+              'instruction':
+                  '${legSide.toUpperCase()}_TO_${effect.toUpperCase()}',
+            });
+          }
 
-        final optionInstrument = options.firstWhere(
-            (o) =>
-                o.strikePrice == leg.strikePrice &&
-                o.type == leg.optionType &&
-                (o.expirationDate != null &&
-                    o.expirationDate!.toIso8601String().substring(0, 10) ==
-                        expirationDateStr),
-            orElse: () => throw Exception('Option instrument not found'));
+          await _service!.placeMultiLegOptionsOrder(
+            _brokerageUser!,
+            account,
+            brokerageLegs,
+            record.side == 'credit' ? 'credit' : 'debit',
+            orderPrice,
+            executionQuantity.toInt(),
+            type: 'limit',
+            timeInForce: 'gfd',
+          );
+        } else {
+          final leg = record.legs!.first;
+          if (leg.expirationDate == null ||
+              leg.strikePrice == null ||
+              leg.optionType == null) {
+            throw Exception('Incomplete leg data');
+          }
 
-        // 5. Place Order
-        await _service!.placeOptionsOrder(
-          _brokerageUser!,
-          account,
-          optionInstrument,
-          record.side == 'buy' ? 'buy' : 'sell', // Direction
-          leg.positionEffect ?? 'open', // Position effect
-          record.side == 'buy' ? 'debit' : 'credit', // Credit/Debit
-          orderPrice,
-          executionQuantity.toInt(),
-          type: 'limit',
-          timeInForce: 'gfd',
-        );
+          // 4. Find Option Instrument
+          final expirationDateStr =
+              leg.expirationDate!.toIso8601String().substring(0, 10);
+          final options = await _service!
+              .streamOptionInstruments(_brokerageUser!, _optionInstrumentStore,
+                  instrument, expirationDateStr, leg.optionType)
+              .first;
+
+          final optionInstrument = options.firstWhere(
+              (o) =>
+                  o.strikePrice == leg.strikePrice &&
+                  o.type == leg.optionType &&
+                  (o.expirationDate != null &&
+                      o.expirationDate!.toIso8601String().substring(0, 10) ==
+                          expirationDateStr),
+              orElse: () => throw Exception('Option instrument not found'));
+
+          final legSide = (leg.side ??
+                  (record.side == 'buy' || record.side == 'debit'
+                      ? 'buy'
+                      : 'sell'))
+              .toLowerCase();
+
+          // 5. Place Order
+          await _service!.placeOptionsOrder(
+            _brokerageUser!,
+            account,
+            optionInstrument,
+            legSide,
+            leg.positionEffect ?? 'open',
+            legSide == 'buy' ? 'debit' : 'credit',
+            orderPrice,
+            executionQuantity.toInt(),
+            type: 'limit',
+            timeInForce: 'gfd',
+          );
+        }
       }
 
       // Mark as executed with latency and slippage tracking
