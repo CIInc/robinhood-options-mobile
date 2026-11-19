@@ -555,7 +555,7 @@ class _AutomatedTradeProposalDetailWidgetState
                           ),
                           const SizedBox(width: 8),
                         ],
-                        if (_proposal.rewardRiskRatio != null) ...[
+                        if (_proposal.effectiveRewardRiskRatio != null) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
@@ -564,7 +564,7 @@ class _AutomatedTradeProposalDetailWidgetState
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'R:R ${_proposal.rewardRiskRatio!.toStringAsFixed(1)}',
+                              'R:R ${_proposal.effectiveRewardRiskRatio!.toStringAsFixed(1)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
@@ -675,6 +675,139 @@ class _AutomatedTradeProposalDetailWidgetState
               ),
             ),
             const SizedBox(height: 14),
+
+            // Volatility-Adaptive Dynamic Stops (ATR)
+            if (_proposal.atr != null) ...[
+              _buildSectionHeader(
+                context,
+                'Volatility-Adaptive Stops & Targets (ATR)',
+                Icons.tune_rounded,
+              ),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+                color:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.18),
+                child: Padding(
+                  padding: const EdgeInsets.all(14.0),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '14-Period ATR',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '\$${_proposal.atr!.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Adaptive Stop Loss (${_proposal.atrStopMultiplier ?? 1.5}x ATR)',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          Text(
+                            _proposal.atrStopPrice != null
+                                ? '\$${_proposal.atrStopPrice!.toStringAsFixed(2)} (-${((_proposal.price - _proposal.atrStopPrice!) / _proposal.price * 100).toStringAsFixed(1)}%)'
+                                : 'N/A',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Dynamic Profit Target (${_proposal.atrProfitMultiplier ?? 3.0}x ATR)',
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                          Text(
+                            _proposal.atrTargetPrice != null
+                                ? '\$${_proposal.atrTargetPrice!.toStringAsFixed(2)} (+${((_proposal.atrTargetPrice! - _proposal.price) / _proposal.price * 100).toStringAsFixed(1)}%)'
+                                : 'N/A',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_proposal.atrVolatilityRegime != null) ...[
+                        const Divider(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Volatility Ratchet',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _proposal.atrVolatilityRegime!
+                                        .contains('Tightened')
+                                    ? Colors.amber.withValues(alpha: 0.15)
+                                    : _proposal.atrVolatilityRegime!
+                                            .contains('Widened')
+                                        ? Colors.blue.withValues(alpha: 0.15)
+                                        : colorScheme.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                _proposal.atrVolatilityRegime!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _proposal.atrVolatilityRegime!
+                                          .contains('Tightened')
+                                      ? Colors.amber.shade900
+                                      : _proposal.atrVolatilityRegime!
+                                              .contains('Widened')
+                                          ? Colors.blue.shade800
+                                          : colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
 
             // GEX Institutional Levels (if present)
             if (_proposal.gexData != null) ...[

@@ -526,6 +526,14 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
   3. **Tier 3 (Time & Theta Decay Stop):** Mitigates theta burn and opportunity cost by exiting when contract DTE drops below a threshold (`minDteStopDays`, default 7) or a trade remains stalled across consecutive trading sessions (`stalledSessionsStopLimit`, default 3).
   4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment flips to `RISK_OFF` (`enableMacroRegimeStop`).
   5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 30%).
+- **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet (#347):** Calibrates stop-loss and profit target levels dynamically to the asset's current volatility environment using 14-period Average True Range (ATR):
+  - **Dynamic ATR Stop-Loss:** Calculated as $\text{Entry Price} - (\text{ATR} \times \text{atrStopMultiplier})$ (default: $1.5\times$ ATR).
+  - **Dynamic ATR Profit Target:** Calculated as $\text{Entry Price} + (\text{ATR} \times \text{atrProfitMultiplier})$ (default: $3.0\times$ ATR), establishing a default $2.0:1$ reward-to-risk ratio.
+  - **Dynamic ATR Trailing Stop:** When enabled alongside trailing stops, trails from the position's high-water mark price: $\text{Highest Price} - (\text{ATR} \times \text{atrStopMultiplier})$.
+  - **Adaptive Volatility Ratchet:**
+    - **Volatility Compression ($\text{NATR} < 1.0\%$):** Automatically widens stop distance by $1.25\times$ to avoid premature shakeouts during tight low-volatility consolidations.
+    - **Volatility Expansion ($\text{NATR} > 3.0\%$):** Automatically tightens trailing stops to $0.75\times$ base distance as momentum accelerates, locking in gains.
+  - **Diagnostic Visibility:** Surfaced in `AutomatedTradeProposalDetailWidget` with live ATR distance, calculated dollar stop/target levels, volatility regime indicator, and reward-to-risk ratio.
 
 ### Order Approval Workflow & Pending Approvals Center
 

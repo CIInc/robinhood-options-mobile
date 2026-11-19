@@ -710,6 +710,276 @@ void main() {
       );
     });
 
+    test(
+        'Dynamic ATR stop-loss triggers when price breaches ATR-calibrated stop loss',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrProfitMultiplier: 3.0,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      final quote = FakeQuote(96.50); // Entry 100, ATR 2.0 -> stop at 97.0
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Stop Loss'));
+        expect(provider.autoTradeHistory.first['reason'], contains('1.5x ATR'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test(
+        'Dynamic ATR take-profit triggers when price reaches ATR-calibrated target',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrProfitMultiplier: 3.0,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      final quote = FakeQuote(106.50); // Entry 100, ATR 2.0 -> target at 106.0
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Take Profit'));
+        expect(provider.autoTradeHistory.first['reason'], contains('3.0x ATR'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test('Dynamic ATR trailing stop trails from highest price reached',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          trailingStopEnabled: true,
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 1.5,
+          atrRatchetEnabled: false,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+      // Entry 100, Peak 110, ATR 2.0 -> Trail stop at 110 - (2.0 * 1.5) = 107.0
+      final quote = FakeQuote(106.50);
+      final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrument,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'highestPrice': 110.0,
+        'paperMode': true,
+        'atr': 2.0,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final result = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(result['success'], isTrue);
+        expect(result['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Dynamic ATR Trailing Stop'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
+    test(
+        'Adaptive Volatility Ratchet widens in compression and tightens in expansion',
+        () async {
+      provider.loadConfigFromUser(AgenticTradingConfig(
+        paperTradingMode: true,
+        strategyConfig: TradeStrategyConfig(
+          dynamicAtrStopsEnabled: true,
+          atrStopMultiplier: 2.0,
+          atrRatchetEnabled: true,
+        ),
+      ));
+
+      final paperTradingStore =
+          PaperTradingStore(firestore: FakeFirebaseFirestore());
+
+      // Case A: Low Volatility Compression (NATR < 1.0%)
+      // Entry 100, ATR 0.5 (NATR = 0.5%). Base stop: 2.0x, widened to 2.5x -> stop = 100 - (0.5 * 2.5) = 98.75
+      // Current price = 98.90 (would breach unadjusted 2.0x ATR at 99.00, but saved by compression widening)
+      final quoteA = FakeQuote(98.90);
+      final instrumentA = Instrument.forSymbol('AAPL')..quoteObj = quoteA;
+
+      await paperTradingStore.executeStockOrder(
+        instrument: instrumentA,
+        quantity: 10,
+        price: 100.0,
+        side: 'buy',
+      );
+
+      provider.automatedBuyTrades.add({
+        'symbol': 'AAPL',
+        'quantity': 10,
+        'entryPrice': 100.0,
+        'paperMode': true,
+        'atr': 0.5,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      MarketHours.testTime = DateTime.utc(2023, 10, 25, 14, 0);
+
+      try {
+        final resultA = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        // Position was preserved thanks to compression widening
+        expect(resultA['exitsExecuted'], equals(0));
+        expect(provider.autoTradeHistory, isEmpty);
+
+        // Case B: High Volatility Expansion (NATR > 3.0%)
+        // Entry 100, ATR 4.0 (NATR = 4.0%). Base stop 2.0x, tightened to 1.5x -> stop = 100 - (4.0 * 1.5) = 94.00
+        // Current price = 93.50 -> breaches tightened stop
+        provider.automatedBuyTrades.clear();
+        final quoteB = FakeQuote(93.50);
+        final instrumentB = Instrument.forSymbol('NVDA')..quoteObj = quoteB;
+
+        await paperTradingStore.executeStockOrder(
+          instrument: instrumentB,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        provider.automatedBuyTrades.add({
+          'symbol': 'NVDA',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'atr': 4.0,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+
+        final resultB = await provider.monitorTakeProfitStopLoss(
+          positions: paperTradingStore.positions,
+          brokerageUser: 'mock',
+          account: null,
+          brokerageService: FakeBrokerageService(),
+          instrumentStore: 'mock',
+          paperTradingStore: paperTradingStore,
+        );
+
+        expect(resultB['exitsExecuted'], equals(1));
+        expect(provider.autoTradeHistory, hasLength(1));
+        expect(provider.autoTradeHistory.first['symbol'], equals('NVDA'));
+        expect(provider.autoTradeHistory.first['reason'],
+            contains('Expansion (Tightened 0.75x)'));
+      } finally {
+        MarketHours.testTime = null;
+        paperTradingStore.dispose();
+      }
+    });
+
     test('autoTrade should fail when auto-trade is not enabled', () async {
       // Ensure auto-trade is not enabled
       provider.loadConfigFromUser(null);

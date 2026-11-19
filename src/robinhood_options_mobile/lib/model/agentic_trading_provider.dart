@@ -4029,7 +4029,8 @@ class AgenticTradingProvider with ChangeNotifier {
           _config.strategyConfig.signalStrengthExitEnabled ||
           _config.strategyConfig.gexExitEnabled ||
           _config.strategyConfig.enableGexStructuralStops ||
-          _config.strategyConfig.enableMacroRegimeStop;
+          _config.strategyConfig.enableMacroRegimeStop ||
+          _config.strategyConfig.dynamicAtrStopsEnabled;
       final Map<String, Map<String, dynamic>> fetchedSignals = {};
 
       if (technicalExitEnabled && _automatedBuyTrades.isNotEmpty) {
@@ -4180,6 +4181,43 @@ class AgenticTradingProvider with ChangeNotifier {
             buyTrade['highestProfitPercent'] = newHighestProfit;
           }
 
+          // Extract ATR indicator for volatility-adaptive dynamic stops & ratchet
+          final indicatorsMap =
+              signalData?['indicators'] as Map<String, dynamic>?;
+          final atrIndicator = indicatorsMap?['atr'];
+          final rawAtr = buyTrade['atr'] ??
+              (atrIndicator is Map ? atrIndicator['value'] : atrIndicator) ??
+              signalData?['atr'];
+          final atr = (rawAtr as num?)?.toDouble();
+
+          double effectiveAtrStopMult =
+              _config.strategyConfig.atrStopMultiplier;
+          final natr =
+              entryPrice > 0 && atr != null ? (atr / entryPrice) * 100.0 : 0.0;
+          String volatilityRegime = 'Normal';
+
+          if (_config.strategyConfig.atrRatchetEnabled &&
+              atr != null &&
+              atr > 0) {
+            if (natr < 1.0) {
+              effectiveAtrStopMult *= 1.25; // Compression widening buffer
+              volatilityRegime = 'Compression (Widened 1.25x)';
+            } else if (natr > 3.0) {
+              effectiveAtrStopMult *= 0.75; // Expansion tightening lock
+              volatilityRegime = 'Expansion (Tightened 0.75x)';
+            }
+          }
+
+          final dynamicAtrStopPrice = (atr != null && atr > 0)
+              ? entryPrice - (atr * effectiveAtrStopMult)
+              : null;
+          final dynamicAtrTrailStopPrice = (atr != null && atr > 0)
+              ? newHighestPrice - (atr * effectiveAtrStopMult)
+              : null;
+          final dynamicAtrTargetPrice = (atr != null && atr > 0)
+              ? entryPrice + (atr * _config.strategyConfig.atrProfitMultiplier)
+              : null;
+
           // =========================================================================
           // 🛡️ 5-TIER SEQUENTIAL EXIT STOP PRIORITY QUEUE (GEX Orchestrator Parity)
           // Defensive and protective halts take absolute precedence over profit targets
@@ -4214,16 +4252,30 @@ class AgenticTradingProvider with ChangeNotifier {
             }
           }
 
-          // Also check standard trailing stop price if configured
+          // Trailing stop price check: Dynamic ATR trailing stop takes precedence when enabled
           if (!shouldExit && _config.strategyConfig.trailingStopEnabled) {
-            final trailPercent = _config.strategyConfig.trailingStopPercent;
-            final trailStopPrice = newHighestPrice * (1 - trailPercent / 100.0);
-            if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
-              shouldExit = true;
-              exitReason = 'Trailing Stop ($trailPercent%)';
-              quantityToSell = buyQuantity;
-              _log(
-                  '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighestPrice)');
+            if (_config.strategyConfig.dynamicAtrStopsEnabled &&
+                dynamicAtrTrailStopPrice != null) {
+              if (currentPrice <= dynamicAtrTrailStopPrice &&
+                  currentPrice > entryPrice) {
+                shouldExit = true;
+                exitReason =
+                    'Dynamic ATR Trailing Stop (\$${currentPrice.toStringAsFixed(2)} <= \$${dynamicAtrTrailStopPrice.toStringAsFixed(2)}, ${effectiveAtrStopMult.toStringAsFixed(1)}x ATR, $volatilityRegime)';
+                quantityToSell = buyQuantity;
+                _log(
+                    '🟡 $symbol dynamic ATR trailing stop triggered: $exitReason');
+              }
+            } else {
+              final trailPercent = _config.strategyConfig.trailingStopPercent;
+              final trailStopPrice =
+                  newHighestPrice * (1 - trailPercent / 100.0);
+              if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
+                shouldExit = true;
+                exitReason = 'Trailing Stop ($trailPercent%)';
+                quantityToSell = buyQuantity;
+                _log(
+                    '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighestPrice)');
+              }
             }
           }
 
@@ -4294,13 +4346,24 @@ class AgenticTradingProvider with ChangeNotifier {
             }
           }
 
-          // --- Standard Stop Loss Fallback ---
-          if (!shouldExit && profitLossPercent <= -stopLossPercent) {
-            shouldExit = true;
-            exitReason = 'Stop Loss ($stopLossPercent%)';
-            quantityToSell = buyQuantity;
-            _log(
-                '🛑 $symbol hit standard stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          // --- Stop Loss Check (Dynamic ATR or Standard % Fallback) ---
+          if (!shouldExit) {
+            if (_config.strategyConfig.dynamicAtrStopsEnabled &&
+                dynamicAtrStopPrice != null) {
+              if (currentPrice <= dynamicAtrStopPrice) {
+                shouldExit = true;
+                exitReason =
+                    'Dynamic ATR Stop Loss (\$${currentPrice.toStringAsFixed(2)} <= \$${dynamicAtrStopPrice.toStringAsFixed(2)}, ${effectiveAtrStopMult.toStringAsFixed(1)}x ATR, $volatilityRegime)';
+                quantityToSell = buyQuantity;
+                _log('🛑 $symbol triggered Dynamic ATR Stop Loss: $exitReason');
+              }
+            } else if (profitLossPercent <= -stopLossPercent) {
+              shouldExit = true;
+              exitReason = 'Stop Loss ($stopLossPercent%)';
+              quantityToSell = buyQuantity;
+              _log(
+                  '🛑 $symbol hit standard stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+            }
           }
 
           // --- Take Profit Targets (Only reached if NO protective stop was hit) ---
@@ -4313,6 +4376,17 @@ class AgenticTradingProvider with ChangeNotifier {
               exitReason = 'Target Met: +GEX Strike Reached (\$$plusGex)';
               quantityToSell = buyQuantity;
               _log('🎯 $symbol hit +GEX target strike: $exitReason');
+            }
+            // Check Dynamic ATR Take Profit Target
+            else if (_config.strategyConfig.dynamicAtrStopsEnabled &&
+                dynamicAtrTargetPrice != null &&
+                currentPrice >= dynamicAtrTargetPrice) {
+              shouldExit = true;
+              exitReason =
+                  'Dynamic ATR Take Profit (\$${currentPrice.toStringAsFixed(2)} >= \$${dynamicAtrTargetPrice.toStringAsFixed(2)}, ${_config.strategyConfig.atrProfitMultiplier.toStringAsFixed(1)}x ATR)';
+              quantityToSell = buyQuantity;
+              _log(
+                  '💰 $symbol hit Dynamic ATR Take Profit target: $exitReason');
             }
             // Check Partial Exits
             else if (enablePartialExits && exitStages.isNotEmpty) {

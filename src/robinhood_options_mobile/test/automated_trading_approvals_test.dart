@@ -489,5 +489,63 @@ void main() {
       expect(find.text('Reject Proposal'), findsOneWidget);
       expect(find.text('Approve BUY Order'), findsOneWidget);
     });
+
+    testWidgets(
+        'AutomatedTradeProposalDetailWidget renders dynamic ATR stops, targets, and volatility ratchet',
+        (WidgetTester tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final map = _makeProposalMap(
+        id: 'prop_atr',
+        symbol: 'NVDA',
+        action: 'BUY',
+        quantity: 10,
+        price: 100.0,
+      );
+      (map['proposal'] as Map<String, dynamic>)['atr'] = 2.50;
+      (map['proposal'] as Map<String, dynamic>)['atrStopMultiplier'] = 1.5;
+      (map['proposal'] as Map<String, dynamic>)['atrProfitMultiplier'] = 3.0;
+      (map['proposal'] as Map<String, dynamic>).remove('rewardRiskRatio');
+
+      final proposal = AutomatedTradeProposal.fromMap(map);
+      final provider = AgenticTradingProvider();
+      final accountStore = AccountStore();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AgenticTradingProvider>.value(
+                value: provider),
+            ChangeNotifierProvider<AccountStore>.value(value: accountStore),
+            ChangeNotifierProvider<BrokerageUserStore>(
+                create: (_) => BrokerageUserStore([], 0)),
+            ChangeNotifierProvider<PaperTradingStore>(
+                create: (_) => PaperTradingStore()),
+            ChangeNotifierProvider<QuoteStore>(create: (_) => QuoteStore()),
+            ChangeNotifierProvider<InstrumentPositionStore>(
+                create: (_) => InstrumentPositionStore()),
+            ChangeNotifierProvider<InstrumentStore>(
+                create: (_) => InstrumentStore()),
+          ],
+          child: MaterialApp(
+            home: AutomatedTradeProposalDetailWidget(
+              proposal: proposal,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Volatility-Adaptive Stops & Targets (ATR)'),
+          findsOneWidget);
+      expect(find.text('14-Period ATR'), findsOneWidget);
+      expect(find.text(r'$2.50'), findsOneWidget);
+      expect(find.text('Adaptive Stop Loss (1.5x ATR)'), findsOneWidget);
+      expect(find.text(r'$96.25 (-3.8%)'), findsOneWidget);
+      expect(find.text('Dynamic Profit Target (3.0x ATR)'), findsOneWidget);
+      expect(find.text(r'$107.50 (+7.5%)'), findsOneWidget);
+      expect(find.text('Volatility Ratchet'), findsOneWidget);
+      expect(find.text('Normal'), findsOneWidget);
+      expect(find.text('R:R 2.0'), findsOneWidget);
+    });
   });
 }

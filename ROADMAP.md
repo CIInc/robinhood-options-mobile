@@ -34,9 +34,9 @@ This document outlines the planned features, enhancements, and delivery mileston
 **Last reviewed:** November 16, 2026 · **Current app version:** 0.62.1
 
 ### Quick Stats
-- **Completed checklist items:** 79 high-level capability blocks (500+ sub-features)
-- **Planned checklist items:** 44 actionable tasks across milestone horizons (v0.62.x: 10, v0.63.0: 13, v0.64.0+: 21)
-- **GitHub issues:** 151 total — 58 open and 93 closed (as of November 16, 2026)
+- **Completed checklist items:** 80 high-level capability blocks (500+ sub-features)
+- **Planned checklist items:** 43 actionable tasks across milestone horizons (v0.62.x: 9, v0.63.0: 13, v0.64.0+: 21)
+- **GitHub issues:** 151 total — 58 open and 93 closed (as of November 18, 2026)
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
 
 ### Key Highlights
@@ -97,7 +97,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
   - Surface an opt-in Pre-Earnings IV Expansion Harvester strategy entering calendar or straddle positions 10–14 days prior to earnings and closing them 24 hours before the release.
 - [ ] **Schwab Market-Data & Order-Lifecycle Parity** (v0.62.0, [#138](https://github.com/CIInc/robinhood-options-mobile/issues/138)): Complete the remaining quote, OHLCV, fundamentals, movers, order-preview, margin-check, and in-flight replacement coverage.
 - [ ] **Reusable Crypto & Forex Order Templates** (v0.62.0, [#116](https://github.com/CIInc/robinhood-options-mobile/issues/116)): Save and reuse instrument-specific order configurations while preserving live price and risk validation.
-- [ ] **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet** (v0.62.0, [#347](https://github.com/CIInc/robinhood-options-mobile/issues/347), [Tracking: #282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):
+- [x] **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet** (v0.62.0, [#347](https://github.com/CIInc/robinhood-options-mobile/issues/347), [Tracking: #282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):
   - Dynamically scale ATR stop-loss and take-profit multipliers based on the asset's realized volatility percentile and ATR expansion/contraction.
   - Implement a dynamic ratchet mechanism in `AgenticTradingProvider` widening stops during volatility compression to prevent whipsaws and tightening trailing stops when ATR expands.
   - Surface active dynamic ATR trailing stop levels and profit targets in `AutomatedTradeProposalDetailWidget` and position order cards.

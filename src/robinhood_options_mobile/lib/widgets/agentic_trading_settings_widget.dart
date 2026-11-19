@@ -290,6 +290,8 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _marketIndexController;
   late TextEditingController _trailingStopPercentController;
   late TextEditingController _trailingPeakStopPercentController;
+  late TextEditingController _atrStopMultiplierController;
+  late TextEditingController _atrProfitMultiplierController;
   late TextEditingController _minDteStopDaysController;
   late TextEditingController _stalledSessionsStopLimitController;
   late TextEditingController _catastrophicStopPercentController;
@@ -418,6 +420,10 @@ class _AgenticTradingSettingsWidgetState
         text: strategy?.trailingStopPercent.toString() ?? '3.0');
     _trailingPeakStopPercentController = TextEditingController(
         text: strategy?.trailingPeakStopPercent.toString() ?? '15.0');
+    _atrStopMultiplierController = TextEditingController(
+        text: strategy?.atrStopMultiplier.toString() ?? '1.5');
+    _atrProfitMultiplierController = TextEditingController(
+        text: strategy?.atrProfitMultiplier.toString() ?? '3.0');
     _minDteStopDaysController =
         TextEditingController(text: strategy?.minDteStopDays.toString() ?? '7');
     _stalledSessionsStopLimitController = TextEditingController(
@@ -511,6 +517,8 @@ class _AgenticTradingSettingsWidgetState
     _stopLossPercentController.dispose();
     _trailingStopPercentController.dispose();
     _trailingPeakStopPercentController.dispose();
+    _atrStopMultiplierController.dispose();
+    _atrProfitMultiplierController.dispose();
     _minDteStopDaysController.dispose();
     _stalledSessionsStopLimitController.dispose();
     _catastrophicStopPercentController.dispose();
@@ -883,6 +891,12 @@ class _AgenticTradingSettingsWidgetState
       enableCatastrophicStop: strategySource.enableCatastrophicStop,
       catastrophicStopPercent:
           double.tryParse(_catastrophicStopPercentController.text) ?? 30.0,
+      dynamicAtrStopsEnabled: strategySource.dynamicAtrStopsEnabled,
+      atrStopMultiplier:
+          double.tryParse(_atrStopMultiplierController.text) ?? 1.5,
+      atrProfitMultiplier:
+          double.tryParse(_atrProfitMultiplierController.text) ?? 3.0,
+      atrRatchetEnabled: strategySource.atrRatchetEnabled,
     );
 
     return AgenticTradingConfig(
@@ -5275,6 +5289,28 @@ class _AgenticTradingSettingsWidgetState
                 baseConfig: agenticTradingProvider.config.copyWith(
                     strategyConfig: agenticTradingProvider.config.strategyConfig
                         .copyWith(enableCatastrophicStop: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          dynamicAtrStopsEnabled: agenticTradingProvider
+              .config.strategyConfig.dynamicAtrStopsEnabled,
+          atrStopMultiplierController: _atrStopMultiplierController,
+          atrProfitMultiplierController: _atrProfitMultiplierController,
+          atrRatchetEnabled:
+              agenticTradingProvider.config.strategyConfig.atrRatchetEnabled,
+          onDynamicAtrStopsChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(dynamicAtrStopsEnabled: val)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          onAtrRatchetChanged: (val) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig: agenticTradingProvider.config.strategyConfig
+                        .copyWith(atrRatchetEnabled: val)));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           onSettingsChanged: _saveSettings,

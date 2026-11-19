@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet ([#347](https://github.com/CIInc/robinhood-options-mobile/issues/347)):**
+  - **Dynamic ATR Stop-Loss & Take-Profit:** Calibrates stop-loss and profit target distances using the 14-period Average True Range (ATR) with configurable multipliers (`atrStopMultiplier`, default: 1.5x, `atrProfitMultiplier`, default: 3.0x).
+  - **Adaptive Volatility Ratchet:** Automatically expands stop buffers ($1.25\times$) during low-volatility compression to reduce whipsaws and tightens stops ($0.75\times$) during momentum expansions to lock in gains.
+  - **Proposal Diagnostics:** Integrated live ATR distance, calculated dollar stop/target prices, volatility regime state, and reward-to-risk ratio into `AutomatedTradeProposalDetailWidget`.
+  - **Settings Controls:** Added dedicated toggle and multiplier input controls in `ExitStrategiesWidget` and `AgenticTradingSettingsWidget`.
+
 ## [0.62.1] - 2026-11-16
 
 **iOS Background Brokerage OAuth Availability**

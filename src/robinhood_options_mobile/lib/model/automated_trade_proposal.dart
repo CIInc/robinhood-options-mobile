@@ -158,6 +158,83 @@ class AutomatedTradeProposal {
     return macroAssessment?['reason']?.toString();
   }
 
+  /// Extracted Average True Range (ATR) indicator value.
+  double? get atr {
+    final rawAtr = proposal?['atr'] ??
+        metrics?['atr'] ??
+        (signal?['indicators'] is Map
+            ? (signal!['indicators'] as Map)['atr'] is Map
+                ? ((signal!['indicators'] as Map)['atr'] as Map)['value']
+                : (signal!['indicators'] as Map)['atr']
+            : null) ??
+        signal?['atr'] ??
+        rawMap['atr'];
+    if (rawAtr is num) return rawAtr.toDouble();
+    return null;
+  }
+
+  /// ATR stop-loss multiplier (e.g. 1.5x).
+  double? get atrStopMultiplier {
+    final mult = proposal?['atrStopMultiplier'] ??
+        proposal?['atrMultiplier'] ??
+        rawMap['atrStopMultiplier'] ??
+        rawMap['atrMultiplier'];
+    if (mult is num) return mult.toDouble();
+    return null;
+  }
+
+  /// ATR profit target multiplier (e.g. 3.0x).
+  double? get atrProfitMultiplier {
+    final mult =
+        proposal?['atrProfitMultiplier'] ?? rawMap['atrProfitMultiplier'];
+    if (mult is num) return mult.toDouble();
+    return null;
+  }
+
+  /// Calculated dynamic ATR stop price.
+  double? get atrStopPrice {
+    final p = proposal?['atrStopPrice'] ?? rawMap['atrStopPrice'];
+    if (p is num) return p.toDouble();
+    if (atr != null && price > 0) {
+      final mult = atrStopMultiplier ?? 1.5;
+      return price - (atr! * mult);
+    }
+    return null;
+  }
+
+  /// Calculated dynamic ATR target price.
+  double? get atrTargetPrice {
+    final p = proposal?['atrTargetPrice'] ?? rawMap['atrTargetPrice'];
+    if (p is num) return p.toDouble();
+    if (atr != null && price > 0) {
+      final mult = atrProfitMultiplier ?? 3.0;
+      return price + (atr! * mult);
+    }
+    return null;
+  }
+
+  /// Volatility regime based on normalized ATR (NATR).
+  String? get atrVolatilityRegime {
+    if (atr == null || price <= 0) return null;
+    final natr = (atr! / price) * 100.0;
+    if (natr < 1.0) return 'Compression (Widened 1.25x)';
+    if (natr > 3.0) return 'Expansion (Tightened 0.75x)';
+    return 'Normal';
+  }
+
+  /// Effective reward-to-risk ratio.
+  double? get effectiveRewardRiskRatio {
+    if (rewardRiskRatio != null) return rewardRiskRatio;
+    if (atr != null && price > 0) {
+      final stopMult = atrStopMultiplier ?? 1.5;
+      final profitMult = atrProfitMultiplier ?? 3.0;
+      if (stopMult > 0) {
+        return profitMult / stopMult;
+      }
+    }
+    return null;
+  }
+
   /// Deserializes a pending order map from Firestore or local provider state.
   factory AutomatedTradeProposal.fromMap(Map<String, dynamic> map) {
     DateTime parsedTime;
