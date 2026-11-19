@@ -2,7 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.62.2] - 2026-11-18
+
+**Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet**
 
 ### Added
 - **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet ([#347](https://github.com/CIInc/robinhood-options-mobile/issues/347)):**

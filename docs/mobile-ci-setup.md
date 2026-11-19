@@ -53,7 +53,7 @@ Also ensure the **Firebase Management API** (`firebase.googleapis.com`) is enabl
 | `APP_STORE_CONNECT_USERNAME` | (Optional fallback) Apple ID username for `altool`. |
 | `APP_STORE_CONNECT_PASSWORD` | (Optional fallback) App-specific password for `altool`. |
 
-When API Key secrets are configured, the CD workflow uploads the iOS IPA to TestFlight via `apple-actions/upload-testflight-build` and sets the build's Test Details ("What to Test") from the version notes in `ROADMAP.md`. If API Key secrets are absent, it falls back to `xcrun altool`.
+When API Key secrets are configured, the CD workflow uploads the iOS IPA to TestFlight via `apple-actions/upload-testflight-build`, sets the build's Test Details ("What to Test") from the version notes in `ROADMAP.md`, and automatically assigns the build to groups listed in `.github/testflight-groups.txt` (submitting external groups for TestFlight Beta App Review). If API Key secrets are absent, it falls back to `xcrun altool`.
 
 ### How to encode iOS secrets
 
