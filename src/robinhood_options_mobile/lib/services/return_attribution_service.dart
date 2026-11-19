@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/return_attribution.dart';
+import 'package:robinhood_options_mobile/model/stock_loan.dart';
 
 /// Multi-Asset Brinson Performance & Greek Return Attribution Engine (#278).
 ///
@@ -352,10 +353,12 @@ class ReturnAttributionService {
   }
 
   /// Aggregates [attributeOptionPosition] across live option positions for
-  /// today's session, plus dividend/interest [incomePnL] for the window.
+  /// today's session, plus dividend, interest/sweep, and stock-lending
+  /// [incomePnL] / [incomeBreakdown] for the window.
   static OptionsAttributionResult calculateOptionsGreekAttribution({
     required Iterable<OptionAggregatePosition> positions,
     double incomePnL = 0,
+    IncomeAttributionBreakdown? incomeBreakdown,
     double daysElapsed = 1,
     String windowLabel = todayWindowLabel,
   }) {
@@ -400,52 +403,200 @@ class ReturnAttributionService {
     double sum(double Function(GreekPnLAttribution) f) =>
         rows.fold<double>(0, (total, r) => total + f(r));
 
+    final resolvedIncome = incomeBreakdown != null
+        ? incomeBreakdown.totalIncomePnL
+        : (incomePnL.isFinite ? incomePnL : 0.0);
+    final resolvedBreakdown = incomeBreakdown ??
+        IncomeAttributionBreakdown(dividendIncome: resolvedIncome);
+
     return OptionsAttributionResult(
       totalDeltaPnL: sum((r) => r.deltaPnL),
       totalGammaPnL: sum((r) => r.gammaPnL),
       totalThetaPnL: sum((r) => r.thetaPnL),
       totalVegaPnL: sum((r) => r.vegaPnL),
       totalResidualPnL: sum((r) => r.residualPnL),
-      totalIncomePnL: incomePnL.isFinite ? incomePnL : 0,
+      totalIncomePnL: resolvedIncome.isFinite ? resolvedIncome : 0,
+      incomeBreakdown: resolvedBreakdown,
       contractCount: contracts,
       positions: rows,
       windowLabel: windowLabel,
     );
   }
 
-  /// Sums paid dividends and interest whose pay date falls in
-  /// [start, end] (inclusive). Accepts the raw broker maps held by
-  /// `DividendStore` and `InterestStore`; malformed rows are ignored.
-  static double incomeWithinWindow({
+  static const Set<String> _excludedIncomeStatuses = {
+    'voided',
+    'void',
+    'pending',
+    'cancelled',
+    'canceled',
+    'failed',
+    'reversed',
+  };
+
+  /// Computes disaggregated income and yield attribution in [start, end]
+  /// (inclusive) across:
+  ///  * Paid dividends
+  ///  * Paid cash-sweep / interest payouts, plus daily [SweepsInterest] accrual
+  ///    estimates when enrolled and no payout landed in the window
+  ///  * Paid/settled SLIP [StockLoanPayment] payouts, plus daily
+  ///    [SlipEligibility] lending accrual estimates when enrolled and no SLIP
+  ///    payout landed in the window.
+  static IncomeAttributionBreakdown calculateIncomeBreakdown({
     Iterable<dynamic> dividends = const [],
     Iterable<dynamic> interest = const [],
+    Iterable<dynamic> stockLoanPayments = const [],
+    SweepsInterest? sweepsInterest,
+    SlipEligibility? slipEligibility,
     required DateTime start,
     required DateTime end,
+    double daysElapsed = 1,
   }) {
-    var total = 0.0;
-    void addIfInWindow(dynamic row, String dateKey) {
-      if (row is! Map) return;
-      final state = row['state']?.toString();
-      if (state == 'voided' || state == 'pending') return;
-      final rawDate = row[dateKey] ?? row['pay_date'] ?? row['payable_date'];
-      final date = rawDate == null ? null : DateTime.tryParse('$rawDate');
-      if (date == null || date.isBefore(start) || date.isAfter(end)) return;
-      final rawAmount = row['amount'];
+    DateTime? normalizeDate(DateTime? raw) {
+      if (raw == null) return null;
+      if (raw.isUtc &&
+          !start.isUtc &&
+          raw.hour == 0 &&
+          raw.minute == 0 &&
+          raw.second == 0 &&
+          raw.millisecond == 0 &&
+          raw.microsecond == 0) {
+        return DateTime(raw.year, raw.month, raw.day);
+      }
+      return raw;
+    }
+
+    bool inWindow(DateTime? rawDate) {
+      final date = normalizeDate(rawDate);
+      return date != null && !date.isBefore(start) && !date.isAfter(end);
+    }
+
+    double parseRowAmount(dynamic rawAmount) {
       final amount = rawAmount is Map
           ? double.tryParse('${rawAmount['amount']}')
           : (rawAmount is num
               ? rawAmount.toDouble()
               : double.tryParse('$rawAmount'));
-      if (amount != null && amount.isFinite) total += amount;
+      return (amount != null && amount.isFinite) ? amount : 0.0;
     }
 
-    for (final d in dividends) {
-      addIfInWindow(d, 'payable_date');
+    double sumMapRows(Iterable<dynamic> rows, List<String> dateKeys) {
+      var total = 0.0;
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final state = (row['state'] ?? row['status'])?.toString().toLowerCase();
+        if (state != null && _excludedIncomeStatuses.contains(state)) continue;
+        dynamic rawDate;
+        for (final key in dateKeys) {
+          if (row[key] != null) {
+            rawDate = row[key];
+            break;
+          }
+        }
+        final date = rawDate == null ? null : DateTime.tryParse('$rawDate');
+        if (!inWindow(date)) continue;
+        total += parseRowAmount(
+            row['amount'] ?? row['net_amount'] ?? row['total_amount']);
+      }
+      return total;
     }
-    for (final i in interest) {
-      addIfInWindow(i, 'pay_date');
+
+    final dividendIncome = sumMapRows(
+      dividends,
+      const ['payable_date', 'pay_date'],
+    );
+    final paidInterest = sumMapRows(
+      interest,
+      const ['pay_date', 'payable_date'],
+    );
+
+    var paidStockLoan = 0.0;
+    for (final entry in stockLoanPayments) {
+      if (entry is StockLoanPayment) {
+        final status = entry.status.toLowerCase();
+        if (_excludedIncomeStatuses.contains(status) || !entry.isPaid) {
+          continue;
+        }
+        if (!inWindow(entry.paymentDate)) continue;
+        if (entry.amount.isFinite) {
+          paidStockLoan += entry.amount;
+        }
+      } else if (entry is Map) {
+        final status =
+            (entry['status'] ?? entry['state'])?.toString().toLowerCase();
+        if (status != null && _excludedIncomeStatuses.contains(status)) {
+          continue;
+        }
+        final rawDate = entry['payment_date'] ??
+            entry['paymentDate'] ??
+            entry['paid_at'] ??
+            entry['settlement_date'] ??
+            entry['pay_date'] ??
+            entry['date'];
+        final date = rawDate == null ? null : DateTime.tryParse('$rawDate');
+        if (!inWindow(date)) continue;
+        paidStockLoan += parseRowAmount(
+          entry['amount'] ?? entry['net_amount'] ?? entry['total_amount'],
+        );
+      }
     }
-    return total;
+
+    final validDays = daysElapsed.isFinite && daysElapsed > 0;
+    var dailySweepAccrualEstimate = 0.0;
+    if (paidInterest == 0 &&
+        validDays &&
+        sweepsInterest != null &&
+        sweepsInterest.isEnrolled) {
+      final annual = sweepsInterest.estimatedAnnualInterest;
+      if (annual.isFinite && annual > 0) {
+        dailySweepAccrualEstimate = annual * (daysElapsed / 365.0);
+      }
+    }
+
+    var dailyStockLoanAccrualEstimate = 0.0;
+    if (paidStockLoan == 0 &&
+        validDays &&
+        slipEligibility != null &&
+        slipEligibility.isEnrolled) {
+      final loanedValue = slipEligibility.totalLoanedValue ?? 0.0;
+      final annualYield = slipEligibility.estimatedAnnualizedYield ?? 0.0;
+      final annual = loanedValue * annualYield;
+      if (annual.isFinite && annual > 0) {
+        dailyStockLoanAccrualEstimate = annual * (daysElapsed / 365.0);
+      }
+    }
+
+    return IncomeAttributionBreakdown(
+      dividendIncome: dividendIncome,
+      interestAndSweepIncome: paidInterest + dailySweepAccrualEstimate,
+      stockLoanIncome: paidStockLoan + dailyStockLoanAccrualEstimate,
+      dailySweepAccrualEstimate: dailySweepAccrualEstimate,
+      dailyStockLoanAccrualEstimate: dailyStockLoanAccrualEstimate,
+    );
+  }
+
+  /// Sums paid dividends, cash sweeps/interest, and SLIP stock lending income
+  /// whose date falls in [start, end] (inclusive), plus optional daily accrual
+  /// estimates when enrolled. Malformed, pending, and voided rows are ignored.
+  static double incomeWithinWindow({
+    Iterable<dynamic> dividends = const [],
+    Iterable<dynamic> interest = const [],
+    Iterable<dynamic> stockLoanPayments = const [],
+    SweepsInterest? sweepsInterest,
+    SlipEligibility? slipEligibility,
+    required DateTime start,
+    required DateTime end,
+    double daysElapsed = 1,
+  }) {
+    return calculateIncomeBreakdown(
+      dividends: dividends,
+      interest: interest,
+      stockLoanPayments: stockLoanPayments,
+      sweepsInterest: sweepsInterest,
+      slipEligibility: slipEligibility,
+      start: start,
+      end: end,
+      daysElapsed: daysElapsed,
+    ).totalIncomePnL;
   }
 
   static Map<String, double> _normalize(Map<String, double> raw) {

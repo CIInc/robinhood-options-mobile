@@ -449,7 +449,7 @@ class _MultiLegSpreadBuilderSheetState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'The Multi-Leg Spread Builder requires Advanced Trading (Multi-Leg Spreads) to be enabled in Beta Labs.',
+                  'The Multi-Leg Spread Builder requires Advanced Trading to be enabled in Beta Labs.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,

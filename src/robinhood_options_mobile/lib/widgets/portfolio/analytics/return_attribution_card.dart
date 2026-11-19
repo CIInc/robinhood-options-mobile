@@ -2,13 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/return_attribution.dart';
+import 'package:robinhood_options_mobile/model/stock_loan.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/return_attribution_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/analytics_style_card.dart';
+
+/// Additional income & yield streams loaded asynchronously from the broker.
+class AttributionIncomeContext {
+  final List<dynamic> stockLoanPayments;
+  final SweepsInterest? sweepsInterest;
+  final SlipEligibility? slipEligibility;
+
+  const AttributionIncomeContext({
+    this.stockLoanPayments = const [],
+    this.sweepsInterest,
+    this.slipEligibility,
+  });
+}
+
+/// Loads stock-lending and cash-sweep metadata. Injectable for tests.
+typedef IncomeContextLoader = Future<AttributionIncomeContext> Function();
 
 /// Loads quotes for the sector ETF proxies. Injectable for tests.
 typedef SectorQuoteLoader = Future<List<Quote>> Function(List<String> symbols);
@@ -32,7 +51,13 @@ class ReturnAttributionCard extends StatefulWidget {
   final String benchmarkSymbol;
   final Iterable<dynamic> dividends;
   final Iterable<dynamic> interest;
+  final BrokerageUser? user;
+  final IBrokerageService? service;
+  final Iterable<dynamic>? stockLoanPayments;
+  final SweepsInterest? sweepsInterest;
+  final SlipEligibility? slipEligibility;
   final SectorQuoteLoader? sectorQuoteLoader;
+  final IncomeContextLoader? incomeContextLoader;
   final AttributionComputedCallback? onAttributionComputed;
 
   /// Overrides "now" for the income window. Defaults to [DateTime.now].
@@ -46,7 +71,13 @@ class ReturnAttributionCard extends StatefulWidget {
     this.cashBalance = 0,
     this.dividends = const [],
     this.interest = const [],
+    this.user,
+    this.service,
+    this.stockLoanPayments,
+    this.sweepsInterest,
+    this.slipEligibility,
     this.sectorQuoteLoader,
+    this.incomeContextLoader,
     this.onAttributionComputed,
     this.clock,
   });
@@ -61,6 +92,7 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
   int _tab = 0;
   bool _loading = false;
   Map<String, double>? _sectorReturns;
+  AttributionIncomeContext? _loadedIncomeContext;
 
   final _percent = NumberFormat.decimalPercentPattern(decimalDigits: 2);
   final _weight = NumberFormat.decimalPercentPattern(decimalDigits: 1);
@@ -70,6 +102,82 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
   void initState() {
     super.initState();
     _loadSectorReturns();
+    _loadIncomeContext();
+  }
+
+  Future<void> _loadIncomeContext() async {
+    final loader = widget.incomeContextLoader;
+    final user = widget.user;
+    final service = widget.service;
+    if (loader == null && (user == null || service == null)) {
+      return;
+    }
+
+    AttributionIncomeContext? loaded;
+    try {
+      if (loader != null) {
+        loaded = await loader();
+      } else if (user != null && service != null) {
+        final needsPayments = widget.stockLoanPayments == null;
+        final needsSlip = widget.slipEligibility == null;
+        final needsSweeps = widget.sweepsInterest == null;
+
+        final paymentsFuture = needsPayments
+            ? service
+                .getStockLoanPayments(user)
+                .then<List<dynamic>>((value) => value)
+                .catchError((Object e) {
+                debugPrint('Return attribution stock loan load failed: $e');
+                return <dynamic>[];
+              })
+            : Future.value(const <dynamic>[]);
+
+        final slipFuture = needsSlip
+            ? service.getSlipEligibility(user).then<SlipEligibility?>((raw) {
+                if (raw is SlipEligibility) return raw;
+                if (raw is Map) return SlipEligibility.fromJson(raw);
+                return null;
+              }).catchError((Object e) {
+                debugPrint('Return attribution SLIP eligibility failed: $e');
+                return null;
+              })
+            : Future<SlipEligibility?>.value(null);
+
+        final sweepsFuture = needsSweeps
+            ? service.getSweepsInterest(user).then<SweepsInterest?>((raw) {
+                if (raw is SweepsInterest) return raw;
+                if (raw is Map) {
+                  return SweepsInterest.fromJson(
+                    raw,
+                    uninvestedCash: widget.cashBalance,
+                  );
+                }
+                return null;
+              }).catchError((Object e) {
+                debugPrint('Return attribution sweeps load failed: $e');
+                return null;
+              })
+            : Future<SweepsInterest?>.value(null);
+
+        final results = await Future.wait<dynamic>([
+          paymentsFuture,
+          slipFuture,
+          sweepsFuture,
+        ]);
+        loaded = AttributionIncomeContext(
+          stockLoanPayments: results[0] as List<dynamic>,
+          slipEligibility: results[1] as SlipEligibility?,
+          sweepsInterest: results[2] as SweepsInterest?,
+        );
+      }
+    } catch (e) {
+      debugPrint('Return attribution income context failed: $e');
+    }
+
+    if (!mounted || loaded == null) return;
+    setState(() {
+      _loadedIncomeContext = loaded;
+    });
   }
 
   Future<void> _loadSectorReturns() async {
@@ -119,15 +227,22 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
   OptionsAttributionResult _computeOptions() {
     final now = (widget.clock ?? DateTime.now)();
     final startOfDay = DateTime(now.year, now.month, now.day);
-    final income = ReturnAttributionService.incomeWithinWindow(
+    final breakdown = ReturnAttributionService.calculateIncomeBreakdown(
       dividends: widget.dividends,
       interest: widget.interest,
+      stockLoanPayments: widget.stockLoanPayments ??
+          _loadedIncomeContext?.stockLoanPayments ??
+          const [],
+      sweepsInterest:
+          widget.sweepsInterest ?? _loadedIncomeContext?.sweepsInterest,
+      slipEligibility:
+          widget.slipEligibility ?? _loadedIncomeContext?.slipEligibility,
       start: startOfDay,
       end: startOfDay.add(const Duration(hours: 23, minutes: 59, seconds: 59)),
     );
     return ReturnAttributionService.calculateOptionsGreekAttribution(
       positions: widget.optionPositions,
-      incomePnL: income,
+      incomeBreakdown: breakdown,
     );
   }
 
@@ -377,6 +492,13 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
           context, 'No priced option positions or income for today.');
     }
 
+    final breakdown = result.incomeBreakdown;
+    final hasEstimatedAccrual = breakdown.dailySweepAccrualEstimate > 0 ||
+        breakdown.dailyStockLoanAccrualEstimate > 0;
+    final incomeSubtitle = hasEstimatedAccrual
+        ? 'Dividends, sweeps & lending (incl. daily accrual est.)'
+        : 'Dividends, sweeps & lending today';
+
     final buckets = <(String, String, double)>[
       ('Delta (Δ)', 'Underlying direction', result.totalDeltaPnL),
       ('Gamma (Γ)', 'Convexity of the move', result.totalGammaPnL),
@@ -384,7 +506,7 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
       ('Vega (ν)', 'Implied volatility (implied)', result.totalVegaPnL),
       if (result.totalResidualPnL.abs() > 0.005)
         ('Residual', 'Unexplained by Greeks', result.totalResidualPnL),
-      ('Income', 'Dividends & interest paid today', result.totalIncomePnL),
+      ('Income', incomeSubtitle, result.totalIncomePnL),
     ];
     final gross = buckets.fold<double>(0, (a, b) => a + b.$3.abs());
 
@@ -394,6 +516,36 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
         for (final bucket in buckets)
           _greekRow(context, bucket.$1, bucket.$2, bucket.$3,
               gross > 0 ? bucket.$3.abs() / gross : 0, show),
+        if (breakdown.hasBreakdown) ...[
+          if (breakdown.dividendIncome.abs() > 0)
+            _incomeSubRow(
+              context,
+              'Dividends',
+              'Paid cash dividends today',
+              breakdown.dividendIncome,
+              show,
+            ),
+          if (breakdown.interestAndSweepIncome.abs() > 0)
+            _incomeSubRow(
+              context,
+              'Cash Sweeps & Interest',
+              breakdown.dailySweepAccrualEstimate > 0
+                  ? 'Daily sweep accrual estimate'
+                  : 'Sweep & cash interest paid today',
+              breakdown.interestAndSweepIncome,
+              show,
+            ),
+          if (breakdown.stockLoanIncome.abs() > 0)
+            _incomeSubRow(
+              context,
+              'SLIP Securities Lending',
+              breakdown.dailyStockLoanAccrualEstimate > 0
+                  ? 'Daily securities lending accrual estimate'
+                  : 'Stock loan payouts settled today',
+              breakdown.stockLoanIncome,
+              show,
+            ),
+        ],
         const Divider(height: 24),
         Semantics(
           label: 'Total options and income: ${_money(result.totalPnL, show)}'
@@ -459,6 +611,50 @@ class _ReturnAttributionCardState extends State<ReturnAttributionCard> {
                 Text('${_weight.format(share)} of gross',
                     style: theme.textTheme.labelSmall),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _incomeSubRow(BuildContext context, String title, String subtitle,
+      double value, bool show) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '$title, $subtitle: ${_money(value, show)}',
+      container: true,
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, top: 2, bottom: 4),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _money(value, show),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: _tone(context, value),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),

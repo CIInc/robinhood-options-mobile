@@ -25,8 +25,8 @@ class BrokerageUserStore extends ChangeNotifier {
   BrokerageUserStore(this._items, this.currentUserIndex,
       {this.aggregateAllAccounts = false,
       SecureTokenStorage? secureTokenStorage})
-      : _secureTokenStorage =
-            secureTokenStorage ?? PlatformSecureTokenStorage();
+      : _secureTokenStorage = secureTokenStorage ??
+            PlatformSecureTokenStorage.forBackgroundBrokerage();
 
   void add(BrokerageUser item) {
     _items.add(item);
@@ -146,7 +146,8 @@ class BrokerageUserStore extends ChangeNotifier {
       : currentUserIndex = json['currentUserIndex'],
         aggregateAllAccounts = json['aggregateAllAccounts'] ?? false,
         _items = BrokerageUser.fromJsonArray(json['users']),
-        _secureTokenStorage = PlatformSecureTokenStorage();
+        _secureTokenStorage =
+            PlatformSecureTokenStorage.forBackgroundBrokerage();
 
   Map<String, dynamic> toJson() {
     return {

@@ -134,7 +134,7 @@ This feature adds investment profile configuration to user settings, allowing us
 - The prompt also includes per-account cash (`portfolioCash`) and an aggregated total cash across accounts when `user.accounts` is present.
 
 ### UI
-- New `Investment Profile Settings` widget under user settings for editing goals, time horizon, risk tolerance, and portfolio value.
+- `Investment Profile Settings` widget accessible directly inside the AI Market Copilot context settings sheet for configuring goals, time horizon, risk tolerance, and portfolio value.
 
 ### Developer notes
 - The AI generation pipelines accept an optional `user` parameter and pass it through to `generateContent()`.

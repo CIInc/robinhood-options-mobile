@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 /// Type of leg within the delta-neutral position builder.
 enum DeltaLegType {
@@ -147,6 +148,9 @@ class DeltaPositionLeg {
   final double unitGamma;
   final double unitTheta;
   final double unitVega;
+  final double unitVanna; // delta shift per 1% IV shift
+  final double unitCharm; // daily delta drift (decay per calendar day)
+  final double unitVomma; // vega shift per 1% IV shift
   final double? impliedVolatility;
   final double markPrice;
 
@@ -162,6 +166,9 @@ class DeltaPositionLeg {
     this.unitGamma = 0.0,
     this.unitTheta = 0.0,
     this.unitVega = 0.0,
+    this.unitVanna = 0.0,
+    this.unitCharm = 0.0,
+    this.unitVomma = 0.0,
     this.impliedVolatility,
     required this.markPrice,
   });
@@ -201,6 +208,27 @@ class DeltaPositionLeg {
     return unitVega * multiplier * quantity * sideMultiplier;
   }
 
+  /// Net vanna contributed by this leg in delta per 1% IV shift.
+  double get totalVanna {
+    if (legType == DeltaLegType.stock) return 0.0;
+    return unitVanna * multiplier * quantity * sideMultiplier;
+  }
+
+  /// Net daily charm contributed by this leg in delta drift per day.
+  double get totalCharmDaily {
+    if (legType == DeltaLegType.stock) return 0.0;
+    return unitCharm * multiplier * quantity * sideMultiplier;
+  }
+
+  /// Net weekend charm drift (3 calendar days, Friday close to Monday open).
+  double get totalWeekendCharm => totalCharmDaily * 3.0;
+
+  /// Net vomma contributed by this leg in vega per 1% IV shift.
+  double get totalVomma {
+    if (legType == DeltaLegType.stock) return 0.0;
+    return unitVomma * multiplier * quantity * sideMultiplier;
+  }
+
   /// Total current market value of this leg.
   double get marketValue => markPrice * quantity * multiplier;
 
@@ -233,6 +261,9 @@ class DeltaPositionLeg {
     double? unitGamma,
     double? unitTheta,
     double? unitVega,
+    double? unitVanna,
+    double? unitCharm,
+    double? unitVomma,
     double? impliedVolatility,
     double? markPrice,
   }) {
@@ -248,6 +279,9 @@ class DeltaPositionLeg {
       unitGamma: unitGamma ?? this.unitGamma,
       unitTheta: unitTheta ?? this.unitTheta,
       unitVega: unitVega ?? this.unitVega,
+      unitVanna: unitVanna ?? this.unitVanna,
+      unitCharm: unitCharm ?? this.unitCharm,
+      unitVomma: unitVomma ?? this.unitVomma,
       impliedVolatility: impliedVolatility ?? this.impliedVolatility,
       markPrice: markPrice ?? this.markPrice,
     );
@@ -265,12 +299,19 @@ class DeltaPositionLeg {
         'unit_gamma': unitGamma,
         'unit_theta': unitTheta,
         'unit_vega': unitVega,
+        'unit_vanna': unitVanna,
+        'unit_charm': unitCharm,
+        'unit_vomma': unitVomma,
         'implied_volatility': impliedVolatility,
         'mark_price': markPrice,
         'total_delta': totalDelta,
         'total_gamma': totalGamma,
         'total_theta': totalTheta,
         'total_vega': totalVega,
+        'total_vanna': totalVanna,
+        'total_charm_daily': totalCharmDaily,
+        'total_weekend_charm': totalWeekendCharm,
+        'total_vomma': totalVomma,
         'market_value': marketValue,
       };
 
@@ -296,6 +337,9 @@ class DeltaPositionLeg {
       unitGamma: (json['unit_gamma'] as num?)?.toDouble() ?? 0.0,
       unitTheta: (json['unit_theta'] as num?)?.toDouble() ?? 0.0,
       unitVega: (json['unit_vega'] as num?)?.toDouble() ?? 0.0,
+      unitVanna: (json['unit_vanna'] as num?)?.toDouble() ?? 0.0,
+      unitCharm: (json['unit_charm'] as num?)?.toDouble() ?? 0.0,
+      unitVomma: (json['unit_vomma'] as num?)?.toDouble() ?? 0.0,
       impliedVolatility: (json['implied_volatility'] as num?)?.toDouble(),
       markPrice: (json['mark_price'] as num?)?.toDouble() ?? 0.0,
     );
@@ -480,10 +524,15 @@ class DeltaNeutralAnalysis {
   final double netGamma;
   final double netTheta;
   final double netVega;
+  final double netVanna;
+  final double netCharmDaily;
+  final double weekendCharmDrift;
+  final double netVomma;
   final double dollarDeltaPerOnePercent;
   final DeltaDriftStatus driftStatus;
   final DeltaNeutralRebalanceSuggestion rebalanceSuggestion;
   final List<DeltaScenarioPoint> scenarioPoints;
+  final List<List<CrossShockCell>> crossShockMatrix;
   final DateTime calculatedAt;
 
   const DeltaNeutralAnalysis({
@@ -496,10 +545,15 @@ class DeltaNeutralAnalysis {
     required this.netGamma,
     required this.netTheta,
     required this.netVega,
+    this.netVanna = 0.0,
+    this.netCharmDaily = 0.0,
+    this.weekendCharmDrift = 0.0,
+    this.netVomma = 0.0,
     required this.dollarDeltaPerOnePercent,
     required this.driftStatus,
     required this.rebalanceSuggestion,
     required this.scenarioPoints,
+    this.crossShockMatrix = const [],
     required this.calculatedAt,
   });
 
@@ -513,10 +567,17 @@ class DeltaNeutralAnalysis {
         'net_gamma': netGamma,
         'net_theta': netTheta,
         'net_vega': netVega,
+        'net_vanna': netVanna,
+        'net_charm_daily': netCharmDaily,
+        'weekend_charm_drift': weekendCharmDrift,
+        'net_vomma': netVomma,
         'dollar_delta_per_one_percent': dollarDeltaPerOnePercent,
         'drift_status': driftStatus.name,
         'rebalance_suggestion': rebalanceSuggestion.toJson(),
         'scenario_points': scenarioPoints.map((e) => e.toJson()).toList(),
+        'cross_shock_matrix': crossShockMatrix
+            .map((row) => row.map((c) => c.toJson()).toList())
+            .toList(),
         'calculated_at': calculatedAt.toIso8601String(),
       };
 
@@ -534,6 +595,11 @@ class DeltaNeutralAnalysis {
       netGamma: (json['net_gamma'] as num?)?.toDouble() ?? 0.0,
       netTheta: (json['net_theta'] as num?)?.toDouble() ?? 0.0,
       netVega: (json['net_vega'] as num?)?.toDouble() ?? 0.0,
+      netVanna: (json['net_vanna'] as num?)?.toDouble() ?? 0.0,
+      netCharmDaily: (json['net_charm_daily'] as num?)?.toDouble() ?? 0.0,
+      weekendCharmDrift:
+          (json['weekend_charm_drift'] as num?)?.toDouble() ?? 0.0,
+      netVomma: (json['net_vomma'] as num?)?.toDouble() ?? 0.0,
       dollarDeltaPerOnePercent:
           (json['dollar_delta_per_one_percent'] as num?)?.toDouble() ?? 0.0,
       driftStatus: DeltaDriftStatus.values.firstWhere(
@@ -554,6 +620,13 @@ class DeltaNeutralAnalysis {
       scenarioPoints: (json['scenario_points'] as List<dynamic>?)
               ?.map(
                   (e) => DeltaScenarioPoint.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      crossShockMatrix: (json['cross_shock_matrix'] as List<dynamic>?)
+              ?.map((row) => (row as List<dynamic>)
+                  .map(
+                      (c) => CrossShockCell.fromJson(c as Map<String, dynamic>))
+                  .toList())
               .toList() ??
           const [],
       calculatedAt: json['calculated_at'] != null

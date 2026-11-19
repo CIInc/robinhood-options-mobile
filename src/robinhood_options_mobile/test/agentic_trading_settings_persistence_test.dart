@@ -94,6 +94,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> openExecutionSettings(WidgetTester tester) async {
+    final header = find.text('Execution Settings');
+    await tester.ensureVisible(header);
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+  }
+
   Future<void> openRiskManagement(WidgetTester tester) async {
     final header = find.text('Risk Management');
     await tester.ensureVisible(header);
@@ -112,6 +119,7 @@ void main() {
     final user = _buildUser();
 
     await pumpSettings(tester, provider, user);
+    await openExecutionSettings(tester);
     await enterField(tester, 'Cooldown Period (minutes)', '30');
     await openRiskManagement(tester);
     await enterField(tester, 'Daily Trade Limit', '9');
@@ -131,6 +139,7 @@ void main() {
     final provider = AgenticTradingProvider();
 
     await pumpSettings(tester, provider, _buildUser());
+    await openExecutionSettings(tester);
     await enterField(tester, 'Cooldown Period (minutes)', '30');
     await openRiskManagement(tester);
     await enterField(tester, 'Daily Trade Limit', '9');
@@ -140,6 +149,7 @@ void main() {
 
     expect(provider.config.autoTradeCooldownMinutes, 30);
     expect(provider.config.strategyConfig.dailyTradeLimit, 9);
+    await openExecutionSettings(tester);
     final cooldown = tester.widget<TextFormField>(
         find.widgetWithText(TextFormField, 'Cooldown Period (minutes)'));
     expect(cooldown.controller!.text, '30');

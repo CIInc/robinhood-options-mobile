@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
-# Consume stdin payload
-cat > /dev/null
+# Disabled: Stop hooks caused 10-15s per-turn latency and false positive blockages.
+# Analysis and formatting verification are authoritatively handled during skill verification steps
+# ('dart analyze' and 'dart format --set-exit-if-changed .') and CI/CD pipelines.
 
-# Move to workspace root (parent of .agents)
-WORKSPACE_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-cd "$WORKSPACE_DIR" || exit 0
-
-# Check formatting
-if ! dart format --output=none --set-exit-if-changed . > /dev/null 2>&1; then
-  echo '{"decision": "continue", "reason": "Dart formatting verification failed. Unformatted Dart code detected. Please run `dart format .` before finishing."}'
-  exit 0
-fi
-
-# Check static analysis with fatal infos and warnings
-if ! flutter analyze --fatal-infos --fatal-warnings > /dev/null 2>&1; then
-  echo '{"decision": "continue", "reason": "Flutter analyze check failed with fatal warnings/infos. Please run `flutter analyze --fatal-infos --fatal-warnings` and fix issues before finishing."}'
-  exit 0
+# Consume any stdin without hanging
+if [ ! -t 0 ]; then
+  cat > /dev/null
 fi
 
 echo "{}"

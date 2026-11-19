@@ -20,11 +20,11 @@ class InvestmentProfileSettingsWidget extends StatefulWidget {
   const InvestmentProfileSettingsWidget({
     super.key,
     required this.user,
-    required this.firestoreService,
+    this.firestoreService,
   });
 
   final User user;
-  final FirestoreService firestoreService;
+  final FirestoreService? firestoreService;
 
   @override
   State<InvestmentProfileSettingsWidget> createState() =>
@@ -168,11 +168,11 @@ class _InvestmentProfileSettingsWidgetState
                 ? double.tryParse(_totalPortfolioValueController.text)
                 : null;
 
-        var usersCollection = widget.firestoreService.userCollection;
+        final service = widget.firestoreService ?? FirestoreService();
+        var usersCollection = service.userCollection;
         var userDocumentReference =
             usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
-        await widget.firestoreService
-            .updateUser(userDocumentReference, widget.user);
+        await service.updateUser(userDocumentReference, widget.user);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
