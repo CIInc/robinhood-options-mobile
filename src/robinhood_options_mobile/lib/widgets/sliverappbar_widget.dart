@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
@@ -65,6 +66,19 @@ class ExpandedSliverAppBar extends StatelessWidget {
     this.pinned = true,
   });
 
+  void _clearPortfolioStores(BuildContext context, AccountStore accountStore) {
+    accountStore.removeAll();
+    accountStore.clearSelection();
+    Provider.of<PortfolioStore>(context, listen: false).removeAll();
+    Provider.of<PortfolioHistoricalsStore>(context, listen: false).removeAll();
+    Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+    Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+    Provider.of<InstrumentPositionStore>(context, listen: false).removeAll();
+    try {
+      Provider.of<FuturesPositionStore>(context, listen: false).removeAll();
+    } catch (_) {}
+  }
+
   Future<void> showAccountSwitcher(BuildContext context,
       BrokerageUserStore brokerageUserStore, AccountStore accountStore) async {
     final showBalances = accountStore.showBalances;
@@ -109,25 +123,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
                           onTap: () async {
                             Navigator.pop(context);
                             if (!brokerageUserStore.aggregateAllAccounts) {
-                              accountStore.clearSelection();
-                              accountStore.removeAll();
-                              Provider.of<PortfolioStore>(context,
-                                      listen: false)
-                                  .removeAll();
-                              Provider.of<PortfolioHistoricalsStore>(context,
-                                      listen: false)
-                                  .removeAll();
-                              Provider.of<ForexHoldingStore>(context,
-                                      listen: false)
-                                  .removeAll();
-                              Provider.of<OptionPositionStore>(context,
-                                      listen: false)
-                                  .removeAll();
-                              Provider.of<InstrumentPositionStore>(context,
-                                      listen: false)
-                                  .removeAll();
-
                               brokerageUserStore.setAggregateAllAccounts(true);
+                              _clearPortfolioStores(context, accountStore);
                               await brokerageUserStore.save();
                               if (onChange != null) {
                                 onChange!();
@@ -193,31 +190,14 @@ class ExpandedSliverAppBar extends StatelessWidget {
                                         context, user)) {
                                   return;
                                 }
+                                if (!context.mounted) return;
                                 Navigator.pop(context);
                                 if (!isUserSelected ||
                                     brokerageUserStore.aggregateAllAccounts) {
-                                  accountStore.clearSelection();
-                                  accountStore.removeAll();
-                                  Provider.of<PortfolioStore>(context,
-                                          listen: false)
-                                      .removeAll();
-                                  Provider.of<PortfolioHistoricalsStore>(
-                                          context,
-                                          listen: false)
-                                      .removeAll();
-                                  Provider.of<ForexHoldingStore>(context,
-                                          listen: false)
-                                      .removeAll();
-                                  Provider.of<OptionPositionStore>(context,
-                                          listen: false)
-                                      .removeAll();
-                                  Provider.of<InstrumentPositionStore>(context,
-                                          listen: false)
-                                      .removeAll();
-
                                   brokerageUserStore
                                       .setAggregateAllAccounts(false);
                                   brokerageUserStore.setCurrentUserIndex(index);
+                                  _clearPortfolioStores(context, accountStore);
                                   await brokerageUserStore.save();
                                   if (onChange != null) {
                                     onChange!();

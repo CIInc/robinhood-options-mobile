@@ -70,6 +70,13 @@ class TradeStrategyConfig {
   final bool enableCatastrophicStop; // Stop 5: Hard catastrophic stop
   final double catastrophicStopPercent; // default: 50.0%
 
+  // Volatility-Adaptive Dynamic ATR Stops & Profit Ratchet
+  final bool dynamicAtrStopsEnabled;
+  final double atrStopMultiplier; // default: 1.5x ATR stop distance
+  final double atrProfitMultiplier; // default: 3.0x ATR profit target
+  final bool
+      atrRatchetEnabled; // default: true (compression widen / expansion tighten)
+
   // Added copyWith method to support usage in AgenticTradingConfig
   TradeStrategyConfig copyWith({
     DateTime? startDate,
@@ -130,6 +137,10 @@ class TradeStrategyConfig {
     bool? enableMacroRegimeStop,
     bool? enableCatastrophicStop,
     double? catastrophicStopPercent,
+    bool? dynamicAtrStopsEnabled,
+    double? atrStopMultiplier,
+    double? atrProfitMultiplier,
+    bool? atrRatchetEnabled,
   }) {
     return TradeStrategyConfig(
       startDate: startDate ?? this.startDate,
@@ -209,6 +220,11 @@ class TradeStrategyConfig {
           enableCatastrophicStop ?? this.enableCatastrophicStop,
       catastrophicStopPercent:
           catastrophicStopPercent ?? this.catastrophicStopPercent,
+      dynamicAtrStopsEnabled:
+          dynamicAtrStopsEnabled ?? this.dynamicAtrStopsEnabled,
+      atrStopMultiplier: atrStopMultiplier ?? this.atrStopMultiplier,
+      atrProfitMultiplier: atrProfitMultiplier ?? this.atrProfitMultiplier,
+      atrRatchetEnabled: atrRatchetEnabled ?? this.atrRatchetEnabled,
     );
   }
 
@@ -271,6 +287,10 @@ class TradeStrategyConfig {
     this.enableMacroRegimeStop = true,
     this.enableCatastrophicStop = true,
     this.catastrophicStopPercent = 50.0,
+    this.dynamicAtrStopsEnabled = false,
+    this.atrStopMultiplier = 1.5,
+    this.atrProfitMultiplier = 3.0,
+    this.atrRatchetEnabled = true,
   })  : enabledIndicators = {
           // Default indicator settings need to be off for safety,
           //some strategies don't explicitly enable indicators
@@ -356,6 +376,10 @@ class TradeStrategyConfig {
         'enableMacroRegimeStop': enableMacroRegimeStop,
         'enableCatastrophicStop': enableCatastrophicStop,
         'catastrophicStopPercent': catastrophicStopPercent,
+        'dynamicAtrStopsEnabled': dynamicAtrStopsEnabled,
+        'atrStopMultiplier': atrStopMultiplier,
+        'atrProfitMultiplier': atrProfitMultiplier,
+        'atrRatchetEnabled': atrRatchetEnabled,
       };
 
   factory TradeStrategyConfig.fromJson(Map<String, dynamic> json) =>
@@ -454,6 +478,13 @@ class TradeStrategyConfig {
         enableCatastrophicStop: json['enableCatastrophicStop'] as bool? ?? true,
         catastrophicStopPercent:
             (json['catastrophicStopPercent'] as num?)?.toDouble() ?? 50.0,
+        dynamicAtrStopsEnabled:
+            json['dynamicAtrStopsEnabled'] as bool? ?? false,
+        atrStopMultiplier:
+            (json['atrStopMultiplier'] as num?)?.toDouble() ?? 1.5,
+        atrProfitMultiplier:
+            (json['atrProfitMultiplier'] as num?)?.toDouble() ?? 3.0,
+        atrRatchetEnabled: json['atrRatchetEnabled'] as bool? ?? true,
       );
 
   Map<String, String> getDifferences(TradeStrategyConfig other) {
@@ -565,6 +596,14 @@ class TradeStrategyConfig {
         enableCatastrophicStop);
     check('Catastrophic Stop %', other.catastrophicStopPercent,
         catastrophicStopPercent);
+
+    // Volatility-Adaptive Dynamic ATR Stops & Profit Ratchet
+    check('Dynamic ATR Stops', other.dynamicAtrStopsEnabled,
+        dynamicAtrStopsEnabled);
+    check('ATR Stop Multiplier', other.atrStopMultiplier, atrStopMultiplier);
+    check('ATR Profit Multiplier', other.atrProfitMultiplier,
+        atrProfitMultiplier);
+    check('ATR Volatility Ratchet', other.atrRatchetEnabled, atrRatchetEnabled);
 
     return diffs;
   }

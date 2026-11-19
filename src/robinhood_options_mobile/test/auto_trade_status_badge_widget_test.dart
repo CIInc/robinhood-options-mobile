@@ -29,6 +29,9 @@ class MockAgenticTradingProvider extends ChangeNotifier
   int autoTradeCountdownSeconds = 300;
 
   @override
+  List<Map<String, dynamic>> pendingOrders = [];
+
+  @override
   Future<void> activateEmergencyStop({DocumentReference? userDocRef}) async {
     emergencyStopActivated = true;
     notifyListeners();
@@ -175,6 +178,22 @@ void main() {
     expect(find.text('DONE'), findsOneWidget);
     expect(find.text('5/5'), findsOneWidget);
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
+  });
+
+  testWidgets('renders "Review" state when pending orders exist',
+      (tester) async {
+    mockProvider.config.autoTradeEnabled = true;
+    mockProvider.emergencyStopActivated = false;
+    mockProvider.pendingOrders = [
+      {'symbol': 'AAPL', 'action': 'buy'}
+    ];
+
+    await tester.pumpWidget(createWidgetUnderTest());
+    await tester.pump();
+
+    expect(find.text('REVIEW'), findsOneWidget);
+    expect(find.text('1 PENDING'), findsOneWidget);
+    expect(find.byIcon(Icons.pending_actions), findsOneWidget);
   });
 
   group('Combined user icon and auto trading badge', () {

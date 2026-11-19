@@ -74,6 +74,80 @@ class BetaWeightedGreeksResult {
   bool get hasData => pricedPositions > 0;
 }
 
+/// Represents higher-order Greek sensitivities (Vanna, Charm, Vomma)
+/// and weekend/24h delta bleed.
+class HigherOrderGreeksResult {
+  final double netVanna; // delta shift per 1% IV move
+  final double netCharmDaily; // delta drift per calendar day
+  final double weekendCharmDrift; // delta drift over 3-day weekend
+  final double netVomma; // vega shift per 1% IV move
+  final int pricedContracts;
+
+  const HigherOrderGreeksResult({
+    required this.netVanna,
+    required this.netCharmDaily,
+    required this.weekendCharmDrift,
+    required this.netVomma,
+    required this.pricedContracts,
+  });
+
+  bool get hasData => pricedContracts > 0;
+}
+
+/// A single cell coordinate in the 2D Spot × IV Cross-Shock Stress Matrix.
+class CrossShockCell {
+  final double spotShiftPct; // e.g. -0.10 for -10% spot shift
+  final double ivShiftPct; // e.g. +0.20 for +20% IV shift
+  final double projectedPnL; // Dollar P&L under joint shock
+  final double projectedNetDelta; // Post-shock net delta
+  final double shiftedSpotPrice;
+
+  const CrossShockCell({
+    required this.spotShiftPct,
+    required this.ivShiftPct,
+    required this.projectedPnL,
+    required this.projectedNetDelta,
+    required this.shiftedSpotPrice,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'spot_shift_pct': spotShiftPct,
+        'iv_shift_pct': ivShiftPct,
+        'projected_pnl': projectedPnL,
+        'projected_net_delta': projectedNetDelta,
+        'shifted_spot_price': shiftedSpotPrice,
+      };
+
+  factory CrossShockCell.fromJson(Map<String, dynamic> json) => CrossShockCell(
+        spotShiftPct: (json['spot_shift_pct'] as num?)?.toDouble() ?? 0.0,
+        ivShiftPct: (json['iv_shift_pct'] as num?)?.toDouble() ?? 0.0,
+        projectedPnL: (json['projected_pnl'] as num?)?.toDouble() ?? 0.0,
+        projectedNetDelta:
+            (json['projected_net_delta'] as num?)?.toDouble() ?? 0.0,
+        shiftedSpotPrice:
+            (json['shifted_spot_price'] as num?)?.toDouble() ?? 0.0,
+      );
+}
+
+/// Container for the 2D Spot × IV Cross-Shock Stress Matrix.
+class CrossShockMatrixResult {
+  final List<double> spotShocks; // e.g. [-0.10, -0.05, 0.0, 0.05, 0.10]
+  final List<double> ivShocks; // e.g. [-0.20, -0.10, 0.0, 0.10, 0.20]
+  final List<List<CrossShockCell>> grid; // [spotIndex][ivIndex]
+  final double baseSpotPrice;
+  final double baseNetDelta;
+
+  const CrossShockMatrixResult({
+    required this.spotShocks,
+    required this.ivShocks,
+    required this.grid,
+    required this.baseSpotPrice,
+    required this.baseNetDelta,
+  });
+
+  bool get isEmpty => grid.isEmpty;
+}
+
 class AnalyticsUtils {
   /// Aggregates cross-asset positions (stocks, options, futures, crypto/forex)
   /// into beta-weighted Greeks normalized to a benchmark index (default: SPY).
@@ -509,6 +583,289 @@ class AnalyticsUtils {
         marketData.theta,
         marketData.vega
       ].any((value) => value != null && value.isFinite);
+
+  /// Closed-form Black-Scholes derivations for higher-order Greeks:
+  /// - Vanna (dDelta / dSigma = dVega / dSpot)
+  /// - Charm (dDelta / dt = -dDelta / dTau, delta decay)
+  /// - Daily Charm (delta decay per calendar day, / 365)
+  /// - Weekend Charm (delta decay over 3 calendar days, from Friday close to Monday open)
+  /// - Vomma / Volga (dVega / dSigma = d2V / dSigma2)
+  static Map<String, double> calculateBlackScholesHigherOrderGreeks({
+    required double spotPrice,
+    required double strikePrice,
+    required double timeToExpirationYears,
+    required double volatility,
+    double riskFreeRate = 0.045,
+    required bool isCall,
+  }) {
+    final S = max(0.01, spotPrice);
+    final K = max(0.01, strikePrice);
+    final T = max(0.0001, timeToExpirationYears);
+    final sigma = max(0.01, volatility);
+    final r = riskFreeRate;
+
+    final sqrtT = sqrt(T);
+    final d1 = (log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sqrtT);
+    final d2 = d1 - sigma * sqrtT;
+
+    final nPrimeD1 = normalPdf(d1);
+
+    // Vanna: dDelta / dSigma = - n'(d1) * d2 / sigma
+    // Vanna per 1% (0.01) IV shift:
+    final vannaRaw = -(nPrimeD1 * d2) / sigma;
+    final vannaPer1Pct = vannaRaw * 0.01;
+
+    // Charm (dDelta / dt):
+    // For call & put: n'(d1) * (d2 / (2 * T) - r / (sigma * sqrtT))
+    // Expressed as daily delta decay: / 365
+    final charmAnnual = nPrimeD1 * ((d2 / (2.0 * T)) - (r / (sigma * sqrtT)));
+    final dailyCharm = charmAnnual / 365.0;
+    final weekendCharm = dailyCharm * 3.0;
+
+    // Vega: S * n'(d1) * sqrt(T) / 100 (for 1% IV shift)
+    final vegaPer1Pct = (S * nPrimeD1 * sqrtT) / 100.0;
+
+    // Vomma: dVega / dSigma = Vega * (d1 * d2 / sigma)
+    // Per 1% IV shift on vega:
+    final vommaPer1Pct = (vegaPer1Pct * (d1 * d2 / sigma)) / 100.0;
+
+    return {
+      'vanna': vannaPer1Pct,
+      'vannaRaw': vannaRaw,
+      'charmAnnual': charmAnnual,
+      'dailyCharm': dailyCharm,
+      'weekendCharm': weekendCharm,
+      'vomma': vommaPer1Pct,
+      'vega': vegaPer1Pct,
+    };
+  }
+
+  /// Aggregates portfolio higher-order Greeks (Vanna, Charm, Vomma) across
+  /// open option positions.
+  static HigherOrderGreeksResult calculatePortfolioHigherOrderGreeks(
+    Iterable<OptionAggregatePosition> positions, {
+    double defaultVolatility = 0.30,
+    double riskFreeRate = 0.045,
+  }) {
+    double netVanna = 0.0;
+    double netCharmDaily = 0.0;
+    double weekendCharmDrift = 0.0;
+    double netVomma = 0.0;
+    int pricedContracts = 0;
+
+    final now = DateTime.now();
+
+    for (final position in positions) {
+      final quantity = position.quantity;
+      if (quantity == null || !quantity.isFinite || quantity == 0) continue;
+
+      final multiplier = position.tradeValueMultiplier ?? 100.0;
+      if (!multiplier.isFinite || multiplier <= 0) continue;
+
+      final direction =
+          position.direction.toLowerCase() == 'credit' ? -1.0 : 1.0;
+      final scale = quantity * multiplier * direction;
+
+      final legs = position.legs;
+      if (legs.isNotEmpty) {
+        for (final leg in legs) {
+          final strike =
+              leg.strikePrice ?? position.optionInstrument?.strikePrice;
+          final exp =
+              leg.expirationDate ?? position.optionInstrument?.expirationDate;
+          final isCall = (leg.optionType.toLowerCase().contains('call')) ||
+              (position.strategy.toLowerCase().contains('call')) ||
+              (position.optionInstrument?.type.toLowerCase().contains('call') ??
+                  true);
+
+          final md = position.optionInstrument?.optionMarketData;
+          final iv =
+              (md?.impliedVolatility != null && md!.impliedVolatility! > 0)
+                  ? md.impliedVolatility!
+                  : defaultVolatility;
+
+          final spot = position.instrumentObj?.quoteObj?.lastTradePrice ??
+              position.optionInstrument?.strikePrice ??
+              strike ??
+              100.0;
+
+          if (strike != null && exp != null && spot > 0) {
+            final tYears = max(0.001, exp.difference(now).inDays / 365.0);
+            final greeks = calculateBlackScholesHigherOrderGreeks(
+              spotPrice: spot,
+              strikePrice: strike,
+              timeToExpirationYears: tYears,
+              volatility: iv,
+              riskFreeRate: riskFreeRate,
+              isCall: isCall,
+            );
+
+            netVanna += greeks['vanna']! * scale;
+            netCharmDaily += greeks['dailyCharm']! * scale;
+            weekendCharmDrift += greeks['weekendCharm']! * scale;
+            netVomma += greeks['vomma']! * scale;
+            pricedContracts += quantity.abs().toInt();
+          }
+        }
+      } else if (position.optionInstrument != null) {
+        final inst = position.optionInstrument!;
+        final strike = inst.strikePrice;
+        final exp = inst.expirationDate;
+        final isCall = inst.type.toLowerCase().contains('call');
+        final md = inst.optionMarketData;
+        final iv = (md?.impliedVolatility != null && md!.impliedVolatility! > 0)
+            ? md.impliedVolatility!
+            : defaultVolatility;
+        final spot =
+            position.instrumentObj?.quoteObj?.lastTradePrice ?? strike ?? 100.0;
+
+        if (strike != null && exp != null && spot > 0) {
+          final tYears = max(0.001, exp.difference(now).inDays / 365.0);
+          final greeks = calculateBlackScholesHigherOrderGreeks(
+            spotPrice: spot,
+            strikePrice: strike,
+            timeToExpirationYears: tYears,
+            volatility: iv,
+            riskFreeRate: riskFreeRate,
+            isCall: isCall,
+          );
+
+          netVanna += greeks['vanna']! * scale;
+          netCharmDaily += greeks['dailyCharm']! * scale;
+          weekendCharmDrift += greeks['weekendCharm']! * scale;
+          netVomma += greeks['vomma']! * scale;
+          pricedContracts += quantity.abs().toInt();
+        }
+      }
+    }
+
+    return HigherOrderGreeksResult(
+      netVanna: netVanna,
+      netCharmDaily: netCharmDaily,
+      weekendCharmDrift: weekendCharmDrift,
+      netVomma: netVomma,
+      pricedContracts: pricedContracts,
+    );
+  }
+
+  /// Calculates the 2D Spot × IV Cross-Shock Stress Matrix across options and
+  /// equity holdings.
+  ///
+  /// Spot shifts: deltaS / S in [-10%, -5%, 0%, +5%, +10%]
+  /// IV shocks: deltaIV in [-20%, -10%, 0%, +10%, +20%]
+  static CrossShockMatrixResult calculatePortfolioCrossShockMatrix(
+    Iterable<OptionAggregatePosition> optionPositions, {
+    Iterable<InstrumentPosition>? equityPositions,
+    double? benchmarkSpotPrice,
+    List<double> spotShocks = const [-0.10, -0.05, 0.0, 0.05, 0.10],
+    List<double> ivShocks = const [-0.20, -0.10, 0.0, 0.10, 0.20],
+  }) {
+    final effectiveSpot = (benchmarkSpotPrice != null &&
+            benchmarkSpotPrice > 0 &&
+            benchmarkSpotPrice.isFinite)
+        ? benchmarkSpotPrice
+        : 100.0;
+
+    if (optionPositions.isEmpty) {
+      return CrossShockMatrixResult(
+        spotShocks: spotShocks,
+        ivShocks: ivShocks,
+        grid: const [],
+        baseSpotPrice: effectiveSpot,
+        baseNetDelta: 0.0,
+      );
+    }
+
+    final baseRawGreeks = aggregateOptionGreeks(optionPositions);
+    final higherGreeks = calculatePortfolioHigherOrderGreeks(optionPositions);
+
+    double baseDeltaShares = baseRawGreeks['delta'] ?? 0.0;
+    double baseGamma = baseRawGreeks['gamma'] ?? 0.0;
+    double baseVega = baseRawGreeks['vega'] ?? 0.0;
+
+    double equityShares = 0.0;
+    if (equityPositions != null) {
+      for (final eq in equityPositions) {
+        final qty = eq.quantity ?? 0.0;
+        if (qty.isFinite) {
+          equityShares += qty;
+        }
+      }
+    }
+    final totalBaseDelta = baseDeltaShares + equityShares;
+
+    final grid = <List<CrossShockCell>>[];
+
+    for (final sShift in spotShocks) {
+      final row = <CrossShockCell>[];
+      final deltaS = effectiveSpot * sShift;
+      final shiftedSpot = effectiveSpot * (1.0 + sShift);
+
+      for (final ivShift in ivShocks) {
+        // IV shift in percentage points (e.g. 0.10 -> 10 points)
+        final ivPoints = ivShift * 100.0;
+
+        // Equities: shares * deltaS
+        final equityPnL = equityShares * deltaS;
+
+        // Options multi-variable Taylor expansion:
+        // Delta * dS + 0.5 * Gamma * (dS)^2 + Vega * dIV + Vanna * dS * dIV + 0.5 * Vomma * (dIV)^2
+        final optionsPnL = (baseDeltaShares * deltaS) +
+            (0.5 * baseGamma * deltaS * deltaS) +
+            (baseVega * ivPoints) +
+            (higherGreeks.netVanna * deltaS * ivPoints) +
+            (0.5 * higherGreeks.netVomma * ivPoints * ivPoints);
+
+        final totalPnL = equityPnL + optionsPnL;
+
+        // Post-shock Net Delta:
+        // Delta_post = Delta_0 + Gamma * dS + Vanna * dIV
+        final postDelta = totalBaseDelta +
+            (baseGamma * deltaS) +
+            (higherGreeks.netVanna * ivPoints);
+
+        row.add(CrossShockCell(
+          spotShiftPct: sShift,
+          ivShiftPct: ivShift,
+          projectedPnL: totalPnL,
+          projectedNetDelta: postDelta,
+          shiftedSpotPrice: shiftedSpot,
+        ));
+      }
+      grid.add(row);
+    }
+
+    return CrossShockMatrixResult(
+      spotShocks: spotShocks,
+      ivShocks: ivShocks,
+      grid: grid,
+      baseSpotPrice: effectiveSpot,
+      baseNetDelta: totalBaseDelta,
+    );
+  }
+
+  static double normalPdf(double x) {
+    return (1.0 / sqrt(2.0 * pi)) * exp(-0.5 * x * x);
+  }
+
+  static double normalCdf(double x) {
+    const double a1 = 0.254829592;
+    const double a2 = -0.284496736;
+    const double a3 = 1.421413741;
+    const double a4 = -1.453152027;
+    const double a5 = 1.061405429;
+    const double p = 0.3275911;
+
+    final int sign = x < 0 ? -1 : 1;
+    final double absX = x.abs() / sqrt(2.0);
+
+    final double t = 1.0 / (1.0 + p * absX);
+    final double erf = 1.0 -
+        (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) *
+            exp(-absX * absX);
+
+    return 0.5 * (1.0 + sign * erf);
+  }
 
   /// Projects portfolio value under simple proportional market shocks.
   ///

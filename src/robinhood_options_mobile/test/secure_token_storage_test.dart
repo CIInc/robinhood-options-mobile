@@ -1,9 +1,17 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/services/secure_token_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('brokerage token Keychain entries are available after first unlock', () {
+    expect(
+      PlatformSecureTokenStorage.brokerageIOSOptions.accessibility,
+      KeychainAccessibility.first_unlock,
+    );
+  });
 
   test('migrates a legacy token before removing its preference value',
       () async {

@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/delta_neutral_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 /// Full-screen interactive Delta-Neutral Strategy Builder and Dynamic Hedging Tool.
 ///
@@ -62,6 +63,8 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
   DeltaNeutralAnalysis? _analysis;
   int? _hoveredScenarioIndex;
   bool _showPnLCurve = false;
+  bool _matrixShowPnL = true;
+  CrossShockCell? _selectedMatrixCell;
 
   @override
   void initState() {
@@ -343,6 +346,44 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
                   'Vega (V)',
                   '${analysis.netVega >= 0 ? "+" : ""}\$${analysis.netVega.toStringAsFixed(2)}',
                   '/ 1% IV',
+                  colorScheme,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Higher-Order Greeks Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildGreekChip(
+                  'Vanna',
+                  '${analysis.netVanna >= 0 ? "+" : ""}${analysis.netVanna.toStringAsFixed(2)}',
+                  'Δ / 1% IV',
+                  colorScheme,
+                ),
+              ),
+              Expanded(
+                child: _buildGreekChip(
+                  'Daily Charm',
+                  '${analysis.netCharmDaily >= 0 ? "+" : ""}${analysis.netCharmDaily.toStringAsFixed(2)}',
+                  'Δ / day',
+                  colorScheme,
+                ),
+              ),
+              Expanded(
+                child: _buildGreekChip(
+                  'Weekend Charm',
+                  '${analysis.weekendCharmDrift >= 0 ? "+" : ""}${analysis.weekendCharmDrift.toStringAsFixed(2)}',
+                  '3d drift',
+                  colorScheme,
+                ),
+              ),
+              Expanded(
+                child: _buildGreekChip(
+                  'Vomma',
+                  '${analysis.netVomma >= 0 ? "+" : ""}${analysis.netVomma.toStringAsFixed(2)}',
+                  'V / 1% IV',
                   colorScheme,
                 ),
               ),
@@ -1331,7 +1372,332 @@ class _DeltaNeutralBuilderWidgetState extends State<DeltaNeutralBuilderWidget>
             }),
           ],
         ),
+        // Weekend Charm Decay Alert / Summary
+        _buildWeekendCharmAlert(analysis, colorScheme),
+        // 2D Spot x IV Stress Matrix
+        _buildStrategyCrossShockMatrix(analysis, colorScheme),
       ],
+    );
+  }
+
+  Widget _buildWeekendCharmAlert(
+    DeltaNeutralAnalysis analysis,
+    ColorScheme colorScheme,
+  ) {
+    final drift = analysis.weekendCharmDrift;
+    final isBreached = drift.abs() > analysis.toleranceBand;
+    final formattedDrift =
+        '${drift >= 0 ? "+" : ""}${drift.toStringAsFixed(1)} Δ';
+
+    final Color color = isBreached ? colorScheme.error : colorScheme.primary;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isBreached ? Icons.warning_amber_rounded : Icons.nightlight_round,
+            color: color,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isBreached
+                      ? 'Weekend Charm Bleed Warning ($formattedDrift)'
+                      : 'Weekend Charm Drift ($formattedDrift)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  isBreached
+                      ? 'Projected 3-day delta bleed of $formattedDrift into Monday open will breach your ±${analysis.toleranceBand.toStringAsFixed(1)} Δ tolerance band even if the underlying spot price remains unchanged.'
+                      : 'Projected 3-day delta decay of $formattedDrift into Monday open remains within your ±${analysis.toleranceBand.toStringAsFixed(1)} Δ tolerance band.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStrategyCrossShockMatrix(
+    DeltaNeutralAnalysis analysis,
+    ColorScheme colorScheme,
+  ) {
+    final matrix = analysis.crossShockMatrix;
+    if (matrix.isEmpty) return const SizedBox.shrink();
+
+    const spotShocks = [-0.10, -0.05, 0.0, 0.05, 0.10];
+    const ivShocks = [-0.20, -0.10, 0.0, 0.10, 0.20];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 20, bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '2D Spot × IV Stress Matrix',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  Text(
+                    'Joint sensitivity across spot price and IV shocks',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text('Matrix P&L'),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text('Matrix Delta'),
+                  ),
+                ],
+                selected: {_matrixShowPnL},
+                onSelectionChanged: (set) {
+                  setState(() {
+                    _matrixShowPnL = set.first;
+                  });
+                },
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Selected cell callout banner
+          if (_selectedMatrixCell != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Shock: ΔS ${(_selectedMatrixCell!.spotShiftPct * 100).toStringAsFixed(0)}% (\$${_selectedMatrixCell!.shiftedSpotPrice.toStringAsFixed(1)}), '
+                      'ΔIV ${(_selectedMatrixCell!.ivShiftPct * 100).toStringAsFixed(0)}% · '
+                      'P&L: ${_selectedMatrixCell!.projectedPnL >= 0 ? "+" : ""}\$${_selectedMatrixCell!.projectedPnL.toStringAsFixed(0)} · '
+                      'Net Δ: ${_selectedMatrixCell!.projectedNetDelta >= 0 ? "+" : ""}${_selectedMatrixCell!.projectedNetDelta.toStringAsFixed(1)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => setState(() => _selectedMatrixCell = null),
+                    child: Icon(Icons.close,
+                        size: 14, color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Responsive Table
+          Table(
+            columnWidths: const {
+              0: FlexColumnWidth(1.1),
+              1: FlexColumnWidth(1.0),
+              2: FlexColumnWidth(1.0),
+              3: FlexColumnWidth(1.0),
+              4: FlexColumnWidth(1.0),
+              5: FlexColumnWidth(1.0),
+            },
+            children: [
+              TableRow(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'ΔS \\ ΔIV',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 8.5,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  for (final iv in ivShocks)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 2),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${iv >= 0 ? "+" : ""}${(iv * 100).toInt()}%',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 9.5,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              for (int sIdx = 0;
+                  sIdx < matrix.length && sIdx < spotShocks.length;
+                  sIdx++)
+                TableRow(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 6, horizontal: 2),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${spotShocks[sIdx] >= 0 ? "+" : ""}${(spotShocks[sIdx] * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 9.5,
+                        ),
+                      ),
+                    ),
+                    for (int ivIdx = 0; ivIdx < matrix[sIdx].length; ivIdx++)
+                      _buildMatrixCell(matrix[sIdx][ivIdx], colorScheme),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Non-linear cross-shock model (Vanna & Vomma interaction terms). Tap cell to inspect.',
+            style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMatrixCell(CrossShockCell cell, ColorScheme colorScheme) {
+    final isSelected = _selectedMatrixCell == cell;
+
+    final Color bgColor;
+    final Color textColor;
+    final String text;
+
+    if (_matrixShowPnL) {
+      if (cell.projectedPnL > 0) {
+        bgColor = Colors.green.withValues(alpha: 0.18);
+        textColor = Colors.green;
+        text =
+            '+${cell.projectedPnL >= 1000 ? "${(cell.projectedPnL / 1000).toStringAsFixed(1)}k" : cell.projectedPnL.toStringAsFixed(0)}';
+      } else if (cell.projectedPnL < 0) {
+        bgColor = colorScheme.error.withValues(alpha: 0.18);
+        textColor = colorScheme.error;
+        text = cell.projectedPnL <= -1000
+            ? '${(cell.projectedPnL / 1000).toStringAsFixed(1)}k'
+            : cell.projectedPnL.toStringAsFixed(0);
+      } else {
+        bgColor = colorScheme.surfaceContainerHighest;
+        textColor = colorScheme.onSurfaceVariant;
+        text = '\$0';
+      }
+    } else {
+      final delta = cell.projectedNetDelta;
+      if (delta.abs() <= _toleranceBand) {
+        bgColor = Colors.green.withValues(alpha: 0.15);
+        textColor = Colors.green;
+      } else if (delta.abs() <= _toleranceBand * 2.5) {
+        bgColor = Colors.amber.withValues(alpha: 0.15);
+        textColor = Colors.amber.shade800;
+      } else {
+        bgColor = colorScheme.error.withValues(alpha: 0.18);
+        textColor = colorScheme.error;
+      }
+      text = '${delta >= 0 ? "+" : ""}${delta.toStringAsFixed(1)}';
+    }
+
+    final semanticsLabel =
+        'Spot ${cell.spotShiftPct >= 0 ? "+" : ""}${(cell.spotShiftPct * 100).toInt()}%, IV ${cell.ivShiftPct >= 0 ? "+" : ""}${(cell.ivShiftPct * 100).toInt()}%, P&L \$${cell.projectedPnL.toStringAsFixed(0)}, Net Delta ${cell.projectedNetDelta.toStringAsFixed(1)}';
+
+    return Semantics(
+      label: semanticsLabel,
+      button: true,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedMatrixCell = cell;
+          });
+        },
+        child: Container(
+          height: 30,
+          margin: const EdgeInsets.all(1.0),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colorScheme.primary.withValues(alpha: 0.3)
+                : bgColor,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isSelected ? colorScheme.primary : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 9.5,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
     );
   }
 

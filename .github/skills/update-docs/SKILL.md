@@ -44,8 +44,9 @@ Provide the next version number to base the updates on recent commits since the 
    - Use clear, descriptive bullet points.
    - Group related changes together.
 
-5. **Update Docs Markdown Files**:
-   - Add or update sections describing new features in `docs/`.
+5. **Update Docs Markdown Files & PRODUCT.md**:
+   - Add or update sections describing new features in `docs/` (architecture, algorithms, configuration, and operational guides).
+   - Update `PRODUCT.md` to reflect new capabilities, user flows, architecture diagrams, and domain models.
    - Document new configuration options or settings.
    - Include code examples where applicable.
    - Update technical details sections.
@@ -61,7 +62,9 @@ Provide the next version number to base the updates on recent commits since the 
    - Query GitHub issues (`gh issue list --state all`) to reconcile open vs closed issues against the roadmap.
    - Add newly created GitHub issues into appropriate roadmap categories.
    - Update the **Quick Stats** section in `ROADMAP.md` (active open issues, completed features count, planned items).
-   - Add entry in "Release Versions & Timeline" for the new version.
+   - Maintain the **Key Highlights** section as a strictly limited list (at most 3–5 items) covering only the most recent major deliveries and highest-impact capabilities; prune older patch entries as new releases ship to keep it concise and executive-focused rather than an unbounded changelog.
+   - Limit the size of the **Completed Features ✅** section: keep the completed checklist bounded to high-level capability blocks for recent active minor releases; consolidate or summarize older historical release entries into `CHANGELOG.md` so `ROADMAP.md` remains lean and readable.
+   - Add entry in "Release Cadence & Milestone Overview" for the new version.
    - Reorder priorities or milestones if necessary.
 
 8. **Update Developer Instructions**:

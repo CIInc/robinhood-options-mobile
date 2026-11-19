@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/services/agentic_trading_background_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -15,6 +18,9 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_strategies.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 import 'firebase_mocks.dart';
 
 class MockBacktestingProvider extends ChangeNotifier
@@ -110,11 +116,7 @@ void main() {
 
       // Verify widget renders without errors
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
-      expect(find.text('Background activity'), findsOneWidget);
-      expect(
-        find.textContaining('Market-close exits are not guaranteed'),
-        findsOneWidget,
-      );
+      expect(find.text('Execution Settings'), findsOneWidget);
       expect(
         find.text(
           'Connect a Robinhood or Schwab account on this device to provide Paper quotes.',
@@ -282,6 +284,8 @@ void main() {
       );
       expect(find.byKey(const ValueKey('paperQuoteSource')), findsOneWidget);
       expect(find.text('Automated Paper Tests'), findsNothing);
+      expect(find.text('PAPER'), findsOneWidget);
+      expect(find.text('LIVE'), findsNothing);
 
       final paperQuoteSource = find.byKey(const ValueKey('paperQuoteSource'));
       await tester.ensureVisible(paperQuoteSource);
@@ -305,6 +309,258 @@ void main() {
         ).currentUser?.source,
         BrokerageSource.robinhood,
       );
+    });
+
+    testWidgets(
+        'Paper Trading Mode switcher shows LIVE badge when off and PAPER badge when on',
+        (WidgetTester tester) async {
+      testUser.agenticTradingConfig = AgenticTradingConfig(
+        autoTradeEnabled: false,
+        paperTradingMode: false,
+        strategyConfig: TradeStrategyConfig(
+          enabledIndicators: {'priceMovement': true},
+        ),
+      );
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('LIVE'), findsOneWidget);
+      expect(find.text('PAPER'), findsNothing);
+      expect(find.textContaining('• Systematic'), findsOneWidget);
+      expect(find.textContaining('Paper orders'), findsNothing);
+      expect(find.textContaining('Live orders'), findsNothing);
+
+      // Require Approval AUTO badge when off
+      expect(find.text('AUTO'), findsOneWidget);
+      expect(find.text('REVIEW'), findsNothing);
+      expect(
+        find.textContaining(
+            'Orders execute automatically without manual confirmation'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Require Approval shows REVIEW badge when on and AUTO when off',
+        (WidgetTester tester) async {
+      testUser.agenticTradingConfig = AgenticTradingConfig(
+        autoTradeEnabled: false,
+        paperTradingMode: false,
+        requireApproval: true,
+        strategyConfig: TradeStrategyConfig(
+          enabledIndicators: {'priceMovement': true},
+        ),
+      );
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('REVIEW'), findsOneWidget);
+      expect(find.text('AUTO'), findsNothing);
+      expect(
+        find.textContaining('Orders wait for your review in the app'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'Agentic Reasoning is locked when agenticTrading feature is disabled in Beta Labs',
+        (WidgetTester tester) async {
+      testUser.featureFlags = {'agenticTrading': false};
+      testUser.agenticTradingConfig = AgenticTradingConfig(
+        autoTradeEnabled: false,
+        tradingMode: TradingMode.systematic,
+        strategyConfig: TradeStrategyConfig(
+          enabledIndicators: {'priceMovement': true},
+        ),
+      );
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) => User.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+            'Autonomous Agentic Trading (AI) is disabled in Beta Labs'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.lock_outline), findsWidgets);
+
+      testUser.featureFlags = {'agenticTrading': true};
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => AgenticTradingProvider()),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+            'Autonomous Agentic Trading (AI) is disabled in Beta Labs'),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'Strategy style SegmentedButton fits narrow width without overflow',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 300,
+                child: SegmentedButton<TradingMode>(
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  segments: [
+                    const ButtonSegment<TradingMode>(
+                      value: TradingMode.systematic,
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text('Systematic Rules'),
+                      ),
+                      icon: Icon(Icons.functions),
+                    ),
+                    ButtonSegment<TradingMode>(
+                      value: TradingMode.reasoning,
+                      enabled: false,
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Text('Agentic Reasoning'),
+                            SizedBox(width: 4),
+                            Icon(Icons.lock_outline, size: 14),
+                          ],
+                        ),
+                      ),
+                      icon: const Icon(Icons.psychology),
+                    ),
+                  ],
+                  selected: const {TradingMode.systematic},
+                  onSelectionChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Systematic Rules'), findsOneWidget);
+      expect(find.text('Agentic Reasoning'), findsOneWidget);
     });
 
     testWidgets(
@@ -417,6 +673,86 @@ void main() {
       agenticTradingProvider.dispose();
     });
 
+    testWidgets(
+        'pending approvals section only displays the last approval and Today cell navigates to performance history',
+        (WidgetTester tester) async {
+      final agenticTradingProvider = AgenticTradingProvider();
+      agenticTradingProvider.loadConfigFromUser(null);
+
+      final now = DateTime.now();
+      // Add older pending order
+      agenticTradingProvider.pendingOrders.add({
+        'id': 'pending-1',
+        'timestamp':
+            now.subtract(const Duration(minutes: 10)).toIso8601String(),
+        'symbol': 'AAPL',
+        'action': 'BUY',
+        'quantity': 5,
+        'price': 150.0,
+      });
+      // Add newer (latest) pending order
+      agenticTradingProvider.pendingOrders.add({
+        'id': 'pending-2',
+        'timestamp': now.toIso8601String(),
+        'symbol': 'NVDA',
+        'action': 'BUY',
+        'quantity': 10,
+        'price': 120.0,
+      });
+
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AgenticTradingProvider>.value(
+                value: agenticTradingProvider),
+            ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+            ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+            ChangeNotifierProvider<BacktestingProvider>(
+                create: (_) => MockBacktestingProvider()),
+            ChangeNotifierProvider<PaperTradingStore>(
+                create: (_) => PaperTradingStore()),
+            ChangeNotifierProvider<AccountStore>(create: (_) => AccountStore()),
+          ],
+          child: MaterialApp(
+            home: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Only the last (latest) approval (NVDA) is displayed in the card
+      expect(find.text('NVDA'), findsOneWidget);
+      expect(find.text('AAPL'), findsNothing);
+      expect(find.text('+ 1 more pending approval(s) in Full View'),
+          findsOneWidget);
+
+      // Verify "Today" summary cell is tappable and navigates to AgenticTradingPerformanceWidget
+      final todayFinder = find.text('Today');
+      expect(todayFinder, findsOneWidget);
+      await tester.ensureVisible(todayFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(todayFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AgenticTradingPerformanceWidget), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      agenticTradingProvider.dispose();
+    });
+
     testWidgets('balanced setup activates core entry indicators only',
         (WidgetTester tester) async {
       testUser.agenticTradingConfig!.strategyConfig = TradeStrategyConfig();
@@ -470,6 +806,246 @@ void main() {
         {'priceMovement', 'marketDirection', 'macd'},
       );
       expect(agenticTradingProvider.config.autoTradeEnabled, isFalse);
+    });
+
+    testWidgets(
+        'Background activity shows Samsung battery warning and opens settings (#282)',
+        (WidgetTester tester) async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        AgenticTradingBackgroundService.backgroundExecutionChannel,
+        (call) async {
+          calls.add(call);
+          if (call.method == 'getPlatformReadiness') {
+            return {
+              'platform': 'android',
+              'ignoringBatteryOptimizations': false,
+              'powerSaveMode': false,
+              'backgroundRestricted': false,
+              'manufacturer': 'Samsung',
+              'model': 'SM-S928U',
+              'canOpenSettings': true,
+            };
+          }
+          if (call.method == 'openBatteryOptimizationSettings') {
+            return true;
+          }
+          return null;
+        },
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final agenticTradingProvider = AgenticTradingProvider();
+      try {
+        testUserDocRef = FirebaseFirestore.instance
+            .collection('user')
+            .doc('test_user_123')
+            .withConverter<User>(
+              fromFirestore: (snapshot, _) =>
+                  User.fromJson(snapshot.data() ?? {}),
+              toFirestore: (user, _) => user.toJson(),
+            );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider<AgenticTradingProvider>.value(
+                    value: agenticTradingProvider),
+                ChangeNotifierProvider(
+                    create: (_) => BrokerageUserStore([], 0)),
+                ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+                ChangeNotifierProvider<BacktestingProvider>(
+                    create: (_) => MockBacktestingProvider()),
+              ],
+              child: AgenticTradingSettingsWidget(
+                user: testUser,
+                userDocRef: testUserDocRef,
+                service: mockService,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        final execSettings = find.text('Execution Settings');
+        await tester.ensureVisible(execSettings);
+        await tester.tap(execSettings);
+        await tester.pumpAndSettle();
+
+        final bgTile = find.text('Background activity');
+        await tester.ensureVisible(bgTile);
+        await tester.tap(bgTile);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('background-platform-readiness-card')),
+          findsOneWidget,
+        );
+        expect(
+            find.text('Android battery optimization active'), findsOneWidget);
+        expect(find.textContaining('Samsung One UI:'), findsOneWidget);
+
+        final configureButton =
+            find.byKey(const ValueKey('open-background-settings-button'));
+        expect(configureButton, findsOneWidget);
+        await tester.ensureVisible(configureButton);
+        await tester.tap(configureButton);
+        await tester.pumpAndSettle();
+
+        expect(
+          calls.map((c) => c.method),
+          containsAll([
+            'getPlatformReadiness',
+            'openBatteryOptimizationSettings',
+          ]),
+        );
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+          AgenticTradingBackgroundService.backgroundExecutionChannel,
+          null,
+        );
+        agenticTradingProvider.dispose();
+      }
+    });
+
+    testWidgets(
+        'Execution timing info button opens dialog with check interval details',
+        (WidgetTester tester) async {
+      testUser.agenticTradingConfig = AgenticTradingConfig(
+        autoTradeEnabled: true,
+        checkIntervalMinutes: 5,
+        strategyConfig: TradeStrategyConfig(
+          enabledIndicators: {'priceMovement': true},
+        ),
+      );
+      final agenticTradingProvider = AgenticTradingProvider();
+      agenticTradingProvider.loadConfigFromUser(testUser.agenticTradingConfig);
+
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AgenticTradingProvider>.value(
+                  value: agenticTradingProvider),
+              ChangeNotifierProvider(
+                create: (_) => BrokerageUserStore([
+                  BrokerageUser(
+                      BrokerageSource.robinhood, 'rh-user', null, null),
+                ], 0),
+              ),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Next Run In'), findsOneWidget);
+      // Tap the info button next to Next Run In
+      final infoIconFinder = find.descendant(
+        of: find.byType(Row),
+        matching: find.byIcon(Icons.info_outline),
+      );
+      expect(infoIconFinder, findsWidgets);
+      await tester.tap(infoIconFinder.first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Execution Timing'), findsOneWidget);
+      expect(
+        find.textContaining('Market-close exits are not guaranteed'),
+        findsOneWidget,
+      );
+      expect(find.text('Got it'), findsOneWidget);
+
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Execution Timing'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      agenticTradingProvider.dispose();
+    });
+
+    testWidgets(
+        'rejected approval displays REJ in monitoring card and does not count as trade',
+        (WidgetTester tester) async {
+      final agenticTradingProvider = AgenticTradingProvider();
+      agenticTradingProvider.loadConfigFromUser(null);
+      agenticTradingProvider.autoTradeHistory.add({
+        'timestamp': DateTime.now().toIso8601String(),
+        'symbol': 'EQT',
+        'action': 'BUY',
+        'quantity': 10,
+        'price': 42.50,
+        'status': 'rejected',
+        'rejected': true,
+      });
+
+      testUserDocRef = FirebaseFirestore.instance
+          .collection('user')
+          .doc('test_user_123')
+          .withConverter<User>(
+            fromFirestore: (snapshot, _) =>
+                User.fromJson(snapshot.data() ?? {}),
+            toFirestore: (user, _) => user.toJson(),
+          );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<AgenticTradingProvider>.value(
+                  value: agenticTradingProvider),
+              ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+              ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+              ChangeNotifierProvider<BacktestingProvider>(
+                  create: (_) => MockBacktestingProvider()),
+            ],
+            child: AgenticTradingSettingsWidget(
+              user: testUser,
+              userDocRef: testUserDocRef,
+              service: mockService,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Should display REJ EQT with Last Action, NOT BUY EQT
+      expect(find.text('REJ EQT'), findsOneWidget);
+      expect(find.text('BUY EQT'), findsNothing);
+      expect(find.text('Last Action'), findsOneWidget);
+
+      // Should show 0 trades for today (rejections don't count)
+      expect(find.text('0 trades'), findsOneWidget);
+
+      // Performance should be neutral $0.00
+      expect(find.text('\$0.00'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      agenticTradingProvider.dispose();
     });
   });
 }

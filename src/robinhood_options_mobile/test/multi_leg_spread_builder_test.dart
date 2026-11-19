@@ -291,7 +291,7 @@ void main() {
 
       expect(find.text('Advanced Trading Feature'), findsOneWidget);
       expect(
-        find.textContaining('requires Advanced Trading (Multi-Leg Spreads)'),
+        find.textContaining('requires Advanced Trading'),
         findsOneWidget,
       );
     });

@@ -2,6 +2,131 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.2] - 2026-11-18
+
+**Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet**
+
+### Added
+- **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet ([#347](https://github.com/CIInc/robinhood-options-mobile/issues/347)):**
+  - **Dynamic ATR Stop-Loss & Take-Profit:** Calibrates stop-loss and profit target distances using the 14-period Average True Range (ATR) with configurable multipliers (`atrStopMultiplier`, default: 1.5x, `atrProfitMultiplier`, default: 3.0x).
+  - **Adaptive Volatility Ratchet:** Automatically expands stop buffers ($1.25\times$) during low-volatility compression to reduce whipsaws and tightens stops ($0.75\times$) during momentum expansions to lock in gains.
+  - **Proposal Diagnostics:** Integrated live ATR distance, calculated dollar stop/target prices, volatility regime state, and reward-to-risk ratio into `AutomatedTradeProposalDetailWidget`.
+  - **Settings Controls:** Added dedicated toggle and multiplier input controls in `ExitStrategiesWidget` and `AgenticTradingSettingsWidget`.
+
+## [0.62.1] - 2026-11-16
+
+**iOS Background Brokerage OAuth Availability**
+
+### Fixed
+- Brokerage OAuth credentials use iOS Keychain `AfterFirstUnlock` accessibility so background tasks can access them while the device is locked after its first unlock following reboot. Generic secure storage, including MCP tokens, retains its existing default policy. Broader secure-storage and hardware-backed key enforcement under [#88](https://github.com/CIInc/robinhood-options-mobile/issues/88) remains open.
+
+## [0.62.0] - 2026-11-15
+
+**1-Tap Strategy Archetypes, Strategy Style Controls, Macro Economic Radar & Beta Labs Demos**
+
+### Added
+- **1-Tap Curated Strategy Archetypes & Walk-Forward Performance Badges ([#343](https://github.com/CIInc/robinhood-options-mobile/issues/343)):**
+  - **Curated Archetypes:** Pre-configured strategy archetypes (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) that calibrate indicators, profit targets, stop losses, and position sizing bounds with a single tap.
+  - **Walk-Forward Performance Badges:** Empirical validation badges displaying historical 1-year win rate, profit factor, and maximum drawdown for each strategy.
+  - **One-Tap Adoption & Customization:** Quick-apply modal bottom sheet allowing users to review archetype characteristics, adjust capital, and clone directly to custom strategy configurations.
+- **Macro Assessment & Economic Radar Integration ([#351](https://github.com/CIInc/robinhood-options-mobile/issues/351), [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Economic Cycle Phases:** Classification into canonical economic stages (`Expansion`, `Late-Cycle`, `Recession Watch`) driven by yield curve structure and multi-factor scoring.
+  - **Inflation YoY & Yield Curve Benchmarks:** Embedded macroeconomic radar metrics with Inflation YoY (`2.4%`, `3.1%`, `1.8%`) and Yield Curve Spreads (`+18 bps`, `+2 bps`, `-24 bps`).
+  - **TIPS Breakeven Inflation:** Ingested market-implied inflation expectations via the `TIP` ETF as the 21st macro indicator in `functions/src/macro-agent.ts`.
+  - **Economic Cycle Radar Section (`MacroAssessmentDashboardWidget`):** Added a dedicated visual phase track, environment summary, and interactive metric cards on the macro dashboard.
+  - **Search Card Macro Pill (`MacroAssessmentWidget`):** Surfaced cycle phase, inflation, and curve spread badges directly on the Search screen macro card.
+- **Beta Labs Interactive Demos & Deep Navigation:**
+  - **Interactive Previews (`_BetaFeatureDemoSheet`):** Modal preview sheets across all 12 feature bundles allowing users to explore features, adjust simulation parameters, and test prompts prior to activation.
+  - **Deep Feature Navigation:** Directly routes enabled features to their destination screens (e.g., `Search > Macro Market State`, `AgenticTradingSettingsWidget`, `BacktestingWidget`).
+  - **Responsive Narrow Viewport Hardening:** Layout optimizations down to 320px screen widths without `RenderFlex` overflows.
+
+### Changed
+- **Strategy Style & Execution Controls:**
+  - Rebranded execution modes to Strategy Style ("Systematic" and "Agentic") for clearer cognitive distinction between deterministic indicator rules and multi-factor AI reasoning.
+  - Flattened nested cards in the primary Auto-Trading card into seamless, borderless `SwitchListTile` rows with standard dividers.
+  - Added dynamic amber `AUTO` badge state when `Require Approval` is disabled to clearly signal automated order routing.
+  - Aligned Beta Labs toggle settings to disable style selection when autonomous agentic trading is inactive.
+
+## [0.61.8] - 2026-11-14 (pre-release)
+
+**Automated Trading Pending Approvals Dedicated View & Batch Review Center**
+
+### Added
+- **Automated Trading Pending Approvals Dedicated Screen (`AutomatedTradingApprovalsWidget`, [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - **First-Class Review Center:** Elevated pending automated trade proposals (`requireApproval: true`) out of the cramped settings drawer into a standalone dual-tab screen featuring **Pending** and **History** tabs.
+  - **Summary Metrics Header:** Real-time visibility into total pending proposals, aggregate capital impact (with full `AccountStore.showBalances` `$••••••` masking), average AI conviction score, live vs. paper execution mode badge, and sticky warnings for emergency stops and pre-close market entry cutoffs.
+  - **Search, Filtering & Multi-Criteria Sorting:** Quick search bar filtering by ticker symbol or strategy, segmented action chips (`ALL`, `BUY`, `SELL`), qualification filter (`ALL`, `CONFIRMED`, `PENDING WATCH`), and sorting dropdown (`Newest First`, `Highest Confidence`, `Largest Capital`, `Symbol A-Z`).
+  - **Multi-Selection Batch Actions (`BatchApprovalResult`, `AgenticTradingProvider.batchApproveOrders`, `batchRejectOrders`):** Interactive multi-selection mode enabling bulk execution with `Select All`, `Approve Selected`, `Reject Selected`, `Approve All`, and `Reject All` with confirmation dialogs and individual live-quote deviation protection.
+- **Deep Proposal Inspection Sheet (`AutomatedTradeProposalDetailWidget`, [#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - Comprehensive inspection view surfacing full proposal metadata: symbol, action, quantity, price, estimated cost, order type, and formatted generation timestamp.
+  - **AI Conviction & Reasoning:** Displays AI confidence score badge, quantitative signal breakdown, and full generative reasoning narrative explaining trade thesis.
+  - **RiskGuard Compliance & GEX Architecture:** Detailed audit of risk checks (volatility, correlation, sector allocation), institutional Gamma Exposure levels (`pTrans`, `nTrans`, `gammaFlip`), and macroeconomic regime classification (`macroStatus`, `macroReason`).
+  - **Live Chart Navigation & Sticky Action Bar:** Direct link to interactive candlestick charts (`InstrumentWidget`) and persistent bottom action buttons for single-tap `Approve` (with live-quote check) or `Reject`.
+- **Rejection Audit Persistence & Execution History ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - Enhanced `AgenticTradingProvider.rejectOrder` to append an audit trail entry with `status: 'rejected'` to `autoTradeHistory` and persist to the user's Firestore `auto_trade_history` collection.
+  - Rejections and completed executions are searchable and inspectable in the Approvals **History** tab.
+- **Contextual Discovery & Notification Deep Linking ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282), [#137](https://github.com/CIInc/robinhood-options-mobile/issues/137)):**
+  - **Home Screen Pending Action Banner:** Prominent amber action banner atop `AgenticTradingCardWidget` when pending approvals exist, displaying proposal count and total capital with direct tap routing to the review screen.
+  - **Settings Integration:** Primary `Open Full Approvals View` button embedded within the pending orders card in `AgenticTradingSettingsWidget`.
+  - **Status Badge State:** Added amber `Review` badge state (`$pendingCount PENDING`) to `AutoTradeStatusBadgeWidget`.
+  - **Push Notification Deep Linking:** Configured `NavigationStatefulWidget` to capture `type: 'agentic_approval'`, `'auto_trade_approval'`, or `'pending_approval'` notifications with `proposalId` payloads, routing directly to `AutomatedTradingApprovalsWidget` and auto-opening the proposal details sheet.
+
+- **Permanent Audit Log Access & Cross-Linking ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):**
+  - **Always-Accessible Settings Tile:** When no proposals are pending (or when `requireApproval` is disabled), `AgenticTradingSettingsWidget` renders a permanent **"Trade Proposals & Audit Log"** tile to inspect past AI proposals, GEX levels, and rejections.
+  - **Performance Screen Cross-Link:** Added an AppBar action icon and an interactive banner in the History tab of `AgenticTradingPerformanceWidget` allowing users to jump directly from financial P&L to operational AI reasoning and risk audits.
+  - **History Card Inspection:** Tapping any history card in `AutomatedTradingApprovalsWidget` opens `AutomatedTradeProposalDetailWidget` for complete diagnostics.
+
+## [0.61.7] - 2026-11-14 (pre-release)
+
+**Higher-Order Portfolio Greeks & 2D Spot × IV Cross-Shock Stress Matrix**
+
+### Added
+- **Closed-Form Higher-Order Portfolio Greeks ([#335](https://github.com/CIInc/robinhood-options-mobile/issues/335)):**
+  - **Closed-Form Black-Scholes Formulations (`AnalyticsUtils.calculateBlackScholesHigherOrderGreeks`, `DeltaNeutralService.calculateBlackScholesGreeks`):** Analytical implementations of **Vanna** ($\partial \Delta / \partial \sigma = -n'(d_1) \frac{d_2}{\sigma}$, expressed as delta change per 1.0% change in volatility), **Charm** ($-\partial \Delta / \partial \tau$, annualized and scaled to daily $\Delta / \text{day}$ and 3-day weekend delta bleed $\text{dailyCharm} \times 3.0$), and **Vomma/Volga** ($\partial \mathcal{V} / \partial \sigma = \text{Vega} \times \frac{d_1 d_2}{\sigma}$, expressed as vega dollar sensitivity per 1.0% IV move).
+  - **Multi-Position Greek Aggregation (`AnalyticsUtils.calculatePortfolioHigherOrderGreeks`, `DeltaPositionLeg`, `DeltaNeutralAnalysis`):** Extended `DeltaPositionLeg` with `unitVanna`, `unitCharm`, `unitVomma` and getters for `totalVanna`, `totalCharmDaily`, `totalWeekendCharm`, `totalVomma` multiplying by contract multiplier (100) and signed `sideMultiplier`. Extended `DeltaNeutralAnalysis` with `netVanna`, `netCharmDaily`, `weekendCharmDrift`, `netVomma`, and full JSON serialization.
+- **2D Spot × IV Cross-Shock Stress Matrix ([#335](https://github.com/CIInc/robinhood-options-mobile/issues/335)):**
+  - **Quantitative Non-Linear Grid Engine (`AnalyticsUtils.calculatePortfolioCrossShockMatrix`, `DeltaNeutralService.calculateCrossShockMatrix`):** Evaluates a 5×5 cross-shock matrix ($\Delta S \in [-10\%, -5\%, 0\%, +5\%, +10\%] \times \Delta\text{IV} \in [-20\%, -10\%, 0\%, +10\%, +20\%]$) computing theoretical post-shock projected net P&L (\$) and post-shock net delta ($\Delta$) with non-linear interaction terms (Gamma $\times \Delta S^2$, Vega $\times \Delta\text{IV}$, Vanna $\times \Delta S \cdot \Delta\text{IV}$, and Vomma $\times \Delta\text{IV}^2$).
+  - **Interactive UI Matrix in `PortfolioGreeksCard` & `DeltaNeutralBuilderWidget`:** Integrated responsive 6-column `Table` (using `FlexColumnWidth` without horizontal scroll clipping) into `PortfolioGreeksCard` (`lib/widgets/portfolio/portfolio_greeks_card.dart`) and `DeltaNeutralBuilderWidget` (`lib/widgets/delta_neutral_builder_widget.dart`). Features segment toggling between **P&L (\$)** and **Net Delta ($\Delta$)**, color coding (green/red for P&L, green/amber/red for delta neutrality drift), interactive cell selection with detailed inspection chip, and educational methodology explanation bottom sheet.
+  - **Weekend Charm Delta Bleed Alert:** Surfaces a prominent warning banner when 3-day weekend charm drift exceeds $\pm 10.0$ delta equivalents, quantifying expected net delta bleed into Monday morning's open and advising weekend delta hedge adjustments.
+  - **Privacy & Screen-Reader Accessibility:** Enforced strict balance masking via `AccountStore.showBalances` (`$••••••`) across all matrix P&L cells and Greek dollar displays, with comprehensive spoken `Semantics` on every matrix cell.
+
+## [0.61.6] - 2026-11-13 (pre-release)
+
+**Monte Carlo Derivatives Stress Engine & Copy-Trading Option Guardrails**
+
+### Added
+- **Monte Carlo Derivatives & Portfolio Stress Engine ([#303](https://github.com/CIInc/robinhood-options-mobile/issues/303)):**
+  - **On-Device Path Simulator (`lib/services/monte_carlo_simulator.dart`):** Implemented `MonteCarloSimulator` over pre-allocated `Float64List` buffers (`1,000`–`5,000` paths across `30d`, `90d`, `180d`, and `365d` horizons) supporting **Geometric Brownian Motion (GBM)**, fat-tailed **Student's $t$** innovations (Marsaglia polar Box-Muller + $\chi^2_\nu$ scaling), and **Historical Bootstrap** daily return resampling, with isolate execution support for responsive mobile rendering.
+  - **Non-Linear Options Greek Decay:** Aggregates dollar-normalized option sensitivities (`MonteCarloGreekExposure.fromPositions`) and evaluates second-order Taylor-series option repricing ($\Delta S \cdot \Delta + \frac{1}{2} \Gamma (\Delta S)^2 + \Theta \cdot \Delta t + \mathcal{V} \cdot \Delta \sigma$) alongside simulated equity paths.
+  - **Path-Dependent Risk Metrics & Interactive Fan Chart (`lib/widgets/portfolio/analytics/monte_carlo_risk_card.dart`):** Computes 95% and 99% terminal Value-at-Risk (VaR) and Expected Shortfall (CVaR), median and 95th-percentile maximum drawdown, and probability of ruin / margin breach against `ruinDrawdownThreshold` (default 50% drawdown or total loss). Integrated `MonteCarloRiskCard` into Tier 5 of `RiskSectionPage` (`lib/widgets/portfolio/risk_section_page.dart`) with a `CustomPainter` percentile fan chart (`P5`, `P25`, `P50`, `P75`, `P95`), horizon/model/path-count selector chips, methodology info sheet, full `AccountStore` balance masking, and screen-reader semantics.
+- **Options Contract Adaptation & Defined-Risk Inverse Guardrails for Copy Trading ([#279](https://github.com/CIInc/robinhood-options-mobile/issues/279)):**
+  - **Defined-Risk Inverse Option Guardrail (`functions/src/copy-trading.ts`, `lib/services/copy_trade_risk_guardian_service.dart`):** Hard safety rule in `buildCopyOptionOrderPlan` and `CopyTradeRiskGuardianService.evaluateInverseOptionGuardrail` that blocks naked short option generation when copying single-leg long options in `inverse: true` mode, automatically adapting `Buy Call` $\leftrightarrow$ `Buy Put` into defined-risk opposite-direction long contracts while verifying protective long legs on multi-leg spreads.
+  - **Small-Account Option Contract Adapter (`lib/services/copy_trade_risk_guardian_service.dart`, `lib/model/copy_trading_provider.dart`):** Added `OptionContractAdaptation` and `CopyTradeRiskGuardianService.suggestOptionAdaptations` to rank cheaper liquid OTM single-leg strikes and defined-risk vertical debit spreads within the follower's `maxAllocationPerTrade` budget whenever 1 contract of the leader's option exceeds the cap, plus `CopyTradingProvider.approveAdaptedRequest`, `applyDefinedRiskInverse`, and multi-leg spread order submission.
+  - **Interactive Guardrail & Contract Adapter UI (`lib/widgets/copy_trade_request_detail_widget.dart`, `lib/widgets/copy_trade_requests_widget.dart`):** Added inverse guardrail banners, contract-adaptation badges (`needsContractAdaptation`, `inverseAdaptation`), and an interactive option adaptation selector card in `CopyTradeRequestDetailWidget` with one-tap `Approve Adapted` execution while enforcing `pending_approval` review for adapted option trades.
+
+## [0.61.5] - 2026-11-13 (pre-release)
+**Market-Close Entry Safety**
+
+- **Pre-Close BUY Guard ([#282](https://github.com/CIInc/robinhood-options-mobile/issues/282)):** When Market Close Exit is enabled, block automated BUY entries once the configured pre-close window begins and during after-hours trading. Recheck immediately before order submission, including pending BUY approvals; SELL exits remain available. A proposal that reaches the cutoff before submission is rejected without consuming its signal, so it remains eligible for a later cycle. Broader lifecycle and physical-device acceptance for #282 remains open.
+
+## [0.61.4] - 2026-11-13 (pre-release)
+**Push Notification Intent Resolution, Request Details & Trade Signals Deep Linking**
+
+- **Android Intent Resolution (`AndroidManifest.xml`):** Declared the `<intent-filter>` for `<action android:name="FLUTTER_NOTIFICATION_CLICK"/>` with category `DEFAULT` on `MainActivity`, resolving the platform defect where tapping push notifications in the Android notification shade failed to launch the application.
+- **Copy Trading Notification Deep Linking:** Tapping a `copy_trade` push notification routes directly to the specific request in `CopyTradeRequestDetailWidget` with `CopyTradeRequestsWidget` placed in the back-stack, resolving the issue where taps redirected to the default home screen.
+- **Request Details View (`CopyTradeRequestDetailWidget`):** Surface an interactive request inspection screen displaying leader identity (`sourceUserName`), symbol, side, inverse copy badge, estimated total cost, detailed multi-leg option parameters (strike, expiration, call/put, ratio), execution audit timestamps, a quick-action shortcut to inspect the instrument chart, and direct 1-tap Approve (with `RiskGuard` limit validation) or Reject buttons.
+- **Interactive Request Cards:** Pending request list cards in `CopyTradeRequestsWidget` are now interactive on tap, allowing followers to inspect request parameters before deciding, and resolve the leader's display name instead of truncated user IDs.
+- **Trade Signals Tab & Order Entry Routing:** Tapping a `trade_signal` notification switches to the Trade Signals tab as the base context and opens `InstrumentWidget` for the symbol; tapping the `TRADE` notification action switches to Trade Signals and opens `TradeInstrumentWidget` pre-configured with the signal direction (`Buy` or `Sell`).
+- **Resilient Instrument Lookup (`_fetchInstrument`):** Implemented primary service lookup with an automatic fallback to `RobinhoodService().getInstrumentBySymbol()` over Robinhood's public unauthenticated API so equity instrument metadata resolves reliably even when broker accounts are unauthenticated.
+- **Cold-Start Launch Capture & Unhydrated Store Fallback:** Added `flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails()` inspection during startup to process notification taps when the application is launched from a terminated state, and resolved fallback user `BrokerageUser(BrokerageSource.demo, 'Demo', null, null)` when `BrokerageUserStore.items` is empty during cold start.
+- **FCM Intent & Payload Alignment:** Cloud Functions (`trade-signal-notifications.ts`, `copy-trading.ts`, `custom-alerts-cron.ts`) now attach `recordId`, `sourceUserName`, and `click_action: "FLUTTER_NOTIFICATION_CLICK"` to notification data payloads, specify Android notification `clickAction`, and configure APNs categories (`COPY_TRADE`, `TRADE_SIGNAL`).
+- **Android Notification Channel Registration:** Registered the dedicated high-priority `copy_trades` and `trade_signals` notification channels in `NavigationStatefulWidgetState`.
+
+## [0.61.3] - 2026-11-12 (pre-release)
+**Paper Auto-Trade Exit Reliability**
+
+- **Queued Paper TP/SL Exits:** If a simulated exit is triggered while the market is closed, it is retained as a pending Paper order and reconciled on a later eligible cycle. Filled exits update automated trade history and staged-exit tracking; no brokerage order is submitted.
+
 ## [0.61.2] - 2026-11-09 (pre-release)
 **Startup Reliability, Quote Validation & Market-Data Timestamp Fixes**
 

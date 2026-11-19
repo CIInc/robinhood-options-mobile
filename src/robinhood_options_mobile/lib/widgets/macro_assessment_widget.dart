@@ -235,6 +235,79 @@ class _MacroAssessmentWidgetState extends State<MacroAssessmentWidget> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.cyclone, size: 13, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Economic Cycle Phase: ${assessment.cyclePhase}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'Inflation YoY: ${assessment.effectiveInflationYoY.toStringAsFixed(1)}%',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'Yield Curve: ${assessment.yieldCurveSpreadDisplay}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [

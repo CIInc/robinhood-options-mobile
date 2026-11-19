@@ -1,0 +1,24 @@
+{
+  "_comment": "Disabled: Redundant hooks caused 15-25s per-turn latency by running repository-wide 'dart format' and 'flutter analyze' on every single tool use and turn stop. Quality gates and formatting are authoritatively enforced at the verification phase in roadmap skills (.github/skills/) and in CI/CD (.github/workflows/cd.yml).",
+  "code-formatting": {
+    "PostToolUse": [
+      {
+        "matcher": "write_file|write_to_file|edit_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/auto_format.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./scripts/verify_formatting.sh",
+        "timeout": 15
+      }
+    ]
+  }
+}

@@ -13,6 +13,15 @@ class PlatformSecureTokenStorage implements SecureTokenStorage {
   PlatformSecureTokenStorage({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
 
+  static const brokerageIOSOptions = IOSOptions(
+    accessibility: KeychainAccessibility.first_unlock,
+  );
+
+  PlatformSecureTokenStorage.forBackgroundBrokerage({
+    FlutterSecureStorage? storage,
+  }) : _storage = storage ??
+            const FlutterSecureStorage(iOptions: brokerageIOSOptions);
+
   final FlutterSecureStorage _storage;
 
   @override

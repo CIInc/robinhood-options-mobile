@@ -45,7 +45,9 @@ do not implement the proposals.
 4. **Shape and rank proposals.** Produce a small, prioritized set of distinct
    candidates. For each, provide a concise title, user need and proposed
    outcome, evidence and rationale (with relevant issue links when available),
-   suggested milestone or horizon, and a short scope or acceptance outline.
+   suggested milestone or horizon (noting whether it aligns with an existing
+   milestone or warrants defining a new milestone / reevaluating the milestone list),
+   and a short scope or acceptance outline.
    For issue-independent feature ideas, ground the rationale in the product
    purpose, principles, or verified current capabilities rather than inventing
    user demand. Note dependencies,
@@ -63,13 +65,23 @@ do not implement the proposals.
 5. **Record selected proposals and associate GitHub issues.** Process only
    recommendations the user selected. For each, search open and closed issues
    for a matching issue. Link the existing issue when one already tracks the
-   same outcome; do not create duplicates. Choose the most appropriate
-   existing roadmap milestone, then immediately add only the selected
-   recommendations to `ROADMAP.md`, matching its checkbox and nesting
-   conventions and keeping entries unchecked. Avoid duplicating roadmap
-   entries. This roadmap edit is mandatory and must happen before any issue
-   creation call; do not defer it because GitHub requires confirmation or
-   presents an interactive form.
+   same outcome; do not create duplicates.
+
+   Determine milestone placement: evaluate the existing roadmap milestones in
+   `ROADMAP.md`. If a suitable milestone already exists, place the proposal
+   there. However, if an appropriate milestone does not exist (e.g., existing
+   milestones are already shipped or delivered, planned horizons are outdated or
+   over-scoped, or the proposals represent a distinct version theme), reevaluate
+   the roadmap milestone list and define a new milestone or reprioritize existing
+   milestones. When introducing a new milestone or reevaluating the roadmap
+   structure, update the Release Cadence overview table, Table of Contents, and
+   Quick Stats in `ROADMAP.md` consistently.
+
+   Immediately add only the selected recommendations to `ROADMAP.md`, matching
+   its checkbox and nesting conventions and keeping entries unchecked. Avoid
+   duplicating roadmap entries. This roadmap edit is mandatory and must happen
+   before any issue creation call; do not defer it because GitHub requires
+   confirmation or presents an interactive form.
 
    For an existing matching issue, include its link in the roadmap entry. For
    a proposal that needs a new issue, add the roadmap entry first and include
@@ -93,7 +105,9 @@ do not implement the proposals.
 ## Completion Report
 
 Summarize the proposals and the user's selection. For selected items, identify
-the exact roadmap additions, placement, evidence, associated issue links, and
-whether each issue was reused or created. State whether roadmap or GitHub data
-could not be reviewed, or any issue could not be associated. Confirm that
-unselected items were not recorded and no implementation or PR was created.
+the exact roadmap additions, milestone placement (including any new milestone
+defined or milestone list reevaluation performed), evidence, associated issue
+links, and whether each issue was reused or created. State whether roadmap or
+GitHub data could not be reviewed, or any issue could not be associated.
+Confirm that unselected items were not recorded and no implementation or PR was
+created.

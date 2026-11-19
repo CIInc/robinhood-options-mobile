@@ -1,6 +1,9 @@
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/custom_indicator_config.dart';
+import 'package:robinhood_options_mobile/model/strategy_archetype.dart';
+
+export 'package:robinhood_options_mobile/model/strategy_archetype.dart';
 
 /// Saved backtest configuration template
 class TradeStrategyTemplate {
@@ -47,6 +50,10 @@ class TradeStrategyTemplate {
 /// Pre-built strategy templates for backtesting
 class TradeStrategyDefaults {
   static final List<TradeStrategyTemplate> defaultTemplates = [
+    StrategyArchetypes.conservativeCore.toTemplate(),
+    StrategyArchetypes.momentumBreakout.toTemplate(),
+    StrategyArchetypes.optionsIncomeHarvester.toTemplate(),
+    StrategyArchetypes.reasoningAiAgent.toTemplate(),
     TradeStrategyTemplate(
       id: 'default_all_indicators_high_conviction',
       name: 'All Indicators (85% Strength)',

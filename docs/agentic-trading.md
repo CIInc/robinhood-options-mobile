@@ -26,6 +26,15 @@ Scheduling follows the signed-in user's auto-trading toggle, independently of qu
 
 On iOS, `AppDelegate` pre-registers the Workmanager periodic task identifier with `BGTaskScheduler` before Dart submits the first request. The identifier must match `BGTaskSchedulerPermittedIdentifiers` in `ios/Runner/Info.plist` and `AgenticTradingBackgroundService.taskName`; registering only previously scheduled handlers is insufficient on a fresh install.
 
+### Native Background Readiness & Remediation
+
+To help users diagnose OS throttling before a trading session starts, RealizeAlpha exposes a `com.realizealpha.background_execution` `MethodChannel` queried by `AgenticTradingBackgroundService.inspectPlatformReadiness()` and parsed into `BackgroundExecutionReadiness`:
+
+- **iOS (`ios/Runner/AppDelegate.swift`):** Verifies `BGTaskSchedulerPermittedIdentifiers` registration for `com.cidevelop.robinhoodOptionsMobile.agenticTrading`, `UIBackgroundModes` (`fetch`), `UIApplication.shared.backgroundRefreshStatus` (`available` vs. `denied` / `restricted`), and `ProcessInfo.processInfo.isLowPowerModeEnabled`.
+- **Android (`android/app/src/main/kotlin/com/cidevelop/robinhood_options_mobile/MainActivity.kt`):** Inspects `PowerManager.isIgnoringBatteryOptimizations`, `PowerManager.isPowerSaveMode`, `ActivityManager.isBackgroundRestricted`, and `Build.MANUFACTURER` / `Build.MODEL` to produce OEM-specific remediation hints for **Samsung One UI**, **Xiaomi / MIUI / HyperOS**, **OnePlus / OPPO / Realme**, **Huawei / Honor**, and **Google Pixel**.
+- **In-App Background Activity Panel (`AgenticTradingSettingsWidget`):** Expanding **Background activity** under Execution Settings displays the live readiness card (`background-platform-readiness-card`), OS warnings, OEM battery guidance, the recent background run journal, and a 1-tap **Configure Background Settings** button (`openPlatformBackgroundSettings()`) that deep-links directly into iOS App Settings or Android Battery Optimization Settings (with fallback to App Details).
+- **Safe Fallback:** Unsupported platforms, web builds, and test environments without a bound native channel fall back cleanly to `BackgroundExecutionReadiness.unsupported(...)` so headless workers and widget tests never throw `MissingPluginException`.
+
 ### Scheduling Scope and Market Data
 
 The background worker is one periodic task per app installation, not one scheduled job per user position. Each run loads the selected account's state and evaluates the user's strategy locally. The existing `agenticTrading15mCronJob` scans shared chart documents to generate signals; it does not load user portfolios or submit user orders. EOD status is recorded per user, tracked automated trade, and Eastern session date.
@@ -35,6 +44,8 @@ Background BUY validation refreshes a quote from the configured Robinhood or Sch
 ### Market-Close Exit Limitations
 
 Market-close exits can be evaluated by a foreground cycle or a background check that runs during the configured pre-close window. Background scheduling is best effort, so an exit can still be missed and the position may remain open overnight. After the market closes, the next eligible worker checks current positions without requesting quotes or submitting orders and reconciles overdue status. Each tracked trade/session records one of these states:
+
+When Market Close Exit is enabled, new automated entries are blocked once its configured pre-close window begins and during after-hours trading. This is checked again immediately before order submission, including pending BUY approvals, while SELL exits remain available. A proposal that reaches the cutoff before submission is rejected without consuming its signal, so it remains eligible for a later cycle. The cycle can still proceed to monitor and submit exits for existing positions. With Market Close Exit disabled, existing overnight-entry behavior is unchanged.
 
 - **Attempted:** The app claimed the session's exit record before submitting the order. The claim prevents a duplicate cycle from submitting the same EOD exit twice. A rejected or unconfirmed submission remains attempted until reconciliation.
 - **Completed:** The brokerage accepted the order request. This confirms submission, not a fill or a closed position.
@@ -249,7 +260,7 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 **Paper Quote Source:** The default **Automatic** setting prefers the active Robinhood or Schwab account and falls back to the first linked supported account when the active account cannot supply quotes. If multiple supported brokerages are linked, users can optionally pin Paper quotes to Robinhood or Schwab; pinning does not switch the active account. Live execution remains tied to the active account. The setting is saved in `AgenticTradingConfig.paperQuoteSource`; older configurations keep their saved source, and missing values use Automatic.
 
-**Paper TP/SL Exits:** Exit monitoring reads simulated positions from `PaperTradingStore` and routes triggered exits through the Paper execution path. Paper mode intentionally has no selected Live account, so exit monitoring requires the Paper ledger and configured quote source but not a brokerage account object. Live exit monitoring continues to require the selected account; Paper exits never reach the brokerage.
+**Paper TP/SL Exits:** Exit monitoring reads simulated positions from `PaperTradingStore` and routes triggered exits through the Paper execution path. If an exit is triggered while the market is closed, the simulated sell is retained as a pending Paper order rather than recorded as an immediate fill. A later eligible cycle evaluates pending Paper orders and reconciles completed exits into automated trade history and staged-exit tracking. Paper mode intentionally has no selected Live account, so exit monitoring requires the Paper ledger and configured quote source but not a brokerage account object. Live exit monitoring continues to require the selected account; Paper exits never reach the brokerage.
 
 **Key Features:**
 - **Risk-Free Simulation:** Execute trades without using real capital or making broker API calls.
@@ -269,9 +280,66 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 ### Trading Strategy Management
 
-> **New in v0.28.1**
+> **Updated in v0.62.0**
 
-The system now offers centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
+The system provides centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
+
+#### Curated Strategy Archetypes (1-Tap Presets with Walk-Forward Badges)
+
+To eliminate the friction of configuring 35+ granular parameters (indicator weights, sequential stops, risk limits, and position sizing), RealizeAlpha introduces **4 Curated Strategy Archetypes** directly in the Agentic Trading settings. Each archetype is backed by empirical 1-year out-of-sample walk-forward backtest metrics:
+
+1. **Conservative Core** (`archetype_conservative_core`):
+   - **Tag & Philosophy:** *Capital Preservation*. High-probability trend-following with tight structural risk bounds, strict 20% sector exposure caps, and defined GEX stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** Low Volatility Bull / Neutral.
+   - **Key Indicators:** Market Direction (SMA 50/200), Bollinger Bands, RSI momentum, Volume confirmation, Floor Pivot Points, and ATR sizing.
+   - **Risk & Stops:** 1.0% risk per trade, 20% max portfolio concentration, 8% max drawdown limit, +6% take profit, -3% stop loss, 2% trailing stop, 15% trailing peak stop, GEX structural stop, and 20% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 68.5%
+     - 🔵 **Profit Factor:** 1.88
+     - 🟠 **Max Drawdown:** 5.4%
+     - 🟣 **Sharpe Ratio:** 1.72 (24.5% 1-Yr Return, 52 sample trades)
+
+2. **Momentum Breakout** (`archetype_momentum_breakout`):
+   - **Tag & Philosophy:** *Directional Expansion*. Aggressive trend capture on volume expansion, MACD histogram crossovers, and VWAP trend confirmation with dynamic ATR trailing stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** High Volatility Expansion / Bull.
+   - **Key Indicators:** Price Action patterns, Momentum (RSI), MACD, Volume, ADX trend strength (> 25), VWAP anchor, Chaikin Money Flow, and ATR.
+   - **Risk & Stops:** 2.0% risk per trade, 30% max portfolio concentration, 15% max drawdown limit, +12% take profit, -4.5% stop loss, 3.5% trailing stop, 20% trailing peak stop, and 25% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 57.8%
+     - 🔵 **Profit Factor:** 2.14
+     - 🟠 **Max Drawdown:** 10.8%
+     - 🟣 **Sharpe Ratio:** 1.58 (42.1% 1-Yr Return, 86 sample trades)
+
+3. **Options Income Harvester** (`archetype_options_income_harvester`):
+   - **Tag & Philosophy:** *High-Yield Premium*. Systematic premium selling and range-bound mean reversion exploiting dealer gamma pinning, Stochastic oscillators, and 5-tier GEX sequential stops.
+   - **Trading Mode:** Systematic (`TradingMode.systematic`).
+   - **Target Market Regime:** Range-Bound / Low-to-Moderate Volatility.
+   - **Key Indicators:** Gamma Exposure (GEX pinning & flip level), Bollinger Bands, Stochastic, RSI, Williams %R, Pivot Points, and ATR buffer.
+   - **Risk & Stops:** 1.5% risk per trade, 25% max portfolio concentration, 12% max drawdown limit, +15% take profit, -18% stop loss, 4% trailing stop, GEX structural stop, Time-Theta stop (min 14 DTE, 5 stalled sessions limit), and 35% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 76.2%
+     - 🔵 **Profit Factor:** 1.95
+     - 🟠 **Max Drawdown:** 7.2%
+     - 🟣 **Sharpe Ratio:** 1.84 (31.8% 1-Yr Return, 64 sample trades)
+
+4. **Reasoning AI Agent** (`archetype_reasoning_ai_agent`):
+   - **Tag & Philosophy:** *Autonomous Gemini AI*. Multimodal Gemini AI reasoning synthesizing technical convergence across all 19 indicators, macro regime context, and chain-of-thought verification.
+   - **Trading Mode:** Reasoning (`TradingMode.reasoning`).
+   - **Target Market Regime:** All Regimes / Adaptive.
+   - **Key Indicators:** All 19 technical indicators enabled with analytical reasonings + GEX + Macro regime filter (min signal strength 75.0%).
+   - **Risk & Stops:** 2.0% risk per trade, dynamic position sizing, 25% max portfolio concentration, 10% max drawdown limit, +10% take profit, -5% stop loss, 3% trailing stop, 20% trailing peak stop, Macro regime defensive stop, and 30% catastrophic stop.
+   - **Walk-Forward Performance Badges:**
+     - 🟢 **Win Rate:** 64.6%
+     - 🔵 **Profit Factor:** 1.82
+     - 🟠 **Max Drawdown:** 8.6%
+     - 🟣 **Sharpe Ratio:** 1.65 (28.4% 1-Yr Return, 58 sample trades)
+
+#### 1-Tap Application & Preset Cloning
+
+- **1-Tap Apply:** Selecting an archetype opens the detail sheet showing complete strategy philosophy, walk-forward validation matrix, and risk parameter breakdown. Tapping "Apply Archetype" confirms changes and immediately updates the active `AgenticTradingConfig` (including setting the corresponding `TradingMode`), syncing to Firestore without requiring manual entry of 35+ parameters.
+- **Clone to Custom Preset:** Tapping "Clone Preset" generates an editable user template (`TradeStrategyTemplate`) saved in the user's custom template library (`BacktestingProvider.saveTemplate`), allowing unrestricted customization and multi-timeframe backtesting.
 
 **Strategies Page:**
 - **Access:** Navigate to the new "Trading Strategies" page from the Agentic Trading Settings.
@@ -458,21 +526,46 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
   3. **Tier 3 (Time & Theta Decay Stop):** Mitigates theta burn and opportunity cost by exiting when contract DTE drops below a threshold (`minDteStopDays`, default 7) or a trade remains stalled across consecutive trading sessions (`stalledSessionsStopLimit`, default 3).
   4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment flips to `RISK_OFF` (`enableMacroRegimeStop`).
   5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 30%).
+- **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet (#347):** Calibrates stop-loss and profit target levels dynamically to the asset's current volatility environment using 14-period Average True Range (ATR):
+  - **Dynamic ATR Stop-Loss:** Calculated as $\text{Entry Price} - (\text{ATR} \times \text{atrStopMultiplier})$ (default: $1.5\times$ ATR).
+  - **Dynamic ATR Profit Target:** Calculated as $\text{Entry Price} + (\text{ATR} \times \text{atrProfitMultiplier})$ (default: $3.0\times$ ATR), establishing a default $2.0:1$ reward-to-risk ratio.
+  - **Dynamic ATR Trailing Stop:** When enabled alongside trailing stops, trails from the position's high-water mark price: $\text{Highest Price} - (\text{ATR} \times \text{atrStopMultiplier})$.
+  - **Adaptive Volatility Ratchet:**
+    - **Volatility Compression ($\text{NATR} < 1.0\%$):** Automatically widens stop distance by $1.25\times$ to avoid premature shakeouts during tight low-volatility consolidations.
+    - **Volatility Expansion ($\text{NATR} > 3.0\%$):** Automatically tightens trailing stops to $0.75\times$ base distance as momentum accelerates, locking in gains.
+  - **Diagnostic Visibility:** Surfaced in `AutomatedTradeProposalDetailWidget` with live ATR distance, calculated dollar stop/target levels, volatility regime indicator, and reward-to-risk ratio.
 
-### Order Approval Workflow
+### Order Approval Workflow & Pending Approvals Center
 
-For users who want the benefits of AI signal generation but prefer manual control over execution, the system offers an **Order Approval Workflow**.
+For users who want the benefits of AI signal generation but prefer manual oversight before capital is committed, the system offers an **Order Approval Workflow** backed by a dedicated review interface (`AutomatedTradingApprovalsWidget`).
 
 **How it works:**
 1. **Enable Approval:** Toggle `requireApproval` in Agentic Trading Settings.
-2. **Signal Generation:** The system generates trade proposals as usual based on signals and risk checks.
-3. **Pending State:** Instead of executing immediately, orders are placed in a "Pending Approval" queue.
-4. **Notification:** The user receives a notification about the pending order.
-5. **Review & Action:**
-   - Users can review pending orders in the Agentic Trading Settings.
-   - **Approve:** The order is sent to the brokerage for execution.
-   - **Reject:** The order is discarded.
-   - **Timeout:** Pending orders may expire if not acted upon within a certain timeframe (configurable).
+2. **Signal Generation:** The system evaluates market data, macro regimes, and multi-indicator technical signals to generate proposals.
+3. **Pending Queue:** Instead of executing automatically, proposals are persisted to the user's `pending_orders` Firestore subcollection and represented as typed `AutomatedTradeProposal` objects.
+4. **Push Notification:** The user receives a high-priority push notification (`agentic_approval`) containing the proposal ID.
+5. **Contextual Discovery:**
+   - **Home Screen Banner:** A high-visibility amber action banner appears on the `AgenticTradingCardWidget` displaying pending proposal counts and aggregate capital impact.
+   - **Status Badge:** The `AutoTradeStatusBadgeWidget` renders an amber `Review` badge state (`$pendingCount PENDING`).
+   - **Settings Button:** `AgenticTradingSettingsWidget` features an `Open Full Approvals View` button.
+   - **Deep Linking:** Tapping the notification opens `AutomatedTradingApprovalsWidget` and automatically pops the specific proposal's detail inspection sheet.
+
+**Dedicated Approvals Center (`AutomatedTradingApprovalsWidget`):**
+- **Dual Tabs:**
+  - **Pending:** Real-time view of active proposals awaiting action.
+  - **History:** Searchable audit trail of past approvals, executions, and rejections.
+- **Summary Metrics Header:** Displays total pending count, aggregate capital commitment (with strict `AccountStore.showBalances` `$••••••` masking), average AI conviction score, active execution mode (Live vs. Paper), and warning banners for Emergency Stop lockouts or Market Close cutoffs.
+- **Search & Filtering:** Text search by ticker symbol or strategy name, segmented action chips (`ALL`, `BUY`, `SELL`), qualification filter (`ALL`, `CONFIRMED`, `PENDING WATCH`), and sorting (`Newest First`, `Highest Confidence`, `Largest Capital`, `Symbol A-Z`).
+- **Batch Actions (`batchApproveOrders`, `batchRejectOrders`):** Interactive multi-selection mode with checkboxes allowing users to `Select All`, `Approve Selected`, `Reject Selected`, `Approve All`, and `Reject All` with confirmation dialogs.
+- **Deep Inspection Sheet (`AutomatedTradeProposalDetailWidget`):**
+  - Order parameters: Symbol, Action, Quantity, Execution Type, Limit/Signal Price, Estimated Total Cost.
+  - AI Conviction: Confidence score pill, signal provenance breakdown, and generative reasoning thesis.
+  - RiskGuard Audit: Volatility filter, sector concentration, correlation limits.
+  - GEX Levels & Macro Regime: Positive transition (`pTrans`), negative transition (`nTrans`), gamma flip levels, macro regime status, and direct link to interactive candlestick charts (`InstrumentWidget`).
+- **Safety Invariants During Approval:**
+  - **Live-Quote BUY Guard:** Approving an order validates the proposal against fresh live quotes; price deviations $> 3\%$ block execution.
+  - **Rejection Audit Trail:** Rejections append an entry with `status: 'rejected'` to `autoTradeHistory` and persist to Firestore `auto_trade_history` for compliance.
+  - **Paper Mode Isolation:** Paper approvals execute exclusively through the local simulated paper trading store without broker interaction.
 
 ### Advanced Performance Analytics
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/return_attribution.dart';
+import 'package:robinhood_options_mobile/model/stock_loan.dart';
 import 'package:robinhood_options_mobile/widgets/portfolio/analytics/return_attribution_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +16,7 @@ void main() {
   Widget buildCard({
     required AccountStore accountStore,
     Future<List<Quote>> Function(List<String>)? loader,
+    IncomeContextLoader? incomeContextLoader,
     AttributionComputedCallback? onComputed,
   }) {
     return ChangeNotifierProvider.value(
@@ -60,6 +62,7 @@ void main() {
               clock: () => DateTime(2026, 11, 2, 12),
               sectorQuoteLoader:
                   loader ?? (_) async => attributionSectorQuotes(),
+              incomeContextLoader: incomeContextLoader,
               onAttributionComputed: onComputed,
             ),
           ),
@@ -96,7 +99,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Delta (Δ)'), findsOneWidget);
     expect(find.text('+\$100.00'), findsOneWidget); // Δ·ΔS·100 = 0.5·2·100
-    expect(find.text('+\$12.50'), findsOneWidget); // income
+    expect(find.text('Dividends'), findsOneWidget);
+    expect(find.text('+\$12.50'), findsNWidgets(2)); // income + dividends
     expect(find.textContaining('Taylor approximation'), findsOneWidget);
   });
 
@@ -170,5 +174,79 @@ void main() {
       findsOneWidget,
     );
     handle.dispose();
+  });
+
+  testWidgets(
+      'loads disaggregated sweep accrual and SLIP income and masks when hidden',
+      (tester) async {
+    final store = AccountStore();
+    OptionsAttributionResult? latestOptions;
+    await tester.pumpWidget(buildCard(
+      accountStore: store,
+      incomeContextLoader: () async => AttributionIncomeContext(
+        stockLoanPayments: [
+          StockLoanPayment(
+            id: 'slp_today',
+            accountNumber: 'RH123',
+            paymentDate: DateTime(2026, 11, 2, 9, 30),
+            amount: 3.50,
+            status: 'paid',
+          ),
+        ],
+        sweepsInterest: const SweepsInterest(
+          isEnrolled: true,
+          currentEffectiveApy: 0.05,
+          sweepBalance: 36500.0, // $5.00/day accrual
+        ),
+      ),
+      onComputed: (_, o) => latestOptions = o,
+    ));
+    await tester.pumpAndSettle();
+
+    expect(latestOptions, isNotNull);
+    expect(latestOptions!.incomeBreakdown.dividendIncome, closeTo(12.5, 1e-12));
+    expect(latestOptions!.incomeBreakdown.interestAndSweepIncome,
+        closeTo(5.0, 1e-9));
+    expect(latestOptions!.incomeBreakdown.stockLoanIncome, closeTo(3.5, 1e-12));
+    expect(latestOptions!.totalIncomePnL, closeTo(21.0, 1e-9));
+
+    await tester.tap(find.text('Greeks & Income'));
+    await tester.pumpAndSettle();
+    expect(find.text('+\$21.00'), findsOneWidget);
+    expect(find.text('Dividends'), findsOneWidget);
+    expect(find.text('+\$12.50'), findsOneWidget);
+    expect(find.text('Cash Sweeps & Interest'), findsOneWidget);
+    expect(find.text('Daily sweep accrual estimate'), findsOneWidget);
+    expect(find.text('+\$5.00'), findsOneWidget);
+    expect(find.text('SLIP Securities Lending'), findsOneWidget);
+    expect(find.text('+\$3.50'), findsOneWidget);
+
+    store.toggleShowBalances();
+    await tester.pumpAndSettle();
+    expect(find.text('+\$21.00'), findsNothing);
+    expect(find.text('+\$12.50'), findsNothing);
+    expect(find.text('+\$5.00'), findsNothing);
+    expect(find.text('+\$3.50'), findsNothing);
+    expect(find.text('\$••••••'), findsWidgets);
+  });
+
+  testWidgets('degrades gracefully when incomeContextLoader fails at 320px',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildCard(
+      accountStore: AccountStore(),
+      incomeContextLoader: () async => throw Exception('slip unavailable'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Greeks & Income'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Dividends'), findsOneWidget);
+    expect(find.text('+\$12.50'), findsNWidgets(2));
   });
 }

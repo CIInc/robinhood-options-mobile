@@ -8,6 +8,7 @@ RealizeAlpha is a professional-grade Flutter mobile app for multi-account broker
 *   **Documentation Site:** [RealizeAlpha Docs](https://ciinc.github.io/robinhood-options-mobile/) ([`docs/index.md`](docs/index.md)) — Detailed feature guides, architecture references, and API research.
 *   **Roadmap & Release History:** [ROADMAP.md](ROADMAP.md) & [CHANGELOG.md](CHANGELOG.md) — Active development priorities and release notes.
 *   **Store Distribution & Release Assets:** [distribution/README.md](distribution/README.md) — App Store & Google Play screenshots, feature graphics, app icons, and release notes.
+*   **App Stores, Firebase & Cloud Consoles:** [App Stores & Consoles Directory](#app-stores-firebase--cloud-consoles) — Centralized links to App Store Connect, TestFlight, Google Play Console, Firebase Admin, and Google Cloud services.
 *   **Coding Agent & Contributor Guide:** [AGENTS.md](AGENTS.md) — Repository layout, safety invariants, and verification commands.
 
 ## Features
@@ -24,7 +25,7 @@ For full product context and architectural boundaries, see [PRODUCT.md](PRODUCT.
 ### Progressive Portfolio, Risk & Tax Optimization
 *   **[Progressive Portfolio & Action Center](docs/portfolio-redesign.md):** Decision-focused workspace with hero P&L metrics, an account-aware Action Center with context-first deep-linking, top movers, and dedicated Performance, Positions, Risk, Insights, Taxes, and Strategies tabs powered by a unified **[Portfolio Analytics Controller](docs/portfolio-analytics.md)** and [Return Attribution](docs/return-attribution.md).
 *   **[Multi-Asset Allocation & Risk Parity Rebalancing](docs/portfolio-rebalancing.md):** Interactive allocation charts across all 7 asset classes (Stocks, Options, Crypto, Forex, Futures, Fixed Income, Cash), sector/industry breakdowns, drift analysis, **[AI Asset Allocation](docs/ai-asset-allocation.md)** (including All-Weather presets), on-device Marginal Contribution to Risk (MCR %), and **[Risk Parity & Inverse-Volatility Portfolio Rebalancing](docs/portfolio-rebalancing.md)**.
-*   **[Quantitative Risk, Margin & Circuit Breakers](docs/margin-health-and-collateral.md):** **[Beta-Weighted Portfolio Greeks](docs/beta-weighted-portfolio-greeks.md)**, **[Correlation Matrix](docs/correlation-analysis.md)**, portfolio stress testing, tail-risk & liquidity scoring, **[ESG Scoring](docs/esg-scoring.md)**, **[Margin Calls & Financing Costs](docs/margin-calls-and-financing.md)**, **[Instrument-Specific Buying Power & Trade Warnings](docs/instrument-buying-power-and-warnings.md)**, **[Pattern Day Trader (PDT) Protection](docs/pdt-protection.md)**, **[RiskGuard](docs/risk-guard.md)** pre-trade checks, **[Autonomous Agentic Risk Copilot](docs/agentic-risk-copilot.md)**, and **[Account Risk Circuit Breakers & Tilt Guardrails](docs/risk-circuit-breakers.md)**.
+*   **[Quantitative Risk, Margin & Circuit Breakers](docs/margin-health-and-collateral.md):** **[Beta-Weighted Portfolio Greeks](docs/beta-weighted-portfolio-greeks.md)**, **[Correlation Matrix](docs/correlation-analysis.md)**, portfolio stress testing, **Monte Carlo Derivatives & Portfolio Stress Engine** (1,000–5,000 path GBM, fat-tailed Student's $t$, and historical bootstrap simulations with non-linear Greek Taylor decay, percentile fan charts, path-dependent 95%/99% VaR & CVaR, and ruin probability), tail-risk & liquidity scoring, **[ESG Scoring](docs/esg-scoring.md)**, **[Margin Calls & Financing Costs](docs/margin-calls-and-financing.md)**, **[Instrument-Specific Buying Power & Trade Warnings](docs/instrument-buying-power-and-warnings.md)**, **[Pattern Day Trader (PDT) Protection](docs/pdt-protection.md)**, **[RiskGuard](docs/risk-guard.md)** pre-trade checks, **[Autonomous Agentic Risk Copilot](docs/agentic-risk-copilot.md)**, and **[Account Risk Circuit Breakers & Tilt Guardrails](docs/risk-circuit-breakers.md)**.
 *   **[Tax Optimization & Loss Harvesting Suite](docs/tax-loss-harvesting.md):** Automated tax-loss harvesting with correlated replacement pairs, rolling 30-day wash-sale detection, **[Cross-Account & IRA Wash Sale Guardrails & Asset Location](docs/wash-sale-and-asset-location.md)** (IRS Rev. Rul. 2008-5 compliance), **[Capital Gains & Holding Period Breakdown](docs/capital-gains-breakdown.md)**, **[Specific Tax Lot Matching](docs/tax-lot-matching.md)** (FIFO, LIFO, HIFO, Tax Minimizer), **[FIFO Round-Trip Cost Basis Lookback](docs/instrument-cost-basis-lookback.md)**, and **[IRS Form 8949 / Schedule D Export](docs/form-8949-export.md)**.
 
 ### Options, Futures, Crypto & Forex Trading
@@ -34,7 +35,7 @@ For full product context and architectural boundaries, see [PRODUCT.md](PRODUCT.
 *   **[Futures, Crypto & Forex Execution](docs/futures.md):** Live futures position tracking, margin calculations, **[Futures Order Entry](docs/futures.md#futures-order-entry)**, and **[Futures Auto-Trading](docs/futures.md#futures-auto-trading)**; dedicated **[Crypto Trading](docs/crypto-trading.md)** and **[Forex Trading](docs/forex-trading.md)** (Micro/Mini/Standard lots, live pip values); plus the quantitative **[Carry Trade Optimizer](docs/carry-trade-optimizer.md)**.
 
 ### Trade Signals, Backtesting & Agentic Trading
-*   **[On-Device Background Auto-Trading & EOD Exit Status](docs/agentic-trading.md#execution-modes-and-lifecycle-guarantees):** Best-effort Workmanager checks use an automatic Paper quote source (active supported brokerage first, then the first linked Robinhood/Schwab feed), with optional pinning when multiple feeds are linked. A bounded on-device activity journal records task lifecycle events, and scheduling is reconciled when the app resumes. Live orders use the active account. Paper fills and TP/SL exits stay in a separate per-user ledger; Paper exit monitoring does not require a selected Live account. Live auto-trading requires confirmation before switching the active brokerage; background cadence and EOD execution are not guaranteed.
+*   **[On-Device Background Auto-Trading & EOD Exit Status](docs/agentic-trading.md#execution-modes-and-lifecycle-guarantees):** Best-effort Workmanager checks use an automatic Paper quote source (active supported brokerage first, then the first linked Robinhood/Schwab feed), with optional pinning when multiple feeds are linked. On iOS, brokerage OAuth credentials use Keychain `AfterFirstUnlock` so background tasks can access them while locked after the first unlock following reboot. A bounded on-device activity journal records task lifecycle events, and scheduling is reconciled when the app resumes. Live orders use the active account. Paper fills and TP/SL exits stay in a separate per-user ledger; Paper exit monitoring does not require a selected Live account. Live auto-trading requires confirmation before switching the active brokerage; background cadence and EOD execution are not guaranteed.
 *   **[Multi-Indicator Agentic Trading](docs/agentic-trading.md):** Autonomous and semi-autonomous trading powered by a **[19-Indicator Technical Evaluation System](docs/multi-indicator-trading.md)** across 15m, 1h, and 1d intervals, **Agentic Reasoning Mode**, live-quote BUY price validation, authoritative dynamic/fixed position sizing, **[Custom Indicators](docs/agentic-trading.md#custom-indicators)**, strategy templates, and a **5-Tier GEX Sequential Stop Queue** with trailing stops and emergency kill switches.
 *   **[Macro Regime Assessment](docs/macro-assessment.md):** 19-indicator institutional macro engine (VIX, MOVE, Yield Curve, Credit Spreads, Market Breadth) classifying global market regimes (`RISK_ON`, `RISK_OFF`, `NEUTRAL`) with weighted 0–100 scoring and strategy guidance.
 *   **[Historical Backtesting & Alpha Discovery](docs/backtesting.md):** Test multi-indicator strategies across custom date ranges and intervals with equity curves, Sharpe ratio, profit factor, drawdown analytics, reusable templates, macro-regime attribution and 70/30 walk-forward stability analysis, **[Alpha Factor Discovery](docs/alpha-factor-discovery.md)** (Information Coefficient & ICIR), and **[Event Study Analyzer](docs/event-study.md)**.
@@ -53,7 +54,7 @@ For full product context and architectural boundaries, see [PRODUCT.md](PRODUCT.
 
 ### Social, Investor Groups 2.0 & Protected Copy Trading
 *   **[Investor Groups 2.0](docs/investor-groups-2.md):** Private and public groups with member roles, real-time **Group Activity Feeds**, **Group Chat**, **[Shared Analysis Boards](docs/social-discussion-threads.md)**, **Verified Track Records**, and collaborative **[Group Watchlists](docs/group-watchlists.md)**.
-*   **[Protected Copy Trading](docs/copy-trading.md):** Mirror or inverse-copy stock and option trades from group leaders with manual approval or auto-execution, position/notional caps, take-profit/stop-loss rules, and a pre-trade **Copy Trade Risk Guardian**.
+*   **[Protected Copy Trading](docs/copy-trading.md):** Mirror or inverse-copy stock and option trades from group leaders with manual approval or auto-execution, position/notional caps, take-profit/stop-loss rules, a pre-trade **Copy Trade Risk Guardian**, **Defined-Risk Inverse Option Guardrails** (`Buy Call` $\leftrightarrow$ `Buy Put` adaptation blocking naked short option generation), and a **Small-Account Option Contract Adapter** (suggesting cheaper liquid OTM strikes and vertical debit spreads within allocation caps).
 
 ### Platform, Security & Mobile Experience
 *   **[Zero-Plaintext Security & Feature Gating](docs/secure-token-storage.md):** Hardware-backed credential encryption via `flutter_secure_storage` (iOS Keychain / Android Keystore), biometric authentication (FaceID/TouchID), **[Balance Visibility Masking](docs/ui-improvements.md#balance-privacy--navigation-v0370)**, and **[Feature Access & Beta Labs Gating](docs/feature-access-and-beta-gating.md)**.
@@ -73,6 +74,59 @@ RealizeAlpha utilizes a combination of technologies:
 *   **Database/Storage:** Cloud Firestore stores user documents, preferences, and portfolio telemetry (see [Entity-Relationship Diagram](docs/er-diagram.md)).
 *   **Hosting & CI/CD:** Firebase Hosting is used for web components, with GitHub Actions CI/CD automation (see [Mobile CI Setup](docs/mobile-ci-setup.md)).
 
+
+## App Stores, Firebase & Cloud Consoles
+
+Centralized reference of production distribution channels, developer consoles, and cloud administrative portals for **RealizeAlpha** (Firebase / Google Cloud Project: `realizealpha`).
+
+### App Stores & Distribution
+
+| Platform | Channel / Portal | URL / Identifier |
+| :--- | :--- | :--- |
+| **iOS / iPadOS / macOS** | **TestFlight Public Beta** | [testflight.apple.com/join/ARmsGSN8](https://testflight.apple.com/join/ARmsGSN8) |
+| **iOS / iPadOS / macOS** | **App Store Connect** | [appstoreconnect.apple.com/apps](https://appstoreconnect.apple.com/apps) |
+| **iOS / iPadOS / macOS** | **Apple Developer Portal** | [developer.apple.com/account](https://developer.apple.com/account/) |
+| **iOS / iPadOS / macOS** | **Bundle Identifier** | `com.cidevelop.robinhoodOptionsMobile` (Deployment guide: [`docs/TESTFLIGHT_DEPLOYMENT.md`](docs/TESTFLIGHT_DEPLOYMENT.md)) |
+| **Android** | **Google Play Internal Testing** | [play.google.com/apps/internaltest/4701722902176245187](https://play.google.com/apps/internaltest/4701722902176245187) |
+| **Android** | **Google Play Store (Listing)** | [play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile](https://play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile) |
+| **Android** | **Google Play Console** | [play.google.com/console (App Dashboard)](https://play.google.com/console/u/0/developers/5732598047340940161/app/4973125863461919438/app-dashboard) |
+| **Android** | **Application ID / Package** | `com.cidevelop.robinhood_options_mobile` (Developer ID: `5732598047340940161`, App ID: `4973125863461919438`) |
+| **Web** | **Production Web App** | [realizealpha.web.app](https://realizealpha.web.app) & [realizealpha.firebaseapp.com](https://realizealpha.firebaseapp.com) |
+
+### Firebase Admin URLs (`realizealpha`)
+
+| Service | Description | Console URL |
+| :--- | :--- | :--- |
+| **Project Overview** | Dashboard, usage, and project-wide analytics | [console.firebase.google.com/project/realizealpha/overview](https://console.firebase.google.com/project/realizealpha/overview) |
+| **Authentication** | User directory, auth providers, and custom claims | [console.firebase.google.com/project/realizealpha/authentication/users](https://console.firebase.google.com/project/realizealpha/authentication/users) |
+| **Cloud Firestore** | Production database collections & documents | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/data](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/data) |
+| **Firestore Security Rules** | Rules editor, testing simulator, and release history | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules) |
+| **Firestore Indexes** | Composite indexes status and exemptions | [console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes) |
+| **Cloud Functions** | Functions health, logs, memory, and call metrics | [console.firebase.google.com/project/realizealpha/functions](https://console.firebase.google.com/project/realizealpha/functions) |
+| **Firebase Hosting** | Deployment history, custom domains, and previews | [console.firebase.google.com/project/realizealpha/hosting](https://console.firebase.google.com/project/realizealpha/hosting) |
+| **Remote Config** | Feature flags, kill switches, and rollout parameters | [console.firebase.google.com/project/realizealpha/config](https://console.firebase.google.com/project/realizealpha/config) |
+| **App Check** | Attestation enforcement for DeviceCheck, App Attest, and Play Integrity | [console.firebase.google.com/project/realizealpha/appcheck](https://console.firebase.google.com/project/realizealpha/appcheck) |
+| **Project Settings** | App registrations, web/iOS/Android configs | [console.firebase.google.com/project/realizealpha/settings/general](https://console.firebase.google.com/project/realizealpha/settings/general) |
+| **Service Accounts** | Firebase Admin SDK credentials and private keys | [console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk](https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk) |
+
+### Google Cloud Console URLs (`realizealpha`)
+
+| Service | Purpose | Console URL |
+| :--- | :--- | :--- |
+| **Welcome / Dashboard** | GCP project resource summary, billing, and APIs | [console.cloud.google.com/welcome?project=realizealpha](https://console.cloud.google.com/welcome?project=realizealpha) |
+| **IAM & Admin** | Service accounts, roles, and CI/CD permissions | [console.cloud.google.com/iam-admin/iam?project=realizealpha](https://console.cloud.google.com/iam-admin/iam?project=realizealpha) |
+| **Service Accounts** | CI/CD (`github-action-deploy`) & runtime credentials | [console.cloud.google.com/iam-admin/serviceaccounts?project=realizealpha](https://console.cloud.google.com/iam-admin/serviceaccounts?project=realizealpha) |
+| **APIs & Services** | Enabled Google Cloud APIs, quotas, and credentials | [console.cloud.google.com/apis/dashboard?project=realizealpha](https://console.cloud.google.com/apis/dashboard?project=realizealpha) |
+| **Cloud Functions (GCP)** | Serverless backend execution, triggers, and concurrency | [console.cloud.google.com/functions/list?project=realizealpha](https://console.cloud.google.com/functions/list?project=realizealpha) |
+| **Cloud Scheduler** | Agentic trading and market-data cron jobs | [console.cloud.google.com/cloudscheduler?project=realizealpha](https://console.cloud.google.com/cloudscheduler?project=realizealpha) |
+| **Secret Manager** | Encrypted runtime secrets (`GEMINI_API_KEY`, tokens) | [console.cloud.google.com/security/secret-manager?project=realizealpha](https://console.cloud.google.com/security/secret-manager?project=realizealpha) |
+| **Cloud Build** | Container build history, CI triggers, and image logs | [console.cloud.google.com/cloud-build/builds?project=realizealpha](https://console.cloud.google.com/cloud-build/builds?project=realizealpha) |
+| **Artifact Registry** | Container image repositories for Cloud Functions v2 | [console.cloud.google.com/artifacts?project=realizealpha](https://console.cloud.google.com/artifacts?project=realizealpha) |
+| **Logs Explorer** | Centralized streaming logs across Functions and Firestore | [console.cloud.google.com/logs/query?project=realizealpha](https://console.cloud.google.com/logs/query?project=realizealpha) |
+| **Cloud Monitoring** | Custom dashboards, alerts, latency, and uptime checks | [console.cloud.google.com/monitoring?project=realizealpha](https://console.cloud.google.com/monitoring?project=realizealpha) |
+| **Vertex AI** | Gemini foundation models and AI agent infrastructure | [console.cloud.google.com/vertex-ai?project=realizealpha](https://console.cloud.google.com/vertex-ai?project=realizealpha) |
+
+---
 
 ### Latest Release
 
@@ -275,7 +329,11 @@ firebase functions:shell
 
 ## Publish
 
+*For complete console links and credentials, see the [App Stores, Firebase & Cloud Consoles](#app-stores-firebase--cloud-consoles) directory.*
+
 ### Firebase Hosting
+
+Console: [Firebase Hosting Dashboard](https://console.firebase.google.com/project/realizealpha/hosting) | Production URLs: [realizealpha.web.app](https://realizealpha.web.app) · [realizealpha.firebaseapp.com](https://realizealpha.firebaseapp.com)
 
 `firebase.json` was changed to modify the `hosting` property `"source": "."` to `"public": "build/web"` in order to deploy custom builds.
 
@@ -307,6 +365,8 @@ Previously, the public folder was deployed with this configuration:
 
 ### Firebase Functions
 
+Consoles: [Firebase Functions Console](https://console.firebase.google.com/project/realizealpha/functions) · [Google Cloud Functions Console](https://console.cloud.google.com/functions/list?project=realizealpha) · [Secret Manager](https://console.cloud.google.com/security/secret-manager?project=realizealpha)
+
 Functions will automatically deploy with hosting deployments with `firebase deploy`. To deploy only the functions, use the following command.
 
 ```bash
@@ -324,6 +384,8 @@ firebase functions:secrets:access GEMINI_API_KEY
 
 ### Firebase Firestore
 
+Console: [Firebase Firestore Console](https://console.firebase.google.com/project/realizealpha/firestore) · [Firestore Security Rules](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/rules) · [Firestore Indexes](https://console.firebase.google.com/project/realizealpha/firestore/databases/-default-/indexes)
+
 To deploy the Firestore rules and indexes, use the following command.
 
 ```bash
@@ -340,6 +402,8 @@ firebase firestore:indexes > ./firebase/firestore.indexes.json
 
 ### Android Play Store
 
+Consoles: [Google Play Console Dashboard](https://play.google.com/console/u/0/developers/5732598047340940161/app/4973125863461919438/app-dashboard) | Testing: [Google Play Internal Testing](https://play.google.com/apps/internaltest/4701722902176245187) | Production: [Google Play Store](https://play.google.com/store/apps/details?id=com.cidevelop.robinhood_options_mobile)
+
 #### Build app bundle
 
 ```bash
@@ -355,6 +419,8 @@ flutter build apk --release
 ```
 
 ### Apple App Store
+
+Consoles: [App Store Connect](https://appstoreconnect.apple.com/apps) · [Apple Developer Account](https://developer.apple.com/account/) | Testing: [TestFlight Beta](https://testflight.apple.com/join/ARmsGSN8)
 
 #### Build IPA
 
@@ -397,7 +463,7 @@ RealizeAlpha provides structured agent skills for roadmap planning, implementati
 
 - **Roadmap Ideation ([`.github/skills/roadmap-ideation/SKILL.md`](.github/skills/roadmap-ideation/SKILL.md)):** Propose evidence-backed roadmap items and link GitHub issues (`> /roadmap-ideation`).
 - **Roadmap Execution ([`.agents/skills/roadmap/SKILL.md`](.agents/skills/roadmap/SKILL.md)):** Implement the highest-priority actionable feature from [ROADMAP.md](ROADMAP.md) end-to-end with tests and docs (`> /roadmap`).
-- **Automated Documentation Sync ([`.agents/skills/update-docs/SKILL.md`](.agents/skills/update-docs/SKILL.md)):** Increment the app version and synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, and `.github/copilot-instructions.md` (`> /update-docs [nextversion]`).
+- **Automated Documentation Sync ([`.github/skills/update-docs/SKILL.md`](.github/skills/update-docs/SKILL.md)):** Increment the app version and synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, and `.github/copilot-instructions.md` (`> /update-docs [nextversion]`).
 
 ## Future Enhancements
 

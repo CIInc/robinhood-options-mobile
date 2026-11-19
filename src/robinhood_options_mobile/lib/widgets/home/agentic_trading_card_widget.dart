@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 
@@ -201,6 +202,113 @@ class AgenticTradingCardWidget extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 16),
+                        if (!disabled && provider.pendingOrders.isNotEmpty) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.amber.withValues(alpha: 0.45),
+                                width: 1.2,
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: (user == null || userDocRef == null)
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              AutomatedTradingApprovalsWidget(
+                                            user: user,
+                                            userDocRef: userDocRef,
+                                            service: service,
+                                            brokerageUser: brokerageUser,
+                                            analytics: analytics,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Colors.amber.withValues(alpha: 0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.pending_actions,
+                                        size: 18,
+                                        color: Colors.amber,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${provider.pendingOrders.length} Pending Approval${provider.pendingOrders.length == 1 ? '' : 's'}',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Trade proposals awaiting your review',
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    FilledButton.tonal(
+                                      onPressed:
+                                          (user == null || userDocRef == null)
+                                              ? null
+                                              : () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          AutomatedTradingApprovalsWidget(
+                                                        user: user,
+                                                        userDocRef: userDocRef,
+                                                        service: service,
+                                                        brokerageUser:
+                                                            brokerageUser,
+                                                        analytics: analytics,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                      style: FilledButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                      ),
+                                      child: const Text('Review',
+                                          style: TextStyle(fontSize: 12)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         Opacity(
                           opacity: disabled ? 0.5 : 1.0,
                           child: Column(
