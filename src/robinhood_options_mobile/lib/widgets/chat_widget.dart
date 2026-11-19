@@ -16,9 +16,11 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ChatWidget extends StatefulWidget {
@@ -338,6 +340,22 @@ class _ChatWidgetState extends State<ChatWidget> {
     );
   }
 
+  String _getProfileSummary(InvestmentProfile? profile) {
+    if (profile == null) return 'Profile not configured';
+    final parts = <String>[];
+    if (profile.riskTolerance != null && profile.riskTolerance!.isNotEmpty) {
+      parts.add(profile.riskTolerance!);
+    }
+    if (profile.investmentGoals != null &&
+        profile.investmentGoals!.isNotEmpty) {
+      parts.add(profile.investmentGoals!);
+    }
+    if (profile.timeHorizon != null && profile.timeHorizon!.isNotEmpty) {
+      parts.add(profile.timeHorizon!);
+    }
+    return parts.isEmpty ? 'Profile not configured' : parts.join(' • ');
+  }
+
   void _showSettingsBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -408,6 +426,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                           ),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SwitchListTile(
                               title: const Text(
@@ -428,6 +447,76 @@ class _ChatWidgetState extends State<ChatWidget> {
                                   _includeProfile = val;
                                 });
                               },
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                  16.0, 0.0, 16.0, 10.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      widget.user != null
+                                          ? _getProfileSummary(
+                                              widget.user!.investmentProfile)
+                                          : 'Sign in to configure investment profile',
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (widget.user != null) ...[
+                                    const SizedBox(width: 8),
+                                    OutlinedButton.icon(
+                                      icon: const Icon(Icons.edit_outlined,
+                                          size: 14),
+                                      label: Text(
+                                        widget.user!.investmentProfile !=
+                                                    null &&
+                                                (widget.user!.investmentProfile!
+                                                            .riskTolerance !=
+                                                        null ||
+                                                    widget
+                                                            .user!
+                                                            .investmentProfile!
+                                                            .investmentGoals !=
+                                                        null)
+                                            ? 'Edit'
+                                            : 'Configure',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () async {
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                InvestmentProfileSettingsWidget(
+                                              user: widget.user!,
+                                            ),
+                                          ),
+                                        );
+                                        if (mounted) {
+                                          setState(() {});
+                                          setBottomSheetState(() {});
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                             const Divider(height: 1),
                             SwitchListTile(

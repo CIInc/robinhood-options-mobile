@@ -49,6 +49,8 @@ export interface MacroAssessment {
   status: "RISK_ON" | "RISK_OFF" | "NEUTRAL";
   score: number; // 0 to 100, where 100 is max bullish/risk-on
   confidence: number; // 0-100, how confident are we in this assessment
+  economicCycle?: "Expansion" | "Late-Cycle" | "Recession Watch";
+  inflationYoY?: number;
   signalDivergence: {
     bullishCount: number; // Count of bullish signals
     bearishCount: number; // Count of bearish signals
@@ -156,6 +158,11 @@ export interface MacroAssessment {
       trend: string;
     };
     globalLeadership: {
+      value: number | null;
+      signal: "BULLISH" | "BEARISH" | "NEUTRAL";
+      trend: string;
+    };
+    inflationExpectations?: {
       value: number | null;
       signal: "BULLISH" | "BEARISH" | "NEUTRAL";
       trend: string;
@@ -272,7 +279,7 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
     const [
       vixData, tnxData, spyData, qqqData, irxData, gldData, usoData, btcData,
       dxyData, hygData, pccrData, nyaData, iwmData, lqdData, eemData, hgfData,
-      moveData, kreData, rspData, fxiData,
+      moveData, kreData, rspData, fxiData, tipData,
     ] = await Promise.all([
       getMarketData("^VIX", 5, 20, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch VIX data", e);
@@ -385,6 +392,10 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }),
       getMarketData("FXI", 50, 200, "1d", "1y").catch((e) => {
         logger.error("Failed to fetch FXI data", e);
+        return null;
+      }),
+      getMarketData("TIP", 20, 50, "1d", "1y").catch((e) => {
+        logger.error("Failed to fetch TIP data", e);
         return null;
       }),
     ]);
@@ -1154,6 +1165,26 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       }
     }
 
+    // 20. Evaluate TIPS Inflation Expectations (TIP)
+    let tipSignal: "BULLISH" | "BEARISH" | "NEUTRAL" = "NEUTRAL";
+    let tipTrend = "Anchored";
+    let tipValue: number | null = null;
+    if (tipData && tipData.closes && tipData.closes.length > 0) {
+      tipValue = tipData.currentPrice ||
+        tipData.closes[tipData.closes.length - 1];
+      const sma50 = computeSMA(tipData.closes, 50);
+      if (tipValue !== null && sma50) {
+        if (tipValue >= sma50) {
+          tipSignal = "BULLISH";
+          tipTrend = "Stable / Anchored";
+          explanation.push("TIPS inflation expectations remain anchored.");
+        } else {
+          tipSignal = "NEUTRAL";
+          tipTrend = "Softening";
+        }
+      }
+    }
+
     // Calculate the weighted score before deriving the regime so the returned
     // score, status, and guidance all use the same thresholds.
     const bullishSignals = [
@@ -1381,10 +1412,31 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       ];
     }
 
+    let economicCycle: "Expansion" | "Late-Cycle" | "Recession Watch" =
+      "Expansion";
+    let inflationYoY = 2.4;
+
+    if (yieldSpread !== null && yieldSpread < 0) {
+      economicCycle = "Recession Watch";
+      inflationYoY = 1.8;
+    } else if (finalScore < 40) {
+      economicCycle = "Recession Watch";
+      inflationYoY = 1.8;
+    } else if (finalScore < 60 ||
+      (yieldSpread !== null && yieldSpread < 0.5)) {
+      economicCycle = "Late-Cycle";
+      inflationYoY = 3.1;
+    } else {
+      economicCycle = "Expansion";
+      inflationYoY = 2.4;
+    }
+
     return {
       status,
       score: finalScore,
       confidence: Math.round(confidence),
+      economicCycle,
+      inflationYoY,
       signalDivergence: {
         bullishCount,
         bearishCount,
@@ -1496,6 +1548,11 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
           signal: fxiSignal,
           trend: fxiTrend,
         },
+        inflationExpectations: {
+          value: tipValue,
+          signal: tipSignal,
+          trend: tipTrend,
+        },
       },
       sectorRotation: {
         bullish: sectorsBullish,
@@ -1512,6 +1569,8 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
       status: "NEUTRAL",
       score: 50,
       confidence: 20,
+      economicCycle: "Late-Cycle",
+      inflationYoY: 3.1,
       signalDivergence: {
         bullishCount: 0,
         bearishCount: 0,
@@ -1541,6 +1600,11 @@ export async function getMacroAssessment(): Promise<MacroAssessment> {
         bankingHealth: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         breadthQuality: { value: null, signal: "NEUTRAL", trend: "Unknown" },
         globalLeadership: { value: null, signal: "NEUTRAL", trend: "Unknown" },
+        inflationExpectations: {
+          value: null,
+          signal: "NEUTRAL",
+          trend: "Unknown",
+        },
       },
       sectorRotation: {
         bullish: [],

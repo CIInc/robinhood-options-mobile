@@ -31,6 +31,14 @@ class ExitStrategiesWidget extends StatefulWidget {
   final bool enableCatastrophicStop;
   final TextEditingController? catastrophicStopPercentController;
 
+  // Volatility-Adaptive Dynamic ATR Stops & Profit Ratchet
+  final bool dynamicAtrStopsEnabled;
+  final TextEditingController? atrStopMultiplierController;
+  final TextEditingController? atrProfitMultiplierController;
+  final bool atrRatchetEnabled;
+  final ValueChanged<bool>? onDynamicAtrStopsChanged;
+  final ValueChanged<bool>? onAtrRatchetChanged;
+
   final ValueChanged<bool> onTrailingStopChanged;
   final ValueChanged<bool> onTimeBasedExitChanged;
   final ValueChanged<bool> onMarketCloseExitChanged;
@@ -74,6 +82,12 @@ class ExitStrategiesWidget extends StatefulWidget {
     this.enableMacroRegimeStop = true,
     this.enableCatastrophicStop = true,
     this.catastrophicStopPercentController,
+    this.dynamicAtrStopsEnabled = false,
+    this.atrStopMultiplierController,
+    this.atrProfitMultiplierController,
+    this.atrRatchetEnabled = true,
+    this.onDynamicAtrStopsChanged,
+    this.onAtrRatchetChanged,
     required this.onTrailingStopChanged,
     required this.onTimeBasedExitChanged,
     required this.onMarketCloseExitChanged,
@@ -304,6 +318,75 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
                   onChanged: (_) => _notifySettingsChanged(),
                 )
               : null,
+        ),
+        const SizedBox(height: 16),
+
+        // Volatility-Adaptive Dynamic ATR Stops Section
+        _buildSubsectionTitle(
+            context, 'Volatility-Adaptive Dynamic ATR Stops & Targets'),
+        const SizedBox(height: 12),
+        _buildStrategyCard(
+          context,
+          'Dynamic ATR Stops & Profit Targets',
+          'Calibrate stop loss and profit targets dynamically using 14-period ATR',
+          widget.dynamicAtrStopsEnabled,
+          (val) {
+            widget.onDynamicAtrStopsChanged?.call(val);
+            _notifySettingsChanged();
+          },
+          icon: Icons.tune_rounded,
+          extraContent: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  if (widget.atrStopMultiplierController != null)
+                    Expanded(
+                      child: _buildTextField(
+                        context,
+                        widget.atrStopMultiplierController!,
+                        'Stop Distance',
+                        suffixText: 'x ATR',
+                        helperText: 'Default: 1.5x ATR',
+                        prefixIcon: Icons.shield_outlined,
+                        onChanged: (_) => _notifySettingsChanged(),
+                      ),
+                    ),
+                  if (widget.atrStopMultiplierController != null &&
+                      widget.atrProfitMultiplierController != null)
+                    const SizedBox(width: 12),
+                  if (widget.atrProfitMultiplierController != null)
+                    Expanded(
+                      child: _buildTextField(
+                        context,
+                        widget.atrProfitMultiplierController!,
+                        'Target Distance',
+                        suffixText: 'x ATR',
+                        helperText: 'Default: 3.0x ATR',
+                        prefixIcon: Icons.gps_fixed_rounded,
+                        onChanged: (_) => _notifySettingsChanged(),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile.adaptive(
+                title: const Text('Adaptive Volatility Ratchet',
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text(
+                  'Widens stops (1.25x) during low-vol compression; tightens stops (0.75x) during momentum expansion',
+                  style: TextStyle(fontSize: 12),
+                ),
+                value: widget.atrRatchetEnabled,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) {
+                  widget.onAtrRatchetChanged?.call(val);
+                  _notifySettingsChanged();
+                },
+              ),
+            ],
+          ),
         ),
 
         // Intraday & Technical Exits Section

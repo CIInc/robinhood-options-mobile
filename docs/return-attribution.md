@@ -44,19 +44,30 @@ vega value is available. If not, the unexplained amount is reported as residual
 P&L. Prior implied-volatility snapshots are not stored, so these Greek figures
 are estimates, not broker-reported values.
 
-Income currently includes paid dividends and interest entries dated within the
-current day's window; pending and voided entries are excluded. Separate stock
-lending and cash-sweep attribution is not currently calculated. Issue
-[#278](https://github.com/CIInc/robinhood-options-mobile/issues/278) remains open
-for completing and verifying the full attribution scope.
+Income includes three disaggregated components dated within the current day's
+window (excluding pending, voided, cancelled, failed, and reversed entries):
+
+- **Dividends:** Paid cash dividends dated within the current day's window.
+- **Cash Sweeps & Interest:** Paid interest/sweep entries dated within the window,
+  or an estimated daily sweep accrual (`estimatedAnnualInterest / 365`) when
+  enrolled in Cash Sweeps (`SweepsInterest`) and no interest payout landed today.
+- **SLIP Securities Lending:** Paid/settled SLIP stock loan payouts
+  (`StockLoanPayment`) dated within the window, or an estimated daily lending
+  accrual (`totalLoanedValue * estimatedAnnualizedYield / 365`) when enrolled in
+  SLIP (`SlipEligibility`) and no SLIP payout landed today.
+
+These cash-sweep and SLIP daily accruals are on-device estimates when daily
+broker statements have not yet settled and are labeled clearly in the UI and CSV
+export ([#278](https://github.com/CIInc/robinhood-options-mobile/issues/278)).
 
 ## Privacy and Export
 
 Dollar amounts respect the account balance-visibility setting; percentages
 remain visible. The Performance section's CSV export includes sector effects,
-option Greek P&L, and the estimate disclaimer when those attribution results are
-available. Calculations use hydrated account data on-device and are not written
-to Firestore.
+option Greek P&L, disaggregated income rows (`Dividends P&L`, `Cash Sweeps &
+Interest P&L`, `SLIP Securities Lending P&L`, and `Income/Yield P&L`), and the
+estimate disclaimer when those attribution results are available. Calculations
+use hydrated account data on-device and are not written to Firestore.
 
 Implementation references: `lib/model/return_attribution.dart`,
 `lib/services/return_attribution_service.dart`, and

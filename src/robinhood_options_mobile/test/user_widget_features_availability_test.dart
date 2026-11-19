@@ -388,8 +388,7 @@ void main() {
           find.widgetWithText(
               ListTile, 'Risk Circuit Breakers & Tilt Guardrails'),
           findsOneWidget);
-      expect(
-          find.widgetWithText(ListTile, 'Investment Profile'), findsOneWidget);
+      expect(find.widgetWithText(ListTile, 'Investment Profile'), findsNothing);
 
       // Unsupported features are hidden for Paper
       expect(find.widgetWithText(ListTile, 'Margin Health & Collateral'),

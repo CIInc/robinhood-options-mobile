@@ -457,6 +457,7 @@ jobs:
           api-key-id: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY }}
           release-notes: ${{ needs.check_version.outputs.release_notes }}
+          groups-file: .github/testflight-groups.txt
 
       - name: Upload to App Store (Legacy Username/Password fallback)
         if: env.APP_STORE_CONNECT_API_KEY_ID == '' || env.APP_STORE_CONNECT_API_ISSUER_ID == ''

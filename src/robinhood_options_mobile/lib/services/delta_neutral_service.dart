@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:robinhood_options_mobile/model/delta_neutral_model.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/utils/analytics_utils.dart';
 
 /// Quantitative analytical engine for delta-neutral strategy building,
 /// dynamic delta offsets, multi-leg Greek aggregation, and scenario modeling.
@@ -29,14 +30,21 @@ class DeltaNeutralService {
     double netGamma = 0.0;
     double netTheta = 0.0;
     double netVega = 0.0;
+    double netVanna = 0.0;
+    double netCharmDaily = 0.0;
+    double netVomma = 0.0;
 
     for (final leg in legs) {
       netDelta += leg.totalDelta;
       netGamma += leg.totalGamma;
       netTheta += leg.totalTheta;
       netVega += leg.totalVega;
+      netVanna += leg.totalVanna;
+      netCharmDaily += leg.totalCharmDaily;
+      netVomma += leg.totalVomma;
     }
 
+    final double weekendCharmDrift = netCharmDaily * 3.0;
     final double dollarDeltaPerOnePercent = netDelta * spotPrice * 0.01;
     final double deltaDrift = netDelta - targetDelta;
 
@@ -67,6 +75,11 @@ class DeltaNeutralService {
       toleranceBand: toleranceBand,
     );
 
+    final crossShockMatrix = calculateCrossShockMatrix(
+      spotPrice: spotPrice,
+      legs: legs,
+    );
+
     return DeltaNeutralAnalysis(
       symbol: symbol,
       spotPrice: spotPrice,
@@ -77,10 +90,15 @@ class DeltaNeutralService {
       netGamma: netGamma,
       netTheta: netTheta,
       netVega: netVega,
+      netVanna: netVanna,
+      netCharmDaily: netCharmDaily,
+      weekendCharmDrift: weekendCharmDrift,
+      netVomma: netVomma,
       dollarDeltaPerOnePercent: dollarDeltaPerOnePercent,
       driftStatus: driftStatus,
       rebalanceSuggestion: rebalanceSuggestion,
       scenarioPoints: scenarioPoints,
+      crossShockMatrix: crossShockMatrix,
       calculatedAt: DateTime.now(),
     );
   }
@@ -386,6 +404,75 @@ class DeltaNeutralService {
     return points;
   }
 
+  /// Calculates the 2D Spot × IV Cross-Shock Stress Matrix across active strategy legs.
+  ///
+  /// Spot shifts: deltaS / S in [-10%, -5%, 0%, +5%, +10%]
+  /// IV shocks: deltaIV in [-20%, -10%, 0%, +10%, +20%]
+  static List<List<CrossShockCell>> calculateCrossShockMatrix({
+    required double spotPrice,
+    required List<DeltaPositionLeg> legs,
+    List<double> spotShocks = const [-0.10, -0.05, 0.0, 0.05, 0.10],
+    List<double> ivShocks = const [-0.20, -0.10, 0.0, 0.10, 0.20],
+  }) {
+    final List<List<CrossShockCell>> matrix = [];
+
+    for (final sShift in spotShocks) {
+      final List<CrossShockCell> row = [];
+      final deltaS = spotPrice * sShift;
+      final shiftedSpot = spotPrice * (1.0 + sShift);
+
+      for (final ivShift in ivShocks) {
+        final ivPoints = ivShift * 100.0;
+
+        double totalPnL = 0.0;
+        double totalPostDelta = 0.0;
+
+        for (final leg in legs) {
+          if (leg.legType == DeltaLegType.stock) {
+            final legDelta = 1.0 * leg.quantity * leg.sideMultiplier;
+            totalPostDelta += legDelta;
+            totalPnL += leg.quantity * leg.sideMultiplier * deltaS;
+          } else {
+            final legScale = leg.multiplier * leg.quantity * leg.sideMultiplier;
+
+            // Multi-variable Taylor expansion for option PnL:
+            final optionPnL = legScale *
+                (leg.unitDelta * deltaS +
+                    0.5 * leg.unitGamma * deltaS * deltaS +
+                    leg.unitVega * ivPoints +
+                    leg.unitVanna * deltaS * ivPoints +
+                    0.5 * leg.unitVomma * ivPoints * ivPoints);
+            totalPnL += optionPnL;
+
+            // Post-shock unit delta:
+            final shiftedUnitDelta = leg.unitDelta +
+                (leg.unitGamma * deltaS) +
+                (leg.unitVanna * ivPoints);
+            final clampedUnitDelta = leg.legType == DeltaLegType.call
+                ? shiftedUnitDelta.clamp(0.0, 1.0)
+                : shiftedUnitDelta.clamp(-1.0, 0.0);
+
+            totalPostDelta += clampedUnitDelta *
+                leg.multiplier *
+                leg.quantity *
+                leg.sideMultiplier;
+          }
+        }
+
+        row.add(CrossShockCell(
+          spotShiftPct: sShift,
+          ivShiftPct: ivShift,
+          projectedPnL: totalPnL,
+          projectedNetDelta: totalPostDelta,
+          shiftedSpotPrice: shiftedSpot,
+        ));
+      }
+      matrix.add(row);
+    }
+
+    return matrix;
+  }
+
   // --------------------------------------------------------------------------
   // Pre-configured Delta-Neutral Strategy Templates
   // --------------------------------------------------------------------------
@@ -432,6 +519,9 @@ class DeltaNeutralService {
             unitGamma: callGreeks['gamma']!,
             unitTheta: callGreeks['theta']!,
             unitVega: callGreeks['vega']!,
+            unitVanna: callGreeks['vanna'] ?? 0.0,
+            unitCharm: callGreeks['charm'] ?? 0.0,
+            unitVomma: callGreeks['vomma'] ?? 0.0,
             markPrice: callGreeks['price']!,
           ),
           DeltaPositionLeg(
@@ -446,6 +536,9 @@ class DeltaNeutralService {
             unitGamma: putGreeks['gamma']!,
             unitTheta: putGreeks['theta']!,
             unitVega: putGreeks['vega']!,
+            unitVanna: putGreeks['vanna'] ?? 0.0,
+            unitCharm: putGreeks['charm'] ?? 0.0,
+            unitVomma: putGreeks['vomma'] ?? 0.0,
             markPrice: putGreeks['price']!,
           ),
         ];
@@ -511,6 +604,9 @@ class DeltaNeutralService {
             unitGamma: callG['gamma']!,
             unitTheta: callG['theta']!,
             unitVega: callG['vega']!,
+            unitVanna: callG['vanna'] ?? 0.0,
+            unitCharm: callG['charm'] ?? 0.0,
+            unitVomma: callG['vomma'] ?? 0.0,
             markPrice: callG['price']!,
           ),
           DeltaPositionLeg(
@@ -525,6 +621,9 @@ class DeltaNeutralService {
             unitGamma: putG['gamma']!,
             unitTheta: putG['theta']!,
             unitVega: putG['vega']!,
+            unitVanna: putG['vanna'] ?? 0.0,
+            unitCharm: putG['charm'] ?? 0.0,
+            unitVomma: putG['vomma'] ?? 0.0,
             markPrice: putG['price']!,
           ),
         ];
@@ -562,6 +661,9 @@ class DeltaNeutralService {
             unitGamma: atmG['gamma']!,
             unitTheta: atmG['theta']!,
             unitVega: atmG['vega']!,
+            unitVanna: atmG['vanna'] ?? 0.0,
+            unitCharm: atmG['charm'] ?? 0.0,
+            unitVomma: atmG['vomma'] ?? 0.0,
             markPrice: atmG['price']!,
           ),
           DeltaPositionLeg(
@@ -576,6 +678,9 @@ class DeltaNeutralService {
             unitGamma: otmG['gamma']!,
             unitTheta: otmG['theta']!,
             unitVega: otmG['vega']!,
+            unitVanna: otmG['vanna'] ?? 0.0,
+            unitCharm: otmG['charm'] ?? 0.0,
+            unitVomma: otmG['vomma'] ?? 0.0,
             markPrice: otmG['price']!,
           ),
         ];
@@ -604,6 +709,9 @@ class DeltaNeutralService {
             unitGamma: 0.02,
             unitTheta: -0.05,
             unitVega: 0.15,
+            unitVanna: 0.002,
+            unitCharm: -0.001,
+            unitVomma: 0.001,
             markPrice: spotPrice * 0.03,
           ),
         ];
@@ -693,24 +801,37 @@ class DeltaNeutralService {
         double uGamma = md?.gamma ?? 0.0;
         double uTheta = md?.theta ?? 0.0;
         double uVega = md?.vega ?? 0.0;
+        double uVanna = 0.0;
+        double uCharm = 0.0;
+        double uVomma = 0.0;
         double mark = md?.markPrice ?? md?.adjustedMarkPrice ?? 0.0;
 
-        // Failover to Black-Scholes if Greeks are 0 or missing
-        if (uDelta == 0.0 && exp != null) {
+        // Compute higher-order Greeks and failover first-order Greeks via Black-Scholes
+        if (exp != null) {
           final t =
-              math.max(0.001, exp.difference(DateTime.now()).inDays / 365);
+              math.max(0.001, exp.difference(DateTime.now()).inDays / 365.0);
+          final iv =
+              (md?.impliedVolatility != null && md!.impliedVolatility! > 0)
+                  ? md.impliedVolatility!
+                  : defaultVolatility;
           final greeks = calculateBlackScholesGreeks(
             spotPrice: spotPrice,
             strikePrice: strike,
             timeToExpirationYears: t,
-            volatility: defaultVolatility,
+            volatility: iv,
             isCall: isCall,
           );
-          uDelta = greeks['delta']!;
-          uGamma = greeks['gamma']!;
-          uTheta = greeks['theta']!;
-          uVega = greeks['vega']!;
-          if (mark == 0.0) mark = greeks['price']!;
+          uVanna = greeks['vanna'] ?? 0.0;
+          uCharm = greeks['charm'] ?? 0.0;
+          uVomma = greeks['vomma'] ?? 0.0;
+
+          if (uDelta == 0.0) {
+            uDelta = greeks['delta']!;
+            uGamma = greeks['gamma']!;
+            uTheta = greeks['theta']!;
+            uVega = greeks['vega']!;
+            if (mark == 0.0) mark = greeks['price']!;
+          }
         }
 
         legs.add(
@@ -726,6 +847,9 @@ class DeltaNeutralService {
             unitGamma: uGamma,
             unitTheta: uTheta,
             unitVega: uVega,
+            unitVanna: uVanna,
+            unitCharm: uCharm,
+            unitVomma: uVomma,
             impliedVolatility: md?.impliedVolatility,
             markPrice: mark,
           ),
@@ -786,12 +910,29 @@ class DeltaNeutralService {
     final gamma = nPrimeD1 / (S * sigma * math.sqrt(T));
     final vega = (S * nPrimeD1 * math.sqrt(T)) / 100.0; // dollar per 1% IV move
 
+    // Vanna: dDelta / dSigma = - n'(d1) * d2 / sigma (per 1% IV shift)
+    final vannaRaw = -(nPrimeD1 * d2) / sigma;
+    final vanna = vannaRaw * 0.01;
+
+    // Charm (dDelta / dt): daily delta decay
+    final charmAnnual =
+        nPrimeD1 * ((d2 / (2.0 * T)) - (r / (sigma * math.sqrt(T))));
+    final dailyCharm = charmAnnual / 365.0;
+
+    // Vomma: vega * (d1 * d2 / sigma) / 100
+    final vomma = (vega * (d1 * d2 / sigma)) / 100.0;
+
     return {
       'price': math.max(0.01, price),
       'delta': delta,
       'gamma': gamma,
       'theta': theta,
       'vega': vega,
+      'vanna': vanna,
+      'charm': dailyCharm,
+      'dailyCharm': dailyCharm,
+      'weekendCharm': dailyCharm * 3.0,
+      'vomma': vomma,
     };
   }
 

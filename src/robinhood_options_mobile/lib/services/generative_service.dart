@@ -369,9 +369,9 @@ Follow the table with a strategic breakdown:
   GenerativeService({SecureTokenStorage? secureTokenStorage})
       : _secureTokenStorage =
             secureTokenStorage ?? PlatformSecureTokenStorage(),
-        // Initialize the Vertex AI service and the generative model
+        // Initialize the Agent Platform service and the generative model
         // Specify a model that supports your use case
-        model = FirebaseAI.vertexAI().generativeModel(
+        model = FirebaseAI.agentPlatform().generativeModel(
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
                 ? RemoteConfigService.instance.aiModelName
                 : 'gemini-3.1-flash-lite',
@@ -736,7 +736,7 @@ Follow the table with a strategic breakdown:
           "GenerativeService [generateContent]: Local MCP is connected. Active tools count: ${modelTools.length}");
       debugPrint("  Tool functions available for Gemini: $mcpToolNames");
 
-      final activeModel = FirebaseAI.vertexAI().generativeModel(
+      final activeModel = FirebaseAI.agentPlatform().generativeModel(
         model: RemoteConfigService.instance.aiModelName.isNotEmpty
             ? RemoteConfigService.instance.aiModelName
             : 'gemini-3.1-flash-lite',
@@ -756,7 +756,7 @@ Follow the table with a strategic breakdown:
         while (true) {
           turnCount++;
           debugPrint(
-              "GenerativeService [generateContent Turn $turnCount]: Calling Vertex AI with ${currentContents.length} items in history.");
+              "GenerativeService [generateContent Turn $turnCount]: Calling Agent Platform with ${currentContents.length} items in history.");
           final response = await activeModel.generateContent(currentContents);
           final text = response.text;
           if (text != null && text.isNotEmpty) {
@@ -1038,7 +1038,7 @@ Follow the table with a strategic breakdown:
 
     // Create a local model instance if we have tools, else use default
     final activeModel = mcpConnected
-        ? FirebaseAI.vertexAI().generativeModel(
+        ? FirebaseAI.agentPlatform().generativeModel(
             model: RemoteConfigService.instance.aiModelName.isNotEmpty
                 ? RemoteConfigService.instance.aiModelName
                 : 'gemini-3.1-flash-lite',
@@ -1971,13 +1971,12 @@ class RobinhoodMcpClient {
   Future<void> _connect() async {
     try {
       _client = mcp.McpClient(
-        mcp.Implementation(
+        const mcp.Implementation(
           name: 'RealizeAlpha MCP Client',
           title: 'RealizeAlpha MCP Client',
           version: '1.0.0',
           description: 'RealizeAlpha MCP Client for Robinhood Agentic Trading',
-          icons: const [],
-          websiteUrl: '',
+          websiteUrl: 'https://github.com/CIInc/robinhood-options-mobile',
         ),
         options: mcp.McpClientOptions(
           capabilities: mcp.ClientCapabilities(),

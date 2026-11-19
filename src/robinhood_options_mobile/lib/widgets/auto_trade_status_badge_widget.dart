@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 
 /// A reusable badge widget that displays the current auto-trade status.
 ///
@@ -489,16 +490,29 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
               onTap: () {
                 HapticFeedback.lightImpact();
                 if (widget.user != null && widget.userDocRef != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AgenticTradingSettingsWidget(
-                        user: widget.user!,
-                        userDocRef: widget.userDocRef!,
-                        service: widget.service,
+                  if (agenticTradingProvider.pendingOrders.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AutomatedTradingApprovalsWidget(
+                          user: widget.user!,
+                          userDocRef: widget.userDocRef!,
+                          service: widget.service,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AgenticTradingSettingsWidget(
+                          user: widget.user!,
+                          userDocRef: widget.userDocRef!,
+                          service: widget.service,
+                        ),
+                      ),
+                    );
+                  }
                 }
               },
               onLongPress: () =>
@@ -652,6 +666,16 @@ class _AutoTradeStatusBadgeWidgetState extends State<AutoTradeStatusBadgeWidget>
         color: isLight ? Colors.red.shade700 : Colors.red,
         icon: Icons.stop_circle,
         tooltip: 'Emergency Stop Active\nLong press to resume',
+      );
+    } else if (provider.pendingOrders.isNotEmpty) {
+      final pendingCount = provider.pendingOrders.length;
+      return _StatusAttributes(
+        title: 'Review',
+        subtitle: '$pendingCount PENDING',
+        color: isLight ? Colors.amber.shade900 : Colors.amber,
+        icon: Icons.pending_actions,
+        tooltip:
+            '$pendingCount Trade Proposal${pendingCount == 1 ? "" : "s"} Awaiting Approval\nTap to review',
       );
     } else if (dailyCount >= dailyLimit) {
       return _StatusAttributes(

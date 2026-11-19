@@ -45,6 +45,9 @@ If a build, validation, or upload fails, the script restores the previous
 consuming another build number.
 
 The upload makes the build available in App Store Connect after Apple's
-processing finishes. Internal TestFlight groups can receive it automatically
-if automatic distribution is enabled. External testing still requires the
-build to be submitted for TestFlight Beta App Review in App Store Connect.
+processing finishes. In the GitHub Actions CD workflow (`.github/workflows/cd.yml`),
+the build is automatically assigned to TestFlight groups defined in
+`.github/testflight-groups.txt` (e.g. `Public Beta`) and submitted for TestFlight
+Beta App Review once processing completes. When "Enable automatic distribution"
+is toggled ON for the external group in App Store Connect, approved builds are
+immediately made available to external testers and public beta links without manual intervention.
