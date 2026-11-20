@@ -39,4 +39,6 @@ The rolling metrics use aligned daily returns:
 - **Beta:** Covariance of instrument and benchmark returns divided by benchmark variance.
 - **Correlation:** Pearson correlation of instrument and benchmark returns.
 
+The shared market-data service normalizes cached and provider bars together by source index. A bar is dropped as a whole when its timestamp or any OHLC value is missing or non-finite; a missing volume is represented as zero. This keeps price arrays paired with their trading dates before Event Study aligns the asset and benchmark sessions.
+
 The event date is normalized to the nearest available trading session. Invalid symbols, dates, or window values are rejected before analysis.

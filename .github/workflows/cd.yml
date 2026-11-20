@@ -128,31 +128,20 @@ jobs:
 
           echo "Checking tag: $TAG_NAME"
 
-          # Extract release notes from ROADMAP.md
-          ROADMAP_PATH="ROADMAP.md"
-          # In workflow default working directory is src/robinhood_options_mobile
-          # But ROADMAP.md is at root. We're currently in src/robinhood_options_mobile because of defaults.run
-          # So we need to go up two levels
-          ROADMAP_PATH="../../ROADMAP.md"
+          # Extract release notes from the matching CHANGELOG.md section.
+          CHANGELOG_PATH="../../CHANGELOG.md"
 
-          if [ -f "$ROADMAP_PATH" ]; then
-            # Extract content between the current version header and the next version header
-            # Version header format: ### v0.31.4 ...
-            # We want to match "### v0.31.4" where 0.31.4 is VERSION
-            
-            # Escape dots for regex
-            ESCAPED_VERSION=$(echo $VERSION | sed 's/\./\\./g')
-            
-            # awk pattern:
-            # Start: Line starts with "### v" followed by VERSION
-            # End: Next line starting with "### v"
-            
-            RELEASE_NOTES=$(awk "/^### v$ESCAPED_VERSION/{flag=1;next}/^### v/{flag=0}flag" $ROADMAP_PATH)
+          if [ -f "$CHANGELOG_PATH" ]; then
+            RELEASE_NOTES=$(awk -v version="$VERSION" '
+              index($0, "## [" version "]") == 1 { found=1; next }
+              found && /^## \[/ { exit }
+              found { print }
+            ' "$CHANGELOG_PATH")
             
             # If empty, default to something
             if [ -z "$RELEASE_NOTES" ]; then
               RELEASE_NOTES="Release $TAG_NAME"
-              echo "Warning: No release notes found in ROADMAP.md for v$VERSION"
+              echo "Warning: No release notes found in CHANGELOG.md for v$VERSION"
             fi
             
             echo "Extracted Release Notes:"
@@ -163,7 +152,7 @@ jobs:
             echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           else
-             echo "ROADMAP.md not found at $ROADMAP_PATH"
+             echo "CHANGELOG.md not found at $CHANGELOG_PATH"
              echo "release_notes=Release $TAG_NAME" >> $GITHUB_OUTPUT
           fi
 

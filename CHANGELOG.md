@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.4] - 2026-11-19
+
+**Market Data Bar Alignment**
+
+### Fixed
+- Cached and provider OHLCV bars now remain paired with their source timestamps. Incomplete timestamp or price bars are dropped together, and missing volume stays aligned as zero, preventing date shifts in technical indicators and Event Study results.
+
 ## [0.62.3] - 2026-11-19
 
 **Scheduled Signal Reliability & Provider-Safe GEX**

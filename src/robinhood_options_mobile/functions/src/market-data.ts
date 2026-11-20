@@ -112,6 +112,85 @@ function parseTwelveDataTimestamp(datetime: string): number {
   return Math.floor(Date.parse(utcDatetime) / 1000);
 }
 
+interface AlignedMarketBars {
+  opens: number[];
+  highs: number[];
+  lows: number[];
+  closes: number[];
+  volumes: number[];
+  timestamps: number[];
+}
+
+/** Parses a finite numeric value from a provider bar.
+ * @param {unknown} value Raw provider value.
+ * @return {number | null} Parsed number, or null when invalid.
+ */
+function finiteNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Keeps each returned OHLCV value paired with its source timestamp.
+ * @param {unknown} timestamps Source bar timestamps.
+ * @param {object} quote Source OHLCV arrays.
+ * @return {AlignedMarketBars} Aligned bars with incomplete price rows removed.
+ */
+export function normalizeMarketBars(
+  timestamps: unknown,
+  quote: {
+    open?: unknown;
+    high?: unknown;
+    low?: unknown;
+    close?: unknown;
+    volume?: unknown;
+  } | null | undefined,
+): AlignedMarketBars {
+  const timestampValues: unknown[] = Array.isArray(timestamps) ?
+    timestamps : [];
+  const opens: unknown[] = Array.isArray(quote?.open) ? quote.open : [];
+  const highs: unknown[] = Array.isArray(quote?.high) ? quote.high : [];
+  const lows: unknown[] = Array.isArray(quote?.low) ? quote.low : [];
+  const closes: unknown[] = Array.isArray(quote?.close) ? quote.close : [];
+  const volumes: unknown[] = Array.isArray(quote?.volume) ? quote.volume : [];
+  const barCount = Math.min(
+    timestampValues.length,
+    opens.length,
+    highs.length,
+    lows.length,
+    closes.length,
+  );
+  const aligned: AlignedMarketBars = {
+    opens: [],
+    highs: [],
+    lows: [],
+    closes: [],
+    volumes: [],
+    timestamps: [],
+  };
+
+  for (let index = 0; index < barCount; index++) {
+    const timestamp = finiteNumber(timestampValues[index]);
+    const open = finiteNumber(opens[index]);
+    const high = finiteNumber(highs[index]);
+    const low = finiteNumber(lows[index]);
+    const close = finiteNumber(closes[index]);
+    if (timestamp === null || open === null || high === null ||
+      low === null || close === null) {
+      continue;
+    }
+
+    aligned.timestamps.push(timestamp);
+    aligned.opens.push(open);
+    aligned.highs.push(high);
+    aligned.lows.push(low);
+    aligned.closes.push(close);
+    aligned.volumes.push(finiteNumber(volumes[index]) ?? 0);
+  }
+
+  return aligned;
+}
+
 /**
  * Fetches market data for a given symbol from Twelve Data.
  * @param {string} symbol The stock symbol.
@@ -327,18 +406,16 @@ export async function getMarketData(symbol: string,
       const isCached = chart && !isCacheStale(cacheData, interval);
 
       if (chart && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
-        const opes = chart.indicators.quote[0].open;
-        const higs = chart.indicators.quote[0].high;
-        const los = chart.indicators.quote[0].low;
-        const clos = chart.indicators.quote[0].close;
-        const vols = chart.indicators.quote[0].volume || [];
-        const tss = chart.timestamp || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        timestamps = tss.filter((t: any) => t !== null);
+        const bars = normalizeMarketBars(
+          chart.timestamp,
+          chart.indicators.quote[0],
+        );
+        opens = bars.opens;
+        highs = bars.highs;
+        lows = bars.lows;
+        closes = bars.closes;
+        volumes = bars.volumes;
+        timestamps = bars.timestamps;
         if (chart && typeof chart?.meta?.regularMarketPrice === "number") {
           currentPrice = chart.meta.regularMarketPrice;
         } else if (Array.isArray(closes) && closes.length > 0) {
@@ -387,13 +464,16 @@ export async function getMarketData(symbol: string,
       const cboeRes = await fetchFromCBOE(decodedSymbol);
       if (cboeRes && cboeRes.indicators?.quote?.[0]?.close) {
         dataSource = "external";
-        const resQuote = cboeRes.indicators.quote[0];
-        opens = resQuote.open;
-        highs = resQuote.high;
-        lows = resQuote.low;
-        closes = resQuote.close;
-        volumes = resQuote.volume;
-        timestamps = cboeRes.timestamp;
+        const bars = normalizeMarketBars(
+          cboeRes.timestamp,
+          cboeRes.indicators.quote[0],
+        );
+        opens = bars.opens;
+        highs = bars.highs;
+        lows = bars.lows;
+        closes = bars.closes;
+        volumes = bars.volumes;
+        timestamps = bars.timestamps;
         currentPrice = cboeRes.meta.regularMarketPrice;
         logger.info(`🌐 CBOE FETCH: Retrieved Put/Call data for ${symbol} ` +
           "from CBOE");
@@ -423,13 +503,16 @@ export async function getMarketData(symbol: string,
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         dataSource = "external";
-        const resQuote = result.indicators.quote[0];
-        opens = resQuote.open;
-        highs = resQuote.high;
-        lows = resQuote.low;
-        closes = resQuote.close;
-        volumes = resQuote.volume;
-        timestamps = result.timestamp;
+        const bars = normalizeMarketBars(
+          result.timestamp,
+          result.indicators.quote[0],
+        );
+        opens = bars.opens;
+        highs = bars.highs;
+        lows = bars.lows;
+        closes = bars.closes;
+        volumes = bars.volumes;
+        timestamps = bars.timestamps;
         currentPrice = result.meta.regularMarketPrice;
         logger.info(`🌐 TWELVE DATA FETCH: Retrieved ${closes.length} ` +
           `${interval} prices for ${symbol} from Twelve Data`);
@@ -470,18 +553,16 @@ export async function getMarketData(symbol: string,
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         dataSource = "external";
-        const opes = result.indicators.quote[0].open;
-        const higs = result.indicators.quote[0].high;
-        const los = result.indicators.quote[0].low;
-        const clos = result.indicators.quote[0].close;
-        const vols = result.indicators.quote[0].volume || [];
-        const tss = result.timestamp || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        timestamps = tss.filter((t: any) => t !== null);
+        const bars = normalizeMarketBars(
+          result.timestamp,
+          result.indicators.quote[0],
+        );
+        opens = bars.opens;
+        highs = bars.highs;
+        lows = bars.lows;
+        closes = bars.closes;
+        volumes = bars.volumes;
+        timestamps = bars.timestamps;
         logger.info(`🌐 FIDELITY FETCH: Retrieved ${closes.length} ` +
           `${interval} prices for ${symbol} from Fidelity`);
       }
@@ -553,18 +634,16 @@ export async function getMarketData(symbol: string,
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         dataSource = "external";
-        const opes = result.indicators.quote[0].open;
-        const higs = result.indicators.quote[0].high;
-        const los = result.indicators.quote[0].low;
-        const clos = result.indicators.quote[0].close;
-        const vols = result.indicators.quote[0].volume || [];
-        const tss = result.timestamp || [];
-        opens = opes.filter((p: any) => p !== null);
-        highs = higs.filter((p: any) => p !== null);
-        lows = los.filter((p: any) => p !== null);
-        closes = clos.filter((p: any) => p !== null);
-        volumes = vols.filter((v: any) => v !== null);
-        timestamps = tss.filter((t: any) => t !== null);
+        const bars = normalizeMarketBars(
+          result.timestamp,
+          result.indicators.quote[0],
+        );
+        opens = bars.opens;
+        highs = bars.highs;
+        lows = bars.lows;
+        closes = bars.closes;
+        volumes = bars.volumes;
+        timestamps = bars.timestamps;
         logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} ${interval} ` +
           `prices and ${volumes.length} volumes for ${symbol} from ` +
           `Yahoo Finance ${url}`);

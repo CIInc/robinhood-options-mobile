@@ -36,9 +36,37 @@ jest.mock("firebase-admin/firestore", () => ({
   getFirestore: jest.fn(() => ({})),
 }));
 
-import { fetchFromTwelveData, getQuotesCall } from "../src/market-data";
+import {
+  fetchFromTwelveData,
+  getQuotesCall,
+  normalizeMarketBars,
+} from "../src/market-data";
 
 const mockedFetchWithRetry = jest.mocked(fetchWithRetry);
+
+describe("normalizeMarketBars", () => {
+  test("keeps OHLCV values aligned when a bar has a missing close", () => {
+    const result = normalizeMarketBars(
+      [1_700_000_000, 1_700_086_400, 1_700_172_800],
+      {
+        open: [100, 101, 102],
+        high: [101, 102, 103],
+        low: [99, 100, 101],
+        close: [100.5, null, 102.5],
+        volume: [1_000, 2_000, null],
+      },
+    );
+
+    expect(result).toEqual({
+      timestamps: [1_700_000_000, 1_700_172_800],
+      opens: [100, 102],
+      highs: [101, 103],
+      lows: [99, 101],
+      closes: [100.5, 102.5],
+      volumes: [1_000, 0],
+    });
+  });
+});
 
 describe("fetchFromTwelveData timestamps", () => {
   test.each([

@@ -186,6 +186,7 @@ Call the function with a JSON body to seed the `charts` collection.
 Daily, hourly, and 15-minute bulk jobs set `marketDataCacheOnly` and `gexCacheOnly` when calling `performTradeProposal`. This policy keeps a full-universe run bounded and prevents hundreds of concurrent fallback requests when an upstream provider is unavailable or rate limited.
 
 - Fresh cache entries are used normally.
+- Cached and provider bars are normalized together by source index; incomplete timestamp/OHLC rows are dropped as a whole, and missing volume is zero-filled to preserve alignment.
 - Stale OHLCV cache entries are accepted and surfaced through `diagnostics.usedStaleCache` and the user-facing stale-data warning.
 - Missing/empty cached bars fail that symbol's calculation without replacing its previous signal.
 - Cached GEX is used when available; bulk jobs do not initiate live options-chain fetches.
