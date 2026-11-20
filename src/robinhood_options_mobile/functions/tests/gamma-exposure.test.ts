@@ -2,13 +2,32 @@
  * Integration & Unit Tests for Gamma Exposure GEX data validation
  */
 
-import { initializeApp } from "firebase-admin/app";
-initializeApp({ projectId: "demo-project" });
+import { describe, it, expect, jest } from "@jest/globals";
 
-import { describe, it, expect } from "@jest/globals";
+jest.mock("firebase-admin/firestore", () => ({
+  getFirestore: () => ({
+    collection: () => ({
+      doc: () => ({
+        get: async () => ({
+          exists: true,
+          data: () => ({
+            updatedAt: Date.now() - 5 * 60 * 60 * 1000,
+            spotPrice: 100,
+          }),
+        }),
+      }),
+    }),
+  }),
+}));
+
+jest.mock("../src/options-flow-utils", () => ({
+  getYahooOptionsResult: async () => null,
+  fetchOptionsFlowForSymbols: async () => undefined,
+}));
 import {
   computeGammaExposure,
   evaluateGammaExposure,
+  fetchGammaExposure,
   GammaExposureData,
   resolveGammaExposureSymbols,
   scaleGammaExposure,
@@ -17,6 +36,14 @@ import {
 describe("Gamma Exposure (GEX) Data Validation", () => {
   it("should scale gamma exposure to a 1% underlying move", () => {
     expect(scaleGammaExposure(0.02, 1000, 200)).toBe(800000);
+  });
+
+  it("does not return expired GEX in cache-only mode", async () => {
+    const result = await fetchGammaExposure(
+      "AAPL", 100, undefined, undefined, true
+    );
+
+    expect(result).toBeNull();
   });
 
   const mockOptionsChain = {

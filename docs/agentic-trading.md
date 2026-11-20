@@ -191,8 +191,12 @@ Daily, hourly, and 15-minute bulk jobs set `marketDataCacheOnly` and `gexCacheOn
 - Cached GEX is used when available; bulk jobs do not initiate live options-chain fetches.
 - The latest persisted macro assessment and shared market-index data are reused across adjacent calculations.
 - Cron summaries count returned calculation failures in `errorCount` instead of reporting them as processed.
+- Cache-only GEX returns `null` when neither fresh matching exposure nor usable cached options data is available; it does not fall back to expired GEX.
+- The authenticated `initiateTradeProposal` callable forces cache-only GEX, even if a client requests live GEX. It may still use live market data unless `marketDataCacheOnly` is set. The separate GEX research callable retains its live options fallback.
+- Intraday schedules run hourly at :40 and 15-minute at :00, :15, :30, and :50. The :45 evaluation is delayed five minutes; scheduled starts are at least 10 minutes apart, with a nine-minute function timeout.
+- `fetchWithRetry` redacts credential-like query parameters from URLs in retry logs and omits raw network error messages.
 
-Interactive and explicitly requested calculations retain the normal provider fallback behavior unless these cache-only flags are supplied.
+Other explicitly requested calculations retain normal provider fallback behavior unless their cache-only flags are supplied.
 
 ## Features
 

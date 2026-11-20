@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.3] - 2026-11-19
+
+**Scheduled Signal Reliability & Provider-Safe GEX**
+
+### Fixed
+- Retry logs redact credential-like URL query parameters, and network error messages no longer include raw provider errors.
+- Proposal callables enforce cache-only GEX. Cache-only calculations return no GEX when neither fresh matching exposure nor usable cached options data is available, rather than reusing expired exposure.
+
+### Changed
+- Intraday proposal batches are capped at five symbols to reduce provider request bursts.
+- Hourly signals run at :40; 15-minute signals run at :00, :15, :30, and :50. The :45 evaluation is delayed five minutes so scheduled starts remain at least 10 minutes apart with nine-minute timeouts.
+
 ## [0.62.2] - 2026-11-18
 
 **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet**

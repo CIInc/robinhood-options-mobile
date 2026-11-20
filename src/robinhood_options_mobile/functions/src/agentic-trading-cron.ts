@@ -116,7 +116,7 @@ export async function runAgenticTradingCron() {
           interval: "1d",
           portfolioState: {},
           skipRiskGuard: true,
-          gexCacheOnly: false,
+          gexCacheOnly: true,
           marketDataCacheOnly: true,
         };
         interface PerformTradeProposalRequest {

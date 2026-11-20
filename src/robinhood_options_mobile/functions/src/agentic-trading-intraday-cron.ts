@@ -13,8 +13,8 @@ const db = getFirestore();
 export const agenticTradingIntradayCron = onSchedule(
   {
     // Run every hour during market hours (9:30 AM - 4:00 PM ET)
-    // Monday-Friday at 30 minutes past each hour
-    schedule: "30 9-16 * * 1-5",
+    // Monday-Friday at 40 minutes past each hour to stagger the 15m job.
+    schedule: "40 9-15 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
     secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
     memory: "1GiB",
@@ -69,7 +69,7 @@ export const agenticTradingIntradayCron = onSchedule(
               interval: "1h",
               portfolioState: {},
               skipRiskGuard: true,
-              gexCacheOnly: false,
+              gexCacheOnly: true,
               marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);
@@ -108,9 +108,8 @@ export const agenticTradingIntradayCron = onSchedule(
  */
 export const agenticTrading15mCron = onSchedule(
   {
-    // Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
-    // At 15, 30, 45, and 00 minutes past the hour
-    schedule: "15,30,45,0 9-16 * * 1-5",
+    // Run four times per hour; delay the :45 evaluation to :50.
+    schedule: "0,15,30,50 9-15 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
     secrets: ["TWELVE_DATA_API_KEY", "GEMINI_API_KEY"],
     memory: "1GiB",
@@ -136,7 +135,7 @@ export const agenticTrading15mCron = onSchedule(
         !doc.id.includes("_")
       );
 
-      const BATCH_SIZE = 25;
+      const BATCH_SIZE = 5;
       for (let i = 0; i < docsToProcess.length; i += BATCH_SIZE) {
         const batch = docsToProcess.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (doc) => {
@@ -156,7 +155,7 @@ export const agenticTrading15mCron = onSchedule(
               interval: "15m",
               portfolioState: {},
               skipRiskGuard: true,
-              gexCacheOnly: false,
+              gexCacheOnly: true,
               marketDataCacheOnly: true,
             };
             const result = await performTradeProposal({ data } as any);

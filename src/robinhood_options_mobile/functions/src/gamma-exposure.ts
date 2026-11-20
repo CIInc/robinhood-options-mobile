@@ -871,6 +871,10 @@ export async function fetchGammaExposure(
 
   // Check GEX cache first
   const cached = await getCachedGEX(cacheKey);
+  const getFallbackGEX = async (): Promise<GammaExposureData | null> => {
+    if (onlyUseCache) return null;
+    return getCachedGEX(cacheKey, true);
+  };
 
   // If we have a cache and either no provided price or price matches, use cache
   if (cached && (!providedSpotPrice ||
@@ -889,7 +893,7 @@ export async function fetchGammaExposure(
         logger.info(
           `onlyUseCache is active. Skipping live fetch for ${symbol}`
         );
-        return await getCachedGEX(cacheKey, true);
+        return null;
       }
 
       logger.info(
@@ -910,7 +914,7 @@ export async function fetchGammaExposure(
         `No options data available after live fetch for GEX: ${symbol} `
       );
       // Fallback to expired cache if available
-      return await getCachedGEX(cacheKey, true);
+      return await getFallbackGEX();
     }
 
     // Filter by options expiration date if requested
@@ -921,7 +925,7 @@ export async function fetchGammaExposure(
 
     if (!filteredResult.options || filteredResult.options.length === 0) {
       logger.warn(`No options found after filter ${filter}: ${symbol} `);
-      return await getCachedGEX(cacheKey, true);
+      return await getFallbackGEX();
     }
 
     // Prioritize provided spot price, then Yahoo quote
@@ -930,7 +934,7 @@ export async function fetchGammaExposure(
 
     if (spotPrice <= 0) {
       logger.warn(`No spot price available for GEX: ${symbol} `);
-      return await getCachedGEX(cacheKey, true);
+      return await getFallbackGEX();
     }
 
     const riskFreeRate = providedRiskFreeRate || await getDynamicRiskFreeRate();
@@ -951,7 +955,7 @@ export async function fetchGammaExposure(
     return gexData;
   } catch (e) {
     logger.error(`Error computing GEX for ${symbol}`, e);
-    return await getCachedGEX(cacheKey, true);
+    return await getFallbackGEX();
   }
 }
 

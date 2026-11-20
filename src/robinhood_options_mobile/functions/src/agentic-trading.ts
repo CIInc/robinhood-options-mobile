@@ -86,7 +86,7 @@ export async function performTradeProposal(request: any) {
     skipRiskGuard: request.data.skipRiskGuard || false,
     tradingMode: request.data.tradingMode || "systematic",
     marketDataCacheOnly: request.data.marketDataCacheOnly || false,
-    gexCacheOnly: request.data.gexCacheOnly || false,
+    gexCacheOnly: request.data.gexCacheOnly ?? true,
     ...(request.data.enabledIndicators !== undefined ? {
       enabledIndicators: request.data.enabledIndicators,
     } : {}),
@@ -164,7 +164,13 @@ export const initiateTradeProposal = onCall({
       "Authentication is required to initiate trade proposals."
     );
   }
-  return performTradeProposal(request);
+  return performTradeProposal({
+    ...request,
+    data: {
+      ...request.data,
+      gexCacheOnly: true,
+    },
+  });
 });
 
 const AUTO_TRADE_DIAGNOSTIC_PHASES = new Set([

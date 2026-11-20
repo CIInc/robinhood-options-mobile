@@ -22,6 +22,7 @@ jest.mock("../src/market-data", () => ({
   getMarketData: jest.fn(async () => ({ closes: [100, 101, 102] })),
 }));
 
+import { handleAlphaTask } from "../src/alpha-agent";
 import {
   logAgenticTradingCycle,
   initiateTradeProposal,
@@ -69,6 +70,26 @@ describe("agentic-trading callable functions auth checks", () => {
       authenticatedRequest
     );
     expect(response).toEqual({ status: "success" });
+    expect(handleAlphaTask).toHaveBeenCalledWith(
+      { closes: [100, 101, 102] },
+      {},
+      expect.objectContaining({ gexCacheOnly: true }),
+      "1d"
+    );
+  });
+
+  test("callable ignores client requests for live GEX", async () => {
+    await (initiateTradeProposal as any).run({
+      auth: { uid: "user123", token: {} },
+      data: { symbol: "SPY", interval: "1d", gexCacheOnly: false },
+    });
+
+    expect(handleAlphaTask).toHaveBeenLastCalledWith(
+      { closes: [100, 101, 102] },
+      {},
+      expect.objectContaining({ gexCacheOnly: true }),
+      "1d"
+    );
   });
 
   test("logAgenticTradingCycle rejects unauthenticated requests", async () => {
