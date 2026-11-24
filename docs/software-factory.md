@@ -300,6 +300,37 @@ To ensure deterministic gating without natural language ambiguity, the Adversari
 
 ---
 
+## 5.1 Feature Flag & Progressive Rollout Lifecycle (`FeatureAccessService`)
+
+Every new user-facing capability implemented by the Software Factory must integrate into RealizeAlpha's **4-tier progressive rollout architecture** ([`docs/feature-access-and-beta-gating.md`](feature-access-and-beta-gating.md)):
+
+```mermaid
+flowchart LR
+    A["Tier 1: Remote Config Kill Switch"] --> B["Tier 2: Per-User Feature Flags"]
+    B --> C["Tier 3: Admin-Only / Beta Labs Opt-In"]
+    C --> D["Tier 4: General Availability (Public)"]
+```
+
+### 1. Progressive Rollout Stages
+1. **Stage 1 (Admin Only)**:
+   - When a new capability is authored by the Maker agent, it is added to `FeatureBundle` with default stage `adminOnly`.
+   - Only admin accounts with explicit opt-in can access the feature, protecting standard users during initial deployment.
+2. **Stage 2 (Beta Labs Self-Serve Opt-In)**:
+   - Once verified, the feature is promoted to `stage: FeatureStage.beta`.
+   - Surfaced inside `BetaLabsWidget` under User Settings, allowing early-adopter traders to voluntarily opt in, test, and provide feedback.
+3. **Stage 3 (General Availability)**:
+   - Following stable telemetry and zero safety incidents across a release cycle, the feature is promoted to `stage: FeatureStage.public`.
+   - Turned on by default for all users, with instant remote kill-switch protection via Firebase Remote Config.
+
+### 2. Maker Agent Implementation Checklist
+When authoring a new feature, the Maker agent must:
+- Declare the feature bundle in `src/robinhood_options_mobile/lib/model/feature_access.dart` (or corresponding model).
+- Wrap UI entry points with `FeatureAccessService.instance.isFeatureEnabled(FeatureBundle.<feature>, userRole: userRole)`.
+- Author a dedicated unit test in `test/feature_access_service_test.dart` asserting that unauthenticated or non-beta users cannot access the gated screens.
+- Confirm Invariant 2 compliance in the `CriticAuditVerdict` output.
+
+---
+
 ## 6. Operational Runbook & Troubleshooting
 
 ### Handling Self-Healing Gate Exhaustion (3 Failed Retries)

@@ -456,7 +456,7 @@ flutter test integration_test/app_test.dart
 
 ## Contribute
 
-Before contributing or running coding agents in this repository, review [AGENTS.md](AGENTS.md) for architectural guidelines, security/trading invariants, and verification commands, and [PRODUCT.md](PRODUCT.md) for product principles and scope boundaries.
+Before contributing or running coding agents in this repository, review [CONTRIBUTING.md](CONTRIBUTING.md) for full developer and agent contribution workflows, [AGENTS.md](AGENTS.md) for architectural guidelines, security/trading invariants, and verification commands, and [PRODUCT.md](PRODUCT.md) for product principles and scope boundaries.
 
 ### Agent Skills & Workflows
 

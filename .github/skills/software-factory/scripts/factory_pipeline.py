@@ -137,6 +137,29 @@ def record_factory_metrics(summary_entry):
         log(f"Warning: Unable to record factory metrics: {e}")
 
 
+def compute_token_similarity(title1: str, title2: str) -> float:
+    """Compute Jaccard similarity between two feature titles to guard against duplicate proposals."""
+    tokens1 = set(title1.lower().replace("-", " ").replace("_", " ").split())
+    tokens2 = set(title2.lower().replace("-", " ").replace("_", " ").split())
+    stop_words = {"a", "an", "the", "in", "on", "for", "and", "or", "to", "with", "v0", "support", "add", "new"}
+    tokens1 = {t for t in tokens1 if t not in stop_words and len(t) > 2}
+    tokens2 = {t for t in tokens2 if t not in stop_words and len(t) > 2}
+    if not tokens1 or not tokens2:
+        return 0.0
+    intersection = tokens1.intersection(tokens2)
+    union = tokens1.union(tokens2)
+    return len(intersection) / len(union)
+
+
+def is_duplicate_proposal(candidate_title: str, existing_titles: list) -> tuple[bool, str]:
+    """Check if a candidate feature is a duplicate of existing roadmap/issue titles."""
+    for existing in existing_titles:
+        sim = compute_token_similarity(candidate_title, existing)
+        if sim >= 0.65:
+            return True, existing
+    return False, ""
+
+
 def infer_test_files(target_files):
     """Impact-based test companion mapping heuristic."""
     inferred = []
@@ -194,6 +217,11 @@ Evaluate candidates strictly against the Software Factory Readiness Rubric (0-2 
 3. Safety Invariants (complies with all 7 safety invariants)
 4. Code Ownership (clear existing ChangeNotifier store or widget)
 
+Deduplication & Horizon Rules:
+- Guard against semantic duplicates of existing roadmap items or closed issues.
+- Categorize proposals into current release horizon (matching focus or active milestone) vs future horizon (`future_horizon: true`).
+- Record future items to ROADMAP.md under future milestone sections (e.g. v0.63.0+) without queueing them into the current active cycle.
+
 In autonomous mode (unless dry_run is true), record the top scored candidate(s) directly into ROADMAP.md under the appropriate milestone and associate or create a tracking issue (`gh issue create`).
 If dry_run is enabled, output candidates without modifying files or creating issues.
 """,
@@ -206,7 +234,7 @@ Check if existing unreleased milestones have gaps or if new high-value features 
 Mode: {mode}, DryRun: {dry_run}.
 Previously completed tasks in this factory run: {state.get('completed_tasks', [])}.
 Return JSON containing:
-- proposed_items: array of objects with title, rationale, suggested_milestone, readiness_score (0-8)
+- proposed_items: array of objects with title, rationale, suggested_milestone, future_horizon (boolean), readiness_score (0-8)
 - recorded_to_roadmap: boolean indicating whether items were added to ROADMAP.md
 - summary: executive summary
 """
@@ -221,6 +249,7 @@ Return JSON containing:
                                 "title": {"type": "string"},
                                 "rationale": {"type": "string"},
                                 "suggested_milestone": {"type": "string"},
+                                "future_horizon": {"type": "boolean"},
                                 "readiness_score": {"type": "integer"}
                             },
                             "required": ["title", "readiness_score"]
@@ -418,6 +447,16 @@ Output an approval decision, per-invariant boolean verification, and any blockin
                 critic_schema
             )
             del critic
+
+            maker_success = maker_result.get("success", False)
+            critic_approved = critic_result.get("approved", False)
+
+            if not maker_success or not critic_approved:
+                log(f"Task '{title}' failed verification/critique (maker={maker_success}, critic={critic_approved}). Executing automated workspace sanitization & rollback.")
+                try:
+                    os.system("git restore . && git clean -fd")
+                except Exception as e:
+                    log(f"Warning: Failed to sanitize workspace: {e}")
 
             return {
                 "title": title,
