@@ -59,6 +59,7 @@ For full product context and architectural boundaries, see [PRODUCT.md](PRODUCT.
 ### Platform, Security & Mobile Experience
 *   **[Zero-Plaintext Security & Feature Gating](docs/secure-token-storage.md):** Hardware-backed credential encryption via `flutter_secure_storage` (iOS Keychain / Android Keystore), biometric authentication (FaceID/TouchID), **[Balance Visibility Masking](docs/ui-improvements.md#balance-privacy--navigation-v0370)**, and **[Feature Access & Beta Labs Gating](docs/feature-access-and-beta-gating.md)**.
 *   **[Native Mobile Experience & Offline Resilience](docs/offline-mode-and-resilient-caching.md):** Encrypted **[Offline Mode & Resilient Caching](docs/offline-mode-and-resilient-caching.md)**, **[iOS Live Activities & Dynamic Island](docs/ios-live-activities-and-dynamic-island.md)**, **[Home Screen Widgets](docs/home-widgets.md)**, **[Trade Signal Push Notifications](docs/trade-signal-notifications.md)**, **[Custom Price & Event Alerts](docs/custom-alerts.md)**, **[Universal Deep Linking & Referrals](docs/deep-linking.md)**, and **[Material 3 UI & Accessibility Polish](docs/ui-improvements.md)**.
+*   **[Autonomous AI Software Factory](docs/software-factory.md):** Repository-level engineering automation featuring a closed-loop **Maker–Verifier–Critic** architecture, parallel task fan-out over disjoint files, self-healing quality gates (`dart format`, `dart analyze`, `npm run lint/build`), 7-rule safety invariant audits, and Dual-Mode git/issue lifecycle tooling.
 
 
 ## Architecture Overview
