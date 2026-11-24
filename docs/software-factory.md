@@ -12,7 +12,7 @@ The RealizeAlpha Software Factory transitions engineering workflows from manual,
 flowchart TD
     subgraph IdeationPhase["1. Ideation & Backlog Discovery"]
         A["Product Needs & GitHub Issues"] --> B["Ideation Specialist Agent"]
-        B --> C["Software Factory Readiness Rubric Scoring"]
+        B --> C["Software Factory Readiness Rubric (>=6/8 pts)"]
         C --> D["Record Proposals to ROADMAP.md & gh issue create"]
     end
 
@@ -39,7 +39,7 @@ flowchart TD
         L --> M["Dual-Mode Git Commit & Issue Close"]
         M --> N["software-factory-verify.yml / cd.yml CI Gate"]
         N --> O{"Autonomous Loop Remaining Items?"}
-        O -- "Yes (Iterate <= max_iterations)" --> A
+        O -- "Yes (Iterate <= max_iterations & Circuit Breaker Clear)" --> A
         O -- "No / Complete" --> P["Release Readiness Audit"]
     end
 ```
@@ -55,6 +55,7 @@ sequenceDiagram
     autonumber
     actor Dev as Developer / Scheduled Trigger
     participant SF as Software Factory Orchestrator
+    participant State as Run State (.factory_run_state.json)
     participant Ideate as Ideation Specialist Agent
     participant Triage as Triage & Planner Agent
     participant Maker as Maker Agent (workspace=branch)
@@ -64,11 +65,12 @@ sequenceDiagram
     participant Git as Git & GitHub Lifecycle
 
     Dev->>SF: Trigger Autonomous Loop (mode=autonomous, stages=full, max_iterations=3)
+    SF->>State: Load / Initialize Run State
     
     loop Autonomous Cycle Iteration (1..max_iterations)
         Note over SF,Ideate: Phase 1: Ideation & Backlog Discovery
         SF->>Ideate: Scan PRODUCT.md, ROADMAP.md, and open issues
-        Ideate->>Ideate: Score candidates against Factory Readiness Rubric
+        Ideate->>Ideate: Score candidates against Factory Readiness Rubric (>=6/8)
         Ideate-->>SF: Record qualified items in ROADMAP.md & create tracking issues
 
         Note over SF,Triage: Phase 2: Triage & Disjoint Partitioning
@@ -77,7 +79,7 @@ sequenceDiagram
 
         Note over SF,Gate: Phase 3: Maker - Verifier - Critic Execution
         loop For Each Disjoint Slice (Parallel or Pipeline)
-            SF->>Maker: Spawn Maker with Criteria & 7 Invariants
+            SF->>Maker: Spawn Maker with Criteria, Suggested Tests & 7 Invariants
             Maker->>Maker: Author code and unit/widget tests
             Maker->>Gate: Execute verification commands
             alt Test / Lint Failure
@@ -94,6 +96,8 @@ sequenceDiagram
             Critic-->>SF: Approval Verdict
         end
 
+        SF->>State: Update completed/failed tasks (Circuit Breaker check)
+
         Note over SF,Git: Phase 4 & 5: Reconciliation & Git Lifecycle
         SF->>Sync: Reconcile ROADMAP.md, CHANGELOG.md, PRODUCT.md & docs/
         Sync-->>SF: Documentation synchronized & Quick Stats verified
@@ -108,9 +112,9 @@ sequenceDiagram
 When invoked with `stages="full"`, the factory coordinates five sequential phases:
 1. **Ideation & Backlog Discovery**: Scans `PRODUCT.md`, `ROADMAP.md`, and open GitHub issues. Scores candidate proposals against the **Software Factory Readiness Rubric** (bounded scope, testable without external live credentials, compliant with the 7 safety invariants) and automatically records qualified items in `ROADMAP.md` with associated issues.
 2. **Triage & Disjoint Partitioning**: Evaluates unchecked tasks and selects up to `max_parallel` items with mutually disjoint file boundaries.
-3. **Implementation & Verification**: Executes the Maker agent and Self-Healing Verifier loop with up to 3 repair retries.
+3. **Implementation & Verification**: Executes the Maker agent and Self-Healing Verifier loop with companion test mapping and up to 3 repair retries.
 4. **Adversarial Critique**: Spawns an isolated critic subagent that audits the diff against the 7 Core Safety Invariants without shared author bias.
-5. **Reconciliation & Git Lifecycle**: Reconciles documentation, updates `ROADMAP.md` Quick Stats, creates conventional commits (`feat(...): ... (#<num>)`), and closes verified issues (`gh issue close <num>`). The loop then continues to the next cycle iteration if more items remain.
+5. **Reconciliation & Git Lifecycle**: Reconciles documentation, updates `ROADMAP.md` Quick Stats, creates conventional commits (`feat(...): ... (#<num>)`), and closes verified issues (`gh issue close <num>`). The loop continues to the next cycle iteration if more items remain.
 
 ### Disjoint Ownership Partitioning Rule
 When running multiple tasks in parallel (`max_parallel > 1` via `workspace="branch"` or `workspace="share"`):
@@ -119,7 +123,23 @@ When running multiple tasks in parallel (`max_parallel > 1` via `workspace="bran
 
 ---
 
-## 3. The 5-Stage State Machine
+## 3. Software Factory Readiness Rubric Matrix
+
+Candidate items discovered during ideation or pulled from GitHub issues must be evaluated against this 4-dimension scoring rubric before autonomous implementation:
+
+| Rubric Dimension | 0 Points (Disqualified) | 1 Point (Marginal) | 2 Points (Factory-Ready) |
+|---|---|---|---|
+| **Scope & Boundaries** | Crosses multiple platform layers or repositories | Touches $>5$ major state stores or screens | Isolated to $1-3$ related files with clear interfaces |
+| **Hermetic Testability** | Requires live brokerage OAuth credentials or real money | Requires complex external server emulation | Fully testable with `fake_cloud_firestore`, `package:test`, and mocks |
+| **Safety Invariants** | Violates or bypasses core risk controls | Requires elevated human admin override | Strictly complies with all 7 safety invariants |
+| **Code Ownership** | Unclear architecture or brand-new tech stack | Extends legacy unmaintained components | Clear existing `ChangeNotifier` store, widget, or service owner |
+
+> [!IMPORTANT]
+> **Promotion Threshold**: An item must achieve a total score $\ge 6/8$ points with **0 points in zero categories** to be automatically added to `ROADMAP.md` and scheduled for execution in autonomous mode.
+
+---
+
+## 4. The 5-Stage State Machine
 
 ### Stage 1: Specification, Ideation & Triage
 - **Source of Truth**: `ROADMAP.md` and open GitHub issues (`gh issue list --state open --limit 1000 --json number,title,body,labels,milestone,updatedAt`).
@@ -133,7 +153,7 @@ When running multiple tasks in parallel (`max_parallel > 1` via `workspace="bran
   - Mobile app: `src/robinhood_options_mobile/lib/`
   - Cloud Functions: `src/robinhood_options_mobile/functions/src/`
   - Firestore security rules: `src/robinhood_options_mobile/firebase/firestore.rules`
-- Authors focused unit and widget tests covering standard flows, edge cases, and regression boundaries.
+- Authors focused unit and widget tests covering standard flows, edge cases, and regression boundaries using impact-based companion test mapping.
 
 ### Stage 3: Self-Healing Verification Gate
 The agent automatically executes targeted verification with an automated repair loop (up to 3 bounded retries):
@@ -173,18 +193,64 @@ Before concluding any implementation task, the changes are audited against Reali
 - Maintains `ROADMAP.md` invariants: bounded `Key Highlights` ($\le 5$ items), bounded `Completed Features ✅` focused on recent minor releases, and verified `Quick Stats`.
 - **Dual-Mode Execution**:
   - **Interactive Mode**: Presents all diffs, tests, and documentation updates to the developer. Does not commit, push, or close GitHub issues unless requested.
-  - **Autonomous / Factory Mode (`mode=autonomous`)**: Creates conventional commits (`feat(<scope>): <summary> (#<issue-num>)`), adds test evidence to the GitHub issue, and closes the issue with `gh issue close <num>`. Continues to the next iteration of the loop until `max_iterations` or backlog exhaustion. Production release pushes to `main` retain an explicit human confirmation gate.
+  - **Autonomous / Factory Mode (`mode=autonomous`)**: Creates conventional commits (`feat(<scope>): <summary> (#<issue-num>)`), adds test evidence to the GitHub issue, and closes the issue with `gh issue close <num>`. Continues to the next iteration of the loop until `max_iterations`, backlog exhaustion, or circuit breaker trip.
 
 ---
 
-## 4. Tooling & Skills Directory
+## 5. Agent Roles & Model Topology
+
+To balance reasoning capability, latency, and token efficiency, the Software Factory assigns specific models to distinct subagent roles:
+
+| Agent Role | Model Recommendation | Tooling Mode | Primary Focus |
+|---|---|---|---|
+| **Ideation Specialist** | Pro / High-Reasoning | Read-only + GitHub CLI | Backlog discovery, product principle alignment, rubric scoring |
+| **Triage Coordinator** | Pro / High-Reasoning | Read-only | Disjoint file partitioning, dependency resolution, acceptance spec |
+| **Maker Agent** | Flash / Balanced Coding | Read-Write (`workspace="branch"`) | Minimal complete implementation, unit/widget test authoring |
+| **Adversarial Critic** | Flash / Pro (Isolated Context) | Read-only | Diff inspection, 7-invariant checklist enforcement, edge-case probing |
+| **Docs Reconciler** | Flash / Balanced | Read-Write | Documentation sync, `ROADMAP.md` formatting, Quick Stats arithmetic |
+| **Lifecycle Manager** | Flash_Lite / Fast | Read-Write | Conventional commits, GitHub issue closing comments |
+
+---
+
+## 6. Operational Runbook & Troubleshooting
+
+### Handling Self-Healing Gate Exhaustion (3 Failed Retries)
+When a task fails verification 3 times consecutively:
+1. The Maker agent halts and logs the diagnostic failure stack trace.
+2. The orchestrator records the task ID in `.agents/.factory_run_state.json` under `failed_tasks`.
+3. If parallel workers are active, other disjoint tasks continue unaffected.
+4. The task is preserved in `ROADMAP.md` as unchecked (`- [ ]`) and the GitHub issue remains open with failure details.
+
+### Circuit Breaker Trip Recovery
+If 2 consecutive iterations fail all scheduled tasks, the **Repetitive Failure Circuit Breaker** trips and halts the loop:
+1. Inspect `.agents/.factory_run_state.json` to view `iteration` and `failed_tasks`.
+2. Review the last error output in the workflow logs.
+3. Reset run state by removing the state file:
+   ```bash
+   rm -f .agents/.factory_run_state.json
+   ```
+4. Address the underlying issue (e.g. broken dependency or environment lock) and resume with:
+   ```bash
+   /software-factory mode="autonomous" max_iterations=2
+   ```
+
+### Cleaning Up Temporary Parallel Workspaces
+Parallel agents run in isolated clones (`workspace="branch"`). Antigravity automatically manages these workspaces. To manually inspect or clean up stale worktrees:
+```bash
+git worktree list
+git worktree prune
+```
+
+---
+
+## 7. Tooling & Skills Directory
 
 RealizeAlpha organizes its software factory capabilities into modular skills located in `.github/skills/`:
 
 ### 1. `software-factory`
 - **Location**: [`.github/skills/software-factory/SKILL.md`](../.github/skills/software-factory/SKILL.md)
 - **Workflow Script**: [`.github/skills/software-factory/scripts/factory_pipeline.py`](../.github/skills/software-factory/scripts/factory_pipeline.py)
-- **Role**: Top-level autonomous factory orchestrator. Runs the closed loop: Ideate $\to$ Triage $\to$ Parallel Maker/Critic Implementation $\to$ Docs Sync $\to$ Git Lifecycle across multiple iterations.
+- **Role**: Top-level autonomous closed-loop factory orchestrator. Runs the closed loop: Ideate $\to$ Triage $\to$ Parallel Maker/Critic Implementation $\to$ Docs Sync $\to$ Git Lifecycle across multiple iterations.
 
 ### 2. `software-implementation`
 - **Location**: [`.github/skills/software-implementation/SKILL.md`](../.github/skills/software-implementation/SKILL.md)
@@ -204,12 +270,12 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 
 ---
 
-## 5. CI/CD Integration & Automated Gates
+## 8. CI/CD Integration & Automated Gates
 
 The Software Factory integrates directly into GitHub Actions workflows:
 
 1. **`software-factory-verify.yml`**:
-   - Fast PR and branch verification workflow with concurrency cancellation.
+   - Fast PR and branch verification workflow with concurrency cancellation and path-filtered execution.
    - Runs static safety invariant checks (e.g. scanning for plaintext tokens written to `SharedPreferences`), validates workflow YAML files, verifies Python script syntax, and checks `ROADMAP.md` structural invariants.
    - Executes strict `dart format`, `flutter analyze --no-fatal-infos`, impacted tests, and Cloud Functions `npm run lint && npm run build && npm test`.
 
@@ -219,7 +285,7 @@ The Software Factory integrates directly into GitHub Actions workflows:
 
 ---
 
-## 6. Execution Examples
+## 9. Execution Examples
 
 ### Running an Autonomous Continuous Loop
 ```text
@@ -236,6 +302,7 @@ call_tool("run_workflow",
     "stages": "full",
     "max_parallel": 2,
     "max_iterations": 3,
+    "failure_limit": 2,
     "focus": "v0.62.x"
   }
 )

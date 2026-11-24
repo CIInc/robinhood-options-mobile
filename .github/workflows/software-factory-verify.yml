@@ -27,8 +27,40 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect Changed Components
+    runs-on: ubuntu-latest
+    outputs:
+      flutter: ${{ steps.filter.outputs.flutter }}
+      functions: ${{ steps.filter.outputs.functions }}
+      invariants: ${{ steps.filter.outputs.invariants }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Path Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            flutter:
+              - 'src/robinhood_options_mobile/lib/**'
+              - 'src/robinhood_options_mobile/test/**'
+              - 'src/robinhood_options_mobile/pubspec.yaml'
+            functions:
+              - 'src/robinhood_options_mobile/functions/**'
+            invariants:
+              - 'ROADMAP.md'
+              - 'CHANGELOG.md'
+              - 'PRODUCT.md'
+              - '.github/workflows/**'
+              - '.github/skills/**'
+              - 'src/robinhood_options_mobile/**'
+
   static_invariants:
     name: Repository Invariants & Documentation Audit
+    needs: changes
+    if: needs.changes.outputs.invariants == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source
@@ -76,6 +108,8 @@ jobs:
 
   flutter_quality_gate:
     name: Flutter Quality Gate
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -102,6 +136,8 @@ jobs:
 
   cloud_functions_gate:
     name: Cloud Functions Gate
+    needs: changes
+    if: needs.changes.outputs.functions == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:

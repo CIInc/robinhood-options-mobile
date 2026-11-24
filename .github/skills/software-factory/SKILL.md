@@ -21,6 +21,7 @@ Optional parameters passed as text or key-value pairs:
 - `max_parallel`: `1..4` concurrent worker items (default: `1`).
   - **Disjoint Ownership Partitioning Rule**: Concurrent workers (`workspace="branch"` or `"share"`) may only implement items whose modified source files in `lib/` and `functions/src/` are disjoint so workers never collide on shared state stores or widgets. Shared repository files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`) must be reconciled once in the aggregation phase by the coordinator.
 - `max_iterations`: Maximum continuous loop iterations in autonomous mode (default: `3` in `autonomous`, `1` in `interactive`).
+- `failure_limit`: Number of consecutive failed iterations before the Repetitive Failure Circuit Breaker trips and halts the loop (default: `2`).
 - `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
 - `auto_ideate`: `true` (default) or `false`. When enabled, the factory automatically discovers and ranks candidate features from open issues and backlog gaps prior to implementation.
 
