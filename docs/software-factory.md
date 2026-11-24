@@ -162,20 +162,20 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 - **Workflow Script**: [`.github/skills/software-factory/scripts/factory_pipeline.py`](../.github/skills/software-factory/scripts/factory_pipeline.py)
 - **Role**: Top-level orchestrator. Can execute end-to-end multi-stage pipelines (`ideate -> implement -> docs -> release-check`) or parallel multi-item batches using Antigravity's `run_workflow` primitives (`phase`, `agent`, `parallel`, `pipeline`).
 
-### 2. `roadmap-implementation`
-- **Location**: [`.github/skills/roadmap-implementation/SKILL.md`](../.github/skills/roadmap-implementation/SKILL.md)
+### 2. `software-implementation`
+- **Location**: [`.github/skills/software-implementation/SKILL.md`](../.github/skills/software-implementation/SKILL.md)
 - **Role**: Single-item focused implementation engine. Executes the 5-stage Maker-Verifier-Critic loop, self-healing quality gates, invariant audits, and Dual-Mode git lifecycle.
 
-### 3. `roadmap-ideation`
-- **Location**: [`.github/skills/roadmap-ideation/SKILL.md`](../.github/skills/roadmap-ideation/SKILL.md)
+### 3. `software-ideation`
+- **Location**: [`.github/skills/software-ideation/SKILL.md`](../.github/skills/software-ideation/SKILL.md)
 - **Role**: Discovers, shapes, and ranks candidate roadmap proposals by cross-referencing `ROADMAP.md` and GitHub issues. Evaluates proposals against the **Software Factory Readiness Rubric** (bounded scope, testable without external live credentials, adheres to 7 safety invariants).
 
 ### 4. `update-docs`
 - **Location**: [`.github/skills/update-docs/SKILL.md`](../.github/skills/update-docs/SKILL.md)
 - **Role**: Automated documentation synchronization and roadmap invariant checking. Verifies `Quick Stats`, caps `Key Highlights` at $3-5$ items, and ensures `pubspec.yaml` semantic version consistency.
 
-### 5. `roadmap-release`
-- **Location**: [`.github/skills/roadmap-release/SKILL.md`](../.github/skills/roadmap-release/SKILL.md)
+### 5. `software-release`
+- **Location**: [`.github/skills/software-release/SKILL.md`](../.github/skills/software-release/SKILL.md)
 - **Role**: Prepares semantic releases (`pubspec.yaml`, `CHANGELOG.md`, `ROADMAP.md`), verifies all claimed `[x]` items have tests, runs quality gates, and handles release tagging while strictly preserving human confirmation before pushing release commits to `main`.
 
 ---
@@ -215,7 +215,7 @@ call_tool("run_workflow",
 )
 ```
 
-### Interactive Roadmap Implementation
+### Interactive Software Implementation
 ```text
-/roadmap-implementation focus="progressive disclosure UI" mode="interactive"
+/software-implementation focus="progressive disclosure UI" mode="interactive"
 ```

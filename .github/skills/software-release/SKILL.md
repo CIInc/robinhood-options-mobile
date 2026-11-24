@@ -1,5 +1,5 @@
 ---
-name: roadmap-release
+name: software-release
 description: "Prepare and audit a RealizeAlpha release: review changes, bump versions, audit safety invariants and roadmap completion, run quality gates, and verify the CI/CD deployment pipeline."
 ---
 

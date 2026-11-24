@@ -1,5 +1,5 @@
 ---
-name: roadmap-implementation
+name: software-implementation
 description: "Choose and implement the next suitable RealizeAlpha roadmap item by weighing ROADMAP.md against open GitHub issues, then verify the implementation and reconcile local roadmap status."
 ---
 

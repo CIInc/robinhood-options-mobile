@@ -1,5 +1,5 @@
 ---
-name: roadmap-ideation
+name: software-ideation
 description: "Generate evidence-backed roadmap proposals and, after selection or under autonomous factory mode, record selected items in ROADMAP.md and link GitHub issues."
 ---
 

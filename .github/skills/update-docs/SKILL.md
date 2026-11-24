@@ -7,7 +7,7 @@ description: Update markdown documentation, changelog, roadmap, and app version 
 
 Update all markdown documentation based on recent commits or verified implementation tasks.
 Supports standalone invocation, documentation drift audits, or direct chaining from
-`roadmap-implementation` and `software-factory`.
+`software-implementation` and `software-factory`.
 
 ## Argument Hint
 

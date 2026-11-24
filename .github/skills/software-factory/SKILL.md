@@ -14,7 +14,7 @@ staged delivery (Ideate $\to$ Implement $\to$ Critic $\to$ Docs Sync $\to$ Relea
 
 Optional parameters passed as text or key-value pairs:
 - `mode`: `autonomous` (default) or `interactive`
-  - In `autonomous` mode, high-confidence ideation items are recorded, commits are created automatically referencing `#<issue-num>`, and verified issues are closed. Production release deployment (`roadmap-release` pushing to `main` / `promote.yml`) preserves an explicit confirmation gate unless `confirm_release_push=true` is set.
+  - In `autonomous` mode, high-confidence ideation items are recorded, commits are created automatically referencing `#<issue-num>`, and verified issues are closed. Production release deployment (`software-release` pushing to `main` / `promote.yml`) preserves an explicit confirmation gate unless `confirm_release_push=true` is set.
   - In `interactive` mode, the factory stops and presents decisions to the user before recording proposals, staging commits, or closing issues.
 - `stages`: `full` (`ideate -> implement -> docs -> release-check`), `implement-batch` (implement $N$ items), or `single` (one item end-to-end). Defaults to `single` when an explicit item or constraint is provided, or `full` when unconstrained.
 - `max_parallel`: `1..4` concurrent worker items (default: `1`).
@@ -84,7 +84,7 @@ If the critic identifies blocking issues or missing tests, return to **Stage 2 (
 - In `autonomous` mode:
   - Create a clean git commit: `git commit -m "feat(<scope>): <summary> (#<issue-num>)"`.
   - Add verification notes to the GitHub issue and close it with `gh issue close <num>`.
-  - If a production release threshold is met, run `roadmap-release` in dry-run mode and present the release summary for human confirmation before pushing to `main`.
+  - If a production release threshold is met, run `software-release` in dry-run mode and present the release summary for human confirmation before pushing to `main`.
 
 ---
 
