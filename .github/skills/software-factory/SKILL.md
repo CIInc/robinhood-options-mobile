@@ -1,0 +1,123 @@
+---
+name: software-factory
+description: "Orchestrate autonomous AI software factory cycles for RealizeAlpha: specification, parallel or staged Maker-Verifier-Critic loops, self-healing quality gates, and documentation reconciliation."
+---
+
+# Autonomous Software Factory
+
+Orchestrate end-to-end or multi-item autonomous software factory cycles across
+the RealizeAlpha codebase. Use this workflow when instructed to run an autonomous
+factory cycle, execute multiple roadmap items in parallel, or conduct full-cycle
+staged delivery (Ideate $\to$ Implement $\to$ Critic $\to$ Docs Sync $\to$ Release Check).
+
+## Arguments
+
+Optional parameters passed as text or key-value pairs:
+- `mode`: `autonomous` (default) or `interactive`
+  - In `autonomous` mode, high-confidence ideation items are recorded, commits are created automatically referencing `#<issue-num>`, and verified issues are closed. Production release deployment (`roadmap-release` pushing to `main` / `promote.yml`) preserves an explicit confirmation gate unless `confirm_release_push=true` is set.
+  - In `interactive` mode, the factory stops and presents decisions to the user before recording proposals, staging commits, or closing issues.
+- `stages`: `full` (`ideate -> implement -> docs -> release-check`), `implement-batch` (implement $N$ items), or `single` (one item end-to-end). Defaults to `single` when an explicit item or constraint is provided, or `full` when unconstrained.
+- `max_parallel`: `1..4` concurrent worker items (default: `1`).
+  - **Disjoint Ownership Partitioning Rule**: Concurrent workers (`workspace="branch"` or `"share"`) may only implement items whose modified source files in `lib/` and `functions/src/` are disjoint so workers never collide on shared state stores or widgets. Shared repository files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`) must be reconciled once in the aggregation phase by the coordinator.
+- `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
+
+---
+
+## Architecture: Staged Maker–Verifier–Critic Loop
+
+Every implementation task moves through a deterministic 5-stage state machine:
+
+```
+[Stage 1: Spec & Invariants] -> [Stage 2: Maker (Code + Tests)] -> [Stage 3: Self-Healing Gate]
+                                                                          |
+                                                                Pass / Fix (<=3)
+                                                                          v
+[Stage 5: Reconciler & Git]  <-  [Stage 4: Adversarial Critic Subagent (Audits 7 Invariants)]
+```
+
+### Stage 1: Spec, Triage & Invariant Extraction
+- Parse `ROADMAP.md` and open GitHub issues (`gh issue list --state open --limit 1000 --json number,title,body,labels,milestone,updatedAt`).
+- Identify unchecked actionable tasks (`- [ ]`). Filter out speculative or blocked work.
+- Extract concrete acceptance criteria, files to touch, and the applicable **RealizeAlpha Safety Invariants** from `AGENTS.md`.
+
+### Stage 2: Maker Implementation
+- Implement the minimal, complete change satisfying the criteria.
+- Adhere strictly to the project layout:
+  - Mobile app: `src/robinhood_options_mobile/lib/`
+  - Cloud Functions: `src/robinhood_options_mobile/functions/src/`
+  - Firestore rules: `src/robinhood_options_mobile/firebase/firestore.rules`
+- Add or update focused unit and widget tests covering positive behavior, edge cases, and regression boundaries.
+
+### Stage 3: Self-Healing Verification Gate
+Execute the narrowest relevant checks with an automated repair loop (up to 3 bounded retries):
+1. **Flutter / Dart Quality Gate:**
+   ```bash
+   cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .
+   cd src/robinhood_options_mobile && dart analyze
+   cd src/robinhood_options_mobile && flutter test test/<specific_test_file>.dart
+   ```
+2. **Cloud Functions Backend Gate:**
+   ```bash
+   cd src/robinhood_options_mobile/functions && npm run lint
+   cd src/robinhood_options_mobile/functions && npm run build
+   cd src/robinhood_options_mobile/functions && npm test
+   ```
+   *(Google ESLint `max-len <= 80` is strictly enforced; run `npm run lint -- --fix` to auto-resolve mechanical formatting issues.)*
+3. If analysis or tests fail, diagnose the error output, apply targeted corrections, and re-run. If unresolved after 3 attempts, halt and report the failure.
+
+### Stage 4: Independent Adversarial Critic
+Before marking any task ready, invoke a dedicated critic subagent or execute an explicit adversarial review against the 7 core invariants in `AGENTS.md`:
+1. **Zero Plaintext Credentials**: OAuth tokens and API secrets stored exclusively via `SecureTokenStorage` (`flutter_secure_storage`). Never in `SharedPreferences` or Firestore.
+2. **Feature Access Hierarchy**: Precedence strictly follows Remote Config kill switch $\to$ per-user flags $\to$ `adminOnly` / `beta` / `public`.
+3. **Trading Safeguards & Quote Isolation**: Live-quote BUY guard ($>3\%$ deviation block), Paper TP/SL exits isolated through the simulated ledger (`account == null`), and dynamic sizing boundaries respected.
+4. **Balance Masking & Privacy**: Masked portfolio values honored across charts and widgets; multi-broker tax lots remain on-device.
+5. **Cloud Functions Security & $O(1)$ Space**: All callables authenticated and inputs validated; technical indicator and backtest loops maintain $O(1)$ auxiliary space without slicing per bar.
+6. **UI Polish & Accessibility**: Financial rows have natural `Semantics(label: ...)`; layouts do not overflow down to `320px` viewports.
+7. **Zero Compile Errors & Strict Types**: Verification with `dart analyze` and `tsc` shows zero errors or type mismatches.
+
+If the critic identifies blocking issues or missing tests, return to **Stage 2 (Maker)** for remediation.
+
+### Stage 5: Reconciler, Documentation & Git Lifecycle
+- Update dedicated feature documentation in `docs/` and `PRODUCT.md` for new architectural capabilities or services.
+- Record completed features (`[x]`) in `ROADMAP.md` with issue links, keeping `## Completed Features ✅` bounded to recent minor releases and `### Key Highlights` capped at 3–5 items. Reconcile `Quick Stats`.
+- Update `CHANGELOG.md` with categorized bullet points (`Added`, `Changed`, `Fixed`, `Performance`).
+- In `autonomous` mode:
+  - Create a clean git commit: `git commit -m "feat(<scope>): <summary> (#<issue-num>)"`.
+  - Add verification notes to the GitHub issue and close it with `gh issue close <num>`.
+  - If a production release threshold is met, run `roadmap-release` in dry-run mode and present the release summary for human confirmation before pushing to `main`.
+
+---
+
+## Workflow Script Execution (`run_workflow`)
+
+For multi-item parallel execution or staged pipeline chaining, run the Python workflow script located at:
+```
+.github/skills/software-factory/scripts/factory_pipeline.py
+```
+
+Pass arguments via `Args`:
+```python
+# Example run_workflow invocation
+call_tool("run_workflow",
+  ScriptPath=".github/skills/software-factory/scripts/factory_pipeline.py",
+  Description="Execute autonomous software factory pipeline for v0.62.x",
+  Args={
+    "mode": "autonomous",
+    "max_parallel": 2,
+    "focus": "v0.62.x"
+  }
+)
+```
+
+---
+
+## Completion Report
+
+The software factory completes with a structured summary containing:
+- Selected roadmap items and associated GitHub issue links
+- Execution mode (`autonomous` vs. `interactive`) and worker topology (sequential or parallel fan-out)
+- Files modified and behavior delivered
+- Self-healing gate results (Dart format, analyzer, Flutter tests, Cloud Functions lint/build/tests)
+- Adversarial critic audit report verifying the 7 safety invariants
+- Documentation and roadmap reconciliation summary (`docs/`, `PRODUCT.md`, `CHANGELOG.md`, `ROADMAP.md`)
+- Git commit hashes and GitHub issue status updates

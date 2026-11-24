@@ -1,14 +1,20 @@
 ---
 name: roadmap-ideation
-description: "Generate evidence-backed roadmap proposals and, after the user selects them, record selected items in ROADMAP.md and link GitHub issues."
+description: "Generate evidence-backed roadmap proposals and, after selection or under autonomous factory mode, record selected items in ROADMAP.md and link GitHub issues."
 ---
 
 # Roadmap Ideation
 
 Find useful new roadmap candidates for RealizeAlpha by considering both
 the existing `ROADMAP.md` and GitHub issues. Use this workflow when asked to
-brainstorm, identify, or propose future roadmap items. This is a planning task:
-do not implement the proposals.
+brainstorm, identify, or propose future roadmap items. This is a planning and
+triage task: do not implement the proposals.
+
+## Argument Hint
+
+Optional parameters:
+- Product domain or horizon to explore (e.g., "portfolio analytics", "v0.63.0", "cross-broker rebalancing").
+- `mode`: `interactive` (default) or `autonomous` (automatically selects and records top proposals meeting the factory rubric without pausing).
 
 ## Workflow
 
@@ -16,7 +22,8 @@ do not implement the proposals.
    `ROADMAP.md`. Check `git status --short` and preserve existing worktree
    changes. Read relevant nearby code or tests to verify whether an apparent
    gap is already implemented or underway. Keep exploration focused on the
-   product area being considered.
+   product area being considered. When surveying large domains, optionally
+   delegate read-only exploration to a `research` subagent.
 
 2. **Review GitHub issues.** Determine the repository from its configured Git
    remote rather than guessing. When GitHub CLI access is available, list open
@@ -55,59 +62,30 @@ do not implement the proposals.
    Prefer clear outcomes that can be broken into deliverable work; avoid vague
    themes, oversized bundles, arbitrary technical work, and unsupported
    promises. Keep proposals consistent with account privacy, data provenance, and
-   descriptive non-advisory behavior. Present the candidates with stable
-   numbers or identifiers and ask which ones the user wants recorded. Accept a
-   selection by identifier, "all", or "none". If the user already specified
-   their selection, use it; otherwise do not edit `ROADMAP.md` or create GitHub
-   issues until they choose. If they choose none, finish with the proposals
-   only.
+   descriptive non-advisory behavior.
 
-5. **Record selected proposals and associate GitHub issues.** Process only
-   recommendations the user selected. For each, search open and closed issues
-   for a matching issue. Link the existing issue when one already tracks the
-   same outcome; do not create duplicates.
+5. **Selection & Decision Gate (Dual-Mode):**
+   - **Interactive Mode (Default)**:
+     Present candidates with stable identifiers and ask the user which items to record.
+     Accept selections by identifier, "all", or "none". Do not edit `ROADMAP.md` or
+     create GitHub issues until the user explicitly selects.
+   - **Autonomous Factory Mode (`mode=autonomous`)**:
+     Evaluate candidates against the **Software Factory Readiness Rubric**:
+     1. Clear existing code owner and bounded scope.
+     2. Verifiable with unit/widget tests without requiring live production credentials.
+     3. Adheres strictly to the 7 core safety invariants.
+     Automatically record the top $1-3$ highest-scoring items without pausing.
 
-   Determine milestone placement: evaluate the existing roadmap milestones in
-   `ROADMAP.md`. If a suitable milestone already exists, place the proposal
-   there. However, if an appropriate milestone does not exist (e.g., existing
-   milestones are already shipped or delivered, planned horizons are outdated or
-   over-scoped, or the proposals represent a distinct version theme), reevaluate
-   the roadmap milestone list and define a new milestone or reprioritize existing
-   milestones. When introducing a new milestone or reevaluating the roadmap
-   structure, update the Release Cadence overview table, Table of Contents, and
-   Quick Stats in `ROADMAP.md` consistently.
-
-   Immediately add only the selected recommendations to `ROADMAP.md`, matching
-   its checkbox and nesting conventions and keeping entries unchecked. Avoid
-   duplicating roadmap entries. This roadmap edit is mandatory and must happen
-   before any issue creation call; do not defer it because GitHub requires
-   confirmation or presents an interactive form.
-
-   For an existing matching issue, include its link in the roadmap entry. For
-   a proposal that needs a new issue, add the roadmap entry first and include
-   the issue link as soon as creation succeeds. Create one issue per proposal
-   using its concise title and a body describing the user need, evidence,
-   proposed outcome, acceptance outline, suggested roadmap horizon,
-   dependencies, and material risks. Use the configured repository and
-   available GitHub issue creation tools (or `gh issue create` when
-   appropriate); do not create a PR, invent labels, or create milestones. If
-   issue creation pauses for user confirmation, leave the roadmap entry in
-   place and resume afterward to add the resulting link. If GitHub is
-   unavailable or issue creation fails, keep the roadmap entry without a
-   fabricated link and clearly report which issue could not be associated.
-
-   Before finishing, verify that every selected proposal appears exactly once
-   as an unchecked item in the intended `ROADMAP.md` milestone and that every
-   successfully matched or created issue is linked there. Report any item
-   whose issue could not be associated. Never implement the proposed work as
-   part of this ideation task.
+6. **Record selected proposals and associate GitHub issues.**
+   - Search open and closed issues for a matching issue; link existing issues rather than duplicating.
+   - Determine milestone placement in `ROADMAP.md`. If a new milestone is warranted, update the Release Cadence table, Table of Contents, and Quick Stats consistently.
+   - Add only selected proposals to `ROADMAP.md`, matching its checkbox conventions (`- [ ]`) and keeping entries unchecked.
+   - For items needing new issues, create one issue per proposal using `gh issue create` with structured acceptance criteria, invariants, and suggested horizon.
+   - Verify every selected proposal appears exactly once in `ROADMAP.md` with its issue link.
 
 ## Completion Report
 
-Summarize the proposals and the user's selection. For selected items, identify
-the exact roadmap additions, milestone placement (including any new milestone
-defined or milestone list reevaluation performed), evidence, associated issue
-links, and whether each issue was reused or created. State whether roadmap or
-GitHub data could not be reviewed, or any issue could not be associated.
-Confirm that unselected items were not recorded and no implementation or PR was
-created.
+Summarize the proposals and selection outcome. For recorded items, identify
+the exact roadmap additions, milestone placement, associated issue links (reused or created),
+and execution mode. Confirm that unselected items were not recorded and no implementation
+code was modified.

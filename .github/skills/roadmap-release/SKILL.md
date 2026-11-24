@@ -1,6 +1,6 @@
 ---
 name: roadmap-release
-description: "Use when preparing a RealizeAlpha release: review commits, choose a version, update release documentation and roadmap, reconcile GitHub issues, run project quality gates, and verify the Android/iOS release workflow."
+description: "Prepare and audit a RealizeAlpha release: review changes, bump versions, audit safety invariants and roadmap completion, run quality gates, and verify the CI/CD deployment pipeline."
 ---
 
 # Release
@@ -11,136 +11,77 @@ compliance information aligned with the implementation.
 
 ## Arguments
 
-Provide the next semantic app version, optionally followed by a build number
-(for example, `0.59.1 186` or `0.60.0`). If no version is provided, inspect the
-latest release tag and commits since that tag to recommend a version. Ask before
-choosing when the change set does not clearly indicate patch, minor, or major
-impact.
+Optional parameters:
+- Version string and build number (e.g., `0.63.0 207`). If omitted, inspects recent commits and tags to recommend the next semantic version.
+- `confirm_release_push`: `true` or `false` (default: `false`).
+  - To protect production stores (Google Play and Apple TestFlight), pushing the release commit to `main` requires explicit human approval unless `confirm_release_push=true` is explicitly provided.
 
 ## Workflow
 
 1. **Check repository state and release history.** Run `git status --short`,
    inspect the current branch, find the latest version tag with
-   `git describe --tags --abbrev=0`, and review commits since that tag. If there
-   is no tag, use the current `src/robinhood_options_mobile/pubspec.yaml` version
-   and recent history as context; do not invent a previous release boundary.
-   Read commit subjects, bodies, changed paths, and relevant diffs. Record dates,
-   authors, and issue or PR references when available. Preserve all pre-existing
+   `git describe --tags --abbrev=0`, and review commits since that tag. Read
+   commit subjects, changed paths, and issue/PR references. Preserve all pre-existing
    worktree changes.
 
-2. **Inventory the documentation.** Review relevant content in:
-   - `CHANGELOG.md` — Active history of version additions, changes, and fixes.
-   - `ROADMAP.md` — Feature tracking, Quick Stats, and Release Versions & Timeline.
-   - `PRODUCT.md` — Core vision, architecture, and capabilities.
-   - `README.md` — High-level feature list and user onboarding.
-   - `AGENTS.md` and `.github/copilot-instructions.md` — Core architectural rules.
-   - `docs/` — Feature specifications, risk models, and backend architecture.
+2. **Inventory documentation & roadmap state.**
+   - Review `CHANGELOG.md`, `ROADMAP.md`, `PRODUCT.md`, `README.md`, `AGENTS.md`, and `docs/`.
+   - Verify that all claimed `[x]` items for this version in `ROADMAP.md` have
+     passing unit/widget tests and corresponding `docs/` feature notes.
 
-3. **Choose and apply version metadata.** The app version is declared in
-   `src/robinhood_options_mobile/pubspec.yaml` as `major.minor.patch+build`
-   (e.g., `0.59.0+185`). Use semantic versioning:
-   - **Patch (`0.59.1`)**: Backward-compatible bug fixes and minor improvements.
-   - **Minor (`0.60.0`)**: New user-facing trading features, screens, or broker support.
-   - **Major (`1.0.0`)**: Breaking architectural changes or milestone overhaul.
+3. **Choose and apply version metadata.**
+   - Update `src/robinhood_options_mobile/pubspec.yaml` with `version: major.minor.patch+build`
+     (e.g., `0.63.0+207`). Follow semantic versioning.
+   - Increment the build number monotonically.
 
-   Increment the build number monotonically with each release. Keep the version
-   consistent with the release tag (e.g., `v0.59.1`) and `CHANGELOG.md`. Do not
-   edit generated platform version files directly when they derive from Flutter
-   metadata.
+4. **Write release notes in CHANGELOG.md & ROADMAP.md.**
+   - Add a dated version section at the top of `CHANGELOG.md` with categories:
+     **Added**, **Changed**, **Fixed**, **Removed**, **Security**, **Performance**.
+   - Reference verified GitHub issues and PRs with Markdown links.
+   - Add or update the version entry in the **Release Cadence & Milestone Overview**
+     table in `ROADMAP.md`.
+   - Ensure release note formatting enables `.github/workflows/cd.yml` to extract
+     clean release notes for Google Play (whatsnew-en-US) and TestFlight (WhatToTest.en-US.txt).
 
-4. **Write release notes in CHANGELOG.md.** Add a dated version section at the top
-   of `CHANGELOG.md` following the existing format:
-   - Group entries into clear categories: **Added**, **Changed**, **Fixed**,
-     **Removed**, **Security**, and **Performance**.
-   - Reference verified GitHub issues and PRs using full Markdown links:
-     `[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`.
-   - Use concise, descriptive bullet points highlighting user-visible impact,
-     trading safety enhancements, and algorithmic optimizations.
+5. **Reconcile roadmap invariants.**
+   - Update the **Quick Stats** table in `ROADMAP.md`.
+   - Prune **Key Highlights** to a bounded list of at most 3–5 high-impact items.
+   - Ensure **Completed Features ✅** remains bounded to recent active minor releases,
+     summarizing older historical items into `CHANGELOG.md`.
 
-5. **Update product documentation.** Update `README.md` for major feature
-   deliveries, and update `PRODUCT.md`, `docs/`, or `.github/copilot-instructions.md`
-   when architecture, services, or models have evolved. Keep documentation
-   strictly grounded in implemented code; do not document speculative roadmap
-   proposals as shipped features.
+6. **Cross-check trading safety & platform compliance.**
+   Audit against RealizeAlpha's core invariants:
+   - Zero plaintext credentials stored in unencrypted storage (`SecureTokenStorage` exclusively).
+   - Auto-trade live-quote BUY guards, risk circuit breaker lockouts, and dynamic sizing bounds verified.
+   - Balance masking respected across charts and widgets; multi-broker tax lots stay on-device.
+   - iOS entitlements (`NSFaceIDUsageDescription`, `ITSAppUsesNonExemptEncryption`) and Android permissions validated.
 
-6. **Reconcile the roadmap and GitHub issues.**
-   - Review completed roadmap items against code and mark them complete (`[x]`).
-   - Query GitHub issues with `gh issue list --state all --limit 1000 --json number,title,state,url,labels,updatedAt`
-     when GitHub CLI is accessible.
-   - Ensure linked issues in `ROADMAP.md` are accurate and verified.
-   - Update the **Quick Stats** table in `ROADMAP.md` (active open issues, completed
-     features count, planned items).
-   - Maintain the **Key Highlights** section as a strictly limited list (at most 3–5 items)
-     covering only the most recent major deliveries and highest-impact capabilities;
-     prune older entries as new releases ship so it remains a concise executive summary
-     rather than an unbounded changelog.
-   - Limit the size of **Completed Features ✅**: keep the completed checklist
-     bounded to high-level capability blocks for recent active minor releases,
-     consolidating or summarizing older historical releases so `ROADMAP.md` stays lean,
-     relying on `CHANGELOG.md` for exhaustive historical logs.
-   - Add a new entry to the **Release Cadence & Milestone Overview** section in `ROADMAP.md`.
-   - Do not close, reopen, or edit GitHub issues unless explicitly requested.
+7. **Run project quality gates.**
+   - **Flutter Mobile (`src/robinhood_options_mobile`):**
+     ```bash
+     cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .
+     cd src/robinhood_options_mobile && dart analyze
+     cd src/robinhood_options_mobile && flutter test test/<impacted_test_file>.dart
+     ```
+   - **Cloud Functions Backend (`src/robinhood_options_mobile/functions`):**
+     ```bash
+     cd src/robinhood_options_mobile/functions && npm run lint
+     cd src/robinhood_options_mobile/functions && npm run build
+     cd src/robinhood_options_mobile/functions && npm test
+     ```
 
-7. **Review agent and developer guidance.** Check `AGENTS.md`, `.agents/`, and
-   `.github/` instructions for architecture or workflow notes that recent changes
-   affect. Update only relevant guidance; do not duplicate existing rules.
-
-8. **Cross-check trading safety & platform compliance.** Verify:
-   - **Zero Plaintext Tokens**: Ensure brokerage OAuth credentials and API tokens
-     are stored exclusively via `SecureTokenStorage` (`flutter_secure_storage`).
-   - **Trading Invariants**: Confirm auto-trade live-quote BUY guards, risk circuit
-     breaker lockouts, dynamic sizing boundaries, and aggregate view order locks
-     are maintained.
-   - **Privacy & Masking**: Verify balance masking is respected across charts and
-     widgets, and private multi-broker tax lots are not leaked to shared collections.
-   - **Platform Entitlements**: Review iOS FaceID (`NSFaceIDUsageDescription`),
-     push notifications, and Android biometric/network permissions.
-   - **Export Compliance**: Verify `ITSAppUsesNonExemptEncryption` declarations
-     match the app's cryptographic and HTTPS/TLS usage.
-
-9. **Run project quality gates.** Follow the verification standards in `AGENTS.md`:
-
-   **Flutter Mobile (`src/robinhood_options_mobile`):**
-   ```bash
-   cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .
-   cd src/robinhood_options_mobile && dart analyze
-   cd src/robinhood_options_mobile && flutter test test/<impacted_test_file>.dart
-   ```
-   *(Run targeted tests for impacted components; avoid running the entire test suite at once as it is large.)*
-
-   **Cloud Functions Backend (`src/robinhood_options_mobile/functions`):**
-   ```bash
-   cd src/robinhood_options_mobile/functions && npm run lint
-   cd src/robinhood_options_mobile/functions && npm run build
-   cd src/robinhood_options_mobile/functions && npm test
-   ```
-   *(Functions enforce Google ESLint rules with `max-len <= 80`; use `npm run lint -- --fix` when necessary.)*
-
-   Do not build platform binaries locally for routine release preparation.
-   The canonical release builds are produced by GitHub Actions:
-   - `.github/workflows/cd.yml`: Handles the continuous deployment and release pipeline. When a new version is detected in `pubspec.yaml`, it runs quality gates, builds signed Android (`.apk` and `.aab`) and iOS (`.ipa`) binaries, publishes to Google Play Internal and Apple TestFlight, deploys Firebase resources, tags the release (`v<version>`), and creates the GitHub Release with attached assets.
-   - `.github/workflows/promote.yml`: Promotes validated internal/TestFlight builds to Google Play and Apple App Store production tracks with staged rollouts.
-
-10. **Ask before committing and triggering deployment.** After release
-    preparation and validation checks pass cleanly, summarize the changes and ask
-    whether the user wants you to commit and push the release changes to `main`.
-    Explain that pushing a new `pubspec.yaml` version triggers
-    `.github/workflows/cd.yml`, which creates the git tag and draft release automatically.
-
-    Do not stage, commit, push, or tag until the user explicitly approves.
-
-    If approved:
-    - Recheck the branch, worktree, and remote. Ensure `pubspec.yaml` matches the intended release.
-    - Stage only the changes prepared for this release. Exclude unrelated user changes.
-    - Commit and push release changes to the remote branch.
-    - Verify workflow execution on GitHub Actions (`.github/workflows/cd.yml`) and report the deployment status.
-    - Once the build is verified on Google Play Internal testing and TestFlight, use `.github/workflows/promote.yml` to promote to production.
-
-    If declined, leave changes uncommitted and untagged. Report any missing credentials
-    or review steps plainly.
+8. **Human Confirmation & Deployment Trigger.**
+   - Present the complete release package (version, changelog notes, quality check output).
+   - If `confirm_release_push` is `false`, pause and ask whether the user wants you
+     to commit and push to `main`.
+   - If approved:
+     - Stage only release-prepared changes.
+     - Commit and push to `main`. Pushing a new version in `pubspec.yaml` triggers
+       `.github/workflows/cd.yml`, building signed Android (`.aab`/`.apk`) and iOS (`.ipa`)
+       artifacts and deploying Firebase resources.
+     - Monitor workflow execution with `gh run list --workflow=cd.yml` and report progress.
 
 ## Completion Report
 
-Summarize the version/build number decision, `CHANGELOG.md` entries, `ROADMAP.md`
-reconciliation, quality gates executed (formatting, static analysis, unit tests,
-functions build/lint), user approval status, and release workflow execution details.
+Summarize the version decision, `CHANGELOG.md` notes, `ROADMAP.md` reconciliation,
+quality gates output, user confirmation status, and CI/CD workflow status.

@@ -6,13 +6,16 @@ description: "Choose and implement the next suitable RealizeAlpha roadmap item b
 # Roadmap Implementation
 
 Select one valuable, implementable item from the RealizeAlpha roadmap and
-open GitHub issues, implement it end to end, and report the evidence for the
-selection and verification. Use this workflow when asked to work on the next
-roadmap item, pick the next feature, or continue planned product work.
+open GitHub issues, implement it end to end through a staged Maker-Verifier-Critic loop,
+and report the evidence for the selection and verification. Use this workflow when asked
+to work on the next roadmap item, pick the next feature, or continue planned product work.
 
 ## Argument Hint
 
-Optional constraints or a roadmap area to prioritize (for example, "focus on portfolio analytics", "options flow", or "pick the smallest safe item").
+Optional parameters:
+- Constraints or a roadmap area to prioritize (e.g., "focus on portfolio analytics", "options flow", or "pick the smallest safe item").
+- `mode`: `interactive` (default) or `autonomous` (enables automated conventional commits, issue notes, and issue closure upon green verification).
+- `count`: number of items to implement in sequence or parallel (defaults to 1; for multi-item concurrent fan-out, also consider the `software-factory` skill).
 
 ## Workflow
 
@@ -57,8 +60,8 @@ Optional constraints or a roadmap area to prioritize (for example, "focus on por
    decision is required; otherwise make conservative choices consistent with
    `PRODUCT.md` and `AGENTS.md`.
 
-5. **Implement only that item.** Inspect the owning code path and neighboring
-   tests, then make the smallest complete change that satisfies the criteria:
+5. **Stage 1 (Maker): Implement only that item.** Inspect the owning code path and
+   neighboring tests, then make the smallest complete change that satisfies the criteria:
    - **Descriptive & Non-Advisory Trading**: Trading suggestions must remain
      descriptive and analytical; manual order tickets require user confirmation,
      and auto-trading must respect all safety gates.
@@ -77,12 +80,38 @@ Optional constraints or a roadmap area to prioritize (for example, "focus on por
 
    Add or update focused unit and widget tests for the new behavior. Fix
    regressions caused by this change; do not rewrite unrelated failures.
-   When requested by the user to commit, reference the associated GitHub issue in
-   commit messages (e.g., `feat: ... (#<issue-num>)` or `closes #<issue-num>`).
-   Do not commit, push, deploy, or mutate GitHub issue states unless explicitly
-   requested.
 
-6. **Reconcile local documentation.**
+6. **Stage 2 (Self-Healing Quality Gate): Verify the change.** Run the narrowest
+   relevant checks first, using an automated repair loop (up to 3 bounded retries):
+   - **Flutter Mobile (`src/robinhood_options_mobile`):**
+     ```bash
+     cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .
+     cd src/robinhood_options_mobile && dart analyze
+     cd src/robinhood_options_mobile && flutter test test/<specific_test_file>.dart
+     ```
+   - **Cloud Functions Backend (`src/robinhood_options_mobile/functions`):**
+     ```bash
+     cd src/robinhood_options_mobile/functions && npm run lint
+     cd src/robinhood_options_mobile/functions && npm run build
+     cd src/robinhood_options_mobile/functions && npm test
+     ```
+     *(Functions enforce Google ESLint rules with `max-len <= 80`; run `npm run lint -- --fix` to auto-resolve mechanical line-length and lint issues.)*
+   - If connected to a running Flutter session, perform hot reload or hot restart
+     to verify UI rendering.
+   - If verification fails, inspect the stack trace, correct the error, and re-test.
+
+7. **Stage 3 (Independent Adversarial Critic): Safety Invariants Audit.**
+   Before proceeding to documentation and git lifecycle, audit the `git diff` against
+   the 7 core invariants in `AGENTS.md` (or delegate to a dedicated critic subagent):
+   - [ ] No plaintext tokens or secrets stored in unencrypted storage
+   - [ ] Feature access hierarchy preserved (RemoteConfig $\to$ per-user $\to$ role)
+   - [ ] Live-quote BUY guard ($>3\%$ deviation block) and Paper quote/exit isolation intact
+   - [ ] Balance masking respected on all touched charts and widgets
+   - [ ] Cloud Functions auth check and $O(1)$ scalar complexity maintained
+   - [ ] Semantics labels consolidated; no RenderFlex overflows on 320px viewports
+   - [ ] Clean analyzer check with zero compile errors or type mismatches
+
+8. **Stage 4 (Reconciler): Reconcile local documentation.**
    - **Update Documentation & PRODUCT.md**: Add or update dedicated feature documentation
      in `docs/` (architecture, algorithms, configuration, or operational guides)
      whenever user-visible behavior, risk models, services, or workflows change.
@@ -112,36 +141,26 @@ Optional constraints or a roadmap area to prioritize (for example, "focus on por
      granular historical items so the roadmap remains readable and executive-focused,
      deferring exhaustive chronological version notes to `CHANGELOG.md`. Reconcile
      `Quick Stats` (completed vs planned counts) accordingly.
-   - **GitHub Issue Reconciliation**: If explicitly requested by the user, close or
-     update the associated GitHub issue (`gh issue close <num>`) once verification passes.
 
-7. **Verify the change.** Run the narrowest relevant checks first, following `AGENTS.md`:
-   - **Flutter Mobile (`src/robinhood_options_mobile`):**
-     ```bash
-     cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .
-     cd src/robinhood_options_mobile && dart analyze
-     cd src/robinhood_options_mobile && flutter test test/<specific_test_file>.dart
-     ```
-   - **Cloud Functions Backend (`src/robinhood_options_mobile/functions`):**
-     ```bash
-     cd src/robinhood_options_mobile/functions && npm run lint
-     cd src/robinhood_options_mobile/functions && npm run build
-     cd src/robinhood_options_mobile/functions && npm test
-     ```
-     *(Functions enforce Google ESLint rules with `max-len <= 80`; run `npm run lint -- --fix` to auto-resolve mechanical line-length and lint issues.)*
-   - If connected to a running Flutter session, perform hot reload or hot restart
-     to verify UI rendering.
-   - Review the final diff for accidental generated files, secrets, unrelated
-     formatting, and incomplete references, ensuring unrelated worktree changes
-     remain untouched.
+9. **Stage 5: Dual-Mode Git & Issue Lifecycle.**
+   - **Interactive Mode (Default)**:
+     - Review the final diff for accidental generated files, secrets, unrelated
+       formatting, and incomplete references.
+     - Present the completed work to the user. Do not commit, push, or close GitHub
+       issues unless explicitly requested.
+   - **Autonomous / Factory Mode (`mode=autonomous`)**:
+     - Stage only the touched source, test, and documentation files.
+     - Create a conventional commit referencing the issue (e.g., `feat(<scope>): <summary> (#<issue-num>)`).
+     - Comment on the GitHub issue with verification output and close it with `gh issue close <num>`.
 
 ## Completion Report
 
 Report:
 - The selected roadmap item and/or issue link, and why it was chosen over other candidates
+- Execution mode (`interactive` vs. `autonomous`)
 - Files modified and behavior delivered
-- Tests and validation commands run, including any pre-existing failures
+- Tests and validation commands run, including self-healing retry counts (if any)
+- Adversarial critic invariant checklist status
 - Documentation updates made in `docs/`, `PRODUCT.md`, `README.md`, `.github/copilot-instructions.md`, and `ROADMAP.md` status/reconciliation
-- GitHub issue update or closure status (if explicitly requested)
+- Git commit hash and GitHub issue update or closure status
 - Any remaining dependency, credential, or follow-up that prevents the item from being fully complete
-

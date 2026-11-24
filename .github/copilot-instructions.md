@@ -172,6 +172,12 @@ Examples of specific file references an agent can use in patches:
 - **Fidelity & Import Services:** `src/robinhood_options_mobile/lib/services/fidelity_service.dart` (Fidelity CSV parsing), `csv_import_service.dart` (Generic CSV handling).
 - **Multi-Account Management:** `src/robinhood_options_mobile/lib/model/brokerage_user_store.dart` (manages multiple `BrokerageUser` instances), `lib/model/brokerage_user.dart` (user account model with aggregation support). UI components like `home_widget.dart` and position widgets (`instrument_positions_widget.dart`, `option_positions_widget.dart`, `futures_positions_widget.dart`) handle aggregate view rendering with navigation controls.
 - Monetization: `src/robinhood_options_mobile/lib/services/subscription_service.dart` (In-App Purchases management), `paywall_widget.dart` (premium feature gating). `PaywallWidget` listens to its typed user document and dismisses after `verifySubscription` writes an active entitlement; dispose the Firestore subscription with the widget. `SubscriptionService.restorePurchases` returns a `RestoreResult` after the receipt check, which the paywall shows to the user.
+- **Autonomous AI Software Factory & Roadmap Skills:** Repository workflows are governed by canonical skills under `.github/skills/`:
+  - `software-factory/SKILL.md`: Autonomous factory orchestrator executing staged Maker-Verifier-Critic loops via `factory_pipeline.py`.
+  - `roadmap-implementation/SKILL.md`: Focused end-to-end implementation with self-healing verification gates and Dual-Mode git/issue lifecycle.
+  - `roadmap-ideation/SKILL.md`: Evidence-backed roadmap proposals and automated triage.
+  - `roadmap-release/SKILL.md`: Safe release preparation and versioning with mandatory confirmation before pushing release tags to `main`.
+  - `update-docs/SKILL.md`: Automated documentation sync and roadmap invariant checks.
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
 - Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD with manual callable endpoint), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
 - Futures auto-trading backend: `src/robinhood_options_mobile/functions/src/agentic-futures-trading.ts`, `agentic-futures-trading-signals-cron.ts`.
