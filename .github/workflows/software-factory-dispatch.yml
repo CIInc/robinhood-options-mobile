@@ -41,6 +41,20 @@ on:
         required: false
         default: ''
         type: string
+      release_cadence:
+        description: 'Release Cadence Strategy'
+        required: true
+        default: 'milestone'
+        type: choice
+        options:
+          - milestone
+          - batch_size
+          - manual
+      release_threshold:
+        description: 'Number of verified features to trigger release cut'
+        required: true
+        default: '2'
+        type: string
 
 permissions:
   contents: write
@@ -92,7 +106,9 @@ jobs:
             --dry-run="${{ github.event.inputs.dry_run }}" \
             --max-iterations="${{ github.event.inputs.max_iterations }}" \
             --failure-limit="${{ github.event.inputs.failure_limit }}" \
-            --focus="${{ github.event.inputs.focus }}"
+            --focus="${{ github.event.inputs.focus }}" \
+            --release-cadence="${{ github.event.inputs.release_cadence }}" \
+            --release-threshold="${{ github.event.inputs.release_threshold }}"
 
       - name: Inspect Factory Metrics & Run State
         if: always()

@@ -80,6 +80,10 @@ if not _args and len(sys.argv) > 1:
             _args["dry_run"] = val.lower() in ("true", "1", "yes")
         elif arg.startswith("--auto-ideate="):
             _args["auto_ideate"] = arg.split("=", 1)[1].lower() in ("true", "1", "yes")
+        elif arg.startswith("--release-cadence="):
+            _args["release_cadence"] = arg.split("=", 1)[1]
+        elif arg.startswith("--release-threshold="):
+            _args["release_threshold"] = int(arg.split("=", 1)[1])
 
 mode = _args.get("mode", "autonomous")  # "autonomous" or "interactive"
 stages = _args.get("stages", "full")    # "full", "ideate", "implement-batch", "single"
@@ -89,6 +93,8 @@ consecutive_failure_limit = int(_args.get("failure_limit", 2))
 focus = _args.get("focus", "")
 auto_ideate = bool(_args.get("auto_ideate", True))
 dry_run = bool(_args.get("dry_run", False))
+release_cadence = _args.get("release_cadence", "milestone")  # "milestone", "batch_size", "manual"
+release_threshold = int(_args.get("release_threshold", 2))
 
 STATE_FILE = ".agents/.factory_run_state.json"
 METRICS_FILE = ".agents/.factory_metrics.json"
@@ -507,6 +513,64 @@ For each verified item:
                 log("Interactive mode: Git commits, pushes, and issue closures are held for user confirmation.")
                 break
 
+            # ==============================================================================
+            # Phase 6: Release Cadence & Feature Grouping Decision
+            # ==============================================================================
+            # Release cadence and feature grouping are determined inside the workflow rather
+            # than waiting for an empty backlog, preventing infinite loops with ideation.
+            phase(f"Iteration {iteration} - 6. Release Cadence & Grouping Decision")
+
+            cycle_completed_count = len(state.get("completed_tasks", []))
+            should_cut_release = False
+            release_rationale = ""
+
+            if release_cadence == "batch_size" and cycle_completed_count >= release_threshold:
+                should_cut_release = True
+                release_rationale = f"Batch size threshold reached: {cycle_completed_count} verified feature(s) >= {release_threshold}."
+            elif release_cadence == "milestone":
+                if cycle_completed_count >= release_threshold:
+                    should_cut_release = True
+                    release_rationale = f"Milestone release package complete with {cycle_completed_count} verified feature(s)."
+                elif not items:
+                    should_cut_release = True
+                    release_rationale = "Active milestone backlog completed."
+
+            if should_cut_release and cycle_completed_count > 0:
+                log(f"Release Packaging Decision Triggered: {release_rationale}")
+                release_agent = agent(
+                    prompt="""
+You are the RealizeAlpha Release Packaging & Audit Specialist.
+Your task: Bundle verified features from this factory cycle into a cohesive semantic release package.
+1. Group verified features into release notes in CHANGELOG.md.
+2. Determine appropriate version bump ('patch' or 'minor').
+3. Bump version in `src/robinhood_options_mobile/pubspec.yaml`.
+4. Audit all 7 Core Safety Invariants.
+5. In autonomous mode, prepare the release commit. Note: do NOT push release commits/tags to main without explicit human confirmation.
+""",
+                    role="Release Specialist"
+                )
+
+                release_prompt = f"""
+Prepare and group release package for verified tasks: {state.get('completed_tasks', [])}.
+Mode: {mode}, DryRun: {dry_run}, Focus: '{focus}', Cadence: '{release_cadence}'.
+"""
+                release_schema = {
+                    "type": "object",
+                    "properties": {
+                        "release_cut": {"type": "boolean"},
+                        "version_bumped": {"type": "string"},
+                        "grouped_features": {"type": "array", "items": {"type": "string"}},
+                        "summary": {"type": "string"}
+                    },
+                    "required": ["release_cut", "summary"]
+                }
+
+                release_result = await release_agent(release_prompt, release_schema)
+                del release_agent
+                log(f"Release Packaging Complete: {release_result.get('summary', 'Package staged')}")
+                log("Concluding autonomous factory run: Target release package was successfully grouped and cut.")
+                break
+
     duration_sec = round(time.time() - start_time, 2)
     summary_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -514,6 +578,8 @@ For each verified item:
         "stages": stages,
         "dry_run": dry_run,
         "focus": focus,
+        "release_cadence": release_cadence,
+        "release_threshold": release_threshold,
         "duration_seconds": duration_sec,
         "iterations_completed": iteration,
         "items_attempted": total_items_attempted,

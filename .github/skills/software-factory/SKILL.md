@@ -25,6 +25,8 @@ Optional parameters passed as text or key-value pairs:
 - `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
 - `auto_ideate`: `true` (default) or `false`. When enabled, the factory automatically discovers and ranks candidate features from open issues and backlog gaps prior to implementation.
 - `dry_run`: `true` or `false` (default: `false`). When enabled, simulates candidate discovery, readiness rubric scoring, task partitioning, and companion test resolution, outputting a complete execution DAG without mutating files, opening issues, or creating git commits.
+- `release_cadence`: `milestone` (default), `batch_size`, or `manual`. Determines when to trigger release packaging and cut a release, rather than waiting for an empty backlog (which creates an infinite loop with ongoing ideation).
+- `release_threshold`: Number of verified features required to trigger a release packaging decision (default: `2`).
 
 ---
 
@@ -107,7 +109,12 @@ If the critic identifies blocking issues or missing tests, return to **Stage 2 (
 - In `autonomous` mode:
   - Create a clean git commit: `git commit -m "feat(<scope>): <summary> (#<issue-num>)"`.
   - Add verification notes to the GitHub issue and close it with `gh issue close <num>`.
-  - If a production release threshold is met, run `software-release` in dry-run mode and present the release summary for human confirmation before pushing to `main`.
+
+### Stage 6: Release Cadence & Feature Grouping Decision
+To break the infinite loop where ongoing ideation continuously adds new backlog items, the workflow evaluates release packaging inside the cycle:
+- **Feature Grouping**: Groups verified features from the current cycle into a coherent release package.
+- **Cadence Evaluation**: Checks if `release_cadence == "batch_size"` meets `release_threshold` or if active milestone tasks are satisfied.
+- **Release Packaging**: Runs `software-release` to bump `pubspec.yaml`, audit safety invariants, generate release notes, and conclude the release cycle (requiring manual push confirmation before pushing tags to `main`).
 
 ---
 

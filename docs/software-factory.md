@@ -38,9 +38,15 @@ flowchart TD
         K -- "Passed" --> L["Docs, CHANGELOG & ROADMAP.md Sync"]
         L --> M["Dual-Mode Git Commit & Issue Close"]
         M --> N["software-factory-verify.yml / cd.yml CI Gate"]
-        N --> O{"Autonomous Loop Remaining Items?"}
-        O -- "Yes (Iterate <= max_iterations & Circuit Breaker Clear)" --> A
-        O -- "No / Complete" --> P["Release Readiness Audit"]
+    end
+
+    subgraph ReleaseDecisionPhase["6. In-Workflow Release Cadence & Feature Grouping Decision"]
+        N --> O{"Release Cadence Evaluation: Milestone Target or Batch Threshold Met?"}
+        O -- "Yes" --> P["Stage 6: Group Verified Features & Cut Semantic Release (pubspec/CHANGELOG)"]
+        P --> Q["Conclude Release Cycle (Await Human Push Confirmation)"]
+        O -- "No (Batch Incomplete & Circuit Breaker Clear)" --> R{"Max Iterations Reached?"}
+        R -- "No" --> A
+        R -- "Yes" --> P
     end
 ```
 
@@ -53,6 +59,7 @@ Use these copy-pasteable slash command invocations for common engineering workfl
 | Developer Scenario | Slash Command / CLI Invocation | Description |
 |---|---|---|
 | **Autonomous Loop Overnight** | `/software-factory mode="autonomous" stages="full" max_iterations=3` | Runs continuous closed loop: ideate, score, triage, parallel implement, verify, reconcile, and commit. |
+| **Autonomous Milestone Release** | `/software-factory release_cadence="milestone" release_threshold=3` | Evaluates in-workflow feature grouping and cuts a semantic release when batch threshold is reached. |
 | **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | Executes discovery, rubric scoring, partitioning, and test mapping without mutating files or committing. |
 | **Single-Item Interactive** | `/software-implementation mode="interactive" focus="<feature_title>"` | Guided Maker-Verifier-Critic loop with human approval checkpoints before staging commits. |
 | **Ideation & Backlog Discovery** | `/software-ideation focus="agentic trading"` | Evaluates backlog candidates against the 8-point Readiness Rubric and records qualified proposals. |
@@ -120,18 +127,57 @@ sequenceDiagram
         Sync-->>SF: Documentation synchronized & Quick Stats verified
         SF->>Git: Stage files, commit with feat(#num), close GitHub issue
         Git-->>SF: Iteration complete (commit hash, issue closed)
+
+        Note over SF,Dev: Phase 6: Release Cadence & Grouping Decision
+        SF->>SF: Evaluate release cadence (milestone goal or batch threshold met?)
+        alt Release Decision Triggered
+            SF->>Sync: Group verified features into release notes & bump pubspec.yaml
+            Sync-->>SF: Release bundle prepared (vX.Y.Z)
+            SF-->>Dev: Conclude Release Cycle (Await human confirmation before push)
+        end
     end
     
     SF-->>Dev: Autonomous Loop Completed (Summary report & PR ready)
 ```
 
+### 2.1 Release Cadence & Feature Grouping: Breaking the Ideation Infinite Loop
+
+#### The Infinite Loop Trap of Continuous Ideation
+In an autonomous software factory where **Ideation & Backlog Discovery** runs alongside **Implementation**, a naive termination rule ("wait until all remaining roadmap items are finished") creates an **infinite loop**:
+1. Phase 1 discovers 3 new candidate features from open issues and adds them to `ROADMAP.md`.
+2. Phase 3 implements 2 features.
+3. Next iteration, Phase 1 discovers 3 more candidates.
+4. The backlog never empties, and the factory never decides to cut a release!
+
+#### The In-Workflow Release Decision Solution
+To prevent infinite backlogs, RealizeAlpha treats **Release Cadence & Feature Grouping as an explicit in-workflow decision** rather than an open-ended wait condition:
+
+1. **Decoupled Milestone Horizons**:
+   - Ideation categorizes candidate proposals into **Target Milestone Horizons**:
+     - *Current Horizon*: Enhancements or bug fixes strictly within the active release scope (e.g., `v0.62.x`).
+     - *Future Horizons*: New capabilities queued for future minor/major milestones (e.g., `v0.63.0`, `v0.64.0+`).
+   - Discovery of future items expands the long-term roadmap without expanding the completion condition of the current release run.
+
+2. **Configurable Release Cadence Policies (`release_cadence`)**:
+   - `milestone` (default): Packages and cuts a release when all actionable items in the active release milestone are satisfied or when the accumulated feature count reaches `release_threshold`.
+   - `batch_size`: Groups and releases whenever `release_threshold` (e.g. 2–3 verified features) is reached, cutting regular, incremental patch releases.
+   - `manual`: Bypasses automated release decisions, holding version bumps for explicit developer commands.
+
+3. **In-Workflow Release Bundling (`software-release`)**:
+   - When the release decision evaluates to `true`, the workflow invokes the Release Specialist agent to:
+     - Group newly verified features from the cycle into semantic release notes in `CHANGELOG.md`.
+     - Bump semantic versioning in `pubspec.yaml` (`patch` vs `minor`).
+     - Move the completed features into `ROADMAP.md` `## Completed Features ✅` and reconcile `Quick Stats`.
+     - Conclude the active release cycle gracefully, outputting a complete release summary and awaiting explicit human confirmation before pushing git tags to `main`.
+
 ### Full-Cycle Pipeline Chaining
-When invoked with `stages="full"`, the factory coordinates five sequential phases:
-1. **Ideation & Backlog Discovery**: Scans `PRODUCT.md`, `ROADMAP.md`, and open GitHub issues. Scores candidate proposals against the **Software Factory Readiness Rubric** (bounded scope, testable without external live credentials, compliant with the 7 safety invariants) and automatically records qualified items in `ROADMAP.md` with associated issues.
-2. **Triage & Disjoint Partitioning**: Evaluates unchecked tasks and selects up to `max_parallel` items with mutually disjoint file boundaries.
+When invoked with `stages="full"`, the factory coordinates six sequential phases:
+1. **Ideation & Backlog Discovery**: Scans `PRODUCT.md`, `ROADMAP.md`, and open GitHub issues. Scores candidate proposals against the **Software Factory Readiness Rubric** (bounded scope, testable without external live credentials, compliant with the 7 safety invariants) and automatically records qualified items in `ROADMAP.md` under their appropriate milestone horizon.
+2. **Triage & Disjoint Partitioning**: Evaluates unchecked tasks in the active horizon and selects up to `max_parallel` items with mutually disjoint file boundaries.
 3. **Implementation & Verification**: Executes the Maker agent and Self-Healing Verifier loop with companion test mapping and up to 3 repair retries.
-4. **Adversarial Critique**: Spawns an isolated critic subagent that audits the diff against the 7 Core Safety Invariants without shared author bias.
-5. **Reconciliation & Git Lifecycle**: Reconciles documentation, updates `ROADMAP.md` Quick Stats, creates conventional commits (`feat(...): ... (#<num>)`), and closes verified issues (`gh issue close <num>`). The loop continues to the next cycle iteration if more items remain.
+4. **Adversarial Critique**: Spawns an isolated critic subagent that audits the diff against the 7 Core Safety Invariants without shared author bias, producing a structured `CriticAuditVerdict`.
+5. **Reconciliation & Git Lifecycle**: Reconciles documentation, updates `ROADMAP.md` Quick Stats, creates conventional commits (`feat(...): ... (#<num>)`), and closes verified issues (`gh issue close <num>`).
+6. **Release Cadence & Grouping Decision**: Evaluates milestone/batch completion criteria. If satisfied, groups completed features, bumps semantic version in `pubspec.yaml`, generates release notes in `CHANGELOG.md`, and concludes the cycle.
 
 ### Disjoint Ownership Partitioning Rule
 When running multiple tasks in parallel (`max_parallel > 1` via `workspace="branch"` or `workspace="share"`):
