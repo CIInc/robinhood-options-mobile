@@ -1,4 +1,4 @@
-# Autonomous AI Software Factory Architecture & Tooling
+# Autonomous AI Software Factory Architecture, Patterns & Tooling
 
 RealizeAlpha incorporates an **Autonomous AI Software Factory** architecture designed to automate, streamline, and safely scale software engineering, verification, release management, and documentation synchronization across the Flutter, Firebase, and Cloud Functions codebases.
 
@@ -38,12 +38,69 @@ flowchart TD
 
 ---
 
-## 2. The 5-Stage State Machine
+## 2. The Autonomous Loop Engine & Execution Topology
+
+The Software Factory can operate in single-item mode or as a continuous **Autonomous Loop** that chains feature discovery, implementation, adversarial critique, and documentation without human intervention until release boundaries.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Developer / Cron
+    participant SF as Software Factory Orchestrator
+    participant Triage as Triage & Planner Agent
+    participant Maker as Maker Agent (workspace=branch)
+    participant Gate as Self-Healing Quality Gate
+    participant Critic as Adversarial Critic Agent
+    participant Sync as Reconciler Agent
+    participant Git as Git & GitHub Lifecycle
+
+    Dev->>SF: Trigger Autonomous Loop (mode=autonomous, stages=full)
+    SF->>Triage: Inspect ROADMAP.md & gh issue list
+    Triage-->>SF: Partitioned Disjoint Task Slices (1..N)
+    
+    loop For Each Disjoint Slice (Parallel or Pipeline)
+        SF->>Maker: Spawn Maker with Acceptance Criteria & 7 Invariants
+        Maker->>Maker: Author code and unit/widget tests
+        Maker->>Gate: Execute verification commands
+        alt Test / Lint Failure
+            Gate-->>Maker: Error Diagnostics
+            Maker->>Maker: Apply self-healing fix (up to 3 retries)
+        end
+        Gate-->>SF: Verification Green
+        SF->>Critic: Spawn fresh Adversarial Critic Subagent
+        Critic->>Critic: Audit git diff against 7 Safety Invariants
+        alt Safety Violation
+            Critic-->>Maker: Rejection & remediation items
+            Maker->>Maker: Remediate violation
+        end
+        Critic-->>SF: Approval Verdict
+    end
+
+    SF->>Sync: Reconcile ROADMAP.md, CHANGELOG.md, PRODUCT.md & docs/
+    Sync-->>SF: Documentation synchronized & Quick Stats verified
+    SF->>Git: Stage files, commit with feat(#num), close GitHub issue
+    Git-->>Dev: Autonomous Cycle Complete (PR / branch ready)
+```
+
+### Full-Cycle Pipeline Chaining
+When invoked with `stages="full"`, the factory coordinates four sequential phases:
+1. **Ideate / Triage Phase**: Scans `ROADMAP.md` and GitHub issues. In `mode=autonomous`, it scores candidate tasks against the **Software Factory Readiness Rubric** (clear code ownership, testable without production credentials, compliant with the 7 safety invariants) and automatically selects the top $N$ items.
+2. **Implementation & Verification Phase**: Executes the Maker agent and Self-Healing Verifier loop.
+3. **Adversarial Critique Phase**: Spawns an isolated critic subagent that audits the diff without shared author bias.
+4. **Reconciliation & Release Readiness Phase**: Reconciles documentation, commits validated work, and audits release readiness.
+
+### Disjoint Ownership Partitioning Rule
+When running multiple tasks in parallel (`max_parallel > 1` via `workspace="branch"` or `workspace="share"`):
+- Workers may only touch **mutually disjoint source files** in `src/robinhood_options_mobile/lib/` and `src/robinhood_options_mobile/functions/src/`. For example, Task A modifying `portfolio_analytics_controller.dart` cannot run concurrently with Task B modifying the same controller.
+- Shared top-level files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`, `pubspec.yaml`) are **never edited by concurrent workers**. Instead, the coordinator reconciles shared files once in the final aggregation phase to eliminate git merge conflicts.
+
+---
+
+## 3. The 5-Stage State Machine
 
 ### Stage 1: Specification, Triage & Disjoint Partitioning
-- **Source of Truth**: `ROADMAP.md` and open GitHub issues (`gh issue list`).
+- **Source of Truth**: `ROADMAP.md` and open GitHub issues (`gh issue list --state open --limit 1000 --json number,title,body,labels,milestone,updatedAt`).
 - **Triage**: Actionable unchecked items (`- [ ]`) are filtered by milestone, priority, and clear code ownership.
-- **Disjoint Ownership Partitioning Rule**: When multiple tasks run in parallel, tasks must modify mutually disjoint files in `src/robinhood_options_mobile/lib/` and `src/robinhood_options_mobile/functions/src/` to prevent merge conflicts. Shared repository files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`) are reconciled sequentially in the final aggregation phase.
 - **Safety Invariant Extraction**: Extracts the applicable RealizeAlpha core safety invariants from `AGENTS.md` before writing code.
 
 ### Stage 2: Maker (Code & Tests)
@@ -96,7 +153,7 @@ Before concluding any implementation task, the changes are audited against Reali
 
 ---
 
-## 3. Tooling & Skills Directory
+## 4. Tooling & Skills Directory
 
 RealizeAlpha organizes its software factory capabilities into modular skills located in `.github/skills/`:
 
@@ -123,7 +180,7 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 
 ---
 
-## 4. CI/CD Integration & Automated Gates
+## 5. CI/CD Integration & Automated Gates
 
 The Software Factory integrates directly into GitHub Actions workflows:
 
@@ -138,7 +195,7 @@ The Software Factory integrates directly into GitHub Actions workflows:
 
 ---
 
-## 5. Execution Examples
+## 6. Execution Examples
 
 ### Running an Autonomous Single-Item Cycle
 ```text
@@ -160,5 +217,5 @@ call_tool("run_workflow",
 
 ### Interactive Roadmap Implementation
 ```text
-/roadmap focus="progressive disclosure UI" mode="interactive"
+/roadmap-implementation focus="progressive disclosure UI" mode="interactive"
 ```
