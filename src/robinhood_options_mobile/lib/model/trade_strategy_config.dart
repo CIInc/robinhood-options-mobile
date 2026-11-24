@@ -1,6 +1,35 @@
 import 'exit_stage.dart';
 import 'custom_indicator_config.dart';
 
+/// How automated BUY entries respond when the macro regime is RISK_OFF.
+enum MacroRiskOffPolicy {
+  ignore,
+  reduceSize,
+  blockEntries;
+
+  String get label {
+    switch (this) {
+      case MacroRiskOffPolicy.ignore:
+        return 'Ignore';
+      case MacroRiskOffPolicy.reduceSize:
+        return 'Reduce Size';
+      case MacroRiskOffPolicy.blockEntries:
+        return 'Block Entries';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case MacroRiskOffPolicy.ignore:
+        return 'Evaluate entries normally during RISK_OFF regimes';
+      case MacroRiskOffPolicy.reduceSize:
+        return 'Scale down BUY position size during RISK_OFF regimes';
+      case MacroRiskOffPolicy.blockEntries:
+        return 'Block new BUY entries while macro status is RISK_OFF';
+    }
+  }
+}
+
 class TradeStrategyConfig {
   final DateTime? startDate;
   final DateTime? endDate;
@@ -48,6 +77,7 @@ class TradeStrategyConfig {
   final bool enableDrawdownProtection;
   final double maxDrawdown;
   final bool reduceSizeOnRiskOff;
+  final MacroRiskOffPolicy macroRiskOffPolicy;
   final double riskOffSizeReduction;
 
   // Technical Exits
@@ -121,6 +151,7 @@ class TradeStrategyConfig {
     bool? enableDrawdownProtection,
     double? maxDrawdown,
     bool? reduceSizeOnRiskOff,
+    MacroRiskOffPolicy? macroRiskOffPolicy,
     double? riskOffSizeReduction,
     bool? rsiExitEnabled,
     double? rsiExitThreshold,
@@ -194,7 +225,13 @@ class TradeStrategyConfig {
       enableDrawdownProtection:
           enableDrawdownProtection ?? this.enableDrawdownProtection,
       maxDrawdown: maxDrawdown ?? this.maxDrawdown,
-      reduceSizeOnRiskOff: reduceSizeOnRiskOff ?? this.reduceSizeOnRiskOff,
+      reduceSizeOnRiskOff: reduceSizeOnRiskOff,
+      macroRiskOffPolicy: macroRiskOffPolicy ??
+          (reduceSizeOnRiskOff != null
+              ? (reduceSizeOnRiskOff
+                  ? MacroRiskOffPolicy.reduceSize
+                  : MacroRiskOffPolicy.ignore)
+              : this.macroRiskOffPolicy),
       riskOffSizeReduction: riskOffSizeReduction ?? this.riskOffSizeReduction,
       rsiExitEnabled: rsiExitEnabled ?? this.rsiExitEnabled,
       rsiExitThreshold: rsiExitThreshold ?? this.rsiExitThreshold,
@@ -270,7 +307,8 @@ class TradeStrategyConfig {
     this.maxVolatility = 0.5,
     this.enableDrawdownProtection = false,
     this.maxDrawdown = 0.05,
-    this.reduceSizeOnRiskOff = false,
+    bool? reduceSizeOnRiskOff,
+    MacroRiskOffPolicy? macroRiskOffPolicy,
     this.riskOffSizeReduction = 0.5,
     this.rsiExitEnabled = false,
     this.rsiExitThreshold = 80.0,
@@ -278,20 +316,27 @@ class TradeStrategyConfig {
     this.signalStrengthExitThreshold = 40.0,
     this.gexExitEnabled = false,
     this.gexExitThreshold = 0.0,
-    this.enableGexStructuralStops = true,
-    this.enableTrailingPeakStop = true,
+    this.enableGexStructuralStops = false,
+    this.enableTrailingPeakStop = false,
     this.trailingPeakStopPercent = 20.0,
-    this.enableTimeThetaStop = true,
+    this.enableTimeThetaStop = false,
     this.minDteStopDays = 14,
     this.stalledSessionsStopLimit = 10,
-    this.enableMacroRegimeStop = true,
-    this.enableCatastrophicStop = true,
+    this.enableMacroRegimeStop = false,
+    this.enableCatastrophicStop = false,
     this.catastrophicStopPercent = 50.0,
     this.dynamicAtrStopsEnabled = false,
     this.atrStopMultiplier = 1.5,
     this.atrProfitMultiplier = 3.0,
     this.atrRatchetEnabled = true,
-  })  : enabledIndicators = {
+  })  : macroRiskOffPolicy = macroRiskOffPolicy ??
+            ((reduceSizeOnRiskOff ?? false)
+                ? MacroRiskOffPolicy.reduceSize
+                : MacroRiskOffPolicy.ignore),
+        reduceSizeOnRiskOff = macroRiskOffPolicy != null
+            ? macroRiskOffPolicy == MacroRiskOffPolicy.reduceSize
+            : (reduceSizeOnRiskOff ?? false),
+        enabledIndicators = {
           // Default indicator settings need to be off for safety,
           //some strategies don't explicitly enable indicators
           'priceMovement': false,
@@ -360,6 +405,7 @@ class TradeStrategyConfig {
         'enableDrawdownProtection': enableDrawdownProtection,
         'maxDrawdown': maxDrawdown,
         'reduceSizeOnRiskOff': reduceSizeOnRiskOff,
+        'macroRiskOffPolicy': macroRiskOffPolicy.name,
         'riskOffSizeReduction': riskOffSizeReduction,
         'rsiExitEnabled': rsiExitEnabled,
         'rsiExitThreshold': rsiExitThreshold,
@@ -454,6 +500,8 @@ class TradeStrategyConfig {
             json['enableDrawdownProtection'] as bool? ?? false,
         maxDrawdown: (json['maxDrawdown'] as num?)?.toDouble() ?? 0.05,
         reduceSizeOnRiskOff: json['reduceSizeOnRiskOff'] as bool? ?? false,
+        macroRiskOffPolicy: _parseMacroRiskOffPolicy(
+            json['macroRiskOffPolicy'], json['reduceSizeOnRiskOff']),
         riskOffSizeReduction:
             (json['riskOffSizeReduction'] as num?)?.toDouble() ?? 0.5,
         rsiExitEnabled: json['rsiExitEnabled'] as bool? ?? false,
@@ -466,16 +514,18 @@ class TradeStrategyConfig {
         gexExitEnabled: json['gexExitEnabled'] as bool? ?? false,
         gexExitThreshold: (json['gexExitThreshold'] as num?)?.toDouble() ?? 0.0,
         enableGexStructuralStops:
-            json['enableGexStructuralStops'] as bool? ?? true,
-        enableTrailingPeakStop: json['enableTrailingPeakStop'] as bool? ?? true,
+            json['enableGexStructuralStops'] as bool? ?? false,
+        enableTrailingPeakStop:
+            json['enableTrailingPeakStop'] as bool? ?? false,
         trailingPeakStopPercent:
             (json['trailingPeakStopPercent'] as num?)?.toDouble() ?? 20.0,
-        enableTimeThetaStop: json['enableTimeThetaStop'] as bool? ?? true,
+        enableTimeThetaStop: json['enableTimeThetaStop'] as bool? ?? false,
         minDteStopDays: json['minDteStopDays'] as int? ?? 14,
         stalledSessionsStopLimit:
             json['stalledSessionsStopLimit'] as int? ?? 10,
-        enableMacroRegimeStop: json['enableMacroRegimeStop'] as bool? ?? true,
-        enableCatastrophicStop: json['enableCatastrophicStop'] as bool? ?? true,
+        enableMacroRegimeStop: json['enableMacroRegimeStop'] as bool? ?? false,
+        enableCatastrophicStop:
+            json['enableCatastrophicStop'] as bool? ?? false,
         catastrophicStopPercent:
             (json['catastrophicStopPercent'] as num?)?.toDouble() ?? 50.0,
         dynamicAtrStopsEnabled:
@@ -578,6 +628,10 @@ class TradeStrategyConfig {
     check('Drawdown Protection', other.enableDrawdownProtection,
         enableDrawdownProtection);
     check('Max Drawdown', other.maxDrawdown, maxDrawdown);
+    check('Macro RISK_OFF Policy', other.macroRiskOffPolicy.label,
+        macroRiskOffPolicy.label);
+    check('RISK_OFF Size Reduction', other.riskOffSizeReduction,
+        riskOffSizeReduction);
 
     // 5-Tier GEX Sequential Stop Queue
     check('GEX Structural Stops', other.enableGexStructuralStops,
@@ -644,5 +698,19 @@ class TradeStrategyConfig {
     });
 
     return loaded;
+  }
+
+  static MacroRiskOffPolicy _parseMacroRiskOffPolicy(
+      dynamic rawPolicy, dynamic rawReduceFlag) {
+    if (rawPolicy is String) {
+      for (final value in MacroRiskOffPolicy.values) {
+        if (value.name == rawPolicy) {
+          return value;
+        }
+      }
+    }
+    return (rawReduceFlag as bool? ?? false)
+        ? MacroRiskOffPolicy.reduceSize
+        : MacroRiskOffPolicy.ignore;
   }
 }

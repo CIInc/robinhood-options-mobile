@@ -256,6 +256,8 @@ export async function fetchFromTwelveData(
 
     // Reverse values to oldest first (Twelve Data returns newest first)
     const values = [...data.values].reverse();
+    const timestamps = values.map((v: any) =>
+      parseTwelveDataTimestamp(v.datetime));
 
     return {
       meta: {
@@ -263,9 +265,13 @@ export async function fetchFromTwelveData(
         regularMarketPrice: parseFloat(values[values.length - 1].close),
         currency: data.meta.currency,
         exchangeName: data.meta.exchange,
+        currentTradingPeriod: {
+          regular: {
+            end: timestamps[timestamps.length - 1],
+          },
+        },
       },
-      timestamp: values.map((v: any) =>
-        parseTwelveDataTimestamp(v.datetime)),
+      timestamp: timestamps,
       indicators: {
         quote: [{
           open: values.map((v: any) => parseFloat(v.open)),
@@ -281,6 +287,149 @@ export async function fetchFromTwelveData(
       `for ${symbol}`, err);
     return null;
   }
+}
+
+/**
+ * Extracts Eastern Time calendar date, weekday, and minutes since midnight.
+ * @param {Date} date Date to inspect in America/New_York.
+ * @return {object} ET date parts.
+ */
+function getEasternTimeParts(date: Date): {
+  dateKey: string;
+  dayOfWeek: number;
+  minutesOfDay: number;
+} {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(date);
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      map[part.type] = part.value;
+    }
+  }
+  const hourNum = Number(map.hour) % 24;
+  const minuteNum = Number(map.minute);
+  const weekdayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return {
+    dateKey: `${map.year}-${map.month}-${map.day}`,
+    dayOfWeek: weekdayMap[map.weekday] ?? 1,
+    minutesOfDay: hourNum * 60 + minuteNum,
+  };
+}
+
+/**
+ * Checks if cached chart data is stale based on bar timestamps and ET session.
+ * @param {any} cacheData Full cache document with chart and updated fields.
+ * @param {string} interval Chart interval ("1d", "1h", "30m", "15m").
+ * @param {object} [options] Optional symbol flags and clock override.
+ * @return {boolean} True if cache is stale and should be refreshed.
+ */
+export function isMarketDataCacheStale(
+  cacheData: any,
+  interval: string,
+  options?: { isPccSymbol?: boolean; now?: Date },
+): boolean {
+  const chart = cacheData?.chart;
+  const updated = cacheData?.updated;
+
+  if (
+    !chart ||
+    typeof updated !== "number" ||
+    !Number.isFinite(updated) ||
+    updated <= 0
+  ) {
+    return true;
+  }
+
+  const timestamps = chart.timestamp;
+  if (!Array.isArray(timestamps) || timestamps.length === 0) {
+    return true;
+  }
+
+  const now = options?.now ?? new Date();
+  const nowMs = now.getTime();
+
+  if (interval !== "1d") {
+    const cacheAge = nowMs - updated;
+    const maxCacheAge = interval === "15m" ? 15 * 60 * 1000 :
+      interval === "30m" ? 30 * 60 * 1000 :
+        60 * 60 * 1000;
+    return cacheAge > maxCacheAge;
+  }
+
+  const nowEt = getEasternTimeParts(now);
+  const updatedEt = getEasternTimeParts(new Date(updated));
+  const isWeekend = nowEt.dayOfWeek === 0 || nowEt.dayOfWeek === 6;
+
+  if (
+    isWeekend &&
+    (updatedEt.dateKey === nowEt.dateKey ||
+      nowMs - updated < 12 * 60 * 60 * 1000)
+  ) {
+    return false;
+  }
+
+  if (options?.isPccSymbol && nowMs - updated < 4 * 60 * 60 * 1000) {
+    return false;
+  }
+
+  const crossedRegularClose =
+    nowEt.minutesOfDay >= 16 * 60 &&
+    updatedEt.dateKey === nowEt.dateKey &&
+    updatedEt.minutesOfDay < 16 * 60;
+
+  if (nowMs - updated < 15 * 60 * 1000 && !crossedRegularClose) {
+    return false;
+  }
+
+  const rawLastTs = Number(timestamps[timestamps.length - 1]);
+  if (!Number.isFinite(rawLastTs) || rawLastTs <= 0) {
+    return true;
+  }
+  const lastBarMs = rawLastTs > 1e12 ? rawLastTs : rawLastTs * 1000;
+  const lastBarDateUtc = new Date(lastBarMs).toISOString().slice(0, 10);
+
+  if (nowEt.minutesOfDay >= 16 * 60) {
+    if (
+      updatedEt.dateKey === nowEt.dateKey &&
+      updatedEt.minutesOfDay >= 16 * 60
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  if (nowEt.minutesOfDay >= 9 * 60 + 30) {
+    if (lastBarDateUtc < nowEt.dateKey) {
+      return true;
+    }
+    return nowMs - updated > 15 * 60 * 1000;
+  }
+
+  if (
+    nowMs - updated < 18 * 60 * 60 * 1000 &&
+    nowMs - lastBarMs < 4 * 24 * 60 * 60 * 1000
+  ) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -317,83 +466,6 @@ export async function getMarketData(symbol: string,
   let dataSource: "internal" | "external" | "unknown" = "unknown";
   let usedStaleCache = false;
 
-  /**
-   * Checks if the cached chart data is stale based on the end of the current
-   * trading period and interval type.
-   * @param {any} cacheData The full cache document with chart and updated.
-   * @param {string} interval The chart interval.
-   * @return {boolean} True if the cache is stale, false otherwise.
-   */
-  function isCacheStale(cacheData: any, interval: string): boolean {
-    const chart = cacheData?.chart;
-    const updated = cacheData?.updated;
-
-    if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
-      return true;
-    }
-
-    // If no updated timestamp, treat as stale (legacy cache)
-    if (!updated) {
-      logger.info("⚠️ Cache missing 'updated' field - treating as stale");
-      return true;
-    }
-
-    const endSec = chart.meta.currentTradingPeriod.regular.end;
-    const endMs = endSec * 1000;
-    const now = new Date();
-
-    // For intraday intervals, cache is stale after a shorter period
-    if (interval !== "1d") {
-      const cacheAge = now.getTime() - updated;
-      const maxCacheAge = interval === "15m" ? 15 * 60 * 1000 : // 15 minutes
-        interval === "30m" ? 30 * 60 * 1000 : // 30 minutes
-          60 * 60 * 1000; // 1 hour for 1h interval
-      return cacheAge > maxCacheAge;
-    }
-
-    // For daily interval, check if it's from a previous trading day
-    // Use America/New_York timezone for consistent market hours
-    const estNow = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
-    const todayStartEST = new Date(
-      estNow.getFullYear(),
-      estNow.getMonth(),
-      estNow.getDate()
-    ).getTime();
-
-    // Fix for weekend loop: If it's Saturday (6) or Sunday (0) and we already
-    // updated today, don't refetch
-    const dayOfWeek = estNow.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    if (isWeekend && updated && updated > todayStartEST) {
-      return false;
-    }
-
-    // Special handling for PCC symbols from CBOE: They update once daily.
-    // If we checked recently (last 4 hours), don't treat as stale even if
-    // the data is from a previous day.
-    if (isPccSymbol && updated &&
-      (now.getTime() - updated < 4 * 60 * 60 * 1000)) {
-      return false;
-    }
-
-    const isStale = endMs < todayStartEST;
-    if (isStale) {
-      logger.info(`🔍 Cache Stale Detail for ${symbol}:`, {
-        symbol,
-        interval,
-        endMs,
-        todayStartEST,
-        updated,
-        isWeekend,
-        cacheAgeMs: updated ? Date.now() - updated : null,
-        endVsStart: endMs - todayStartEST,
-      });
-    }
-    return isStale;
-  }
-
   // Try to load cached prices from Firestore
   const cacheKey = interval === "1d" ?
     `charts/${decodedSymbol}` :
@@ -403,7 +475,22 @@ export async function getMarketData(symbol: string,
     if (doc.exists) {
       const cacheData = doc.data();
       const chart = cacheData?.chart;
-      const isCached = chart && !isCacheStale(cacheData, interval);
+      const isStale = isMarketDataCacheStale(
+        cacheData,
+        interval,
+        { isPccSymbol },
+      );
+      if (isStale) {
+        logger.info(`🔍 Cache Stale Detail for ${symbol}:`, {
+          symbol,
+          interval,
+          updated: cacheData?.updated,
+          lastBarTs: chart?.timestamp?.[chart?.timestamp?.length - 1] ?? null,
+          cacheAgeMs: cacheData?.updated ?
+            Date.now() - cacheData.updated : null,
+        });
+      }
+      const isCached = chart && !isStale;
 
       if (chart && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
         const bars = normalizeMarketBars(
@@ -1011,7 +1098,9 @@ async function fetchFromFidelity(
           regularMarketPrice: clos[clos.length - 1],
           currentTradingPeriod: {
             regular: {
-              end: Math.floor(Date.now() / 1000), // Stubs end today
+              end: tss.length > 0 ?
+                tss[tss.length - 1] :
+                Math.floor(Date.now() / 1000),
             },
           },
         },

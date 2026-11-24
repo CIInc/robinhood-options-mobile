@@ -292,16 +292,16 @@ void main() {
 
     test('TradeStrategyConfig should correctly support 5-tier GEX stop queue',
         () {
-      // Test defaults
+      // Test defaults (all 5 tiers default to off for predictable, non-conflicting exits)
       final defaultConfig = TradeStrategyConfig();
-      expect(defaultConfig.enableGexStructuralStops, isTrue);
-      expect(defaultConfig.enableTrailingPeakStop, isTrue);
+      expect(defaultConfig.enableGexStructuralStops, isFalse);
+      expect(defaultConfig.enableTrailingPeakStop, isFalse);
       expect(defaultConfig.trailingPeakStopPercent, equals(20.0));
-      expect(defaultConfig.enableTimeThetaStop, isTrue);
+      expect(defaultConfig.enableTimeThetaStop, isFalse);
       expect(defaultConfig.minDteStopDays, equals(14));
       expect(defaultConfig.stalledSessionsStopLimit, equals(10));
-      expect(defaultConfig.enableMacroRegimeStop, isTrue);
-      expect(defaultConfig.enableCatastrophicStop, isTrue);
+      expect(defaultConfig.enableMacroRegimeStop, isFalse);
+      expect(defaultConfig.enableCatastrophicStop, isFalse);
       expect(defaultConfig.catastrophicStopPercent, equals(50.0));
 
       // Test custom config serialization and deserialization
@@ -388,6 +388,35 @@ void main() {
       }
 
       expect(isValidParam(riskGuardMap), isTrue);
+    });
+
+    test('MacroRiskOffPolicy stays synchronized with reduceSizeOnRiskOff', () {
+      final legacyTrue = TradeStrategyConfig.fromJson({
+        'reduceSizeOnRiskOff': true,
+      });
+      expect(legacyTrue.macroRiskOffPolicy, MacroRiskOffPolicy.reduceSize);
+      expect(legacyTrue.reduceSizeOnRiskOff, isTrue);
+
+      final blocked = TradeStrategyConfig.fromJson({
+        'macroRiskOffPolicy': 'blockEntries',
+        'reduceSizeOnRiskOff': false,
+      });
+      expect(blocked.macroRiskOffPolicy, MacroRiskOffPolicy.blockEntries);
+      expect(blocked.reduceSizeOnRiskOff, isFalse);
+
+      final switchedToReduce =
+          blocked.copyWith(macroRiskOffPolicy: MacroRiskOffPolicy.reduceSize);
+      expect(switchedToReduce.reduceSizeOnRiskOff, isTrue);
+
+      final switchedViaLegacy =
+          switchedToReduce.copyWith(reduceSizeOnRiskOff: false);
+      expect(switchedViaLegacy.macroRiskOffPolicy, MacroRiskOffPolicy.ignore);
+      expect(switchedViaLegacy.reduceSizeOnRiskOff, isFalse);
+
+      final agenticJson =
+          AgenticTradingConfig(strategyConfig: blocked).toRiskGuardConfig();
+      expect(agenticJson['macroRiskOffPolicy'], 'blockEntries');
+      expect(agenticJson['reduceSizeOnRiskOff'], isFalse);
     });
   });
 }

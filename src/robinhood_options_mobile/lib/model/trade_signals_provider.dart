@@ -1074,6 +1074,7 @@ class TradeSignalsProvider with ChangeNotifier {
       'exitStages':
           config.strategyConfig.exitStages.map((e) => e.toJson()).toList(),
       'reduceSizeOnRiskOff': config.strategyConfig.reduceSizeOnRiskOff,
+      'macroRiskOffPolicy': config.strategyConfig.macroRiskOffPolicy.name,
       'riskOffSizeReduction': config.strategyConfig.riskOffSizeReduction,
       'rsiExitEnabled': config.strategyConfig.rsiExitEnabled,
       'rsiExitThreshold': config.strategyConfig.rsiExitThreshold,

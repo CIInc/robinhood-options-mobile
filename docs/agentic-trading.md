@@ -147,6 +147,17 @@ The reasoning engine is powered by a **GEX Orchestrator** on the backend. This c
 ### Configuration
 Users can enable Reasoning Mode globally or per-account in the **Agentic Trading Settings**. Note that reasoning mode may increase the time required for a market analysis cycle due to the depth of the LLM processing.
 
+### Macro `RISK_OFF` Policy & Strategy Alignment
+Risk Management exposes a unified 3-option **Macro `RISK_OFF` Policy** (`MacroRiskOffPolicy`: `ignore`, `reduceSize`, `blockEntries`) stored on `TradeStrategyConfig` alongside backwards-compatible `reduceSizeOnRiskOff` (`policy == reduceSize`):
+
+- **Ignore (`ignore`)**: Evaluates BUY entries normally during `RISK_OFF` regimes (default).
+- **Reduce Size (`reduceSize`)**: Scales down BUY position size by `riskOffSizeReduction` (clamping positive orders to at least 1 share unless reduction is `100%`) consistently across both Deterministic (`systematic`) and Probabilistic (`reasoning`) pipelines. In Reasoning mode, the prompt explicitly tells Gemini that downstream sizing handles `RISK_OFF` risk so macro caution is not treated as an automatic BUY veto.
+- **Block Entries (`blockEntries`)**: Deterministically blocks new `BUY` entries during `RISK_OFF` (skipping the LLM call in Reasoning mode when flat) while keeping `SELL` exits active.
+
+When `gammaExposure` is disabled or GEX cache is unavailable, Reasoning mode evaluates technical price action and user-enabled indicators directly rather than gating on the 11-rule GEX options rubric.
+
+On the client, Reasoning mode ranks candidate signals across the user's enabled indicators before applying the 15-proposal per-cycle cap; signals beyond the top 15 are marked `Deferred` instead of consumed for 24 hours, and `autoTrade` validates the fresh `proposal['price']` against the 3% live-quote BUY guard.
+
 ## Stock Universe & Seeding
 
 The system monitoring is driven by a seeded list of documents in the `charts` collection.
@@ -185,7 +196,7 @@ Call the function with a JSON body to seed the `charts` collection.
 
 Daily, hourly, and 15-minute bulk jobs set `marketDataCacheOnly` and `gexCacheOnly` when calling `performTradeProposal`. This policy keeps a full-universe run bounded and prevents hundreds of concurrent fallback requests when an upstream provider is unavailable or rate limited.
 
-- Fresh cache entries are used normally.
+- Fresh cache entries are used normally (daily cache staleness checks Eastern Time market hours and the latest bar's UTC date against `America/New_York` trading sessions, with a 15-minute refetch cooldown and a post-close refresh after 16:00 ET; Twelve Data and Fidelity responses preserve the latest bar timestamp in `meta.currentTradingPeriod.regular.end`).
 - Cached and provider bars are normalized together by source index; incomplete timestamp/OHLC rows are dropped as a whole, and missing volume is zero-filled to preserve alignment.
 - Stale OHLCV cache entries are accepted and surfaced through `diagnostics.usedStaleCache` and the user-facing stale-data warning.
 - Missing/empty cached bars fail that symbol's calculation without replacing its previous signal.
@@ -289,7 +300,7 @@ The system includes a fully functional **Paper Trading Mode** for risk-free stra
 
 The system provides centralized management for trading strategies, allowing users to switch between different trading styles and risk profiles instantly.
 
-#### Curated Strategy Archetypes (1-Tap Presets with Walk-Forward Badges)
+#### Curated Strategy Archetypes (Walk-Forward Badges)
 
 To eliminate the friction of configuring 35+ granular parameters (indicator weights, sequential stops, risk limits, and position sizing), RealizeAlpha introduces **4 Curated Strategy Archetypes** directly in the Agentic Trading settings. Each archetype is backed by empirical 1-year out-of-sample walk-forward backtest metrics:
 
@@ -341,9 +352,9 @@ To eliminate the friction of configuring 35+ granular parameters (indicator weig
      - 🟠 **Max Drawdown:** 8.6%
      - 🟣 **Sharpe Ratio:** 1.65 (28.4% 1-Yr Return, 58 sample trades)
 
-#### 1-Tap Application & Preset Cloning
+#### Strategy Application & Preset Cloning
 
-- **1-Tap Apply:** Selecting an archetype opens the detail sheet showing complete strategy philosophy, walk-forward validation matrix, and risk parameter breakdown. Tapping "Apply Archetype" confirms changes and immediately updates the active `AgenticTradingConfig` (including setting the corresponding `TradingMode`), syncing to Firestore without requiring manual entry of 35+ parameters.
+- **Apply Archetype:** Selecting an archetype opens the detail sheet dialog showing complete strategy philosophy, walk-forward validation matrix, and risk parameter breakdown. Tapping "Apply Archetype" confirms changes and immediately updates the active `AgenticTradingConfig` (including setting the corresponding `TradingMode`), syncing to Firestore without requiring manual entry of 35+ parameters.
 - **Clone to Custom Preset:** Tapping "Clone Preset" generates an editable user template (`TradeStrategyTemplate`) saved in the user's custom template library (`BacktestingProvider.saveTemplate`), allowing unrestricted customization and multi-timeframe backtesting.
 
 **Strategies Page:**
@@ -525,12 +536,12 @@ In addition to standard Stop Loss and Take Profit, the system supports sophistic
 - **Partial Exits:** Configure multiple exit targets (e.g., sell 50% at +10% profit, sell remaining 50% at +20%). This allows locking in profits while keeping a portion of the position open for potential further gains.
 - **Time-Based Exits:** Automatically close positions after a specified duration (e.g., 2 hours) if profit targets haven't been met. This helps free up capital from stagnant trades.
 - **Market Close Exits:** A foreground cycle attempts to exit positions a configured number of minutes before the market closes. If the app cannot run a cycle in that window, the exit can be missed and the position may remain open overnight; see [Execution Modes and Lifecycle Guarantees](#execution-modes-and-lifecycle-guarantees).
-- **5-Tier Sequential Exit Stop Priority Queue:** Institutional-grade multi-tier exit framework evaluated sequentially in real time:
+- **5-Tier Sequential Exit Stop Priority Queue:** Institutional-grade multi-tier exit framework located at the bottom of the **Exit Strategies** view. To keep standard trading intuitive and avoid unexpected early exits in Simplified or classic bracket setups, all 5 tiers default to **off** in custom configurations (curated Strategy Archetypes explicitly configure their own opt-ins). When enabled, tiers evaluate in sequential priority order:
   1. **Tier 1 (GEX Structural Stop):** Closes positions when dealer positioning flips into negative gamma acceleration (`enableGexStructuralStops`).
-  2. **Tier 2 (Trailing Peak Stop):** High-water mark trailing stop that locks in profits when price pulls back by a set percentage from peak unrealized gains (`enableTrailingPeakStop`, default 15%).
-  3. **Tier 3 (Time & Theta Decay Stop):** Mitigates theta burn and opportunity cost by exiting when contract DTE drops below a threshold (`minDteStopDays`, default 7) or a trade remains stalled across consecutive trading sessions (`stalledSessionsStopLimit`, default 3).
-  4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment flips to `RISK_OFF` (`enableMacroRegimeStop`).
-  5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 30%).
+  2. **Tier 2 (Trailing Peak Stop):** High-water mark trailing stop that locks in profits when price pulls back by a set percentage from peak unrealized gains (`enableTrailingPeakStop`, default 20%).
+  3. **Tier 3 (Time & Theta Decay Stop):** Mitigates theta burn and opportunity cost by exiting when contract DTE drops below a threshold (`minDteStopDays`, default 14) or a trade remains stalled across consecutive trading sessions (`stalledSessionsStopLimit`, default 10).
+  4. **Tier 4 (Macro Risk-Off Stop):** Exits open risk when market-wide macro assessment shifts to `RISK_OFF` or Defensive (`enableMacroRegimeStop`). Features **transition awareness**: trades intentionally entered during `RISK_OFF` (via `reduceSize` or `ignore` policies) are not immediately liquidated on the next cycle, whereas trades opened during `RISK_ON` that experience a subsequent macro shift into `RISK_OFF` (or any `RISK_OFF` holding under `blockEntries`) exit promptly.
+  5. **Tier 5 (Catastrophic Hard Stop):** Non-negotiable max loss circuit breaker per trade preventing catastrophic account drawdowns (`enableCatastrophicStop`, default 50%).
 - **Volatility-Adaptive Dynamic ATR Trailing Stops & Profit Ratchet (#347):** Calibrates stop-loss and profit target levels dynamically to the asset's current volatility environment using 14-period Average True Range (ATR):
   - **Dynamic ATR Stop-Loss:** Calculated as $\text{Entry Price} - (\text{ATR} \times \text{atrStopMultiplier})$ (default: $1.5\times$ ATR).
   - **Dynamic ATR Profit Target:** Calculated as $\text{Entry Price} + (\text{ATR} \times \text{atrProfitMultiplier})$ (default: $3.0\times$ ATR), establishing a default $2.0:1$ reward-to-risk ratio.
@@ -1060,7 +1071,7 @@ Access via:
 
 1. **Simplified Mode (`AgenticTradingUiMode.simplified`, Default):** Rendered via `SimplifiedTradingControlsWidget` (`lib/widgets/simplified_trading_controls_widget.dart`), surfacing 4 essential controls for everyday traders:
    - **Master Control & Emergency Stop:** Primary Auto-Trading toggle, Paper vs. Live mode switcher (with confirmation guardrails), `Require Approval` badge (`AUTO`/`REVIEW`), and an always-available Emergency Stop button (`simplified-emergency-stop-button`).
-   - **1-Tap Strategy Selection:** Curated Strategy Archetypes (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) with walk-forward performance badges and inline `BETA` card lock indicators (opening `StrategyArchetypeDetailBottomSheet` to unlock in Beta Labs when disabled).
+   - **Strategy Selection:** Curated Strategy Archetypes (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) with walk-forward performance badges, interactive detail bottom sheet dialog (`StrategyArchetypeDetailBottomSheet`), and inline `BETA` card lock indicators (opening the bottom sheet to unlock in Beta Labs when disabled). Tapping any archetype always opens the detail dialog to inspect full parameters and walk-forward statistics before applying or cloning.
    - **Capital Budget Slider:** Continuous slider (`5%–100%` of portfolio equity, `maxPortfolioConcentration`) with horizontally scrollable single-row quick-preset chips (`10%`, `25%`, `50%`, `75%`, `100%`) and an `AccountStore.showBalances`-aware dollar allocation preview.
    - **3-State Risk Comfort Level (`RiskComfortLevel`):** Smoothly tunes `stopLossPercent`, `takeProfitPercent`, `tradeQuantity`, and `riskPerTrade` via `AgenticTradingProvider.applyRiskComfortLevel`:
 

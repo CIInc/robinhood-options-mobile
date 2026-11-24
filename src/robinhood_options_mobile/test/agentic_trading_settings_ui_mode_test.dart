@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/quant_pro_settings_view.dart';
 import 'package:robinhood_options_mobile/widgets/simplified_trading_controls_widget.dart';
+import 'package:robinhood_options_mobile/widgets/strategy_archetype_detail_bottom_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_mocks.dart';
@@ -168,6 +169,49 @@ void main() {
       expect(find.text('Entry Strategies'), findsNothing);
       expect(find.text('Exit Strategies'), findsNothing);
       expect(find.text('Backtesting'), findsNothing);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      provider.dispose();
+    });
+
+    testWidgets(
+        'tapping a strategy archetype in Simplified Mode always opens detail bottom sheet dialog',
+        (tester) async {
+      final provider = AgenticTradingProvider();
+      final user = _buildTestUser();
+
+      await pumpSettings(tester, provider: provider, user: user);
+
+      expect(find.byType(SimplifiedTradingControlsWidget), findsOneWidget);
+
+      final momentumCard = find.text('Momentum Breakout');
+      await tester.ensureVisible(momentumCard);
+      await tester.tap(momentumCard);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(StrategyArchetypeDetailBottomSheet), findsOneWidget);
+      expect(find.text('Empirical Walk-Forward Validation (1-Year)'),
+          findsOneWidget);
+      expect(find.text('Apply Archetype'), findsOneWidget);
+
+      // Tapping Apply in bottom sheet opens confirmation dialog
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Apply Archetype').first);
+      await tester.pumpAndSettle();
+
+      // Confirm in dialog
+      expect(find.text('Apply "Momentum Breakout"?'), findsOneWidget);
+      final confirmBtn = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(FilledButton, 'Apply Archetype'),
+      );
+      await tester.tap(confirmBtn);
+      await tester.pumpAndSettle();
+
+      // Bottom sheet and dialog dismissed, archetype is applied
+      expect(find.byType(StrategyArchetypeDetailBottomSheet), findsNothing);
+      expect(provider.config.strategyConfig.stopLossPercent, 4.5);
+      expect(provider.config.strategyConfig.takeProfitPercent, 12.0);
 
       await tester.pumpWidget(const SizedBox.shrink());
       provider.dispose();

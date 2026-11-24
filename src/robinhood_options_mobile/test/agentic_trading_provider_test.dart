@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/macro_assessment.dart';
 import 'package:robinhood_options_mobile/model/paper_trading_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
@@ -115,6 +116,7 @@ class FailingTradeSignalsProvider {
 
 class ApprovingTradeSignalsProvider {
   Map<String, dynamic> proposalData;
+  final List<String> requestedSymbols = [];
   final void Function()? beforeProposalComplete;
   ApprovingTradeSignalsProvider({
     this.proposalData = const {},
@@ -129,12 +131,14 @@ class ApprovingTradeSignalsProvider {
     String? interval,
     bool skipSignalUpdate = false,
   }) async {
+    requestedSymbols.add(symbol);
     beforeProposalComplete?.call();
     return {
       'status': 'approved',
       'proposal': {
         'action': proposalData['action'] ?? 'BUY',
         'quantity': proposalData['quantity'] ?? 10,
+        if (proposalData['price'] != null) 'price': proposalData['price'],
         'reason': proposalData['reason'] ?? 'Strong momentum signal',
       },
       'analysis': {
@@ -3058,6 +3062,394 @@ void main() {
           .get();
       expect(earlyMissedDoc.data()?['status'], 'missed');
       expect(service.placedInstrumentOrders, isEmpty);
+    });
+  });
+
+  group('Reasoning ranking, deferral & proposal price confirmation', () {
+    late AgenticTradingProvider provider;
+    setUp(() => provider = AgenticTradingProvider(
+          analytics: FakeFirebaseAnalytics(),
+        ));
+    tearDown(() => provider.dispose());
+
+    test(
+        'reasoning mode ranks by enabled indicators and marks capped signals Deferred',
+        () async {
+      provider.loadConfigFromUser(
+        AgenticTradingConfig(
+          autoTradeEnabled: true,
+          paperTradingMode: true,
+          requireApproval: true,
+          tradingMode: TradingMode.reasoning,
+          strategyConfig: TradeStrategyConfig(
+            enabledIndicators: {
+              'marketDirection': true,
+              'macd': true,
+            },
+          ),
+        ),
+      );
+      MarketHours.testTime = DateTime.utc(2026, 10, 26, 15, 0);
+
+      final signals = <Map<String, dynamic>>[
+        {
+          'symbol': 'WEAK',
+          'interval': '1d',
+          'currentPrice': 100.0,
+          'timestamp': 1000,
+          'multiIndicatorResult': {
+            'signalStrength': 70,
+            'indicators': {
+              'marketDirection': {'signal': 'SELL'},
+              'macd': {'signal': 'SELL'},
+            },
+          },
+        },
+        for (int i = 0; i < 16; i++)
+          {
+            'symbol': 'SYM$i',
+            'interval': '1d',
+            'currentPrice': 100.0 + i,
+            'timestamp': 2000 + i,
+            'multiIndicatorResult': {
+              'signalStrength': 50 + i,
+              'indicators': {
+                'marketDirection': {'signal': 'BUY'},
+                'macd': {'signal': 'BUY'},
+              },
+            },
+          },
+      ];
+
+      final approvingProvider = ApprovingTradeSignalsProvider();
+      try {
+        final result = await provider.autoTrade(
+          tradeSignals: signals,
+          tradeSignalsProvider: approvingProvider,
+          portfolioState: {'buyingPower': 100000.0},
+          brokerageUser: null,
+          account: null,
+          brokerageService: null,
+          instrumentStore: 'mock',
+        );
+
+        expect(approvingProvider.requestedSymbols, hasLength(15));
+        expect(approvingProvider.requestedSymbols, isNot(contains('WEAK')));
+        expect(approvingProvider.requestedSymbols.first, 'SYM15');
+
+        provider.rememberProcessedSignals(signals, result);
+        expect(provider.hasProcessedSignal('SYM15', 2015), isTrue);
+        expect(provider.hasProcessedSignal('SYM0', 2000), isFalse);
+        expect(provider.hasProcessedSignal('WEAK', 1000), isFalse);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    test('autoTrade checks 3% live-quote guard against proposal price',
+        () async {
+      provider.loadConfigFromUser(
+        AgenticTradingConfig(
+          autoTradeEnabled: true,
+          paperTradingMode: true,
+          requireApproval: true,
+          tradingMode: TradingMode.reasoning,
+          strategyConfig: TradeStrategyConfig(),
+        ),
+      );
+      MarketHours.testTime = DateTime.utc(2026, 10, 26, 15, 0);
+
+      try {
+        // Stored signal price is stale (400), but fresh proposal price (470)
+        // is within 3% of live quote (471.83) -> should succeed.
+        await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'MCO',
+              'interval': '1d',
+              'currentPrice': 400.0,
+              'timestamp': 3001,
+            },
+          ],
+          tradeSignalsProvider: ApprovingTradeSignalsProvider(
+            proposalData: {'price': 470.0, 'quantity': 2},
+          ),
+          portfolioState: {'buyingPower': 100000.0},
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: FakeQuoteService(471.83),
+          quoteStore: 'store',
+          instrumentStore: 'mock',
+        );
+
+        expect(provider.pendingOrders, hasLength(1));
+        expect(provider.pendingOrders.first['price'], 471.83);
+
+        // Fresh proposal price (320.32) is >3% away from live quote (471.83)
+        // -> should be skipped.
+        provider.pendingOrders.clear();
+        await provider.autoTrade(
+          tradeSignals: [
+            {
+              'symbol': 'MPC',
+              'interval': '1d',
+              'currentPrice': 470.0,
+              'timestamp': 3002,
+            },
+          ],
+          tradeSignalsProvider: ApprovingTradeSignalsProvider(
+            proposalData: {'price': 320.32, 'quantity': 2},
+          ),
+          portfolioState: {'buyingPower': 100000.0},
+          brokerageUser: 'user',
+          account: null,
+          brokerageService: FakeQuoteService(471.83),
+          quoteStore: 'store',
+          instrumentStore: 'mock',
+        );
+
+        expect(provider.pendingOrders, isEmpty);
+      } finally {
+        MarketHours.testTime = null;
+      }
+    });
+
+    group('Stop 4 Macro Regime Stop & Transition Awareness Tests', () {
+      test(
+          'does not exit on RISK_OFF when 5-tier exit stops are off by default',
+          () async {
+        provider.loadConfigFromUser(
+          AgenticTradingConfig(
+            paperTradingMode: true,
+            strategyConfig:
+                TradeStrategyConfig(), // All 5 tiers default to false
+          ),
+        );
+        provider.macroAssessmentForTesting = MacroAssessment.fromMap({
+          'status': 'RISK_OFF',
+          'score': 20,
+          'reason': 'High volatility',
+        });
+
+        final paperStore =
+            PaperTradingStore(firestore: FakeFirebaseFirestore());
+        final quote = FakeQuote(100.0);
+        final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+        await paperStore.executeStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        provider.automatedBuyTrades.add({
+          'symbol': 'AAPL',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'timestamp': DateTime.now().toIso8601String(),
+          'entryMacroStatus': 'RISK_ON',
+        });
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 23, 15, 0);
+        try {
+          final result = await provider.monitorTakeProfitStopLoss(
+            positions: paperStore.positions,
+            brokerageUser: 'mock',
+            account: null,
+            brokerageService: FakeBrokerageService(),
+            instrumentStore: 'mock',
+            paperTradingStore: paperStore,
+          );
+
+          expect(result['exitsExecuted'], equals(0));
+          expect(provider.autoTradeHistory, isEmpty);
+        } finally {
+          MarketHours.testTime = null;
+          paperStore.dispose();
+        }
+      });
+
+      test(
+          'transition awareness prevents Stop 4 exit when trade was entered in RISK_OFF with reduceSize',
+          () async {
+        provider.loadConfigFromUser(
+          AgenticTradingConfig(
+            paperTradingMode: true,
+            strategyConfig: TradeStrategyConfig(
+              enableMacroRegimeStop: true,
+              macroRiskOffPolicy: MacroRiskOffPolicy.reduceSize,
+            ),
+          ),
+        );
+        provider.macroAssessmentForTesting = MacroAssessment.fromMap({
+          'status': 'RISK_OFF',
+          'score': 20,
+          'reason': 'Market stress',
+        });
+
+        final paperStore =
+            PaperTradingStore(firestore: FakeFirebaseFirestore());
+        final quote = FakeQuote(100.0);
+        final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+        await paperStore.executeStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        // Trade was entered when macro was already RISK_OFF
+        provider.automatedBuyTrades.add({
+          'symbol': 'AAPL',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'timestamp': DateTime.now().toIso8601String(),
+          'entryMacroStatus': 'RISK_OFF',
+        });
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 23, 15, 0);
+        try {
+          final result = await provider.monitorTakeProfitStopLoss(
+            positions: paperStore.positions,
+            brokerageUser: 'mock',
+            account: null,
+            brokerageService: FakeBrokerageService(),
+            instrumentStore: 'mock',
+            paperTradingStore: paperStore,
+          );
+
+          expect(result['exitsExecuted'], equals(0));
+          expect(provider.autoTradeHistory, isEmpty);
+        } finally {
+          MarketHours.testTime = null;
+          paperStore.dispose();
+        }
+      });
+
+      test(
+          'Stop 4 triggers exit when trade was entered in RISK_ON and macro transitions to RISK_OFF',
+          () async {
+        provider.loadConfigFromUser(
+          AgenticTradingConfig(
+            paperTradingMode: true,
+            strategyConfig: TradeStrategyConfig(
+              enableMacroRegimeStop: true,
+              macroRiskOffPolicy: MacroRiskOffPolicy.reduceSize,
+            ),
+          ),
+        );
+        provider.macroAssessmentForTesting = MacroAssessment.fromMap({
+          'status': 'RISK_OFF',
+          'score': 15,
+          'reason': 'Severe stress',
+        });
+
+        final paperStore =
+            PaperTradingStore(firestore: FakeFirebaseFirestore());
+        final quote = FakeQuote(100.0);
+        final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+        await paperStore.executeStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        // Trade was entered when macro was RISK_ON
+        provider.automatedBuyTrades.add({
+          'symbol': 'AAPL',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'timestamp': DateTime.now().toIso8601String(),
+          'entryMacroStatus': 'RISK_ON',
+        });
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 23, 15, 0);
+        try {
+          final result = await provider.monitorTakeProfitStopLoss(
+            positions: paperStore.positions,
+            brokerageUser: 'mock',
+            account: null,
+            brokerageService: FakeBrokerageService(),
+            instrumentStore: 'mock',
+            paperTradingStore: paperStore,
+          );
+
+          expect(result['exitsExecuted'], equals(1));
+          expect(provider.autoTradeHistory, hasLength(1));
+          expect(provider.autoTradeHistory.first['reason'],
+              contains('Stop 4: Macro Regime Stop (RISK_OFF)'));
+        } finally {
+          MarketHours.testTime = null;
+          paperStore.dispose();
+        }
+      });
+
+      test(
+          'Stop 4 triggers exit during RISK_OFF when macroRiskOffPolicy is blockEntries',
+          () async {
+        provider.loadConfigFromUser(
+          AgenticTradingConfig(
+            paperTradingMode: true,
+            strategyConfig: TradeStrategyConfig(
+              enableMacroRegimeStop: true,
+              macroRiskOffPolicy: MacroRiskOffPolicy.blockEntries,
+            ),
+          ),
+        );
+        provider.macroAssessmentForTesting = MacroAssessment.fromMap({
+          'status': 'RISK_OFF',
+          'score': 10,
+          'reason': 'Crashing market',
+        });
+
+        final paperStore =
+            PaperTradingStore(firestore: FakeFirebaseFirestore());
+        final quote = FakeQuote(100.0);
+        final instrument = Instrument.forSymbol('AAPL')..quoteObj = quote;
+
+        await paperStore.executeStockOrder(
+          instrument: instrument,
+          quantity: 10,
+          price: 100.0,
+          side: 'buy',
+        );
+
+        provider.automatedBuyTrades.add({
+          'symbol': 'AAPL',
+          'quantity': 10,
+          'entryPrice': 100.0,
+          'paperMode': true,
+          'timestamp': DateTime.now().toIso8601String(),
+          'entryMacroStatus': 'RISK_OFF',
+        });
+
+        MarketHours.testTime = DateTime.utc(2026, 11, 23, 15, 0);
+        try {
+          final result = await provider.monitorTakeProfitStopLoss(
+            positions: paperStore.positions,
+            brokerageUser: 'mock',
+            account: null,
+            brokerageService: FakeBrokerageService(),
+            instrumentStore: 'mock',
+            paperTradingStore: paperStore,
+          );
+
+          expect(result['exitsExecuted'], equals(1));
+          expect(provider.autoTradeHistory, hasLength(1));
+          expect(provider.autoTradeHistory.first['reason'],
+              contains('Stop 4: Macro Regime Stop (RISK_OFF)'));
+        } finally {
+          MarketHours.testTime = null;
+          paperStore.dispose();
+        }
+      });
     });
   });
 }

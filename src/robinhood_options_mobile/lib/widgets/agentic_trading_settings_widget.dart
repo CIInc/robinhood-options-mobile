@@ -871,6 +871,7 @@ class _AgenticTradingSettingsWidgetState
       maxDrawdown:
           (double.tryParse(_maxDrawdownController.text) ?? 10.0) / 100.0,
       reduceSizeOnRiskOff: strategySource.reduceSizeOnRiskOff,
+      macroRiskOffPolicy: strategySource.macroRiskOffPolicy,
       riskOffSizeReduction:
           (double.tryParse(_riskOffSizeReductionController.text) ?? 50.0) /
               100.0,
@@ -2441,7 +2442,7 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ),
                     Text(
-                      '1-Tap Presets with Walk-Forward Validation',
+                      'Curated Presets with Walk-Forward Validation',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -5337,32 +5338,121 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         _buildSubsectionTitle(context, 'Macro Risk Control'),
         const SizedBox(height: 12),
-        _buildSwitchListTile(
-          'reduceSizeOnRiskOff',
-          'Reduce Size on RISK_OFF',
-          'Scale down position size during bearish market regimes',
-          agenticTradingProvider,
-          defaultValue: false,
-          value:
-              agenticTradingProvider.config.strategyConfig.reduceSizeOnRiskOff,
-          onChanged: (value) {
-            final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(reduceSizeOnRiskOff: value)));
-            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+        Builder(
+          builder: (context) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+            final policy =
+                agenticTradingProvider.config.strategyConfig.macroRiskOffPolicy;
+            final isActive = policy != MacroRiskOffPolicy.ignore;
+            final activeColor = policy == MacroRiskOffPolicy.blockEntries
+                ? colorScheme.error
+                : colorScheme.primary;
+
+            return Card(
+              elevation: 0,
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: isActive
+                      ? activeColor.withValues(alpha: 0.3)
+                      : colorScheme.outline.withValues(alpha: 0.1),
+                  width: isActive ? 1.5 : 1,
+                ),
+              ),
+              color: isActive
+                  ? activeColor.withValues(alpha: 0.05)
+                  : colorScheme.surface,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Macro RISK_OFF Policy',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      policy.description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color:
+                            colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<MacroRiskOffPolicy>(
+                        key: const ValueKey('macro-risk-off-policy-selector'),
+                        showSelectedIcon: false,
+                        style: const ButtonStyle(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        segments: const [
+                          ButtonSegment<MacroRiskOffPolicy>(
+                            value: MacroRiskOffPolicy.ignore,
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Ignore'),
+                            ),
+                          ),
+                          ButtonSegment<MacroRiskOffPolicy>(
+                            value: MacroRiskOffPolicy.reduceSize,
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Reduce'),
+                            ),
+                          ),
+                          ButtonSegment<MacroRiskOffPolicy>(
+                            value: MacroRiskOffPolicy.blockEntries,
+                            label: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text('Block'),
+                            ),
+                          ),
+                        ],
+                        selected: {policy},
+                        onSelectionChanged: (Set<MacroRiskOffPolicy> selected) {
+                          final nextPolicy = selected.first;
+                          final newConfig = _createFullConfigFromSettings(
+                            agenticTradingProvider,
+                            baseConfig: agenticTradingProvider.config.copyWith(
+                              strategyConfig: agenticTradingProvider
+                                  .config.strategyConfig
+                                  .copyWith(macroRiskOffPolicy: nextPolicy),
+                            ),
+                          );
+                          agenticTradingProvider.updateConfig(
+                              newConfig, widget.userDocRef);
+                        },
+                      ),
+                    ),
+                    if (policy == MacroRiskOffPolicy.reduceSize) ...[
+                      const SizedBox(height: 12),
+                      _buildNumberField(
+                        controller: _riskOffSizeReductionController,
+                        label: 'Reduction %',
+                        helperText:
+                            'Percentage to cut position size (e.g. 50.0)',
+                        icon: Icons.cut,
+                        isDecimal: true,
+                        min: 0,
+                        max: 100,
+                        suffixText: '%',
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
           },
-          extraContent: _buildNumberField(
-            controller: _riskOffSizeReductionController,
-            label: 'Reduction %',
-            helperText: 'Percentage to cut position size (e.g. 50.0)',
-            icon: Icons.cut,
-            isDecimal: true,
-            min: 0,
-            max: 100,
-            suffixText: '%',
-          ),
         ),
       ],
     );

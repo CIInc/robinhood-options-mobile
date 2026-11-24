@@ -180,4 +180,100 @@ describe("handleAgenticDecision", () => {
     expect(result.qualification).toBe("BLOCKED");
     expect(result.ruleEvaluation.rule6_spot_above_ptrans).toBe(false);
   });
+
+  it("instructs agent not to veto RISK_OFF or missing GEX when reduceSize",
+    async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          signal: "BUY",
+          reason: "Strong bullish MACD crossover on enabled indicators",
+          confidence: 82,
+          quantity: 5,
+          status: "approved",
+          qualification: "CONFIRMED",
+          rewardRiskRatio: null,
+          ruleEvaluation: null,
+        }),
+      });
+
+      const result = await handleAgenticDecision(
+        "AAPL",
+        "1d",
+        mockMarketData,
+        {
+          overallSignal: "HOLD",
+          signalStrength: 55,
+          reason: "Mixed",
+          indicators: {
+            marketDirection: {
+              signal: "HOLD",
+              reason: "Neutral",
+              metadata: { fastMA: 151.0, slowMA: 150.0 },
+            },
+            macd: { signal: "BUY", reason: "MACD bullish crossover" },
+            momentum: { value: 58.0 },
+          },
+        },
+        {
+          status: "RISK_OFF",
+          score: 25,
+          reason: "Elevated VIX",
+        },
+        null,
+        mockPortfolioState,
+        {
+          ...mockConfig,
+          macroRiskOffPolicy: "reduceSize",
+          reduceSizeOnRiskOff: true,
+          riskOffSizeReduction: 0.5,
+          enabledIndicators: {
+            marketDirection: true,
+            macd: true,
+            gammaExposure: false,
+          },
+        }
+      );
+
+      expect(result.signal).toBe("BUY");
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents).not.toContain(
+        "THE 11 RULES OF GEX OPTIONS TRADING"
+      );
+      expect(callArgs.contents).toContain("Reduce Size on RISK_OFF (50% cut)");
+      expect(callArgs.contents).toContain("NOT as an automatic veto on BUY");
+      expect(callArgs.contents).toContain("macd: BUY (MACD bullish crossover)");
+    });
+
+  it("instructs agent to block BUY entries when macroPolicy is blockEntries",
+    async () => {
+      mockGenerateContent.mockResolvedValueOnce({
+        text: JSON.stringify({
+          signal: "HOLD",
+          reason: "Blocked by RISK_OFF policy",
+          confidence: 0,
+          quantity: 0,
+          status: "rejected",
+          qualification: "BLOCKED",
+          rewardRiskRatio: null,
+          ruleEvaluation: null,
+        }),
+      });
+
+      await handleAgenticDecision(
+        "AAPL",
+        "1d",
+        mockMarketData,
+        mockMultiIndicatorResult,
+        { status: "RISK_OFF", score: 20, reason: "Stress" },
+        null,
+        mockPortfolioState,
+        {
+          ...mockConfig,
+          macroRiskOffPolicy: "blockEntries",
+        }
+      );
+
+      const callArgs = mockGenerateContent.mock.calls[0][0];
+      expect(callArgs.contents).toContain("Block New Entries on RISK_OFF");
+    });
 });

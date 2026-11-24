@@ -3,7 +3,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/strategy_archetype.dart';
 
 /// Modal bottom sheet presenting in-depth strategy archetype parameters,
-/// walk-forward validation statistics, philosophy, and 1-tap apply / clone actions.
+/// walk-forward validation statistics, philosophy, and apply / clone actions.
 class StrategyArchetypeDetailBottomSheet extends StatelessWidget {
   final StrategyArchetype archetype;
   final bool isCurrentlyActive;

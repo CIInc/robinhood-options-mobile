@@ -4,7 +4,7 @@ import 'package:robinhood_options_mobile/model/strategy_archetype.dart';
 /// Strategy Archetype Card
 ///
 /// Surfaces curated strategy presets with empirical Walk-Forward Performance Badges,
-/// risk bounds, and 1-tap exploration.
+/// risk bounds, and archetype inspection.
 class StrategyArchetypeCard extends StatelessWidget {
   final StrategyArchetype archetype;
   final bool isSelected;

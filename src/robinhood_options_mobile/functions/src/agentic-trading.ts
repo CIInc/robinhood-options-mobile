@@ -59,6 +59,14 @@ async function updateExistingSignalDiagnostics(
  * @return {Promise<object>} The trade proposal result.
  */
 export async function performTradeProposal(request: any) {
+  const rawMacroPolicy = request.data.macroRiskOffPolicy;
+  const macroRiskOffPolicy =
+    rawMacroPolicy === "ignore" ||
+    rawMacroPolicy === "reduceSize" ||
+    rawMacroPolicy === "blockEntries" ?
+      rawMacroPolicy :
+      (request.data.reduceSizeOnRiskOff ? "reduceSize" : "ignore");
+  const rawRiskOffReduction = request.data.riskOffSizeReduction;
   const config = {
     smaPeriodFast: request.data.smaPeriodFast || 10,
     smaPeriodSlow: request.data.smaPeriodSlow || 30,
@@ -80,8 +88,12 @@ export async function performTradeProposal(request: any) {
     maxVolatility: request.data.maxVolatility || 100,
     enableDrawdownProtection: request.data.enableDrawdownProtection || false,
     maxDrawdown: request.data.maxDrawdown || 0.2,
-    reduceSizeOnRiskOff: request.data.reduceSizeOnRiskOff || false,
-    riskOffSizeReduction: request.data.riskOffSizeReduction || 0.5,
+    reduceSizeOnRiskOff: macroRiskOffPolicy === "reduceSize",
+    macroRiskOffPolicy,
+    riskOffSizeReduction:
+      typeof rawRiskOffReduction === "number" &&
+      Number.isFinite(rawRiskOffReduction) ?
+        Math.min(1, Math.max(0, rawRiskOffReduction)) : 0.5,
     skipSignalUpdate: request.data.skipSignalUpdate || false,
     skipRiskGuard: request.data.skipRiskGuard || false,
     tradingMode: request.data.tradingMode || "systematic",

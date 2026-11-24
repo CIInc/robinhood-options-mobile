@@ -44,6 +44,8 @@ jest.mock("../src/market-data", () => ({
 
 import {
   alphabotTask,
+  applyMacroRiskOffSizing,
+  resolveMacroRiskOffPolicy,
   resolveReasoningProposalQuantity,
 } from "../src/alpha-agent";
 import { riskguardTask, calculatePositionSize } from "../src/riskguard-agent";
@@ -70,6 +72,115 @@ describe("Alpha & RiskGuard callable authentication", () => {
           enableDynamicPositionSizing: true,
         })
       ).toBe(200);
+    }
+  );
+
+  test(
+    "resolveMacroRiskOffPolicy keeps reduceSizeOnRiskOff compatibility",
+    () => {
+      expect(resolveMacroRiskOffPolicy({})).toBe("ignore");
+      expect(
+        resolveMacroRiskOffPolicy({ reduceSizeOnRiskOff: true })
+      ).toBe("reduceSize");
+      expect(
+        resolveMacroRiskOffPolicy({
+          macroRiskOffPolicy: "blockEntries",
+          reduceSizeOnRiskOff: false,
+        })
+      ).toBe("blockEntries");
+      expect(
+        resolveMacroRiskOffPolicy({
+          macroRiskOffPolicy: "ignore",
+          reduceSizeOnRiskOff: true,
+        })
+      ).toBe("ignore");
+    }
+  );
+
+  test(
+    "applyMacroRiskOffSizing enforces ignore, reduceSize, and blockEntries",
+    () => {
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 10,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: { macroRiskOffPolicy: "ignore" },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 10, blocked: false });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 5,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: {
+            macroRiskOffPolicy: "reduceSize",
+            riskOffSizeReduction: 0,
+          },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 5, blocked: false });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 10,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: {
+            macroRiskOffPolicy: "reduceSize",
+            riskOffSizeReduction: 0.5,
+          },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 5, blocked: false });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 1,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: {
+            macroRiskOffPolicy: "reduceSize",
+            riskOffSizeReduction: 0.5,
+          },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 1, blocked: false });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 5,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: {
+            macroRiskOffPolicy: "reduceSize",
+            riskOffSizeReduction: 1,
+          },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 0, blocked: true });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 5,
+          action: "BUY",
+          macroStatus: "RISK_OFF",
+          config: { macroRiskOffPolicy: "blockEntries" },
+          reason: "Signal",
+        })
+      ).toMatchObject({ quantity: 0, blocked: true });
+
+      expect(
+        applyMacroRiskOffSizing({
+          quantity: 5,
+          action: "SELL",
+          macroStatus: "RISK_OFF",
+          config: { macroRiskOffPolicy: "blockEntries" },
+          reason: "Exit",
+        })
+      ).toMatchObject({ quantity: 5, blocked: false });
     }
   );
 

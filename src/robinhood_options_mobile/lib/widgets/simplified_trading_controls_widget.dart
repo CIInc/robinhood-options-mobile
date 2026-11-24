@@ -7,7 +7,7 @@ import 'package:robinhood_options_mobile/widgets/strategy_archetype_card.dart';
 ///
 /// Surfaces only the essential controls for everyday investors:
 /// 1. Master Control (Auto-Trading toggle, Paper/Live mode, Emergency Stop)
-/// 2. 1-Tap Strategy Archetype selector
+/// 2. Strategy Archetype selector
 /// 3. Capital Budget allocation slider
 /// 4. 3-state Risk Comfort Level toggle (Conservative, Balanced, Aggressive)
 ///
@@ -19,7 +19,7 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
   final bool isAgenticTradingEnabled;
   final String? formattedDollarCap;
   final Widget masterControlCard;
-  final ValueChanged<StrategyArchetype> onApplyArchetype;
+  final ValueChanged<StrategyArchetype>? onApplyArchetype;
   final ValueChanged<StrategyArchetype> onInspectArchetype;
   final ValueChanged<double> onCapitalAllocationChanged;
   final ValueChanged<RiskComfortLevel> onRiskComfortChanged;
@@ -34,7 +34,7 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
     required this.isAgenticTradingEnabled,
     this.formattedDollarCap,
     required this.masterControlCard,
-    required this.onApplyArchetype,
+    this.onApplyArchetype,
     required this.onInspectArchetype,
     required this.onCapitalAllocationChanged,
     required this.onRiskComfortChanged,
@@ -117,12 +117,12 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
         ],
         const SizedBox(height: 20),
 
-        // 2. Strategy Selection: 1-Tap Archetype Selector
+        // 2. Strategy Selection: Archetype Selector
         _buildSectionHeader(
           context,
           icon: Icons.auto_awesome_rounded,
           title: '1. Strategy Selection',
-          subtitle: '1-Tap Curated Archetypes with Walk-Forward Validation',
+          subtitle: 'Curated Archetypes with Walk-Forward Validation',
           trailing: activeArchetype != null
               ? IconButton(
                   tooltip: 'Inspect ${activeArchetype.name} details',
@@ -155,13 +155,7 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
                   archetype: archetype,
                   isSelected: isSelected,
                   isLocked: isLocked,
-                  onTap: () {
-                    if (isLocked) {
-                      onInspectArchetype(archetype);
-                    } else {
-                      onApplyArchetype(archetype);
-                    }
-                  },
+                  onTap: () => onInspectArchetype(archetype),
                 ),
               );
             },

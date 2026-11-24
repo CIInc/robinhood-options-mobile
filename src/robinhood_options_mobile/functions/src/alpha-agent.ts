@@ -14,6 +14,135 @@ import { adjustSignalConfidence, NewsIntelligence } from "./news-intelligence";
 const db = getFirestore();
 const SHARED_CONTEXT_TTL_MS = 5 * 60 * 1000;
 
+export type MacroRiskOffPolicy = "ignore" | "reduceSize" | "blockEntries";
+
+/**
+ * Resolves the effective macro RISK_OFF policy from config, preserving
+ * backwards compatibility with the legacy reduceSizeOnRiskOff boolean.
+ * @param {object} config Trading configuration.
+ * @return {MacroRiskOffPolicy} Resolved macro RISK_OFF policy.
+ */
+export function resolveMacroRiskOffPolicy(config?: {
+  macroRiskOffPolicy?: string;
+  reduceSizeOnRiskOff?: boolean;
+}): MacroRiskOffPolicy {
+  const raw = config?.macroRiskOffPolicy;
+  if (raw === "ignore" || raw === "reduceSize" || raw === "blockEntries") {
+    return raw;
+  }
+  return config?.reduceSizeOnRiskOff ? "reduceSize" : "ignore";
+}
+
+/**
+ * Applies Macro RISK_OFF entry blocking or position size reduction.
+ * @param {object} params Sizing inputs.
+ * @return {object} Adjusted quantity, reason, blocked flag, and metadata.
+ */
+export function applyMacroRiskOffSizing(params: {
+  quantity: number;
+  action: string;
+  macroStatus?: string;
+  config?: {
+    macroRiskOffPolicy?: string;
+    reduceSizeOnRiskOff?: boolean;
+    riskOffSizeReduction?: number;
+  };
+  reason: string;
+}): {
+  quantity: number;
+  reason: string;
+  blocked: boolean;
+  macroRiskData: Record<string, unknown> | null;
+} {
+  const { quantity, action, macroStatus, config, reason } = params;
+  if (action !== "BUY" || macroStatus !== "RISK_OFF") {
+    return {
+      quantity,
+      reason,
+      blocked: false,
+      macroRiskData: null,
+    };
+  }
+
+  const policy = resolveMacroRiskOffPolicy(config);
+  if (policy === "ignore") {
+    return {
+      quantity,
+      reason,
+      blocked: false,
+      macroRiskData: null,
+    };
+  }
+
+  if (policy === "blockEntries") {
+    return {
+      quantity: 0,
+      reason: `${reason} (Blocked by Macro RISK_OFF policy)`,
+      blocked: true,
+      macroRiskData: {
+        status: "RISK_OFF",
+        action: "block_entries",
+        originalQty: quantity,
+        finalQty: 0,
+      },
+    };
+  }
+
+  const raw = config?.riskOffSizeReduction;
+  const reduction = typeof raw === "number" && Number.isFinite(raw) ?
+    Math.min(1, Math.max(0, raw)) :
+    0.5;
+
+  if (reduction <= 0) {
+    return {
+      quantity,
+      reason,
+      blocked: false,
+      macroRiskData: {
+        status: "RISK_OFF",
+        action: "reduce_0_percent",
+        originalQty: quantity,
+        finalQty: quantity,
+      },
+    };
+  }
+
+  if (reduction >= 1) {
+    const pct = Math.round(reduction * 100);
+    return {
+      quantity: 0,
+      reason: `${reason} (Size reduced ${pct}% due to RISK_OFF)`,
+      blocked: true,
+      macroRiskData: {
+        status: "RISK_OFF",
+        action: `reduce_${pct}_percent`,
+        originalQty: quantity,
+        finalQty: 0,
+      },
+    };
+  }
+
+  const reducedQty = quantity >= 1 ?
+    Math.max(1, Math.floor(quantity * (1 - reduction))) :
+    0;
+  const pct = Math.round(reduction * 100);
+  logger.info(
+    `⚠️ Macro Risk Off: Reduced quantity from ${quantity} ` +
+    `to ${reducedQty} (${pct}% reduction)`
+  );
+  return {
+    quantity: reducedQty,
+    reason: `${reason} (Size reduced ${pct}% due to RISK_OFF)`,
+    blocked: reducedQty <= 0,
+    macroRiskData: {
+      status: "RISK_OFF",
+      action: `reduce_${pct}_percent`,
+      originalQty: quantity,
+      finalQty: reducedQty,
+    },
+  };
+}
+
 /**
  * Resolves the reasoning-mode quantity while honoring fixed-size settings.
  * @param {number | undefined} agenticQuantity Quantity suggested by the agent.
@@ -238,6 +367,39 @@ export async function handleAlphaTask(marketData: any,
   // --- AGENTIC REASONING MODE BRANCH ---
   if (config?.tradingMode === "reasoning") {
     try {
+      const macroPolicy = resolveMacroRiskOffPolicy(config);
+      if (
+        macroPolicy === "blockEntries" &&
+        macroAssessment?.status === "RISK_OFF" &&
+        riskguard.getCurrentPosition(portfolioState, symbol) <= 0
+      ) {
+        const blockReason =
+          "Blocked by Macro RISK_OFF policy: new BUY entries are disabled " +
+          "during RISK_OFF regimes.";
+        return {
+          status: "rejected",
+          message: formatAgenticProposalRejection(
+            blockReason,
+            false,
+            blockReason
+          ),
+          reason: blockReason,
+          signal: "HOLD",
+          interval,
+          multiIndicatorResult,
+          agentic: true,
+          assessment: {
+            approved: false,
+            reason: blockReason,
+            metrics: { macroStatus: macroAssessment.status },
+          },
+          analysis: {
+            score: 0,
+            reason: blockReason,
+          },
+        };
+      }
+
       const agenticResult = await handleAgenticDecision(
         symbol,
         interval,
@@ -249,28 +411,47 @@ export async function handleAlphaTask(marketData: any,
         config
       );
 
-      const quantity = resolveReasoningProposalQuantity(
+      const baseQuantity = resolveReasoningProposalQuantity(
         agenticResult.quantity,
         config
       );
+      const macroSizing = applyMacroRiskOffSizing({
+        quantity: baseQuantity,
+        action: agenticResult.signal,
+        macroStatus: macroAssessment?.status,
+        config,
+        reason: agenticResult.reason,
+      });
+      const dynamicSizingDetails = macroSizing.macroRiskData ? {
+        finalQty: macroSizing.quantity,
+        macroRiskData: macroSizing.macroRiskData,
+      } : null;
+
       const proposal = {
         symbol,
         action: agenticResult.signal,
-        reason: agenticResult.reason,
+        reason: macroSizing.reason,
         confidence: agenticResult.confidence,
-        quantity,
+        quantity: macroSizing.quantity,
         price: lastPrice,
         interval,
         multiIndicatorResult,
         gexData,
         macroAssessment,
         agenticResult,
+        dynamicSizingDetails,
         agentic: true,
       };
 
       // Run RiskGuard even for Agentic mode to ensure safety
       let assessment;
-      if (config?.skipRiskGuard) {
+      if (macroSizing.blocked) {
+        assessment = {
+          approved: false,
+          reason: macroSizing.reason,
+          metrics: { macroRiskData: macroSizing.macroRiskData },
+        };
+      } else if (config?.skipRiskGuard) {
         assessment = {
           approved: agenticResult.signal !== "HOLD",
           skipped: true,
@@ -286,17 +467,25 @@ export async function handleAlphaTask(marketData: any,
           });
       }
 
-      // If agentic decision is to HOLD, follow standard rejection flow
-      if (agenticResult.signal === "HOLD" || !assessment.approved) {
-        const rejectedByAgent = agenticResult.signal === "HOLD";
+      // If agentic decision is to HOLD or blocked, follow rejection flow
+      if (
+        agenticResult.signal === "HOLD" ||
+        macroSizing.blocked ||
+        !assessment.approved
+      ) {
+        const rejectedByAgent =
+          agenticResult.signal === "HOLD" && !macroSizing.blocked;
+        const rejectionReason = macroSizing.blocked ?
+          macroSizing.reason :
+          assessment.reason;
         return {
           status: "rejected",
           message: formatAgenticProposalRejection(
-            agenticResult.reason,
+            macroSizing.reason,
             rejectedByAgent,
-            assessment.reason
+            rejectionReason
           ),
-          reason: agenticResult.reason,
+          reason: macroSizing.reason,
           signal: "HOLD",
           interval,
           multiIndicatorResult,
@@ -304,12 +493,12 @@ export async function handleAlphaTask(marketData: any,
           assessment,
           analysis: {
             score: agenticResult.confidence,
-            reason: agenticResult.reason,
+            reason: macroSizing.reason,
           },
         };
       }
 
-      // If approved, proceed with the proposed quantity from agent
+      // If approved, proceed with the proposed quantity
       return {
         status: "approved",
         message: `Agentic approved ${agenticResult.signal} for ${symbol}`,
@@ -318,7 +507,7 @@ export async function handleAlphaTask(marketData: any,
         agentic: true,
         analysis: {
           score: agenticResult.confidence,
-          reason: agenticResult.reason,
+          reason: macroSizing.reason,
         },
       };
     } catch (err) {
@@ -673,28 +862,23 @@ export async function handleAlphaTask(marketData: any,
   }
 
   // --- Macro Risk Adjustment ---
-  // If enabled, reduce position size by user-configured
-  // % (default 50%) during RISK_OFF conditions
-  if (config?.reduceSizeOnRiskOff &&
-    overallSignal === "BUY" &&
-    multiIndicatorResult.macroAssessment?.status === "RISK_OFF") {
-    const originalQty = quantity;
-    const reductionPercent = config.riskOffSizeReduction || 0.5;
-    const keepPercent = 1.0 - reductionPercent;
-    // Reduce by %, floor to integer
-    quantity = Math.floor(quantity * keepPercent);
-
-    logger.info(`⚠️ Macro Risk Off: Reduced quantity from ${originalQty} ` +
-      `to ${quantity} (${reductionPercent * 100}% reduction)`);
-
-    reason += ` (Size reduced ${reductionPercent * 100}% due to RISK_OFF)`;
-
+  // Apply configured Macro RISK_OFF policy (ignore / reduceSize / blockEntries)
+  const macroSizing = applyMacroRiskOffSizing({
+    quantity,
+    action: overallSignal,
+    macroStatus: multiIndicatorResult.macroAssessment?.status,
+    config,
+    reason,
+  });
+  quantity = macroSizing.quantity;
+  reason = macroSizing.reason;
+  if (macroSizing.macroRiskData) {
     if (dynamicSizingDetails) {
-      dynamicSizingDetails.macroRiskData = {
-        status: "RISK_OFF",
-        action: `reduce_${reductionPercent * 100}_percent`,
-        originalQty,
+      dynamicSizingDetails.macroRiskData = macroSizing.macroRiskData;
+    } else {
+      dynamicSizingDetails = {
         finalQty: quantity,
+        macroRiskData: macroSizing.macroRiskData,
       };
     }
   }
@@ -712,7 +896,13 @@ export async function handleAlphaTask(marketData: any,
 
   // Call riskguard to assess
   let assessment;
-  if (config?.skipRiskGuard) {
+  if (macroSizing.blocked) {
+    assessment = {
+      approved: false,
+      reason: macroSizing.reason,
+      metrics: { macroRiskData: macroSizing.macroRiskData },
+    };
+  } else if (config?.skipRiskGuard) {
     logger.info("Skipping RiskGuard assessment due to skipRiskGuard config");
     assessment = {
       approved: true,
@@ -788,9 +978,12 @@ export async function handleAlphaTask(marketData: any,
   }
 
   if (!assessment.approved) {
+    const rejectedMsg = macroSizing.blocked ?
+      macroSizing.reason :
+      `RiskGuard agent rejected the proposal: ${assessment.reason}`;
     return {
       status: "rejected",
-      message: `RiskGuard agent rejected the proposal: ${assessment.reason}`,
+      message: rejectedMsg,
       reason: assessment.reason,
       proposal: proposal,
       assessment: assessment,

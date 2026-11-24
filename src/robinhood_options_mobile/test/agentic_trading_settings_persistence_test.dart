@@ -172,4 +172,66 @@ void main() {
         find.widgetWithText(TextFormField, 'Daily Trade Limit'));
     expect(dailyLimit.controller!.text, '9');
   });
+
+  testWidgets('macro RISK_OFF policy selector persists and handles 320px width',
+      (tester) async {
+    final provider = AgenticTradingProvider();
+    final user = _buildUser();
+
+    tester.view.physicalSize = const Size(320, 6000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<AgenticTradingProvider>.value(
+                value: provider),
+            ChangeNotifierProvider(create: (_) => BrokerageUserStore([], 0)),
+            ChangeNotifierProvider(create: (_) => TradeSignalsProvider()),
+            ChangeNotifierProvider<BacktestingProvider>(
+                create: (_) => _MockBacktestingProvider()),
+          ],
+          child: AgenticTradingSettingsWidget(
+            user: user,
+            userDocRef: userDocRef,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await openRiskManagement(tester);
+    final selector =
+        find.byKey(const ValueKey('macro-risk-off-policy-selector'));
+    expect(selector, findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Reduction %'), findsNothing);
+
+    await tester.ensureVisible(selector);
+    await tester
+        .tap(find.descendant(of: selector, matching: find.text('Reduce')));
+    await tester.pumpAndSettle();
+
+    expect(provider.config.strategyConfig.macroRiskOffPolicy,
+        MacroRiskOffPolicy.reduceSize);
+    expect(provider.config.strategyConfig.reduceSizeOnRiskOff, isTrue);
+    expect(find.widgetWithText(TextFormField, 'Reduction %'), findsOneWidget);
+
+    await tester
+        .tap(find.descendant(of: selector, matching: find.text('Block')));
+    await tester.pumpAndSettle();
+
+    expect(provider.config.strategyConfig.macroRiskOffPolicy,
+        MacroRiskOffPolicy.blockEntries);
+    expect(provider.config.strategyConfig.reduceSizeOnRiskOff, isFalse);
+    expect(find.widgetWithText(TextFormField, 'Reduction %'), findsNothing);
+
+    final saved = await savedConfig();
+    final strategyMap = saved['strategyConfig'] as Map<String, dynamic>;
+    expect(strategyMap['macroRiskOffPolicy'], 'blockEntries');
+    expect(strategyMap['reduceSizeOnRiskOff'], isFalse);
+    expect(tester.takeException(), isNull);
+  });
 }

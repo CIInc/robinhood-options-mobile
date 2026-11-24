@@ -35,13 +35,33 @@ export async function handleAgenticDecision(
 
   const lastPrice = marketData.closes[marketData.closes.length - 1];
   const indicators = multiIndicatorResult.indicators;
-  const smaFast = indicators.marketDirection?.metadata?.fastMA?.toFixed(2) ||
+  const smaFast = indicators?.marketDirection?.metadata?.fastMA?.toFixed(2) ||
     "N/A";
-  const smaSlow = indicators.marketDirection?.metadata?.slowMA?.toFixed(2) ||
+  const smaSlow = indicators?.marketDirection?.metadata?.slowMA?.toFixed(2) ||
     "N/A";
-  const rsi = indicators.momentum?.value?.toFixed(2) || "N/A";
-  const lastVol = marketData.volumes[marketData.volumes.length - 1];
+  const rsi = indicators?.momentum?.value?.toFixed(2) || "N/A";
+  const lastVol = marketData.volumes?.[marketData.volumes.length - 1] ?? 0;
   const vol = lastVol.toLocaleString();
+
+  const rawMacroPolicy = config?.macroRiskOffPolicy;
+  const macroPolicy =
+    rawMacroPolicy === "ignore" ||
+    rawMacroPolicy === "reduceSize" ||
+    rawMacroPolicy === "blockEntries" ?
+      rawMacroPolicy :
+      (config?.reduceSizeOnRiskOff ? "reduceSize" : "ignore");
+
+  const enabledEntries = config?.enabledIndicators ?
+    Object.entries(config.enabledIndicators).filter(([, v]) => v === true) :
+    [];
+  const indicatorBreakdown = enabledEntries.length > 0 ?
+    enabledEntries.map(([key]) => {
+      const ind = indicators?.[key];
+      return ind ?
+        `${key}: ${ind.signal} (${ind.reason || "N/A"})` :
+        `${key}: N/A`;
+    }).join("\n    ") :
+    "All default indicators";
 
   // Format summaries for the prompt
   const marketSummary = `
@@ -58,6 +78,8 @@ export async function handleAgenticDecision(
     Overall Signal: ${multiIndicatorResult.overallSignal}
     Signal Strength: ${multiIndicatorResult.signalStrength}/100
     Reasoning: ${multiIndicatorResult.reason}
+    User Enabled Indicators:
+    ${indicatorBreakdown}
   `;
 
   const macroSummary = macroAssessment ? `
@@ -65,6 +87,38 @@ export async function handleAgenticDecision(
     Score: ${macroAssessment.score}
     Reason: ${macroAssessment.reason}
   ` : "N/A";
+
+  const rawReduction = config?.riskOffSizeReduction;
+  const reductionPct = typeof rawReduction === "number" &&
+    Number.isFinite(rawReduction) ?
+    Math.round(Math.min(1, Math.max(0, rawReduction)) * 100) :
+    50;
+
+  let macroPolicySection: string;
+  if (macroPolicy === "blockEntries") {
+    macroPolicySection = `
+### 🧭 MACRO RISK POLICY
+User Risk Management Policy: Block New Entries on RISK_OFF.
+- When Macro Assessment status is RISK_OFF, reject new BUY entries
+  (set signal to HOLD and status to rejected).
+`;
+  } else if (macroPolicy === "reduceSize") {
+    macroPolicySection = `
+### 🧭 MACRO RISK POLICY
+User Risk Management Policy: Reduce Size on RISK_OFF (${reductionPct}% cut).
+- Portfolio risk management already scales down BUY position size during
+  RISK_OFF downstream.
+- Treat RISK_OFF as regime context (favor quality trend or oversold
+  mean-reversion setups), NOT as an automatic veto on BUY entries.
+`;
+  } else {
+    macroPolicySection = `
+### 🧭 MACRO RISK POLICY
+User Risk Management Policy: Ignore Macro RISK_OFF.
+- Do NOT veto technically valid BUY setups solely because macro status is
+  RISK_OFF.
+`;
+  }
 
   const totalOI = gexData?.gexByStrike ?
     gexData.gexByStrike.reduce(
@@ -92,38 +146,27 @@ export async function handleAgenticDecision(
     Current Position in ${symbol}: ${portfolioState[symbol]?.quantity || 0}
   `;
 
-  const fullPrompt = `
-You are the GEX Orchestrator, a specialized trading agent for a 
+  const useGexRules = Boolean(gexData) &&
+    config?.enabledIndicators?.gammaExposure !== false;
+
+  const missionSection = useGexRules ? `
+You are the GEX Orchestrator, a specialized trading agent for a
 rules-based system.
-Your job is to strictly enforce daily scan analysis, grade setups, and track 
-positions using exact system mechanics.
+Your job is to strictly enforce daily scan analysis, grade setups, and track
+positions using exact system mechanics.` : `
+You are a quantitative equity trading agent for a rules-based system.
+Evaluate price action, user-enabled technical indicators, deterministic algo
+feedback, and the user's Macro Risk Policy to issue disciplined BUY, SELL, or
+HOLD decisions.`;
 
-### 🛰️ MISSION
-Maximize precision, eliminate emotional discretion, and maintain absolute 
-quantitative discipline.
-
-### 📊 MARKET CONTEXT
-${marketSummary}
-
-### 📏 DETERMINISTIC ALGO FEEDBACK
-${algoSummary}
-
-### 🌍 MACRO ASSESSMENT
-${macroSummary}
-
-### 🤖 GEX STRUCTURAL LEVELS
-${gexSummary}
-
-### 🛡️ PORTFOLIO STATE
-${portfolioSummary}
-
+  const rubricSection = useGexRules ? `
 ### 📐 THE 11 RULES OF GEX OPTIONS TRADING
-1. Total Call GEX is Positive (> 0): Broad dealer gamma positioning is positive,
-   confirming a supportive market microstructure.
+1. Total Call GEX is Positive (> 0): Broad dealer gamma positioning is
+   positive, confirming a supportive market microstructure.
 2. Call GEX > Absolute Put GEX: Bullish upside-hedging flow exceeds bearish
    downside-hedging flow.
-3. Spot Price > COTMP: Underlier Spot resides above Center of Put Mass (downside
-   hedging firewall).
+3. Spot Price > COTMP: Underlier Spot resides above Center of Put Mass
+   (downside hedging firewall).
 4. Target +GEX Strike > Spot: Primary +GEX upside target (T1 Target) sits above
    Spot, defining a viable upside trajectory.
 5. pTrans > nTrans: Positive Transition boundary sits above Negative Transition
@@ -148,18 +191,20 @@ ${portfolioSummary}
 - PENDING (HOLD): All filters pass, but spot is inside watchdog buffer near
   pTrans.
 - BLOCKED (HOLD / SELL): One or more filters or risk gates failed. No buy entry
-  permitted.
+  permitted.` : `
+### 🎯 TECHNICAL & PRICE-ACTION EVALUATION CRITERIA
+- Do NOT reject or default to "HOLD" because GEX or options-chain data is
+  unavailable.
+- Base your decision on price trend relative to SMAs, momentum/oscillator
+  readings, the user's enabled indicators, and the user's Macro Risk Policy.
+- CONFIRMED (BUY): Bullish technical alignment, breakout/continuation, or
+  compelling oversold mean-reversion setup supported by enabled indicators and
+  permitted by the Macro Risk Policy.
+- PENDING (HOLD): Mixed or inconclusive technical setup with insufficient edge.
+- BLOCKED (HOLD / SELL): Strong bearish trend breakdown with no reversal setup,
+  or blocked by the user's Macro Risk Policy.`;
 
-Provide your decision in a strict JSON format:
-{
-  "signal": "BUY" | "SELL" | "HOLD",
-  "reason": "Clear explanation of the decision",
-  "confidence": 0-100,
-  "quantity": number,
-  "status": "approved" | "rejected",
-  "qualification": "CONFIRMED" | "PENDING" | "BLOCKED",
-  "rewardRiskRatio": number | null,
-  "ruleEvaluation": {
+  const ruleEvalSchema = useGexRules ? `{
     "rule1_call_gex_positive": boolean,
     "rule2_call_exceeds_put": boolean,
     "rule3_spot_above_cotmp": boolean,
@@ -171,28 +216,56 @@ Provide your decision in a strict JSON format:
     "rule9_oi_depth_target": boolean,
     "rule10_net_spot_gamma_positive": boolean,
     "rule11_rv10_compressed": boolean
-  }
-}
+  }` : "null";
 
-Ensure the "status" is "approved" only if you want to execute a 
-trade (BUY/SELL).
-Otherwise, set status to "rejected" and signal to "HOLD".
-
+  const closingGuidance = useGexRules ? `
 When GEX Structural Levels are provided:
 - Apply the 11 Rules of GEX Options Trading in conjunction with Deterministic
   Algo Feedback, Market Context, and Macro Assessment.
 - CONFIRMED: GEX structural rules pass and technicals confirm -> BUY.
 - PENDING: GEX rules pass, but spot is inside watchdog buffer -> HOLD.
-- BLOCKED: Critical risk or negative gamma rules fail -> HOLD or SELL.
+- BLOCKED: Critical risk or negative gamma rules fail -> HOLD or SELL.` : `
+Evaluate setups using the User Enabled Indicators, Deterministic Algo Feedback,
+Market Context, and the Macro Risk Policy above without requiring GEX data.`;
 
-When GEX Structural Levels are NOT provided ("N/A") (e.g., no active options
-chain or GEX unavailable):
-- Do NOT reject or default to "HOLD" merely because GEX is N/A.
-- Instead, perform the analysis using the Deterministic Algo Feedback,
-  Technical Indicators (SMA, RSI, Volume), and Macro Assessment.
-- If the technical indicators and macro regime are strongly bullish and
-  aligned, you may issue a BUY signal based on technical and macro strength,
-  noting that GEX was unavailable.
+  const fullPrompt = `${missionSection}
+
+### 🛰️ MISSION
+Maximize precision, eliminate emotional discretion, and maintain absolute
+quantitative discipline.
+
+### 📊 MARKET CONTEXT
+${marketSummary}
+
+### 📏 DETERMINISTIC ALGO FEEDBACK
+${algoSummary}
+
+### 🌍 MACRO ASSESSMENT
+${macroSummary}
+${macroPolicySection}
+### 🤖 GEX STRUCTURAL LEVELS
+${gexSummary}
+
+### 🛡️ PORTFOLIO STATE
+${portfolioSummary}
+${rubricSection}
+
+Provide your decision in a strict JSON format:
+{
+  "signal": "BUY" | "SELL" | "HOLD",
+  "reason": "Clear explanation of the decision",
+  "confidence": 0-100,
+  "quantity": number,
+  "status": "approved" | "rejected",
+  "qualification": "CONFIRMED" | "PENDING" | "BLOCKED",
+  "rewardRiskRatio": number | null,
+  "ruleEvaluation": ${ruleEvalSchema}
+}
+
+Ensure the "status" is "approved" only if you want to execute a
+trade (BUY/SELL).
+Otherwise, set status to "rejected" and signal to "HOLD".
+${closingGuidance}
 
 Output ONLY the JSON.
 `;

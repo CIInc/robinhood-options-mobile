@@ -368,6 +368,9 @@ class AgenticTradingProvider with ChangeNotifier {
   // Macro Assessment
   MacroAssessment? _macroAssessment;
   MacroAssessment? get macroAssessment => _macroAssessment;
+  @visibleForTesting
+  set macroAssessmentForTesting(MacroAssessment? assessment) =>
+      _macroAssessment = assessment;
   MacroAssessment? _previousMacroAssessment;
   MacroAssessment? get previousMacroAssessment => _previousMacroAssessment;
   List<MacroAssessment> _macroHistory = [];
@@ -1456,7 +1459,8 @@ class AgenticTradingProvider with ChangeNotifier {
     final processedSignals = result['processedSignals'];
     if (processedSignals is List) {
       for (final processedSignal in processedSignals.whereType<Map>()) {
-        if (processedSignal['processedStatus'] != 'Retry') continue;
+        final status = processedSignal['processedStatus'];
+        if (status != 'Retry' && status != 'Deferred') continue;
         final symbol = processedSignal['symbol'] as String?;
         final timestamp = processedSignal['timestamp'] as int?;
         if (symbol != null && timestamp != null) {
@@ -1494,6 +1498,8 @@ class AgenticTradingProvider with ChangeNotifier {
       s.interval,
       s.symbolFilter,
       s.customIndicators.map((c) => c.id).toList(),
+      s.macroRiskOffPolicy.name,
+      s.riskOffSizeReduction,
       _config.tradingMode,
       _config.requireApproval,
     ].join('|');
@@ -2597,6 +2603,60 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  /// Scores [signal] across [activeIndicators] (0-100) for ranking Reasoning
+  /// candidates, falling back to overall `signalStrength` when unavailable.
+  @visibleForTesting
+  static double scoreSignalForEnabledIndicators(
+    Map<String, dynamic> signal,
+    List<String> activeIndicators,
+  ) {
+    final multiIndicatorResult = signal['multiIndicatorResult'];
+    if (multiIndicatorResult is! Map) {
+      return (signal['signalStrength'] as num?)?.toDouble() ?? 50.0;
+    }
+    final rawIndicators = multiIndicatorResult['indicators'];
+    final indicatorResults = rawIndicators is Map ? rawIndicators : const {};
+    final rawCustom = multiIndicatorResult['customIndicators'];
+    final customResults = rawCustom is Map ? rawCustom : const {};
+
+    var buyCount = 0;
+    var sellCount = 0;
+    var totalEnabled = 0;
+
+    for (final indicator in activeIndicators) {
+      final data = indicatorResults[indicator];
+      if (data is Map) {
+        totalEnabled++;
+        final sig = data['signal'] as String?;
+        if (sig == 'BUY') {
+          buyCount++;
+        } else if (sig == 'SELL') {
+          sellCount++;
+        }
+      }
+    }
+
+    for (final data in customResults.values) {
+      if (data is Map) {
+        totalEnabled++;
+        final sig = data['signal'] as String?;
+        if (sig == 'BUY') {
+          buyCount++;
+        } else if (sig == 'SELL') {
+          sellCount++;
+        }
+      }
+    }
+
+    if (totalEnabled > 0) {
+      return ((buyCount - sellCount + totalEnabled) / (2 * totalEnabled)) *
+          100.0;
+    }
+    return (multiIndicatorResult['signalStrength'] as num?)?.toDouble() ??
+        (signal['signalStrength'] as num?)?.toDouble() ??
+        50.0;
+  }
+
   /// Widest gap between a stored price and the live quote that still allows an entry.
   static const double maxEntryPriceDeviation = 0.03;
 
@@ -3069,11 +3129,52 @@ class AgenticTradingProvider with ChangeNotifier {
         };
       }
 
+      if (isReasoningMode && buySignals.length > 1) {
+        final indexed = buySignals.asMap().entries.toList();
+        indexed.sort((a, b) {
+          final aScore =
+              scoreSignalForEnabledIndicators(a.value, activeIndicators);
+          final bScore =
+              scoreSignalForEnabledIndicators(b.value, activeIndicators);
+          final scoreCmp = bScore.compareTo(aScore);
+          if (scoreCmp != 0) return scoreCmp;
+          final aOverall =
+              (a.value['multiIndicatorResult']?['signalStrength'] as num?)
+                      ?.toDouble() ??
+                  0.0;
+          final bOverall =
+              (b.value['multiIndicatorResult']?['signalStrength'] as num?)
+                      ?.toDouble() ??
+                  0.0;
+          final overallCmp = bOverall.compareTo(aOverall);
+          if (overallCmp != 0) return overallCmp;
+          return a.key.compareTo(b.key);
+        });
+        buySignals
+          ..clear()
+          ..addAll(indexed.map((e) => e.value));
+      }
+
       // Cap the number of signals to process in Reasoning Mode to avoid
       // excessive Cloud Function calls and costs.
       if (isReasoningMode && buySignals.length > 15) {
         _log(
             '🤖 Capping analysis to top 15 highest-strength signals (out of ${buySignals.length})');
+        final deferredSignals = buySignals.sublist(15);
+        for (final deferred in deferredSignals) {
+          final processedSignalIndex = processedSignals.indexWhere(
+            (processedSignal) =>
+                processedSignal['symbol'] == deferred['symbol'] &&
+                processedSignal['timestamp'] == deferred['timestamp'] &&
+                processedSignal['interval'] == deferred['interval'],
+          );
+          if (processedSignalIndex != -1) {
+            processedSignals[processedSignalIndex]
+              ..['processedStatus'] = 'Deferred'
+              ..['rejectionReason'] =
+                  'Deferred by 15-proposal per-cycle cap; eligible next cycle';
+          }
+        }
         buySignals.removeRange(15, buySignals.length);
       }
 
@@ -3171,6 +3272,12 @@ class AgenticTradingProvider with ChangeNotifier {
 
           // If proposal was approved, execute the order
           if (proposal != null && proposalStatus == 'approved') {
+            final proposalPrice = (proposal['price'] as num?)?.toDouble();
+            if (proposalPrice != null &&
+                proposalPrice.isFinite &&
+                proposalPrice > 0) {
+              currentPrice = proposalPrice;
+            }
             final action = proposal['action'] as String?;
             final quantity = proposal['quantity'] as int?;
 
@@ -3439,6 +3546,7 @@ class AgenticTradingProvider with ChangeNotifier {
                           .where((e) => e.value == true)
                           .map((e) => e.key),
                     ),
+                    'entryMacroStatus': _macroAssessment?.status,
                   });
                   _log(
                       '📝 Added automated BUY trade: $symbol x$quantity @ \$$currentPrice for TP/SL tracking');
@@ -3764,6 +3872,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   .where((e) => e.value == true)
                   .map((e) => e.key),
             ),
+            'entryMacroStatus': _macroAssessment?.status,
           });
           if (userDocRef != null) {
             // Firestore queues the write locally; waiting for the server ack stalls the UI.
@@ -4244,8 +4353,11 @@ class AgenticTradingProvider with ChangeNotifier {
           final nTrans = (gexData?['nTrans'] as num?)?.toDouble();
           final plusGex = (gexData?['plusGex'] as num?)?.toDouble();
           final macroData =
-              signalData?['macroAssessment'] as Map<String, dynamic>?;
-          final macroStatus = macroData?['status'] as String?;
+              signalData?['macroAssessment'] as Map<String, dynamic>? ??
+                  signalData?['multiIndicatorResult']?['macroAssessment']
+                      as Map<String, dynamic>?;
+          final macroStatus =
+              _macroAssessment?.status ?? macroData?['status'] as String?;
 
           // Track highest price and profit percentage for trailing stops
           final prevHighestPrice =
@@ -4411,11 +4523,26 @@ class AgenticTradingProvider with ChangeNotifier {
                 macroStatus == 'BEARISH' ||
                 macroStatus == 'RISK_OFF';
             if (isBearish) {
-              shouldExit = true;
-              exitReason = 'Stop 4: Macro Regime Stop ($macroStatus)';
-              quantityToSell = buyQuantity;
-              _log(
-                  '🌍 $symbol triggered Stop 4 Macro Regime Stop: $exitReason');
+              final policy = _config.strategyConfig.macroRiskOffPolicy;
+              final entryMacro = buyTrade['entryMacroStatus'] as String?;
+              final wasEnteredDuringRiskOff = entryMacro == 'RISK_OFF' ||
+                  entryMacro == 'BEARISH' ||
+                  entryMacro == 'DEFENSIVE';
+
+              // If policy allows RISK_OFF entries (ignore / reduceSize), do not immediately
+              // stop out positions that were intentionally opened during RISK_OFF. Only stop out
+              // if macro transitioned into RISK_OFF after entry, or if policy is blockEntries.
+              final shouldTriggerExit =
+                  policy == MacroRiskOffPolicy.blockEntries ||
+                      !wasEnteredDuringRiskOff;
+
+              if (shouldTriggerExit) {
+                shouldExit = true;
+                exitReason = 'Stop 4: Macro Regime Stop ($macroStatus)';
+                quantityToSell = buyQuantity;
+                _log(
+                    '🌍 $symbol triggered Stop 4 Macro Regime Stop: $exitReason');
+              }
             }
           }
 

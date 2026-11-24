@@ -39,6 +39,7 @@ jest.mock("firebase-admin/firestore", () => ({
 import {
   fetchFromTwelveData,
   getQuotesCall,
+  isMarketDataCacheStale,
   normalizeMarketBars,
 } from "../src/market-data";
 
@@ -136,6 +137,9 @@ describe("fetchFromTwelveData timestamps", () => {
     expect(result.timestamp).toEqual([
       Math.floor(Date.parse("2026-11-09T00:00:00Z") / 1000),
     ]);
+    expect(result.meta.currentTradingPeriod.regular.end).toBe(
+      Math.floor(Date.parse("2026-11-09T00:00:00Z") / 1000)
+    );
     expect(result.indicators.quote[0]).toEqual({
       open: [100],
       high: [105],
@@ -143,6 +147,67 @@ describe("fetchFromTwelveData timestamps", () => {
       close: [104],
       volume: [1234],
     });
+  });
+});
+
+describe("isMarketDataCacheStale", () => {
+  test("treats fresh Twelve Data 1d cache within 15m cooldown as fresh", () => {
+    const fridayBarSec = Math.floor(Date.parse("2026-11-20T00:00:00Z") / 1000);
+    const cache = {
+      updated: Date.parse("2026-11-23T14:30:49Z"),
+      chart: {
+        timestamp: [fridayBarSec],
+      },
+    };
+    const now = new Date("2026-11-23T14:38:00Z");
+
+    expect(isMarketDataCacheStale(cache, "1d", { now })).toBe(false);
+  });
+
+  test("marks prior-day 1d bar cached at 9:30 AM ET stale later in session",
+    () => {
+      const fridayBarSec = Math.floor(
+        Date.parse("2026-11-20T00:00:00Z") / 1000
+      );
+      const cache = {
+        updated: Date.parse("2026-11-23T14:30:49Z"),
+        chart: {
+          timestamp: [fridayBarSec],
+          meta: {
+            currentTradingPeriod: {
+              regular: {
+                end: Math.floor(Date.parse("2026-11-23T14:30:49Z") / 1000),
+              },
+            },
+          },
+        },
+      };
+      const now = new Date("2026-11-23T19:38:00Z");
+
+      expect(isMarketDataCacheStale(cache, "1d", { now })).toBe(true);
+    });
+
+  test("refreshes intraday 1d cache once after 4:00 PM ET close", () => {
+    const mondayBarSec = Math.floor(Date.parse("2026-11-23T00:00:00Z") / 1000);
+    const preCloseCache = {
+      updated: Date.parse("2026-11-23T19:00:00Z"),
+      chart: { timestamp: [mondayBarSec] },
+    };
+    expect(
+      isMarketDataCacheStale(preCloseCache, "1d", {
+        now: new Date("2026-11-23T21:05:00Z"),
+      })
+    ).toBe(true);
+
+    const postCloseCache = {
+      updated: Date.parse("2026-11-23T21:05:00Z"),
+      chart: { timestamp: [mondayBarSec] },
+    };
+    expect(
+      isMarketDataCacheStale(postCloseCache, "1d", {
+        now: new Date("2026-11-23T21:10:00Z"),
+      })
+    ).toBe(false);
   });
 });
 
