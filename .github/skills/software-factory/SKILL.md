@@ -6,20 +6,23 @@ description: "Orchestrate autonomous AI software factory cycles for RealizeAlpha
 # Autonomous Software Factory
 
 Orchestrate end-to-end or multi-item autonomous software factory cycles across
-the RealizeAlpha codebase. Use this workflow when instructed to run an autonomous
-factory cycle, execute multiple roadmap items in parallel, or conduct full-cycle
-staged delivery (Ideate $\to$ Implement $\to$ Critic $\to$ Docs Sync $\to$ Release Check).
+the RealizeAlpha codebase. In autonomous mode, the software factory operates as a
+continuous closed loop: **Ideate & Discover $\to$ Triage & Partition $\to$ Maker Implementation $\to$
+Self-Healing Quality Gate $\to$ Adversarial Critic $\to$ Docs & Roadmap Reconciliation $\to$ Git & Issue Lifecycle**,
+repeating iteratively across backlog slices until the target horizon is completed or maximum iterations are reached.
 
 ## Arguments
 
 Optional parameters passed as text or key-value pairs:
 - `mode`: `autonomous` (default) or `interactive`
-  - In `autonomous` mode, high-confidence ideation items are recorded, commits are created automatically referencing `#<issue-num>`, and verified issues are closed. Production release deployment (`software-release` pushing to `main` / `promote.yml`) preserves an explicit confirmation gate unless `confirm_release_push=true` is set.
+  - In `autonomous` mode, the factory runs continuously as a closed loop: high-confidence ideation items are discovered, scored against the Factory Readiness Rubric, and recorded in `ROADMAP.md`; implementation tasks run through Maker-Verifier-Critic loops; commits are created automatically referencing `#<issue-num>`; and verified issues are closed. Production release deployment (`software-release` pushing to `main` / `promote.yml`) preserves an explicit confirmation gate unless `confirm_release_push=true` is set.
   - In `interactive` mode, the factory stops and presents decisions to the user before recording proposals, staging commits, or closing issues.
-- `stages`: `full` (`ideate -> implement -> docs -> release-check`), `implement-batch` (implement $N$ items), or `single` (one item end-to-end). Defaults to `single` when an explicit item or constraint is provided, or `full` when unconstrained.
+- `stages`: `full` (`ideate -> triage -> implement -> docs -> release-check`), `implement-batch` (implement $N$ items), or `single` (one item end-to-end). Defaults to `single` when an explicit item or constraint is provided, or `full` when unconstrained.
 - `max_parallel`: `1..4` concurrent worker items (default: `1`).
   - **Disjoint Ownership Partitioning Rule**: Concurrent workers (`workspace="branch"` or `"share"`) may only implement items whose modified source files in `lib/` and `functions/src/` are disjoint so workers never collide on shared state stores or widgets. Shared repository files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`) must be reconciled once in the aggregation phase by the coordinator.
+- `max_iterations`: Maximum continuous loop iterations in autonomous mode (default: `3` in `autonomous`, `1` in `interactive`).
 - `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
+- `auto_ideate`: `true` (default) or `false`. When enabled, the factory automatically discovers and ranks candidate features from open issues and backlog gaps prior to implementation.
 
 ---
 
