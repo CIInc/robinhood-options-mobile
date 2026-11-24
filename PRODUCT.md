@@ -18,6 +18,7 @@ Retail and semi-professional traders often manage fragmented accounts (taxable b
 
 1. **Progressive Disclosure & Actionable Clarity**
    - Answer *"What happened?"* and *"What needs my attention?"* first. The Portfolio tab leads with hero metrics, a prioritized **Action Center** (`PortfolioAlertService`), and top movers, while deep analytical tools live in six dedicated drill-down sections (`Performance`, `Positions`, `Risk`, `Insights`, `Taxes`, `Strategies`) backed by a single shared `PortfolioAnalyticsController`.
+   - Automated Trading embraces **Progressive Disclosure** via a streamlined 4-control Simplified Mode default (`SimplifiedTradingControlsWidget`) with interactive educational dialogs for strategy styles and risk comfort presets, backed by an authoritative 6-chapter configuration handbook (`docs/agentic-trading.md`) and plain-English macro regime guidance (`MacroAssessment.statusFriendlyTitle`, `statusExplanation`).
 
 2. **Safety, Explicit Consent & Capital Protection First**
    - Automation never bypasses risk controls. Auto-trading enforces live-quote price validation ($\le 3\%$ deviation), explicit fixed vs. dynamic position sizing, `RiskGuard` portfolio concentration checks, and a 5-tier sequential stop queue. Paper take-profit/stop-loss exits operate only on the simulated ledger and do not require a selected Live account.

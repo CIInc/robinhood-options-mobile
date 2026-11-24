@@ -246,11 +246,13 @@ class EntryStrategiesWidget extends StatelessWidget {
                     Expanded(
                         child: _buildTextField(
                             context, rsiPeriodController, 'RSI Period',
+                            helperText: 'Default: 14 periods',
                             prefixIcon: Icons.speed_rounded)),
                     const SizedBox(width: 12),
                     Expanded(
                         child: _buildTextField(
                             context, rocPeriodController, 'ROC Period',
+                            helperText: 'Default: 12 periods',
                             prefixIcon: Icons.show_chart_rounded)),
                   ],
                 ),
@@ -260,17 +262,19 @@ class EntryStrategiesWidget extends StatelessWidget {
                     Expanded(
                         child: _buildTextField(
                             context, smaFastController, 'Fast SMA',
+                            helperText: 'Default: 20 periods',
                             prefixIcon: Icons.trending_up_rounded)),
                     const SizedBox(width: 12),
                     Expanded(
                         child: _buildTextField(
                             context, smaSlowController, 'Slow SMA',
+                            helperText: 'Default: 50 periods',
                             prefixIcon: Icons.timeline_rounded)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(context, marketIndexController, 'Market Index',
-                    helperText: 'e.g. SPY, QQQ',
+                    helperText: 'Benchmark index ticker (e.g. SPY, QQQ)',
                     prefixIcon: Icons.bar_chart_rounded),
               ],
             ),
@@ -281,8 +285,8 @@ class EntryStrategiesWidget extends StatelessWidget {
         // Strict Entry Mode Card
         _buildSwitchListTile(
           context,
-          'Strict Entry Mode',
-          'Require ALL enabled indicators to be green',
+          'Strict Entry Mode (100% Consensus)',
+          'Require ALL enabled indicators to be green. When disabled, trades trigger once weighted signal strength meets your threshold.',
           requireAllIndicatorsGreen,
           onRequireStrictEntryChanged,
         ),
@@ -390,7 +394,7 @@ class EntryStrategiesWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Minimum confidence score for entry. Lower scores allow more signals; higher scores are more selective.',
+                    'Minimum weighted consensus score required for entry (0-100%). Lower scores allow more trades; higher scores require stronger agreement across indicators.',
                     style: TextStyle(
                         fontSize: 12,
                         color: colorScheme.onSurfaceVariant
@@ -413,7 +417,22 @@ class EntryStrategiesWidget extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildSubsectionTitle(context, 'Custom Indicators'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSubsectionTitle(context, 'Custom Indicators'),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message:
+                      'Create quantitative rules comparing indicators against price, fixed levels, or other technical series.',
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
               onPressed: onAddCustomIndicator,

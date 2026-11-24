@@ -21,11 +21,11 @@ enum MacroRiskOffPolicy {
   String get description {
     switch (this) {
       case MacroRiskOffPolicy.ignore:
-        return 'Evaluate entries normally during RISK_OFF regimes';
+        return 'Continue opening BUY orders normally even during defensive (RISK_OFF) market conditions.';
       case MacroRiskOffPolicy.reduceSize:
-        return 'Scale down BUY position size during RISK_OFF regimes';
+        return 'Scale down BUY position sizes by a set percentage during defensive (RISK_OFF) market conditions to manage risk.';
       case MacroRiskOffPolicy.blockEntries:
-        return 'Block new BUY entries while macro status is RISK_OFF';
+        return 'Halt all new automated BUY orders while the broad market is in a defensive (RISK_OFF) regime.';
     }
   }
 }

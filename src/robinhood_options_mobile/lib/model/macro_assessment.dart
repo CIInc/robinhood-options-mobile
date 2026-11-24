@@ -83,6 +83,36 @@ class MacroAssessment {
         : (cyclePhase == 'Late-Cycle' ? '+2 bps' : '-24 bps');
   }
 
+  /// Plain-English friendly label for the regime status
+  String get statusFriendlyTitle {
+    switch (status.toUpperCase()) {
+      case 'RISK_ON':
+      case 'BULLISH':
+        return 'Bullish / Constructive (Risk-On)';
+      case 'RISK_OFF':
+      case 'BEARISH':
+        return 'Defensive / High Risk (Risk-Off)';
+      case 'NEUTRAL':
+      default:
+        return 'Neutral / Transition';
+    }
+  }
+
+  /// One-sentence explanation of current regime implications
+  String get statusExplanation {
+    switch (status.toUpperCase()) {
+      case 'RISK_ON':
+      case 'BULLISH':
+        return 'Market conditions are favorable for growth assets. Low volatility and positive breadth support trend persistence.';
+      case 'RISK_OFF':
+      case 'BEARISH':
+        return 'Elevated market risk detected. High volatility, widening credit spreads, or recession indicators warrant defensive caution.';
+      case 'NEUTRAL':
+      default:
+        return 'Conflicting economic signals and sector rotation. Favorable for range-bound strategies and selective setups.';
+    }
+  }
+
   factory MacroAssessment.fromMap(Map<String, dynamic> map) {
     return MacroAssessment(
       status: map['status'] ?? 'NEUTRAL',

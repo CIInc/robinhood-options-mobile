@@ -1009,20 +1009,19 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.cyclone, size: 20, color: activePhaseInfo.color),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Economic Cycle Radar',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              Icon(Icons.cyclone, size: 20, color: activePhaseInfo.color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Economic Cycle Radar',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1202,58 +1201,84 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        assessment.status == 'RISK_ON'
-                            ? Icons.trending_up
-                            : assessment.status == 'RISK_OFF'
-                                ? Icons.trending_down
-                                : Icons.trending_flat,
-                        color: statusColor,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
-                      Text('Current Regime',
-                          style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(width: 4),
-                      Tooltip(
-                        triggerMode: TooltipTriggerMode.tap,
-                        message: _getRegimeTooltip(assessment.status),
-                        child: Icon(Icons.info_outline,
-                            size: 14,
-                            color: statusColor.withValues(alpha: 0.6)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      assessment.status,
-                      style: TextStyle(
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          assessment.status == 'RISK_ON'
+                              ? Icons.trending_up
+                              : assessment.status == 'RISK_OFF'
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat,
                           color: statusColor,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Current Regime',
+                            style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(width: 4),
+                        Tooltip(
+                          triggerMode: TooltipTriggerMode.tap,
+                          message: _getRegimeTooltip(assessment.status),
+                          child: Icon(Icons.info_outline,
+                              size: 14,
+                              color: statusColor.withValues(alpha: 0.6)),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            assessment.status,
+                            style: TextStyle(
+                                color: statusColor,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18),
+                          ),
+                          Text(
+                            assessment.statusFriendlyTitle,
+                            style: TextStyle(
+                              color: statusColor.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Text('Macro Score',
+                          style: Theme.of(context).textTheme.titleSmall),
+                      const SizedBox(width: 4),
                       Tooltip(
                         triggerMode: TooltipTriggerMode.tap,
                         message:
@@ -1262,9 +1287,6 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                             size: 14,
                             color: statusColor.withValues(alpha: 0.6)),
                       ),
-                      const SizedBox(width: 4),
-                      Text('Macro Score',
-                          style: Theme.of(context).textTheme.titleSmall),
                     ],
                   ),
                   TweenAnimationBuilder<double>(
@@ -1272,13 +1294,18 @@ class MacroAssessmentDashboardWidget extends StatelessWidget {
                         begin: 0, end: assessment.score.toDouble()),
                     duration: const Duration(seconds: 1),
                     builder: (context, value, child) {
-                      return Text(
-                        '${value.toInt()}/100',
-                        style:
-                            Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                      return FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${value.toInt()}/100',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
+                              ?.copyWith(
+                                color: statusColor,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
                       );
                     },
                   ),

@@ -812,7 +812,6 @@ Price drops to $164.80 (drop = 3.05%, exceeds 3% threshold)
 Trigger SELL 10 shares at $164.80
 Locked in profit from $150 to $164.80
 ```
-````
 
 **Example - Manual + Automated Same Symbol:**
 ```
@@ -998,64 +997,404 @@ The recent refactoring (commit 861f2bc) introduced a cleaner architecture with s
 - **Scope**: Only applies to positions opened by automated trading
 - **Use Case**: Protect capital by automatically cutting losing positions
 
-### Configuration Parameters
+### The Complete Automated Trading Configuration Handbook
 
-#### Technical Analysis
-```dart
-smaPeriodFast: 10           // Fast moving average period
-smaPeriodSlow: 30           // Slow moving average period
-rsiPeriod: 14               // RSI calculation period
-marketIndexSymbol: 'SPY'    // Reference market index
+The RealizeAlpha Automated Trading engine exposes over 45 fine-grained parameters spanning execution safety, strategy design, portfolio risk containment (RiskGuard), technical indicators, custom quantitative formulas, multi-tier sequential stops, and backtesting.
+
+In the mobile application, settings are organized via **Progressive Disclosure**:
+- **Simplified Mode (`simplified`)**: A clean 4-card interface for everyday investors providing one-tap Strategy Archetypes, a continuous Capital Budget allocation slider, and 3-state Risk Comfort presets.
+- **Quant Pro Mode (`quantPro`)**: An exhaustive institutional control matrix unlocking raw mathematical indicator inputs, custom formula syntax, 5-tier GEX stops, sector caps, and OEM background execution journals.
+
+Below is the authoritative, beginner-friendly handbook documenting every configuration setting across 6 operational chapters.
+
+---
+
+#### Chapter 1: Master Controls, Execution Timing & Platform Scheduling
+
+Master controls govern the operational lifecycle of automated trading, isolating simulated paper testing from live capital, enforcing human-in-the-loop review when desired, and scheduling execution loops across foreground and background threads.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Auto-Trading Master Switch** | `autoTradeEnabled` | `bool` | `false` | Both | Master system toggle that activates foreground scans and background timers. |
+| **Paper Trading Mode** | `paperTradingMode` | `bool` | `true` | Both | Isolates simulated paper trades from real brokerage balances. |
+| **Require Approval** | `requireApproval` | `bool` | `false` | Both | Stages proposals in a pending tray for manual one-tap execution review. |
+| **Emergency Stop** | `emergencyStopActivated` | `bool` | `false` | Both | Immediate manual circuit breaker halting all evaluations and executions. |
+| **Paper Quote Source** | `paperQuoteSource` | `PaperQuoteSource` enum | `selectedBrokerage` | Quant Pro | Selects the connected account providing live quotes for paper orders. |
+| **Foreground Check Frequency** | `checkIntervalMinutes` | `int` (1–60) | `5 min` | Quant Pro | Scan frequency while the application is active in the foreground. |
+| **Cooldown Period** | `autoTradeCooldownMinutes` | `int` (1–1440) | `60 min` | Quant Pro | Mandatory rest interval between consecutive automated trades. |
+| **Daily Trade Limit** | `dailyTradeLimit` | `int` (1–100) | `5 trades` | Both | Daily ceiling on automated BUY orders (resets each morning at market open). |
+
+##### In-Depth Operational Breakdown
+
+1. **Auto-Trading Master Switch (`autoTradeEnabled`)**
+   - **What it does:** Serves as the primary power switch for algorithmic execution. When enabled, the app initializes the foreground evaluation timer and registers OS background tasks. When disabled, all evaluation cycles halt immediately, resting limit orders are canceled or left unmonitored, and no new proposals are formulated.
+   - **Interactions & Overrides:** Cannot be enabled if no supported brokerage is linked or if zero entry indicators are selected in Systematic mode. Overridden unconditionally by `emergencyStopActivated`.
+   - **Pro Tips:**
+     - *Beginners:* Always leave Auto-Trading in **Paper Trading Mode** (`paperTradingMode: true`) for at least 10 trading sessions to observe how signals behave across different market sessions.
+     - *Advanced Quants:* Toggling the master switch off does *not* liquidate existing positions; it merely stops the scanner. Use the 5-Tier Stop Queue or Emergency Stop if immediate liquidation or halt is required.
+
+2. **Paper Trading Mode (`paperTradingMode`)**
+   - **What it does:** Diverts all order fills into a localized virtual ledger. Uses live streaming quotes from your linked broker, but commits zero real money. Paper cash, virtual positions, realized P&L, and performance statistics stay completely separate from live accounts.
+   - **Interactions & Overrides:** Switching from Paper to Live prompts a safety confirmation modal. In Paper mode, account equity checks use the virtual paper balance rather than your real cash.
+   - **Pro Tips:**
+     - *Beginners:* Use Paper mode to build confidence with automated stops without emotional stress.
+     - *Advanced Quants:* Paper fills execute at current live bid/ask quotes, providing realistic slippage simulation for backtesting validation.
+
+3. **Require Approval (`requireApproval`)**
+   - **What it does:** Toggles semi-autonomous order staging. When enabled (`true`), high-conviction signals generate a trade proposal with an AI rationale and stage it in the **Pending Approvals** tray. Orders require a physical tap on "Approve" to execute. When disabled (`false`), orders execute automatically without user intervention.
+   - **Interactions & Overrides:** If a proposal sits unapproved for longer than 3 minutes, `AgenticTradingProvider` re-verifies the live quote before execution. If price has deviated by $> 3\%$, the order is automatically rejected to protect against slippage.
+   - **Pro Tips:**
+     - *Beginners:* Enable Require Approval when getting started. It allows you to see the exact reasoning behind every trade before money is committed.
+     - *Advanced Quants:* Disable Require Approval for high-speed systematic scalping where sub-minute fills are essential.
+
+4. **Emergency Stop (`emergencyStopActivated`)**
+   - **What it does:** An unbypassable kill switch. Immediately halts all foreground timers, rejects any pending proposals, and prevents any automated order from submitting.
+   - **Interactions & Overrides:** Overrides `autoTradeEnabled`. Can be triggered from the settings header, the Simplified view button, or by long-pressing the auto-trade app bar pill.
+   - **Pro Tips:**
+     - *Universal:* If market-wide volatility spikes unexpectedly (e.g., sudden geopolitical announcements or exchange connectivity issues), activate Emergency Stop to freeze all activity instantly.
+
+5. **Paper Quote Source (`paperQuoteSource`)**
+   - **What it does:** Designates which brokerage connection supplies live market prices for virtual paper trades (`selectedBrokerage`, `robinhood`, or `schwab`).
+   - **Interactions & Overrides:** If set to `selectedBrokerage`, it dynamically uses whichever broker is currently active. If pinned to a specific broker, that account must remain authenticated.
+
+6. **Foreground Check Frequency (`checkIntervalMinutes`)**
+   - **What it does:** Sets how frequently (in minutes) the app scans your watchlist while running in the foreground.
+   - **Interactions & Overrides:** Only governs active foreground app sessions. When the app is closed or backgrounded, mobile operating systems schedule background tasks every ~15 minutes via Android WorkManager or iOS BackgroundTasks.
+
+7. **Cooldown Period (`autoTradeCooldownMinutes`)**
+   - **What it does:** Enforces a minimum resting time between consecutive automated trades.
+   - **Interactions & Overrides:** Prevents whipsaw losses during sudden market crashes where multiple symbols trigger buy signals simultaneously in rapid succession.
+
+---
+
+#### Chapter 2: Strategy Selection, Archetypes & Progressive Disclosure
+
+This layer controls how trading decisions are generated—from mathematical rules to autonomous LLM reasoning—and allows users to seamlessly switch between Simplified and Quant Pro interfaces without losing settings.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Interface Mode** | `uiMode` | `AgenticTradingUiMode` | `simplified` | Both | Toggles between Simplified 4-control view and Quant Pro parameter matrix. |
+| **Strategy Style** | `tradingMode` | `TradingMode` enum | `systematic` | Both | Selects between deterministic `systematic` rules and Gemini `reasoning`. |
+| **Strategy Archetype** | `selectedTemplateId` | `String` ID | Curated | Simplified | Walk-forward verified archetype packages (e.g., Momentum, Swing, Value). |
+| **Capital Budget** | `maxPortfolioConcentration`| `double` (0.05–1.0) | `0.20` (20%) | Simplified | Maximum percentage of portfolio equity allocated across all auto-trades. |
+| **Risk Comfort Level** | `RiskComfortLevel` | `conservative`, `balanced`, `aggressive` | `balanced` | Simplified | 3-state preset auto-tuning stop-loss, profit target, and trade quantity. |
+
+##### In-Depth Operational Breakdown
+
+1. **Interface Mode (`uiMode`)**
+   - **What it does:** Persisted locally in device preferences (`agentic_trading_ui_mode`), this toggle switches between the streamlined **Simplified View** and the comprehensive **Quant Pro View**.
+   - **Interactions & Overrides:** Switching modes *never* mutates or resets your underlying custom parameters. All customized technical indicators, custom formulas, and advanced stops remain perfectly preserved in memory and Firestore.
+
+2. **Strategy Style (`tradingMode`)**
+   - **Systematic Rules (`systematic`):** Deterministic mathematical execution. The engine evaluates technical indicators (RSI, MACD, Moving Averages) and custom quantitative formulas. Zero AI latency, zero model hallucinations, and 100% reproducible backtests.
+   - **Agentic Reasoning (`reasoning`):** Autonomous AI decision engine powered by Google Gemini. Ingests real-time market data, technical indicator consensus, options Gamma Exposure (GEX), broad market macro regimes, news sentiment, and SEC insider filings. Gemini outputs an explicit step-by-step chain-of-thought rationale before generating an order proposal.
+   - **Interactions & Overrides:** Reasoning mode requires enabling "Autonomous Agentic Trading" in Beta Labs. Both styles are strictly bound by RiskGuard safeguards.
+   - **Pro Tips:**
+     - *Beginners:* Start with Systematic Rules using curated archetypes.
+     - *Advanced Quants:* Use Agentic Reasoning for multi-factor swing trading where macro context and options flow matter as much as technical levels.
+
+3. **Strategy Archetypes (`StrategyArchetypes`)**
+   - **What it does:** Curated, out-of-the-box strategy packages tested across multi-year historical walk-forward windows:
+     - **Conservative Core:** Low-volatility trend following using 50/200 SMA golden crosses and 1% risk allocation.
+     - **Momentum Breakout:** High-momentum setups combining RSI pullbacks, MACD histogram crossovers, and volume expansion.
+     - **Options Income Harvester:** High IV Rank credit setups targeting range-bound underlyings.
+     - **Reasoning AI Agent:** Autonomous institutional synthesis leveraging Gemini reasoning and GEX structural levels.
+   - **Interactions & Overrides:** Tapping an archetype opens the interactive `StrategyArchetypeDetailBottomSheet`, allowing you to inspect win rates, maximum historical drawdown, and full indicator parameters before applying or cloning to a custom template.
+
+4. **Capital Budget Allocation Slider**
+   - **What it does:** Sets the global ceiling on the fraction of your total portfolio that auto-trading can deploy across all open positions combined.
+   - **Interactions & Overrides:** The UI computes a real-time dollar estimate based on current portfolio equity (e.g., 25% on a \$10,000 account = up to \$2,500 total exposure). Once total open market value reaches this budget, all new entry proposals are blocked until existing positions are closed.
+   - **Pro Tips:**
+     - *Preservation:* The unallocated portion of your portfolio is preserved and never touched by auto-trading, protecting cash for long-term investments.
+
+5. **Risk Comfort Level (`RiskComfortLevel`)**
+   - **What it does:** A 3-state selector that instantly harmonizes Stop Loss, Profit Target, and default Trade Size to mathematically proven risk-to-reward ratios:
+     - **🛡️ Conservative:** 3.0% Stop Loss, 6.0% Profit Target (2:1 reward/risk), 1 share per trade (1.0% account risk).
+     - **⚖️ Balanced:** 5.0% Stop Loss, 10.0% Profit Target (2:1 reward/risk), 2 shares per trade (2.0% account risk).
+     - **⚡ Aggressive:** 10.0% Stop Loss, 20.0% Profit Target (2:1 reward/risk), 5 shares per trade (3.0% account risk).
+   - **Interactions & Overrides:** If custom Quant Pro stop parameters are configured that do not match these exact presets, the segmented button clears selection and displays a custom parameters banner without overriding your custom values.
+
+---
+
+#### Chapter 3: Portfolio Risk Safeguards & Position Sizing (RiskGuard)
+
+RiskGuard is RealizeAlpha's pre-trade risk engine. Before any BUY proposal can reach the broker, it must pass through an institutional battery of risk checks.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Trade Quantity** | `tradeQuantity` | `int` ($\ge 1$) | `1 share` | Both | Baseline share count per trade when dynamic sizing is disabled. |
+| **Enable Dynamic Sizing** | `enableDynamicPositionSizing` | `bool` | `false` | Quant Pro | Calculates position sizing dynamically based on ATR volatility and risk %. |
+| **Risk Per Trade %** | `riskPerTrade` | `double` (0.01–100%)| `1.0%` | Quant Pro | Fraction of portfolio equity risked between entry and stop-loss price. |
+| **ATR Multiplier** | `atrMultiplier` | `double` (0.1–10.0) | `2.0x` | Quant Pro | Stop loss distance in multiples of 14-period Average True Range. |
+| **Max Position Size** | `maxPositionSize` | `int` ($\ge 1$) | `100 shares`| Quant Pro | Absolute upper ceiling on total shares held in any single symbol. |
+| **Daily Trade Limit** | `dailyTradeLimit` | `int` (1–100) | `5` | Quant Pro | Maximum number of automated BUY orders permitted per day. |
+| **Sector Exposure Limits** | `enableSectorLimits` | `bool` | `false` | Quant Pro | Caps cumulative capital allocation to any single GICS market sector. |
+| **Max Sector Exposure %**| `maxSectorExposure` | `double` (1–100%) | `20.0%` | Quant Pro | Maximum portfolio percentage allowed in one sector (e.g. Technology). |
+| **Correlation Checks** | `enableCorrelationChecks` | `bool` | `false` | Quant Pro | Rejects new trades that are heavily correlated with existing holdings. |
+| **Max Correlation** | `maxCorrelation` | `double` (0.0–1.0) | `0.70` | Quant Pro | Correlation threshold above which candidate trades are rejected. |
+| **Volatility Filters** | `enableVolatilityFilters` | `bool` | `false` | Quant Pro | Restricts entries based on Implied Volatility (IV Rank). |
+| **Min Volatility (IV Rank)**| `minVolatility` | `double` (0–100%) | `10.0%` | Quant Pro | Minimum IV Rank required (filters out dead, unmoving tickers). |
+| **Max Volatility (IV Rank)**| `maxVolatility` | `double` (0–100%) | `80.0%` | Quant Pro | Maximum IV Rank allowed (filters out dangerous binary events / meme spikes). |
+| **Drawdown Protection** | `enableDrawdownProtection` | `bool` | `false` | Quant Pro | Global circuit breaker halting trading if account drawdown exceeds limit. |
+| **Max Drawdown %** | `maxDrawdown` | `double` (1–100%) | `10.0%` | Quant Pro | Peak-to-trough account drawdown percentage that halts auto-trading. |
+| **Macro Risk-Off Policy** | `macroRiskOffPolicy` | `MacroRiskOffPolicy`| `ignore` | Both | Action taken during defensive macro regimes: `ignore`, `reduceSize`, `blockEntries`. |
+| **Risk-Off Size Reduction**| `riskOffSizeReduction`| `double` (0.05–0.95)| `0.50` (50%) | Quant Pro | Sizing haircut applied when macro regime is `RISK_OFF` under `reduceSize`. |
+
+##### In-Depth Operational Breakdown
+
+1. **Trade Quantity vs. Dynamic Position Sizing**
+   - **Fixed Sizing:** When `enableDynamicPositionSizing` is `false`, the engine buys exactly `tradeQuantity` shares every time a setup triggers.
+   - **Dynamic Sizing Formula:** When `enableDynamicPositionSizing` is `true`, the engine calculates:
+     $$\text{Stop Distance} = \text{ATR}_{14} \times \text{atrMultiplier}$$
+     $$\text{Shares} = \left\lfloor \frac{\text{Portfolio Equity} \times \text{riskPerTrade}}{\text{Stop Distance}} \right\rfloor$$
+   - **Hard Overrides:** Regardless of dynamic calculations, the share count will *never* exceed `maxPositionSize`, and total position dollar value will *never* breach the Capital Budget.
+   - **Pro Tips:** Dynamic sizing ensures that higher-volatility stocks get smaller share allocations while low-volatility stocks get larger allocations, equalizing total dollar risk per trade.
+
+2. **Sector Exposure Limits (`enableSectorLimits`, `maxSectorExposure`)**
+   - **What it does:** Prevents over-concentration in a single industry. Uses GICS sector classifications (Technology, Financials, Healthcare, Energy, etc.).
+   - **Behavior:** If you own Apple and Nvidia, and Technology currently constitutes 19.5% of your portfolio, a new BUY proposal in AMD will be rejected if `maxSectorExposure` is set to 20%.
+
+3. **Correlation Checks (`enableCorrelationChecks`, `maxCorrelation`)**
+   - **What it does:** Calculates 60-day price return correlation between the candidate symbol and all currently open positions.
+   - **Behavior:** If correlation exceeds `maxCorrelation` (default 0.70), the candidate trade is rejected to maintain true portfolio diversification.
+
+4. **Volatility Filters (`enableVolatilityFilters`, `minVolatility`, `maxVolatility`)**
+   - **What it does:** Restricts trade entries based on 52-week Implied Volatility Rank (IV Rank).
+   - **Behavior:**
+     - *Min Volatility (10%):* Ensures the stock has enough price action and liquidity to hit profit targets.
+     - *Max Volatility (80%):* Protects against entering ahead of erratic earnings binary events or distressed biotech swings.
+
+5. **Drawdown Protection Circuit Breaker (`enableDrawdownProtection`, `maxDrawdown`)**
+   - **What it does:** Acts as an account-level circuit breaker. Tracks your portfolio's high-water mark equity. If the decline from the peak reaches `maxDrawdown` (e.g. 10%), all automated trading halts immediately.
+
+6. **Macro Risk-Off Policy (`macroRiskOffPolicy`)**
+   - Controls how the system behaves when the macroeconomic cycle evaluates to `RISK_OFF` (Defensive / High Market Risk):
+     - `ignore`: Proceeds with technical trading regardless of macro backdrop.
+     - `reduceSize`: Cuts trade size by `riskOffSizeReduction` (e.g. 50% fewer shares), allowing high-conviction trades with smaller risk exposure.
+     - `blockEntries`: Completely halts new BUY orders until the macro environment returns to `RISK_ON` or `NEUTRAL`.
+
+---
+
+#### Chapter 4: Entry Strategies, Technical Indicators & Consensus Scoring
+
+The Entry Engine evaluates market data to detect high-probability technical setups. Users can require 100% indicator consensus or establish weighted multi-indicator thresholds.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Symbol Filter** | `symbolFilter` | `List<String>` | `[]` (Empty) | Quant Pro | Specific tickers to scan. When empty, scans liquid S&P 500 universe. |
+| **Trading Interval** | `interval` | `'15m'`, `'1h'`, `'1d'` | `'1d'` | Quant Pro | Candle resolution used for indicator calculations and holding horizons. |
+| **Strict Entry Mode** | `requireAllIndicatorsGreen`| `bool` | `false` | Quant Pro | When enabled, requires 100% of enabled indicators to signal BUY. |
+| **Min Signal Strength** | `minSignalStrength` | `double` (0–100%) | `50%` | Quant Pro | Weighted consensus score required for entry when Strict Mode is off. |
+| **RSI Period** | `rsiPeriod` | `int` (2–100) | `14` | Quant Pro | Lookback candles for Relative Strength Index calculation. |
+| **ROC Period** | `rocPeriod` | `int` (1–100) | `12` | Quant Pro | Lookback candles for Rate of Change momentum calculation. |
+| **Fast SMA Period** | `smaPeriodFast` | `int` (2–200) | `20` | Quant Pro | Period for the fast Simple Moving Average. |
+| **Slow SMA Period** | `smaPeriodSlow` | `int` (5–500) | `50` | Quant Pro | Period for the slow Simple Moving Average. |
+| **Market Index Benchmark** | `marketIndexSymbol` | `String` | `'SPY'` | Quant Pro | Benchmark index symbol used for market direction and regime analysis. |
+| **Custom Indicators** | `customIndicators` | `List<CustomIndicatorConfig>` | `[]` | Quant Pro | User-defined quantitative formulas and threshold conditions. |
+
+##### The 19 Built-In Technical Indicators
+
+The engine features 19 institutional-grade technical indicators that can be independently toggled:
+
+| Indicator Key | Display Label | Description & Default Condition |
+| --- | --- | --- |
+| `priceMovement` | Price Movement | Moving average crossover and short-term price trend confirmation. |
+| `momentum` | Momentum (RSI) | Relative Strength Index (14-period). Bullish when oversold or crossing above 50. |
+| `marketDirection` | Market Direction | 50 SMA vs 200 SMA trend alignment on benchmark index (`SPY`). |
+| `volume` | Volume Confirmation | Current bar volume $> 1.2\times$ 20-period Average Volume. |
+| `macd` | MACD | MACD line crossing above signal line with positive histogram expansion. |
+| `bollingerBands` | Bollinger Bands | Price bouncing off lower 2-SD band or breaking out of a low-volatility squeeze. |
+| `stochastic` | Stochastic Oscillator | %K crossing above %D from oversold territory ($< 20$). |
+| `atr` | Average True Range | Volatility expansion threshold ensuring sufficient price movement. |
+| `obv` | On-Balance Volume | Rising cumulative volume trend confirming upward price trajectory. |
+| `vwap` | VWAP | Intraday institutional benchmark; bullish when price crosses above VWAP. |
+| `adx` | Average Directional Index | Trend strength gauge; signals active trend when ADX $> 25$. |
+| `williamsR` | Williams %R | Fast momentum oscillator; signals recovery from oversold levels ($< -80$). |
+| `ichimoku` | Ichimoku Cloud | Price above Kumo Cloud with Tenkan-sen above Kijun-sen. |
+| `cci` | Commodity Channel Index | Cyclical trend indicator; bullish when crossing above $-100$ or $+100$. |
+| `parabolicSar` | Parabolic SAR | Trailing trend reversal; bullish when SAR dots flip below price candles. |
+| `roc` | Rate of Change | Momentum velocity; percentage price change over lookback window is positive. |
+| `chaikinMoneyFlow` | Chaikin Money Flow | Institutional accumulation; CMF $> 0.05$ indicates continuous buying pressure. |
+| `fibonacciRetracements`| Fibonacci Retracements | Price finding support at key mathematical ratios (38.2%, 50.0%, 61.8%). |
+| `pivotPoints` | Pivot Points | Daily structural support/resistance levels calculated from prior session data. |
+| `gammaExposure` | Gamma Exposure (GEX) | Net dealer gamma positioning; positive GEX pins volatility; negative GEX accelerates breakouts. |
+
+##### Strict Consensus vs. Weighted Signal Strength
+- **Strict Entry Mode (`requireAllIndicatorsGreen = true`):** Demands 100% unanimous agreement. If you enable 5 indicators, all 5 must register a green BUY signal on the same candle. This produces very few, exceptionally high-conviction trades.
+- **Weighted Signal Strength (`requireAllIndicatorsGreen = false`):** Each enabled indicator contributes points toward an aggregate score from 0 to 100. When the composite score meets or exceeds `minSignalStrength` (default 50%), the trade qualifies.
+- **Pro Tip:** For daily swing trading, a `minSignalStrength` of 60–70% with 4–6 complimentary indicators (e.g. RSI + MACD + Volume + Market Direction) provides an optimal balance between opportunity frequency and win rate.
+
+---
+
+#### Chapter 5: 5-Tier Sequential Stop Queue & Multi-Stage Exit Strategies
+
+Exiting winning and losing trades with mathematical discipline is the foundation of long-term profitability. RealizeAlpha provides both primary bracket targets and an institutional 5-Tier Sequential Stop Queue.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Take Profit Target** | `takeProfitPercent` | `double` (0.5–500%)| `10.0%` | Both | Fixed percentage profit target above entry price. |
+| **Stop Loss Limit** | `stopLossPercent` | `double` (0.5–100%)| `5.0%` | Both | Fixed percentage stop loss below entry price. |
+| **Dynamic ATR Stops** | `dynamicAtrStopsEnabled` | `bool` | `false` | Quant Pro | Sets stop-loss and profit targets using 14-period ATR multiples. |
+| **ATR Stop Multiplier** | `atrStopMultiplier` | `double` (0.5–10.0) | `1.5x ATR` | Quant Pro | Multiplier for ATR stop distance (e.g. $1.5 \times \text{ATR}$). |
+| **ATR Target Multiplier**| `atrProfitMultiplier` | `double` (1.0–20.0) | `3.0x ATR` | Quant Pro | Multiplier for ATR profit target (e.g. $3.0 \times \text{ATR}$ = 2:1 R/R). |
+| **Adaptive ATR Ratchet** | `atrRatchetEnabled` | `bool` | `true` | Quant Pro | Automatically widens stops in compression ($1.25\times$) and tightens in expansion ($0.75\times$). |
+| **Trailing Stop** | `trailingStopEnabled` | `bool` | `false` | Both | Trails the highest observed price, locking in gains. |
+| **Trailing Stop Offset** | `trailingStopPercent` | `double` (0.5–50%) | `3.0%` | Both | Percentage pullback from high-water mark that triggers exit. |
+| **Partial Exits** | `enablePartialExits` | `bool` | `false` | Quant Pro | Enables multi-stage scaling out (e.g. sell 50% at +5%, remainder at +10%). |
+| **Intraday Scalp Timer** | `timeBasedExitEnabled` | `bool` | `false` | Quant Pro | Closes positions after a fixed holding duration (`timeBasedExitMinutes`). |
+| **Market Close Exit** | `marketCloseExitEnabled`| `bool` | `false` | Quant Pro | Closes day trades before market close to eliminate overnight gap risk. |
+| **Pre-Close Cutoff Window**| `marketCloseExitMinutes`| `int` (1–120) | `15 min` | Quant Pro | Minutes before 4:00 PM ET close to execute market close exits. |
+| **RSI Overbought Exit** | `rsiExitEnabled` | `bool` | `false` | Quant Pro | Exits when RSI crosses above threshold (e.g. 75). |
+| **Signal Degradation Exit**| `signalStrengthExitEnabled`| `bool` | `false` | Quant Pro | Exits if composite technical signal score falls below minimum threshold. |
+
+##### The 5-Tier Sequential Exit Stop Priority Queue
+
+Located at the bottom of the Exit Strategies panel, this priority queue processes stops sequentially to protect capital against both sudden market structure failures and slow decay:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│             5-TIER SEQUENTIAL STOP PRIORITY QUEUE           │
+├───────┬───────────────────────────────┬─────────────────────┤
+│ TIER  │ STOP MECHANISM                │ PRIMARY OBJECTIVE   │
+├───────┼───────────────────────────────┼─────────────────────┤
+│ Tier 1│ Stop 1: GEX Structural Stop   │ Market Maker Shift  │
+│ Tier 2│ Stop 2: Trailing Peak Drawdown│ Profit Lock-In      │
+│ Tier 3│ Stop 3: Time & Theta Decay    │ Stagnation Burn     │
+│ Tier 4│ Stop 4: Macro Regime Stop     │ Broad Market Shift  │
+│ Tier 5│ Stop 5: Catastrophic Loss     │ Account Fail-Safe   │
+└───────┴───────────────────────────────┴─────────────────────┘
 ```
 
-#### Trade Execution
-```dart
-autoTradeEnabled: false     // Master auto-trade switch
-autoTradeCooldownMinutes: 60 // Minutes between trades
+1. **Stop 1: GEX Structural Stop (`enableGexStructuralStops`)**
+   - **Trigger:** Evaluates options market Gamma Exposure (GEX). If the underlying stock price breaches the Net GEX Flip level (`nTrans`) or Key Call Resistance, options dealers transition from volatility dampening (long gamma) to volatility amplification (short gamma).
+   - **Action:** Exits the position immediately before dealer hedging triggers rapid cascade selling.
 
-strategyConfig: {
-  tradeQuantity: 1,           // Shares per trade
-  dailyTradeLimit: 5,         // Max trades per day
-  maxPositionSize: 100,       // Max shares per position
-  maxPortfolioConcentration: 0.5, // Max 50% in single position
-  takeProfitPercent: 10.0,    // Auto-exit at 10% profit
-  stopLossPercent: 5.0,       // Auto-exit at 5% loss
-  skipRiskGuard: false        // Optional: Skip risk checks for this agent
-}
-```
+2. **Stop 2: Trailing Peak Drawdown Stop (`enableTrailingPeakStop`, `trailingPeakStopPercent`)**
+   - **Trigger:** Tracks the position's highest observed unrealized profit. If the position retreats by `trailingPeakStopPercent` (default 20%) from that peak gain, the stop triggers.
+   - **Example:** A position rises to +25% profit. A 20% giveback triggers an exit at +20% net profit, guaranteeing that a large winning trade never turns into a loss.
 
-#### Indicators
-```dart
-enabledIndicators: {
-  'priceMovement': true,      // Chart patterns & trends
-  'momentum': true,           // RSI (overbought/oversold)
-  'marketDirection': true,    // Market index trend
-  'volume': true,             // Volume confirmation
-  'macd': true,              // MACD crossovers
-  'bollingerBands': true,    // Volatility bands
-  'stochastic': true,        // Stochastic oscillator
-  'atr': true,               // Average True Range
-  'obv': true,               // On-Balance Volume
-}
-```
+3. **Stop 3: Time & Theta Decay Stop (`enableTimeThetaStop`, `minDteStopDays`, `stalledSessionsStopLimit`)**
+   - **Trigger:** Dual time-decay gate designed for options and capital efficiency:
+     - *Options DTE Cutoff:* Closes option contracts when Days to Expiration (DTE) falls below `minDteStopDays` (default 14 days), avoiding the exponential theta decay curve.
+     - *Stalled Sessions Limit:* Liquidates equity or option trades that stay flat within a tight range for `stalledSessionsStopLimit` consecutive days (default 10 sessions), freeing up capital from dead money.
+
+4. **Stop 4: Macro Regime Stop (`enableMacroRegimeStop`)**
+   - **Trigger:** Transition-aware macroeconomic defense. If the broad market shifts into a Defensive (`RISK_OFF`) regime while you are holding an open position that was entered during `RISK_ON`, the system liquidates the position to prevent holding through bear market drawdowns.
+   - **Transition Awareness:** Trades intentionally entered during `RISK_OFF` (via the `reduceSize` policy) are not immediately dumped; only positions whose macro thesis has deteriorated post-entry are liquidated.
+
+5. **Stop 5: Catastrophic Loss Cutoff (`enableCatastrophicStop`, `catastrophicStopPercent`)**
+   - **Trigger:** Unconditional catastrophic emergency floor (default -50% for options, -15% for stocks).
+   - **Action:** If all previous technical indicators, ATR stops, and trailing stops fail due to an overnight gap-down or black swan event, Stop 5 unconditionally liquidates the position at market open to prevent total capital wipeout.
+
+---
+
+#### Chapter 6: Notification Triggers, Extended Hours & Historical Backtesting
+
+The final chapter covers system observability, off-hours session execution, and historical strategy validation.
+
+| Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
+| --- | --- | --- | --- | --- | --- |
+| **Notify on Buy** | `notifyOnBuy` | `bool` | `true` | Quant Pro | Push notification when a new BUY order is placed or staged. |
+| **Notify on Take Profit** | `notifyOnTakeProfit` | `bool` | `true` | Quant Pro | Push notification when a position successfully hits profit target. |
+| **Notify on Stop Loss** | `notifyOnStopLoss` | `bool` | `true` | Quant Pro | Push notification when a position stops out to contain loss. |
+| **Notify on Emergency Stop**| `notifyOnEmergencyStop`| `bool` | `true` | Quant Pro | Critical alert when an automated emergency circuit breaker trips. |
+| **Notify on Missed Exit** | `notifyOnMissedExit` | `bool` | `true` | Quant Pro | Alert when a scheduled market-close or bracket exit cannot fill. |
+| **Daily Activity Summary**| `notifyDailySummary` | `bool` | `false` | Quant Pro | End-of-day portfolio digest recapping trades, P&L, and win rates. |
+| **Pre-Market Trading** | `allowPreMarketTrading`| `bool` | `false` | Quant Pro | Enables order submission during pre-market (4:00 AM – 9:30 AM ET). |
+| **After-Hours Trading** | `allowAfterHoursTrading`| `bool` | `false` | Quant Pro | Enables order submission during after-hours (4:00 PM – 8:00 PM ET). |
+| **Backtest Initial Capital**| `initialCapital` | `double` ($\ge \$100$)| `\$10,000` | Quant Pro | Starting simulated portfolio equity for historical walk-forward backtests.|
+| **Backtest Date Range** | `startDate`, `endDate` | `DateTime` range | 1 Year | Quant Pro | Historical time window over which candles and indicators are simulated. |
+
+##### Extended Hours Trading Guidance
+- **Liquidity Risks:** Pre-market (4:00 AM – 9:30 AM ET) and After-Hours (4:00 PM – 8:00 PM ET) sessions suffer from significantly lower market liquidity than regular market hours. Bid-ask spreads are frequently much wider, and market orders are not permitted by brokerages (orders must be submitted as Limit Orders).
+- **Pro Tip:** Keep extended hours disabled unless executing earnings announcements on mega-cap equities where high off-hours volume exists.
+
+##### Historical Backtesting Engine
+- The built-in backtest runner simulates your exact configured parameters (including dynamic ATR stops, sector limits, and custom indicators) against up to 5 years of historical split- and dividend-adjusted OHLCV price candles.
+- Produces institutional metrics: Total Cumulative Return, Annualized Return (CAGR), Sharpe Ratio, Sortino Ratio, Maximum Drawdown (MDD), Win Rate %, and Profit Factor.
+- Validate your parameters in the backtester and run 10 sessions in Paper Trading mode before toggling real-money execution.
+
+---
+
+---
 
 ## Macro Assessment
 
-The system integrates a high-level macroeconomic analysis engine to contextually adjust trading behavior. This ensures that the agent is not just reacting to individual stock charts but is aware of the broader economic environment.
+The RealizeAlpha system integrates a high-level macroeconomic analysis engine that continuously evaluates broad market conditions. By evaluating market regimes alongside individual stock charts, the agent avoids aggressive buying during broad market downturns and maximizes capital efficiency during healthy bull trends.
 
-### Core Metrics
+### Understanding Market Regimes: Risk-On vs. Risk-Off
 
-*   **Risk Status:** The system determines a global state of `RISK_ON`, `RISK_OFF`, or `NEUTRAL`.
-    *   **RISK_ON:** Favorable conditions (Good growth, low volatility). Position sizes may be increased.
-    *   **RISK_OFF:** Dangerous conditions (High volatility, recession fears). Position sizes are reduced, and defensive sectors are prioritized.
-*   **Yield Curve (10Y - 13W):** Monitors for inversion as a leading recession indicator.
-*   **Sector Rotation:** Dynamically identifies which sectors are Bullish (e.g., Tech, Discretionary) vs Bearish (e.g., Utilities, Consumer Staples) based on momentum.
-*   **Asset Allocation:** Provides a recommended split between Equity, Fixed Income, Cash, and Commodities based on the current cycle.
+To many traders, terms like `RISK_ON` and `RISK_OFF` can sound like financial jargon. In simple terms, market regimes describe the **overall mood and risk appetite of institutional investors** across global markets.
 
-### Integration with Trading
+```
+       ┌────────────────────────────────────────────────────────┐
+       │                 MARKET REGIME SPECTRUM                 │
+       ├─────────────────────────┬──────────────────────────────┤
+       │  BULLISH / CONSTRUCTIVE │    DEFENSIVE / HIGH RISK     │
+       │       [ RISK_ON ]       │         [ RISK_OFF ]         │
+       ├─────────────────────────┼──────────────────────────────┤
+       │ • Low Volatility (VIX)  │ • High Volatility (VIX Spike)│
+       │ • Expanding Breadth     │ • Contracting Breadth        │
+       │ • Normal Yield Curve    │ • Inverted Yield Curve       │
+       │ • Growth Stocks Lead    │ • Safe Havens Lead (Cash/Gold)│
+       │ • Aggressive Entries    │ • Reduced Sizing or Block    │
+       └─────────────────────────┴──────────────────────────────┘
+                               ▲
+                               │
+                      [ NEUTRAL / MIXED ]
+                      • Diverging signals
+                      • Sector rotation
+                      • Balanced sizing
+```
 
-*   **Position Sizing:** In `RISK_OFF` scenarios, the system automatically acts to preserve capital by reducing the size of new entries.
-*   **Validation:** Trades in sectors currently flagged as "Bearish" by the macro model require higher conviction signals to be executed.
+#### Regime Comparison Matrix
+
+| Market Regime | Friendly Display Title | Market Environment & Asset Flow | Volatility (VIX) | Yield Curve | Automated Trading Behavior |
+| --- | --- | --- | --- | --- | --- |
+| **`RISK_ON`** | **Bullish / Constructive** | Investors are optimistic. Capital flows freely into equities, technology, and growth stocks. Market breadth is healthy and pullbacks are bought aggressively. | Subdued ($< 18$) | Normal upward slope | **Full Trading Mode:** Operates at 100% configured position size. High confidence setups execute normally across all supported sectors. |
+| **`RISK_OFF`** | **Defensive / High Market Risk** | Investors are cautious or fearful. Capital flees risky assets into safe havens (cash, short-term Treasuries, gold, utilities). Market breadth is narrow and volatility is elevated. | Elevated ($> 22$) or spiking | Inverted or rapidly steepening from inversion | **Capital Preservation Mode:** Dependent on configured `macroRiskOffPolicy`: ignores, reduces position size, or completely halts new BUY entries. |
+| **`NEUTRAL`** | **Neutral / Transition** | Mixed macroeconomic indicators. Cross-currents exist between strong earnings and inflation fears, or cyclical rotation between sectors without clear broad market leadership. | Moderate ($18 - 22$) | Flat or mixed | **Balanced Stance:** Standard position sizing with standard indicator thresholds. The engine requires normal signal conviction. |
+
+#### What Happens in a `RISK_ON` (Bullish / Constructive) Regime?
+- **Economic Backdrop:** Corporate earnings are solid, credit spreads are tight, inflation is predictable, and central bank policy is supportive or neutral.
+- **Investor Psychology:** Fear of missing out (FOMO) exceeds fear of loss. Equities and risk-bearing assets outperform fixed income.
+- **Trading Implication:** Breakouts tend to follow through, dip-buying strategies succeed, and technical momentum indicators generate fewer false signals. The auto-trading engine executes normal position sizes without artificial headwinds.
+
+#### What Happens in a `RISK_OFF` (Defensive / High Market Risk) Regime?
+- **Economic Backdrop:** Heightened geopolitical tension, unexpected interest rate shocks, recessionary warning signs, or liquidity crunches.
+- **Investor Psychology:** Preservation of principal is paramount. Liquidity demands spike, leading to broad selling across both winning and losing stocks.
+- **Trading Implication:** Breakouts frequently fail into "bull traps", market correlations approach 1.0 (everything falls together), and price swings are erratic. Without risk controls, automated trading systems can suffer rapid drawdown during these regimes.
+
+#### Choosing Your Macro `RISK_OFF` Policy
+
+Under **Agentic Trading Settings → Risk Management**, the **Macro Risk-Off Policy** controls how the auto-trader responds when the macro engine detects a `RISK_OFF` environment:
+
+1. **Ignore (`ignore`)**:
+   - *Behavior:* Continues evaluating and executing BUY signals normally, regardless of the macro regime.
+   - *Best For:* Systematic strategies with tight, fixed technical stop losses, or long-term swing traders who only care about single-stock chart setups.
+2. **Reduce Size (`reduceSize`)** *(Recommended for active traders)*:
+   - *Behavior:* Allows high-probability trades to execute, but cuts position sizing by the configured `riskOffSizeReduction` (default 50%). If a normal trade buys 10 shares, it will only buy 5 shares during `RISK_OFF`. In Reasoning mode, Gemini is explicitly notified that downstream risk controls handle position scaling so that strong ideas are not unnecessarily vetoed.
+   - *Best For:* Traders who want to stay engaged in the market during choppy periods while actively limiting downside dollar risk.
+3. **Block Entries (`blockEntries`)** *(Recommended for conservative traders & beginners)*:
+   - *Behavior:* Completely halts all new BUY orders while `RISK_OFF` is active. No new stock positions will be opened. Existing open positions continue to be actively monitored for Stop Loss and Take Profit exits.
+   - *Best For:* Capital preservation and peace of mind. Avoids entering new positions during market pullbacks and corrections.
+
+### Core Metrics & Data Ingestion
+
+The macro engine evaluates several quantitative pillars to classify the global regime:
+
+*   **Global Risk Status:** Synthesis of volatility, breadth, and macroeconomic trend into `RISK_ON`, `RISK_OFF`, or `NEUTRAL`.
+*   **Yield Curve (10Y - 13W & 10Y - 2Y):** Monitors Treasury spreads for inversions (a classic leading indicator of economic slowdown and recession).
+*   **Sector Momentum & Rotation:** Dynamically evaluates relative strength across all 11 GICS sectors to determine which sectors are Bullish (e.g., Technology, Consumer Discretionary) versus Defensive/Bearish (e.g., Utilities, Consumer Staples).
+*   **Recommended Asset Allocation:** Provides a reference institutional split between Equity, Fixed Income, Cash, and Commodities tailored to the current point in the economic cycle.
+
+### Integration with Trading Pipelines
+
+*   **Systematic Pipeline:** When evaluating a symbol for trade entry, if `macroRiskOffPolicy` is `blockEntries` and the regime is `RISK_OFF`, the proposal is rejected before order formulation. If `reduceSize` is active, the share quantity is scaled down accordingly.
+*   **Agentic Reasoning Pipeline:** The full macro assessment JSON (regime, yield curve, sector momentum) is injected into Gemini's reasoning prompt. Gemini evaluates macro risk as part of its step-by-step institutional synthesis. When `reduceSize` is active, Gemini is informed that risk is managed via position sizing, allowing it to recommend high-conviction ideas without being artificially constrained.
+*   **Macro Exit (Stop 4 in Exit Queue):** If `exitOnRiskOff` is enabled, open positions are automatically liquidated if the macro status transitions from `RISK_ON` or `NEUTRAL` into `RISK_OFF` while the trade is active.
+
+---
 
 ## User Interface
 
