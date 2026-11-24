@@ -193,11 +193,31 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '2. Capital Budget',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    '2. Capital Budget',
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Tooltip(
+                                  message: 'About Capital Budget allocation',
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () =>
+                                        _showCapitalBudgetDialog(context),
+                                    child: Icon(
+                                      Icons.info_outline,
+                                      size: 16,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             Text(
                               'Max portfolio equity allocated to auto-trading',
@@ -294,11 +314,30 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '3. Risk Comfort Level',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '3. Risk Comfort Level',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message: 'About Risk Comfort Levels',
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () => _showRiskComfortDialog(context),
+                                  child: Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
                             'Auto-tunes stop-loss, profit target, and share sizing',
@@ -539,6 +578,141 @@ class SimplifiedTradingControlsWidget extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: color,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void _showCapitalBudgetDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.pie_chart_outline, size: 24),
+            SizedBox(width: 10),
+            Expanded(child: Text('Capital Budget Allocation')),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'What is Capital Budget?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Capital Budget sets the hard upper ceiling on how much of your total portfolio equity automated trading can deploy across all open positions combined.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Real-Time Dollar Estimate',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'The dollar amount displayed next to the percentage is an estimate based on your current total portfolio balance. For example, a 25% allocation on a \$10,000 portfolio allows up to \$2,500 total exposure.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Cash Preservation & Safeguards',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6),
+              Text(
+                '• The unallocated portion of your portfolio remains strictly untouched for your own manual trades or long-term holdings.\n'
+                '• Auto-trading will decline new entries once open position market values reach this threshold until existing trades are closed.\n'
+                '• You can adjust this slider at any time; changes take effect on the next evaluation cycle.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void _showRiskComfortDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.shield_outlined, size: 24),
+            SizedBox(width: 10),
+            Expanded(child: Text('Risk Comfort Levels')),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'How Presets Work',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Selecting a risk level instantly harmonizes your Stop Loss, Profit Target, and default Trade Size to mathematically proven risk-to-reward ratios:',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '🛡️ Conservative',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '• Stop Loss: -3%\n'
+                '• Take Profit: +6% (2:1 reward/risk)\n'
+                '• Trade Sizing: 1 share per trade\n'
+                '• Best for: Capital preservation, testing new market regimes, or cautious investors.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '⚖️ Balanced (Recommended)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '• Stop Loss: -5%\n'
+                '• Take Profit: +10% (2:1 reward/risk)\n'
+                '• Trade Sizing: 5 shares per trade\n'
+                '• Best for: Everyday algorithmic swing trading balancing growth and downside protection.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '⚡ Aggressive',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '• Stop Loss: -10%\n'
+                '• Take Profit: +20% (2:1 reward/risk)\n'
+                '• Trade Sizing: 10 shares per trade\n'
+                '• Best for: High-conviction breakout setups with wider volatility allowances.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '💡 Tip: Switching to Quant Pro allows you to customize each of these values independently.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
           ),
         ],
       ),

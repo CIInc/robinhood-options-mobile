@@ -197,7 +197,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Dynamic ATR Stops & Profit Targets',
-          'Calibrate stop loss and profit targets dynamically using 14-period ATR',
+          'Calibrate stop loss and profit targets dynamically using 14-period ATR volatility instead of fixed percentages',
           widget.dynamicAtrStopsEnabled,
           (val) {
             widget.onDynamicAtrStopsChanged?.call(val);
@@ -357,7 +357,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Stop 1: GEX Structural Stop',
-          'Exit when spot breaches Net GEX Flip or COTMP level',
+          'Exit when spot breaches Net GEX Flip or key resistance/support levels where dealer positioning flips negative',
           widget.enableGexStructuralStops,
           (val) {
             widget.onGexStructuralStopsChanged?.call(val);
@@ -372,7 +372,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Stop 2: Trailing Peak Drawdown',
-          'Exit if position retraces from peak unrealized profit',
+          'Lock in gains: exit if position retraces by this % from its highest unrealized peak profit',
           widget.enableTrailingPeakStop,
           (val) {
             widget.onTrailingPeakStopChanged?.call(val);
@@ -397,7 +397,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Stop 3: Time & Theta Decay Stop',
-          'Exit low-DTE or stalled positions before severe theta decay',
+          'Prevent options theta bleed: exit when days to expiration (DTE) drops below limit, or if position stays flat for N sessions',
           widget.enableTimeThetaStop,
           (val) {
             widget.onTimeThetaStopChanged?.call(val);
@@ -445,7 +445,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Stop 4: Macro Regime Stop',
-          'Exit when macro economic assessment shifts to RISK_OFF or Defensive',
+          'Macro defense: automatically exit position if broad market shifts into a RISK_OFF regime after entry',
           widget.enableMacroRegimeStop,
           (val) {
             widget.onMacroRegimeStopChanged?.call(val);
@@ -459,7 +459,7 @@ class _ExitStrategiesWidgetState extends State<ExitStrategiesWidget> {
         _buildStrategyCard(
           context,
           'Stop 5: Catastrophic Loss Cutoff',
-          'Absolute safety floor to prevent total capital impairment',
+          'Final fail-safe: hard cutoff below entry price that unconditionally liquidates position to prevent catastrophic capital impairment',
           widget.enableCatastrophicStop,
           (val) {
             widget.onCatastrophicStopChanged?.call(val);

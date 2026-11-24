@@ -2147,14 +2147,34 @@ class _AgenticTradingSettingsWidgetState
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Strategy Style',
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Strategy Style',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Tooltip(
+                        message: 'Learn about Strategy Styles',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => _showStrategyStyleDialog(context),
+                          child: Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2404,6 +2424,63 @@ class _AgenticTradingSettingsWidgetState
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showStrategyStyleDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.psychology, size: 24),
+            SizedBox(width: 10),
+            Expanded(child: Text('Strategy Execution Style')),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Systematic Rules',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '• Pure quantitative execution based on mathematical indicator rules.\n'
+                '• Evaluates your selected indicators (RSI, MACD, Bollinger Bands, EMA, etc.) and custom quantitative formulas.\n'
+                '• Deterministic, highly backtestable, and operates with zero AI model latency.\n'
+                '• Ideal for traders with proven technical setups who want disciplined, formulaic execution.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Agentic Reasoning (AI-Powered)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text(
+                '• Autonomous decision engine powered by Google Gemini.\n'
+                '• Synthesizes multi-factor market intelligence: macro economic regime, gamma exposure (GEX), news sentiment, SEC insider filings, and technical consensus.\n'
+                '• Produces explicit chain-of-thought rationales explaining why each trade was accepted or rejected.\n'
+                '• Requires "Autonomous Agentic Trading" enabled in Beta Labs.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '🛡️ Universal Safeguards: Both styles strictly enforce all RiskGuard parameters (Stop Loss, Profit Target, Capital Budget, and Sector limits).',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
       ),
     );
   }
@@ -4537,7 +4614,7 @@ class _AgenticTradingSettingsWidgetState
             labelStyle:
                 TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
             helperText:
-                'Only trade specific symbols (leave empty for all supported)',
+                'Target symbols to scan. When empty, scans liquid S&P 500 universe. Add symbols to restrict scans exclusively to your watchlist.',
             helperStyle: TextStyle(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7)),
             prefixIcon: Icon(Icons.filter_list,
@@ -4943,7 +5020,7 @@ class _AgenticTradingSettingsWidgetState
                 style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: 4),
             Text(
-              'Determines the candle size used for indicator analysis.',
+              'Determines candle resolution for indicator analysis: 15m (intraday momentum), 1h (swing trading), 1d (position swing).',
               style:
                   TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
             ),
@@ -4999,7 +5076,7 @@ class _AgenticTradingSettingsWidgetState
           controller: _checkIntervalController,
           label: 'Foreground Check Frequency (minutes)',
           helperText:
-              'Controls foreground checks only; background checks are OS scheduled about every 15 minutes.',
+              'Scan frequency while the app is open. When backgrounded, the OS schedules automated evaluations every ~15 minutes.',
           icon: Icons.update,
           min: 1,
           suffixText: 'min',
@@ -5008,7 +5085,8 @@ class _AgenticTradingSettingsWidgetState
         _buildNumberField(
           controller: _autoTradeCooldownController,
           label: 'Cooldown Period (minutes)',
-          helperText: 'Minimum time between trades',
+          helperText:
+              'Minimum wait time between automated trades to prevent over-trading',
           icon: Icons.timer,
           min: 1,
           suffixText: 'min',
@@ -5032,7 +5110,7 @@ class _AgenticTradingSettingsWidgetState
               _buildSimpleSwitch(
                 context,
                 'Pre-Market',
-                '4:00 AM - 9:30 AM ET',
+                '4:00 AM - 9:30 AM ET (pre-market liquidity is thin; wider bid-ask spreads apply)',
                 agenticTradingProvider.config.allowPreMarketTrading,
                 (val) {
                   final newConfig = _createFullConfigFromSettings(
@@ -5048,7 +5126,7 @@ class _AgenticTradingSettingsWidgetState
               _buildSimpleSwitch(
                 context,
                 'After-Hours',
-                'Regular close - 8:00 PM ET; starts earlier on early-close days',
+                'Regular close - 8:00 PM ET (after-hours liquidity is thin; wider bid-ask spreads apply)',
                 agenticTradingProvider.config.allowAfterHoursTrading,
                 (val) {
                   final newConfig = _createFullConfigFromSettings(
@@ -5125,7 +5203,8 @@ class _AgenticTradingSettingsWidgetState
         _buildNumberField(
           controller: _tradeQuantityController,
           label: 'Trade Quantity',
-          helperText: 'Number of shares per trade',
+          helperText:
+              'Default base shares per trade. Overridden by Dynamic Sizing when active, but always capped by Max Position Size.',
           icon: Icons.shopping_cart,
           min: 1,
         ),
@@ -5133,7 +5212,7 @@ class _AgenticTradingSettingsWidgetState
         _buildSwitchListTile(
           'enableDynamicPositionSizing',
           'Enable Dynamic Sizing',
-          'Adjust trade size based on ATR volatility',
+          'Size shares dynamically using ATR volatility and risk-per-trade % (overrides base Trade Quantity)',
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
@@ -5177,7 +5256,7 @@ class _AgenticTradingSettingsWidgetState
         _buildNumberField(
           controller: _maxPositionSizeController,
           label: 'Max Position Size',
-          helperText: 'Maximum shares for any position',
+          helperText: 'Hard ceiling on share count for any single position',
           icon: Icons.horizontal_rule,
           min: 1,
         ),
@@ -5198,7 +5277,8 @@ class _AgenticTradingSettingsWidgetState
         _buildNumberField(
           controller: _dailyTradeLimitController,
           label: 'Daily Trade Limit',
-          helperText: 'Maximum trades per day',
+          helperText:
+              'Maximum automated trades allowed per day (resets at market open)',
           icon: Icons.calendar_today,
           min: 1,
         ),
@@ -5207,8 +5287,8 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 12),
         _buildSwitchListTile(
           'enableSectorLimits',
-          'Sector Limits',
-          'Limit exposure to specific sectors',
+          'Sector Exposure Limits',
+          'Cap maximum portfolio capital allocated to any single GICS market sector',
           agenticTradingProvider,
           defaultValue: false,
           value:
@@ -5224,7 +5304,8 @@ class _AgenticTradingSettingsWidgetState
           extraContent: _buildNumberField(
             controller: _maxSectorExposureController,
             label: 'Max Sector Exposure %',
-            helperText: 'Max allocation per sector (0-100)',
+            helperText:
+                'Maximum portfolio percentage allocated to a single sector',
             icon: Icons.pie_chart,
             isDecimal: true,
             min: 0,
@@ -5236,7 +5317,7 @@ class _AgenticTradingSettingsWidgetState
         _buildSwitchListTile(
           'enableCorrelationChecks',
           'Correlation Checks',
-          'Avoid highly correlated positions',
+          'Reject new entries if correlation with existing open holdings exceeds threshold',
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
@@ -5252,7 +5333,8 @@ class _AgenticTradingSettingsWidgetState
           extraContent: _buildNumberField(
             controller: _maxCorrelationController,
             label: 'Max Correlation',
-            helperText: 'Max correlation coefficient (0-100)',
+            helperText:
+                'Max correlation with existing holdings to enforce diversification',
             icon: Icons.compare_arrows,
             isDecimal: true,
             min: 0,
@@ -5263,8 +5345,8 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         _buildSwitchListTile(
           'enableVolatilityFilters',
-          'Volatility Filters',
-          'Filter trades based on volatility (IV Rank)',
+          'Volatility Filters (IV Rank)',
+          'Restrict trade entries to symbols whose Implied Volatility Rank is within target bounds',
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
@@ -5283,7 +5365,7 @@ class _AgenticTradingSettingsWidgetState
                 child: _buildNumberField(
                   controller: _minVolatilityController,
                   label: 'Min Volatility',
-                  helperText: 'Min IV Rank (0-100)',
+                  helperText: 'Minimum IV Rank threshold (0-100%)',
                   icon: Icons.show_chart,
                   isDecimal: true,
                   min: 0,
@@ -5296,7 +5378,7 @@ class _AgenticTradingSettingsWidgetState
                 child: _buildNumberField(
                   controller: _maxVolatilityController,
                   label: 'Max Volatility',
-                  helperText: 'Max IV Rank (0-100)',
+                  helperText: 'Maximum IV Rank ceiling (0-100%)',
                   icon: Icons.show_chart,
                   isDecimal: true,
                   min: 0,
@@ -5310,8 +5392,8 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         _buildSwitchListTile(
           'enableDrawdownProtection',
-          'Drawdown Protection',
-          'Stop trading if drawdown exceeds limit',
+          'Drawdown Protection (Circuit Breaker)',
+          'Automatically halt auto-trading if cumulative peak-to-trough account drawdown exceeds threshold',
           agenticTradingProvider,
           defaultValue: false,
           value: agenticTradingProvider
@@ -5327,7 +5409,8 @@ class _AgenticTradingSettingsWidgetState
           extraContent: _buildNumberField(
             controller: _maxDrawdownController,
             label: 'Max Drawdown %',
-            helperText: 'Stop trading at this drawdown',
+            helperText:
+                'Halt all auto-trading if peak-to-trough account loss reaches this %',
             icon: Icons.trending_down,
             isDecimal: true,
             min: 0,
@@ -5369,13 +5452,44 @@ class _AgenticTradingSettingsWidgetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Macro RISK_OFF Policy',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: colorScheme.onSurface,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Macro RISK_OFF Policy',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Defensive Market Regime Action',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: isActive
+                                      ? activeColor
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Explain Risk-On vs. Risk-Off regimes',
+                          onPressed: () => _showMacroRegimeHelpDialog(context),
+                          icon: Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -5470,6 +5584,140 @@ class _AgenticTradingSettingsWidgetState
                 fontWeight: FontWeight.bold,
               ),
         ),
+      ),
+    );
+  }
+
+  void _showMacroRegimeHelpDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(Icons.public, color: colorScheme.primary, size: 28),
+        title: const Text('Understanding Market Regimes'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'What is a Market Regime?',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Market regimes classify broad market conditions using 21 macroeconomic indicators, including Treasury yield spreads, VIX volatility, credit spreads, and inflation expectations.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildRegimeExplanationRow(
+                context,
+                icon: Icons.trending_up,
+                color: Colors.green,
+                title: '🟢 RISK-ON (Bullish / Favorable)',
+                description:
+                    'Strong market tailwinds, low volatility (VIX < 18), and tight credit spreads. Favorable for momentum, breakouts, and full position sizing.',
+              ),
+              const SizedBox(height: 10),
+              _buildRegimeExplanationRow(
+                context,
+                icon: Icons.trending_down,
+                color: Colors.red,
+                title: '🔴 RISK-OFF (Defensive / High Risk)',
+                description:
+                    'Elevated systemic stress, rising fear (VIX > 25), inverted yield curves, or widening credit spreads. High risk of trade failure; defensive capital preservation is key.',
+              ),
+              const SizedBox(height: 10),
+              _buildRegimeExplanationRow(
+                context,
+                icon: Icons.trending_flat,
+                color: Colors.amber,
+                title: '🟡 NEUTRAL (Mixed / Transition)',
+                description:
+                    'Conflicting economic signals and sector rotation. Best suited for range-bound income and high-quality setups.',
+              ),
+              const SizedBox(height: 14),
+              Divider(color: colorScheme.outline.withValues(alpha: 0.15)),
+              const SizedBox(height: 10),
+              Text(
+                'How the Policy Protects You',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '• Ignore: Continues buying normally regardless of macro market headwinds.\n'
+                '• Reduce Size (Recommended): Automatically scales down BUY sizes by your configured percentage (e.g. 50%) during RISK_OFF regimes to limit downside exposure.\n'
+                '• Block Entries: Halts all automated new BUY orders until the broad market stabilizes.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegimeExplanationRow(
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String description,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }

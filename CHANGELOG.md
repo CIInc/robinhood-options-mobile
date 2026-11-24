@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.6] - 2026-11-24
+
+**Automated Trading Configuration Handbook & Plain-English Macro Regime**
+
+### Added
+- **Automated Trading Configuration Handbook ([`docs/agentic-trading.md`](docs/agentic-trading.md)):**
+  - Published an authoritative 6-chapter operational handbook documenting all 45+ configuration parameters across Simplified Mode (`simplified`) and Quant Pro Mode (`quantPro`).
+  - Covers Master Controls, Strategy Formulation, RiskGuard Portfolio Protection, Quantitative Indicators & Custom Formulas, 5-Tier GEX Sequential Stop Queue, and Walk-Forward Backtesting.
+- **Interactive Educational Dialogs in Simplified Trading Controls ([#344](https://github.com/CIInc/robinhood-options-mobile/issues/344)):**
+  - **Strategy Style Dialog (`_showStrategyStyleDialog`):** Interactive modal explaining the distinction between Systematic (pure deterministic multi-indicator convergence) and Reasoning (Gemini AI Chain-of-Thought with macro regime synthesis).
+  - **Risk Comfort Dialog (`_showRiskComfortDialog`):** Explains the exact mathematical risk-to-reward mechanics behind the 3 presets:
+    - *Conservative:* -3% Stop Loss, +6% Take Profit (2:1 R:R), 1 share sizing.
+    - *Balanced (Recommended):* -5% Stop Loss, +10% Take Profit (2:1 R:R), 5 shares sizing.
+    - *Aggressive:* -10% Stop Loss, +20% Take Profit (2:1 R:R), 10 shares sizing.
+- **Plain-English Macro Regime Guidance ([`lib/model/macro_assessment.dart`](src/robinhood_options_mobile/lib/model/macro_assessment.dart)):**
+  - Added `statusFriendlyTitle` to `MacroAssessment` (`Bullish / Constructive (Risk-On)`, `Defensive / High Risk (Risk-Off)`, `Neutral / Transition`).
+  - Added `statusExplanation` providing one-sentence macro implications to guide investor posture.
+  - Enhanced `MacroAssessmentDashboardWidget` with plain-English regime explanations, responsive metric cards, and verified unit tests in `macro_assessment_test.dart`.
+
+### Changed
+- **Macro Risk-Off Policy Explanations:**
+  - Updated `MacroRiskOffPolicy` descriptions (`lib/model/trade_strategy_config.dart`) to explicitly describe their operational impact on BUY orders (`ignore`, `reduceSize`, `blockEntries`).
+- **Settings Tooltips:**
+  - Added interactive info buttons and tooltips for Strategy Style and Risk Comfort in `AgenticTradingSettingsWidget`.
+
 ## [0.62.5] - 2026-11-23
 
 **Progressive Disclosure UI, Macro Risk-Off Policy & Market Data Staleness Hardening**

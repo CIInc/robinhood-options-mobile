@@ -29,6 +29,10 @@ void main() {
       expect(assessment.cyclePhase, 'Expansion');
       expect(assessment.effectiveInflationYoY, 2.4);
       expect(assessment.yieldCurveSpreadDisplay, '+18 bps');
+      expect(
+          assessment.statusFriendlyTitle, 'Bullish / Constructive (Risk-On)');
+      expect(assessment.statusExplanation,
+          contains('favorable for growth assets'));
     });
 
     test(
@@ -58,6 +62,9 @@ void main() {
       expect(assessment.cyclePhase, 'Late-Cycle');
       expect(assessment.effectiveInflationYoY, 3.1);
       expect(assessment.yieldCurveSpreadDisplay, '+2 bps');
+      expect(assessment.statusFriendlyTitle, 'Neutral / Transition');
+      expect(assessment.statusExplanation,
+          contains('Conflicting economic signals'));
     });
 
     test(
@@ -88,6 +95,10 @@ void main() {
       expect(assessment.cyclePhase, 'Recession Watch');
       expect(assessment.effectiveInflationYoY, 1.8);
       expect(assessment.yieldCurveSpreadDisplay, '-24 bps');
+      expect(
+          assessment.statusFriendlyTitle, 'Defensive / High Risk (Risk-Off)');
+      expect(assessment.statusExplanation,
+          contains('Elevated market risk detected'));
     });
 
     test('Parses explicit economicCycle, inflationYoY, and yieldCurve from map',
