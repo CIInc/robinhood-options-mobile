@@ -34,6 +34,8 @@ import 'package:robinhood_options_mobile/widgets/strategy_archetype_card.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_archetype_detail_bottom_sheet.dart';
 import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
+import 'package:robinhood_options_mobile/widgets/simplified_trading_controls_widget.dart';
+import 'package:robinhood_options_mobile/widgets/quant_pro_settings_view.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -341,6 +343,7 @@ class _AgenticTradingSettingsWidgetState
 
     if (widget.initialSection == 'entryStrategies') {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await provider.setUiMode(AgenticTradingUiMode.quantPro);
         // Add a small delay to ensure the widget is fully built and expanded
         await Future.delayed(const Duration(milliseconds: 300));
         if (_entryStrategiesKey.currentContext != null) {
@@ -354,6 +357,7 @@ class _AgenticTradingSettingsWidgetState
       });
     } else if (widget.initialSection == 'riskManagement') {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await provider.setUiMode(AgenticTradingUiMode.quantPro);
         await Future.delayed(const Duration(milliseconds: 300));
         if (_riskManagementKey.currentContext != null) {
           Scrollable.ensureVisible(
@@ -1186,6 +1190,25 @@ class _AgenticTradingSettingsWidgetState
       _riskPerTradeController.text =
           (template.config.riskPerTrade * 100).toString();
       _atrMultiplierController.text = template.config.atrMultiplier.toString();
+      _rocPeriodController.text = template.config.rocPeriod.toString();
+      _trailingPeakStopPercentController.text =
+          template.config.trailingPeakStopPercent.toString();
+      _atrStopMultiplierController.text =
+          template.config.atrStopMultiplier.toString();
+      _atrProfitMultiplierController.text =
+          template.config.atrProfitMultiplier.toString();
+      _minDteStopDaysController.text =
+          template.config.minDteStopDays.toString();
+      _stalledSessionsStopLimitController.text =
+          template.config.stalledSessionsStopLimit.toString();
+      _catastrophicStopPercentController.text =
+          template.config.catastrophicStopPercent.toString();
+      final riskOffPct = template.config.riskOffSizeReduction * 100;
+      _riskOffSizeReductionController.text = riskOffPct % 1 == 0
+          ? riskOffPct.toInt().toString()
+          : riskOffPct.toString();
+      _gexExitThresholdController.text =
+          (template.config.gexExitThreshold / 1e6).toString();
 
       _symbolFilter = List.from(template.config.symbolFilter);
     });
@@ -1477,6 +1500,124 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  String? _formattedCapitalBudgetCap(
+    BuildContext context,
+    AgenticTradingProvider provider,
+  ) {
+    AccountStore? accountStore;
+    try {
+      accountStore = Provider.of<AccountStore>(context);
+    } on ProviderNotFoundException {
+      return null;
+    }
+    if (!accountStore.showBalances) {
+      return r'$••••••';
+    }
+    double? equity;
+    if (provider.config.paperTradingMode) {
+      try {
+        final paperStore = Provider.of<PaperTradingStore>(context);
+        if (paperStore.equity > 0) {
+          equity = paperStore.equity;
+        }
+      } on ProviderNotFoundException {
+        // PaperTradingStore optional in widget tests
+      }
+    }
+    equity ??= accountStore.selectedAccount?.totalValue ??
+        accountStore.selectedAccount?.buyingPower ??
+        accountStore.selectedAccount?.portfolioCash;
+    if (equity == null || equity <= 0) return null;
+    final cap = equity *
+        provider.config.strategyConfig.maxPortfolioConcentration
+            .clamp(0.0, 1.0);
+    return NumberFormat.simpleCurrency(decimalDigits: 0).format(cap);
+  }
+
+  Future<void> _handleCapitalAllocationChanged(
+    AgenticTradingProvider provider,
+    double concentrationFraction,
+  ) async {
+    final pct = (concentrationFraction.clamp(0.05, 1.0) * 100);
+    setState(() {
+      _maxPortfolioConcentrationController.text =
+          pct % 1 == 0 ? pct.toInt().toString() : pct.toStringAsFixed(1);
+    });
+    await provider.applyCapitalAllocation(
+        concentrationFraction, widget.userDocRef);
+  }
+
+  Future<void> _handleRiskComfortChanged(
+    AgenticTradingProvider provider,
+    RiskComfortLevel level,
+  ) async {
+    setState(() {
+      _stopLossPercentController.text = level.stopLossPercent.toString();
+      _takeProfitPercentController.text = level.takeProfitPercent.toString();
+      _tradeQuantityController.text = level.tradeQuantity.toString();
+      _riskPerTradeController.text = (level.riskPerTrade * 100).toString();
+    });
+    await provider.applyRiskComfortLevel(level, widget.userDocRef);
+  }
+
+  void _openBetaLabs() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BetaLabsWidget(
+          user: widget.user,
+          userDocRef: widget.userDocRef,
+          userRole: widget.user.role,
+          featureAccessService: _featureAccessService,
+          service: widget.service,
+        ),
+      ),
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Widget _buildUiModeSelector(
+    BuildContext context,
+    AgenticTradingProvider agenticTradingProvider,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<AgenticTradingUiMode>(
+          key: const ValueKey('agentic-ui-mode-selector'),
+          style: const ButtonStyle(
+            visualDensity: VisualDensity.compact,
+          ),
+          segments: const [
+            ButtonSegment<AgenticTradingUiMode>(
+              value: AgenticTradingUiMode.simplified,
+              icon: Icon(Icons.tune, size: 16),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('Simplified'),
+              ),
+            ),
+            ButtonSegment<AgenticTradingUiMode>(
+              value: AgenticTradingUiMode.quantPro,
+              icon: Icon(Icons.science_outlined, size: 16),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('Quant Pro'),
+              ),
+            ),
+          ],
+          selected: {agenticTradingProvider.uiMode},
+          onSelectionChanged: (selection) {
+            if (selection.isEmpty) return;
+            unawaited(agenticTradingProvider.setUiMode(selection.first));
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1501,6 +1642,15 @@ class _AgenticTradingSettingsWidgetState
                       source: agenticTradingProvider.config.paperQuoteSource,
                     ) !=
                     null;
+            final isSimplified = agenticTradingProvider.uiMode ==
+                AgenticTradingUiMode.simplified;
+            final statusHeader =
+                _buildStatusHeader(context, agenticTradingProvider);
+            final monitoringCard =
+                _buildMonitoringCard(context, agenticTradingProvider);
+            final entryReadiness =
+                _buildEntryReadiness(context, agenticTradingProvider);
+
             return Form(
               key: _formKey,
               child: SingleChildScrollView(
@@ -1509,28 +1659,96 @@ class _AgenticTradingSettingsWidgetState
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
+                    _buildUiModeSelector(context, agenticTradingProvider),
                     if (!hasSupportedBrokerage)
                       _buildBrokeragePrerequisite(
                         context,
                         hasBrokerage: hasBrokerage,
                         hasPaperQuoteSource: hasPaperQuoteSource,
                       ),
-                    _buildStatusHeader(context, agenticTradingProvider),
-                    _buildMonitoringCard(context, agenticTradingProvider),
-                    _buildEntryReadiness(context, agenticTradingProvider),
-                    const SizedBox(height: 16),
-                    // _buildSignalQueue(context, agenticTradingProvider),
-                    _buildTemplateList(context),
-                    _buildExecutionSettings(context, agenticTradingProvider),
-                    _buildRiskManagement(context, agenticTradingProvider,
-                        key: _riskManagementKey),
-                    _buildEntryStrategies(context, agenticTradingProvider,
-                        initiallyExpanded:
-                            widget.initialSection == 'entryStrategies',
-                        key: _entryStrategiesKey),
-                    _buildExitStrategies(context, agenticTradingProvider),
-                    _buildNotificationSettings(context, agenticTradingProvider),
-                    _buildBacktesting(context, agenticTradingProvider),
+                    if (isSimplified) ...[
+                      SimplifiedTradingControlsWidget(
+                        config: agenticTradingProvider.config,
+                        selectedTemplateId: _selectedTemplateId,
+                        emergencyStopActivated:
+                            agenticTradingProvider.emergencyStopActivated,
+                        isAgenticTradingEnabled: _isAgenticTradingEnabled,
+                        formattedDollarCap: _formattedCapitalBudgetCap(
+                          context,
+                          agenticTradingProvider,
+                        ),
+                        masterControlCard: statusHeader,
+                        onApplyArchetype: _applyArchetype,
+                        onInspectArchetype: (archetype) {
+                          final isSelected = _selectedTemplateId ==
+                                  'default_${archetype.id}' ||
+                              _selectedTemplateId == archetype.id;
+                          final isLocked =
+                              archetype.tradingMode == TradingMode.reasoning &&
+                                  !_isAgenticTradingEnabled;
+                          StrategyArchetypeDetailBottomSheet.show(
+                            context: context,
+                            archetype: archetype,
+                            isCurrentlyActive: isSelected,
+                            isLocked: isLocked,
+                            onUnlock: _openBetaLabs,
+                            onApply: _applyArchetype,
+                            onClone: _cloneArchetypeToTemplate,
+                          );
+                        },
+                        onCapitalAllocationChanged: (fraction) =>
+                            _handleCapitalAllocationChanged(
+                          agenticTradingProvider,
+                          fraction,
+                        ),
+                        onRiskComfortChanged: (level) =>
+                            _handleRiskComfortChanged(
+                          agenticTradingProvider,
+                          level,
+                        ),
+                        onActivateEmergencyStop: () async {
+                          await agenticTradingProvider.activateEmergencyStop(
+                            userDocRef: widget.userDocRef,
+                          );
+                        },
+                        onSwitchToQuantPro: () {
+                          unawaited(agenticTradingProvider
+                              .setUiMode(AgenticTradingUiMode.quantPro));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      monitoringCard,
+                      entryReadiness,
+                    ] else ...[
+                      statusHeader,
+                      monitoringCard,
+                      entryReadiness,
+                      const SizedBox(height: 16),
+                      // _buildSignalQueue(context, agenticTradingProvider),
+                      QuantProSettingsView(
+                        templateListSection: _buildTemplateList(context),
+                        executionSettingsSection: _buildExecutionSettings(
+                            context, agenticTradingProvider),
+                        riskManagementSection: _buildRiskManagement(
+                            context, agenticTradingProvider,
+                            key: _riskManagementKey),
+                        entryStrategiesSection: _buildEntryStrategies(
+                            context, agenticTradingProvider,
+                            initiallyExpanded:
+                                widget.initialSection == 'entryStrategies',
+                            key: _entryStrategiesKey),
+                        exitStrategiesSection: _buildExitStrategies(
+                            context, agenticTradingProvider),
+                        notificationSettingsSection: _buildNotificationSettings(
+                            context, agenticTradingProvider),
+                        backtestingSection:
+                            _buildBacktesting(context, agenticTradingProvider),
+                        onSwitchToSimplified: () {
+                          unawaited(agenticTradingProvider
+                              .setUiMode(AgenticTradingUiMode.simplified));
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1927,45 +2145,54 @@ class _AgenticTradingSettingsWidgetState
                   color: isReasoning ? Colors.purple : Colors.teal,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Strategy Style',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+                Expanded(
+                  child: Text(
+                    'Strategy Style',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (isReasoning
-                            ? (isAgenticEnabled ? Colors.purple : Colors.orange)
-                            : Colors.teal)
-                        .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
                       color: (isReasoning
                               ? (isAgenticEnabled
                                   ? Colors.purple
                                   : Colors.orange)
                               : Colors.teal)
-                          .withValues(alpha: 0.25),
+                          .withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: (isReasoning
+                                ? (isAgenticEnabled
+                                    ? Colors.purple
+                                    : Colors.orange)
+                                : Colors.teal)
+                            .withValues(alpha: 0.25),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    isReasoning
-                        ? (isAgenticEnabled
-                            ? 'Agentic AI Active'
-                            : 'Agentic Disabled')
-                        : 'Systematic Active',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isReasoning
-                          ? (isAgenticEnabled ? Colors.purple : Colors.orange)
-                          : Colors.teal,
+                    child: Text(
+                      isReasoning
+                          ? (isAgenticEnabled
+                              ? 'Agentic AI Active'
+                              : 'Agentic Disabled')
+                          : 'Systematic Active',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isReasoning
+                            ? (isAgenticEnabled ? Colors.purple : Colors.orange)
+                            : Colors.teal,
+                      ),
                     ),
                   ),
                 ),
@@ -2105,12 +2332,15 @@ class _AgenticTradingSettingsWidgetState
                           Icon(Icons.auto_awesome,
                               size: 16, color: colorScheme.primary),
                           const SizedBox(width: 8),
-                          Text(
-                            'Cognitive Synthesis Engine',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.primary,
+                          Expanded(
+                            child: Text(
+                              'Cognitive Synthesis Engine',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
                             ),
                           ),
                         ],
@@ -2146,12 +2376,15 @@ class _AgenticTradingSettingsWidgetState
                           Icon(Icons.functions,
                               size: 16, color: colorScheme.onSurfaceVariant),
                           const SizedBox(width: 8),
-                          Text(
-                            'Deterministic Execution',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onSurfaceVariant,
+                          Expanded(
+                            child: Text(
+                              'Deterministic Execution',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ],
@@ -3369,12 +3602,15 @@ class _AgenticTradingSettingsWidgetState
                 Icon(Icons.monitor_heart_outlined,
                     size: 18, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  'Trading Monitoring',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+                Expanded(
+                  child: Text(
+                    'Trading Monitoring',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -4565,7 +4801,10 @@ class _AgenticTradingSettingsWidgetState
                         newConfig, widget.userDocRef);
                   },
             activeColor: Colors.blue,
-            title: Row(
+            title: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 Text(
                   'Paper Trading Mode',
@@ -4575,7 +4814,6 @@ class _AgenticTradingSettingsWidgetState
                     color: colorScheme.onSurface,
                   ),
                 ),
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -4633,7 +4871,10 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           activeColor: Colors.amber[800],
-          title: Row(
+          title: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
               Text(
                 'Require Approval',
@@ -4643,7 +4884,6 @@ class _AgenticTradingSettingsWidgetState
                   color: colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 8,
@@ -4871,6 +5111,8 @@ class _AgenticTradingSettingsWidgetState
   Widget _buildRiskManagement(
       BuildContext context, AgenticTradingProvider agenticTradingProvider,
       {Key? key}) {
+    final dollarCap =
+        _formattedCapitalBudgetCap(context, agenticTradingProvider);
     return _buildSection(
       key: key,
       context: context,
@@ -4941,8 +5183,10 @@ class _AgenticTradingSettingsWidgetState
         const SizedBox(height: 16),
         _buildNumberField(
           controller: _maxPortfolioConcentrationController,
-          label: 'Max Portfolio Concentration %',
-          helperText: 'Max percentage of portfolio',
+          label: 'Capital Budget (Max Concentration %)',
+          helperText: dollarCap != null
+              ? 'Max portfolio equity allocated (≈ $dollarCap)'
+              : 'Max percentage of portfolio equity allocated to auto-trading',
           icon: Icons.pie_chart,
           isDecimal: true,
           min: 0,

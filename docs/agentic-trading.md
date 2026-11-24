@@ -1054,6 +1054,28 @@ Access via:
 - User Menu → Automated Trading
 - App Bar → Auto-trade status badge (when active)
 
+#### Progressive Disclosure UI (Simplified Mode vs. Quant Pro Mode)
+
+`AgenticTradingSettingsWidget` supports a two-tier progressive disclosure experience persisted locally via `SharedPreferences` (`agentic_trading_ui_mode`, exposed via `AgenticTradingProvider.uiMode` / `setUiMode`) with a top `SegmentedButton<AgenticTradingUiMode>` selector:
+
+1. **Simplified Mode (`AgenticTradingUiMode.simplified`, Default):** Rendered via `SimplifiedTradingControlsWidget` (`lib/widgets/simplified_trading_controls_widget.dart`), surfacing 4 essential controls for everyday traders:
+   - **Master Control & Emergency Stop:** Primary Auto-Trading toggle, Paper vs. Live mode switcher (with confirmation guardrails), `Require Approval` badge (`AUTO`/`REVIEW`), and an always-available Emergency Stop button (`simplified-emergency-stop-button`).
+   - **1-Tap Strategy Selection:** Curated Strategy Archetypes (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) with walk-forward performance badges and inline `BETA` card lock indicators (opening `StrategyArchetypeDetailBottomSheet` to unlock in Beta Labs when disabled).
+   - **Capital Budget Slider:** Continuous slider (`5%–100%` of portfolio equity, `maxPortfolioConcentration`) with horizontally scrollable single-row quick-preset chips (`10%`, `25%`, `50%`, `75%`, `100%`) and an `AccountStore.showBalances`-aware dollar allocation preview.
+   - **3-State Risk Comfort Level (`RiskComfortLevel`):** Smoothly tunes `stopLossPercent`, `takeProfitPercent`, `tradeQuantity`, and `riskPerTrade` via `AgenticTradingProvider.applyRiskComfortLevel`:
+
+| Risk Comfort Level | Stop Loss | Take Profit | Trade Quantity | Risk Per Trade |
+| :--- | :---: | :---: | :---: | :---: |
+| **Conservative** | `3.0%` | `6.0%` | `1` share | `1.0%` |
+| **Balanced** | `5.0%` | `10.0%` | `2` shares | `2.0%` |
+| **Aggressive** | `10.0%` | `20.0%` | `5` shares | `3.0%` |
+
+   - If custom Quant Pro risk parameters are active that do not match a preset, Simplified Mode displays an informational badge and leaves custom stops untouched unless the user explicitly taps a preset.
+
+2. **Quant Pro Mode (`AgenticTradingUiMode.quantPro`):** Rendered via `QuantProSettingsView` (`lib/widgets/quant_pro_settings_view.dart`), unlocking strategy templates, execution timing and extended-hours controls, Risk Management (including the aligned `Capital Budget (Max Concentration %)` field with live `AccountStore.showBalances`-aware dollar cap helper), sector/correlation/drawdown caps, 5-tier GEX & Dynamic ATR stops, all 19 technical indicator checkboxes, custom indicator formulas, exit strategies, notifications, backtesting, and OEM background execution journals.
+
+**Strict State Preservation:** Switching between Simplified and Quant Pro modes never overwrites or resets underlying `AgenticTradingConfig` / `TradeStrategyConfig` values. Deep links specifying `initialSection` (`entryStrategies` or `riskManagement`) automatically open Quant Pro Mode and scroll to the target section.
+
 **Recent UI Improvements (commit 861f2bc):**
 - **Auto-Save**: Settings automatically saved on every change (no manual save button)
 - **Countdown Timer**: Real-time countdown to next auto-trade check

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -46,6 +47,7 @@ void main() {
     late MockBrokerageService mockService;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       mockService = MockBrokerageService();
       testUser = User(
         name: 'Test User',
@@ -114,8 +116,11 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Verify widget renders without errors
+      // Verify widget renders without errors in Simplified Mode by default
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
+      expect(find.text('Execution Settings'), findsNothing);
+      await tester.tap(find.text('Quant Pro'));
+      await tester.pumpAndSettle();
       expect(find.text('Execution Settings'), findsOneWidget);
       expect(
         find.text(
@@ -468,6 +473,17 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      // Simplified Mode omits the redundant Beta Labs banner between controls 1 and 2
+      expect(
+        find.textContaining(
+            'Autonomous Agentic Trading (AI) is disabled in Beta Labs'),
+        findsNothing,
+      );
+
+      // Quant Pro Mode displays the Beta Labs lock banner on Strategy Style
+      await tester.tap(find.text('Quant Pro'));
+      await tester.pumpAndSettle();
+
       expect(
         find.textContaining(
             'Autonomous Agentic Trading (AI) is disabled in Beta Labs'),
@@ -500,6 +516,8 @@ void main() {
         ),
       );
 
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Quant Pro'));
       await tester.pumpAndSettle();
 
       expect(
@@ -867,6 +885,10 @@ void main() {
           ),
         );
 
+        await tester.pumpAndSettle();
+        final quantProButton = find.text('Quant Pro');
+        await tester.ensureVisible(quantProButton);
+        await tester.tap(quantProButton);
         await tester.pumpAndSettle();
         final execSettings = find.text('Execution Settings');
         await tester.ensureVisible(execSettings);

@@ -13,6 +13,109 @@ enum PaperQuoteSource {
   schwab,
 }
 
+/// Progressive disclosure mode for [AgenticTradingSettingsWidget].
+enum AgenticTradingUiMode {
+  simplified,
+  quantPro,
+}
+
+/// Three-tier risk comfort presets surfaced in Simplified Mode.
+enum RiskComfortLevel {
+  conservative,
+  balanced,
+  aggressive;
+
+  String get label {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return 'Conservative';
+      case RiskComfortLevel.balanced:
+        return 'Balanced';
+      case RiskComfortLevel.aggressive:
+        return 'Aggressive';
+    }
+  }
+
+  double get stopLossPercent {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return 3.0;
+      case RiskComfortLevel.balanced:
+        return 5.0;
+      case RiskComfortLevel.aggressive:
+        return 10.0;
+    }
+  }
+
+  double get takeProfitPercent {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return 6.0;
+      case RiskComfortLevel.balanced:
+        return 10.0;
+      case RiskComfortLevel.aggressive:
+        return 20.0;
+    }
+  }
+
+  int get tradeQuantity {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return 1;
+      case RiskComfortLevel.balanced:
+        return 2;
+      case RiskComfortLevel.aggressive:
+        return 5;
+    }
+  }
+
+  double get riskPerTrade {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return 0.01;
+      case RiskComfortLevel.balanced:
+        return 0.02;
+      case RiskComfortLevel.aggressive:
+        return 0.03;
+    }
+  }
+
+  String get summary {
+    switch (this) {
+      case RiskComfortLevel.conservative:
+        return '3% Stop • 6% Target • 1 Share (1% Risk)';
+      case RiskComfortLevel.balanced:
+        return '5% Stop • 10% Target • 2 Shares (2% Risk)';
+      case RiskComfortLevel.aggressive:
+        return '10% Stop • 20% Target • 5 Shares (3% Risk)';
+    }
+  }
+
+  /// Returns whether [config] matches [level]'s preset parameters within tolerance.
+  static bool matchesPreset(
+      TradeStrategyConfig config, RiskComfortLevel level) {
+    return (config.stopLossPercent - level.stopLossPercent).abs() < 0.05 &&
+        (config.takeProfitPercent - level.takeProfitPercent).abs() < 0.05 &&
+        config.tradeQuantity == level.tradeQuantity;
+  }
+
+  /// Resolves the closest matching [RiskComfortLevel] for [config].
+  static RiskComfortLevel fromStrategyConfig(TradeStrategyConfig config) {
+    for (final level in RiskComfortLevel.values) {
+      if (matchesPreset(config, level)) {
+        return level;
+      }
+    }
+    if (config.stopLossPercent <= 4.0) {
+      return RiskComfortLevel.conservative;
+    }
+    if (config.stopLossPercent <= 7.5) {
+      return RiskComfortLevel.balanced;
+    }
+    return RiskComfortLevel.aggressive;
+  }
+}
+
 /// Agentic Trading Configuration Model
 ///
 /// Stores per-user configuration for agentic trading system.

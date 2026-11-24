@@ -94,11 +94,52 @@ class AgenticTradingCycleDependencies {
 }
 
 class AgenticTradingProvider with ChangeNotifier {
+  static const String uiModePrefsKey = 'agentic_trading_ui_mode';
+
   final FirebaseAnalytics _analytics;
+  AgenticTradingUiMode _uiMode = AgenticTradingUiMode.simplified;
+  bool _hasExplicitUiMode = false;
+  bool _isDisposed = false;
+
+  AgenticTradingUiMode get uiMode => _uiMode;
 
   AgenticTradingProvider({FirebaseAnalytics? analytics})
       : _analytics = analytics ?? FirebaseAnalytics.instance {
     loadCachedMacroAssessment();
+    unawaited(loadUiMode());
+  }
+
+  /// Loads the persisted progressive disclosure UI mode from SharedPreferences.
+  Future<void> loadUiMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_isDisposed || _hasExplicitUiMode) return;
+      final modeStr = prefs.getString(uiModePrefsKey);
+      final loadedMode = modeStr == AgenticTradingUiMode.quantPro.name
+          ? AgenticTradingUiMode.quantPro
+          : AgenticTradingUiMode.simplified;
+      if (_uiMode != loadedMode) {
+        _uiMode = loadedMode;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Ignore local preference read failures
+    }
+  }
+
+  /// Switches between Simplified and Quant Pro UI modes without altering config state.
+  Future<void> setUiMode(AgenticTradingUiMode mode) async {
+    _hasExplicitUiMode = true;
+    if (_uiMode != mode && !_isDisposed) {
+      _uiMode = mode;
+      notifyListeners();
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(uiModePrefsKey, mode.name);
+    } catch (_) {
+      // Ignore local preference write failures
+    }
   }
 
   static bool get _isFirebaseAuthenticated {
@@ -804,6 +845,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _log('🧹 Disposing AgenticTradingProvider');
     _autoTradingVisualTimer?.cancel();
     _autoTradeTimer?.cancel();
@@ -1500,7 +1542,51 @@ class AgenticTradingProvider with ChangeNotifier {
       );
     }
     if (approvalTurnedOff) await _discardPendingApprovals(userDocRef);
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
+  }
+
+  /// Applies a [RiskComfortLevel] preset to stop-loss, take-profit, quantity, and risk-per-trade
+  /// while preserving all other strategy and quantitative parameters.
+  Future<void> applyRiskComfortLevel(
+    RiskComfortLevel level,
+    DocumentReference? userDocRef,
+  ) async {
+    final updatedStrategy = _config.strategyConfig.copyWith(
+      stopLossPercent: level.stopLossPercent,
+      takeProfitPercent: level.takeProfitPercent,
+      tradeQuantity: level.tradeQuantity,
+      riskPerTrade: level.riskPerTrade,
+    );
+    final updatedConfig = _config.copyWith(strategyConfig: updatedStrategy);
+    if (userDocRef != null) {
+      await updateConfig(updatedConfig, userDocRef);
+    } else {
+      _config = updatedConfig;
+      _hasLoadedConfig = true;
+      _forgetProcessedSignalsIfRulesChanged();
+      if (!_isDisposed) notifyListeners();
+    }
+  }
+
+  /// Updates the capital allocation budget ([maxPortfolioConcentration] in 0.05..1.0)
+  /// while preserving all other strategy and quantitative parameters.
+  Future<void> applyCapitalAllocation(
+    double concentrationFraction,
+    DocumentReference? userDocRef,
+  ) async {
+    final clamped = concentrationFraction.clamp(0.05, 1.0);
+    final updatedStrategy = _config.strategyConfig.copyWith(
+      maxPortfolioConcentration: clamped,
+    );
+    final updatedConfig = _config.copyWith(strategyConfig: updatedStrategy);
+    if (userDocRef != null) {
+      await updateConfig(updatedConfig, userDocRef);
+    } else {
+      _config = updatedConfig;
+      _hasLoadedConfig = true;
+      _forgetProcessedSignalsIfRulesChanged();
+      if (!_isDisposed) notifyListeners();
+    }
   }
 
   /// Save automated buy trades to Firestore

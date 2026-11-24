@@ -3,6 +3,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
@@ -47,6 +48,7 @@ void main() {
   late DocumentReference<User> userDocRef;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     fakeDb = FakeFirebaseFirestore();
     userDocRef = fakeDb.collection('user').doc('test_user').withConverter<User>(
           fromFirestore: (snapshot, _) => User.fromJson(snapshot.data() ?? {}),
@@ -94,7 +96,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> ensureQuantProMode(WidgetTester tester) async {
+    if (find.text('Execution Settings').evaluate().isEmpty) {
+      final quantPro = find.text('Quant Pro');
+      await tester.ensureVisible(quantPro);
+      await tester.tap(quantPro);
+      await tester.pumpAndSettle();
+    }
+  }
+
   Future<void> openExecutionSettings(WidgetTester tester) async {
+    await ensureQuantProMode(tester);
     final header = find.text('Execution Settings');
     await tester.ensureVisible(header);
     await tester.tap(header);
@@ -102,6 +114,7 @@ void main() {
   }
 
   Future<void> openRiskManagement(WidgetTester tester) async {
+    await ensureQuantProMode(tester);
     final header = find.text('Risk Management');
     await tester.ensureVisible(header);
     await tester.tap(header);
