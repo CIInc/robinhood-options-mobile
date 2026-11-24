@@ -99,8 +99,8 @@ jobs:
 
       - name: Audit Static Trading Safety Invariants (Scan forbidden patterns)
         run: |
-          # Invariant 1: No plaintext token keys stored to SharedPreferences
-          if grep -rn "prefs\.setString.*token" src/robinhood_options_mobile/lib/; then
+          # Invariant 1: No plaintext token keys stored to SharedPreferences (excluding discovery endpoint URLs)
+          if grep -rn "prefs\.setString.*token" src/robinhood_options_mobile/lib/ | grep -v "_endpoint"; then
             echo "::error::Detected potential plaintext token write to SharedPreferences!"
             exit 1
           fi

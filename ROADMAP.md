@@ -34,7 +34,7 @@ This document outlines the planned features, enhancements, and delivery mileston
 **Last reviewed:** November 24, 2026 · **Current app version:** 0.62.6
 
 ### Quick Stats
-- **Completed checklist items:** 81 high-level capability blocks (85 checked items, 500+ sub-features)
+- **Completed checklist items:** 82 high-level capability blocks (86 checked items, 500+ sub-features)
 - **Planned checklist items:** 40 actionable tasks across milestone horizons (v0.62.x: 6, v0.63.0: 13, v0.64.0+: 21)
 - **GitHub issues:** 151 total — 57 open and 94 closed (as of November 24, 2026)
 - **Planning focus:** Uphold reliability, client-side credential security, and test coverage over speculative breadth; prioritize execution safety, risk circuit breakers, and institutional derivatives analytics.
@@ -333,6 +333,7 @@ RealizeAlpha follows semantic versioning with focused minor releases and automat
 - [x] **Banking, ACH Transfers & Statements** (v0.45.0): Monitor deposits, withdrawals, clearing status, linked bank accounts, and Form 1099 tax documents.
 
 ### Performance, Battery & Security Architecture
+- [x] **Autonomous AI Software Factory & Continuous Engineering Loops** (v0.62.6, [docs](docs/software-factory.md), [PR #353](https://github.com/CIInc/robinhood-options-mobile/pull/353)): Closed-loop Maker–Verifier–Critic architecture, multi-item parallel workflows with run state recovery (`.factory_run_state.json`), repetitive failure circuit breaker, companion test mapping, path-filtered verification gates (`software-factory-verify.yml`), and canonical `software-*` skills.
 - [x] **High-Frequency Stream Throttling & Battery Optimization** (v0.59.0, [docs](docs/streaming-performance-and-battery.md), [#124](https://github.com/CIInc/robinhood-options-mobile/issues/124)): 250ms per-symbol update throttling, viewport-bounded streaming subscriptions, memory optimization, and background stream pausing.
 - [x] **Zero Plaintext Credentials (`SecureTokenStorage`)**: Brokerage OAuth tokens and MCP credentials stored in platform Keychain/Keystore via `flutter_secure_storage`; hardware-backed key enforcement remains an open platform-specific requirement ([#88](https://github.com/CIInc/robinhood-options-mobile/issues/88)).
 - [x] **4-Tier Feature Access & Beta Labs System** (v0.58.0, [docs](docs/feature-access-and-beta-gating.md), [#239](https://github.com/CIInc/robinhood-options-mobile/issues/239)): Dynamic Remote Config kill switches, per-user feature flags, and self-serve Beta Labs opt-in.

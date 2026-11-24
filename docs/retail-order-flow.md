@@ -73,9 +73,9 @@ The data binding engine:
 - Implemented in `RobinhoodService` (live production endpoints) and `DemoService` (deterministic mock environment for offline and testing workflows, supporting tickers such as TSLA, GME, AAPL, and bearish equities).
 
 ### Models & Widgets
-- **Models:** [src/robinhood_options_mobile/lib/model/retail_order_flow.dart](src/robinhood_options_mobile/lib/model/retail_order_flow.dart) (`RetailOrderFlow`, `RetailOrderFlowPoint`).
-- **UI Component:** [src/robinhood_options_mobile/lib/widgets/retail_order_flow_widget.dart](src/robinhood_options_mobile/lib/widgets/retail_order_flow_widget.dart) (`RetailOrderFlowWidget`).
-- **Instrument Integration:** Embedded in [src/robinhood_options_mobile/lib/widgets/instrument_widget.dart](src/robinhood_options_mobile/lib/widgets/instrument_widget.dart) CustomScrollView slivers for equity instruments.
+- **Models:** [src/robinhood_options_mobile/lib/model/retail_order_flow.dart](../src/robinhood_options_mobile/lib/model/retail_order_flow.dart) (`RetailOrderFlow`, `RetailOrderFlowPoint`).
+- **UI Component:** [src/robinhood_options_mobile/lib/widgets/retail_order_flow_widget.dart](../src/robinhood_options_mobile/lib/widgets/retail_order_flow_widget.dart) (`RetailOrderFlowWidget`).
+- **Instrument Integration:** Embedded in [src/robinhood_options_mobile/lib/widgets/instrument_widget.dart](../src/robinhood_options_mobile/lib/widgets/instrument_widget.dart) CustomScrollView slivers for equity instruments.
 
 ## Testing & Verification
 

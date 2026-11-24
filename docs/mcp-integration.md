@@ -1,6 +1,6 @@
 # Robinhood Model Context Protocol (MCP) Integration
 
-RealizeAlpha integrates a highly secure, local **Model Context Protocol (MCP)** execution framework powered by [package:mcp_dart](src/robinhood_options_mobile/pubspec.yaml). This integration enables conversational generative models (specifically Gemini 3.1 Flash-Lite) to interact natively with your active Robinhood trading accounts on-device without exposing private tokens, brokerage API credentials, or trading secrets to untrusted remote cloud environments.
+RealizeAlpha integrates a highly secure, local **Model Context Protocol (MCP)** execution framework powered by [package:mcp_dart](../src/robinhood_options_mobile/pubspec.yaml). This integration enables conversational generative models (specifically Gemini 3.1 Flash-Lite) to interact natively with your active Robinhood trading accounts on-device without exposing private tokens, brokerage API credentials, or trading secrets to untrusted remote cloud environments.
 
 ---
 
@@ -44,7 +44,7 @@ sequenceDiagram
 
 To authorized local trading capabilities, users can prompt an OAuth authentication screen from within their User Settings.
 
-*   **OAuth Entry:** Handled in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart).
+*   **OAuth Entry:** Handled in [src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart](../src/robinhood_options_mobile/lib/widgets/mcp_oauth_webview.dart).
 *   **Security Protocol:** Uses standard Proof Key for Code Exchange (PKCE) with S256 code challenge sequences (`_generateCodeChallenge` and `_generateCodeVerifier`).
 *   **Token Persistence:** Generates unique states on-device, exchanges codes for tokens upon authentication redirects, and saves secure access configurations under localized Storage systems (`getMcpAccessToken`).
 
@@ -339,7 +339,7 @@ Executes an existing pre-registered market screener evaluation against live real
 
 ## 4. UI Tracing & Execution Visualboards
 
-As Gemini process requests, the conversational interface inside [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](src/robinhood_options_mobile/lib/widgets/chat_widget.dart) provides deep visual tracking:
+As Gemini process requests, the conversational interface inside [src/robinhood_options_mobile/lib/widgets/chat_widget.dart](../src/robinhood_options_mobile/lib/widgets/chat_widget.dart) provides deep visual tracking:
 
 1.  **Tool Execution Trace Cards:** Renders individual `ToolExecutionCard` widgets revealing precisely what tools were called and what parameters were populated.
 2.  **Collapsible JSON Log Inspector:** Users can toggle expanders to inspect the exact input arguments and raw returned responses, pretty-print JSON metrics, or copy details to clipboard.

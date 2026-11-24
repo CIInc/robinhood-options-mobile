@@ -349,6 +349,6 @@ testWidgets('Permission denied for viewers', (WidgetTester tester) async {
 
 ## Related Features
 
-- [Investor Groups](./investor-groups.md) - Base group functionality
+- [Investor Groups](./investor-groups-2.md) - Base group functionality
 - [Copy Trading](./copy-trading.md) - Similar collaborative trading feature
 - [Trade Signal Notifications](./trade-signal-notifications.md) - Alert notification system
