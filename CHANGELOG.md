@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.5] - 2026-11-23
+
+**Progressive Disclosure UI, Macro Risk-Off Policy & Market Data Staleness Hardening**
+
+### Added
+- **Progressive Disclosure Auto-Trading UI ([#344](https://github.com/CIInc/robinhood-options-mobile/issues/344)):**
+  - **Two-Tier Mode Model (`AgenticTradingUiMode`):** Refactored `AgenticTradingSettingsWidget` into a two-tier progressive disclosure model persisted in `SharedPreferences` (`agentic_trading_ui_mode`) with a top `SegmentedButton` mode selector.
+  - **Simplified Mode (`SimplifiedTradingControlsWidget`):** Default streamlined interface for everyday investors surfacing 4 essential controls:
+    1. **Master Control & Emergency Stop:** Main Auto-Trading toggle, Paper vs. Live switcher (with confirmation guards), `Require Approval` status badge (`AUTO`/`REVIEW`), and an always-available `'Activate Emergency Stop'` kill switch.
+    2. **Strategy Selection:** Curated Strategy Archetypes carousel (`Conservative Core`, `Momentum Breakout`, `Options Income Harvester`, `Reasoning AI Agent`) with empirical walk-forward performance badges (win rate, profit factor, max drawdown); tapping any archetype always opens `StrategyArchetypeDetailBottomSheet` for comprehensive strategy analysis and confirmation before applying or cloning.
+    3. **Capital Budget Slider:** Continuous slider (`5%–100%` of portfolio equity, `maxPortfolioConcentration`) with single-row horizontally scrollable quick-preset chips (`10%`, `25%`, `50%`, `75%`, `100%`) and live balance-masked dollar allocation cap preview (`≈ $...`).
+    4. **3-State Risk Comfort Level:** Intuitive toggle (`Conservative`, `Balanced`, `Aggressive`) that auto-tunes stop loss, take profit, and position sizing without altering other parameters, featuring single-row horizontally scrollable metric chips and custom Quant Pro bounds detection.
+  - **Quant Pro Mode (`QuantProSettingsView`):** Unlocks all 19 technical indicator checkboxes, custom indicator formulas, GEX structural stop thresholds, sector concentration matrices, exit strategies, notifications, and OEM background execution journals.
+  - **Strict State Preservation:** Switching between Simplified and Quant Pro modes strictly preserves 100% of custom parameters, ensuring advanced stops and indicator weights are never unintentionally overwritten.
+  - **Aligned Capital Budget in Quant Pro:** Integrated the matching `Capital Budget (Max Concentration %)` field and live balance-masked dollar cap preview into Quant Pro's Risk Management Safety Limits section.
+  - **Narrow Viewport Hardening:** Layout optimizations down to `320px` screen widths across all trading headers, cards, and preset chip carousels without `RenderFlex` overflows.
+- **Macro Risk-Off Policy & Reasoning Sizing Alignment:**
+  - **Configurable Macro Policy (`MacroRiskOffPolicy`):** Added a 3-tier policy (`ignore`, `reduceSize`, `blockEntries`), synchronized bidirectionally with `reduceSizeOnRiskOff`.
+  - **Unified Post-Decision Scaling (`applyMacroRiskOffSizing`):** Applied sizing reduction identically after both Systematic and Reasoning decisions, honoring an exact `0` reduction multiplier without coercing to the default `0.5`.
+  - **Reasoning AI Guard Alignment:** Aligned Reasoning prompt instructions so `reduceSize` and `ignore` do not veto BUYs or fail on missing GEX cache when gamma exposure is disabled.
+  - **Candidate Gating & Deferred Overflow:** Reasoning mode filters candidate signals across user-enabled indicators before applying the 15-proposal per-cycle cap; candidates beyond the cap are marked `Deferred` instead of consumed for 24 hours.
+  - **Fresh Proposal Price Validation:** Added 3% live-quote deviation protection on `proposal['price']` during automated order execution.
+
+### Fixed
+- **Market Data Staleness & Session Alignment:**
+  - **Eastern Time Session Checking (`isMarketDataCacheStale`):** Cache staleness evaluation now verifies the latest bar's UTC calendar date against `America/New_York` trading sessions rather than provider `Date.now()` period stubs.
+  - **Post-Close Refresh & Cooldown:** Enforced a 15-minute refetch cooldown and an automated post-close refresh after 16:00 ET.
+  - **Provider Period Timestamp Preservation:** Preserved latest bar timestamp in `meta.currentTradingPeriod.regular.end` for Twelve Data and Fidelity data feeds.
+
 ## [0.62.4] - 2026-11-19
 
 **Market Data Bar Alignment**
