@@ -46,6 +46,23 @@ flowchart TD
 
 ---
 
+## 1.1 Quick-Reference CLI Cheat Sheet
+
+Use these copy-pasteable slash command invocations for common engineering workflows:
+
+| Developer Scenario | Slash Command / CLI Invocation | Description |
+|---|---|---|
+| **Autonomous Loop Overnight** | `/software-factory mode="autonomous" stages="full" max_iterations=3` | Runs continuous closed loop: ideate, score, triage, parallel implement, verify, reconcile, and commit. |
+| **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | Executes discovery, rubric scoring, partitioning, and test mapping without mutating files or committing. |
+| **Single-Item Interactive** | `/software-implementation mode="interactive" focus="<feature_title>"` | Guided Maker-Verifier-Critic loop with human approval checkpoints before staging commits. |
+| **Ideation & Backlog Discovery** | `/software-ideation focus="agentic trading"` | Evaluates backlog candidates against the 8-point Readiness Rubric and records qualified proposals. |
+| **Release Preparation & Audit** | `/software-release bump="patch"` | Prepares semantic version bump, syncs release notes, audits safety invariants, requiring manual push confirmation. |
+| **Documentation Synchronization** | `/update-docs` | Reconciles `ROADMAP.md` Quick Stats, bounds Key Highlights ($\le 5$), and updates `CHANGELOG.md`. |
+| **Disaster Recovery (Resume)** | `/software-factory mode="autonomous"` | Automatically reads `.agents/.factory_run_state.json` and resumes from the last completed iteration. |
+| **Reset Circuit Breaker** | `rm -f .agents/.factory_run_state.json` | Clears tripped failure counters and unblocks autonomous factory execution. |
+
+---
+
 ## 2. The Autonomous Loop Engine & Execution Topology
 
 In `mode=autonomous`, the factory operates as a continuous closed loop, driving work forward until the target horizon is completed or maximum iterations are reached.
@@ -210,6 +227,31 @@ To balance reasoning capability, latency, and token efficiency, the Software Fac
 | **Docs Reconciler** | Flash / Balanced | Read-Write | Documentation sync, `ROADMAP.md` formatting, Quick Stats arithmetic |
 | **Lifecycle Manager** | Flash_Lite / Fast | Read-Write | Conventional commits, GitHub issue closing comments |
 
+### Machine-Readable Critic Audit Verdict Schema (`CriticAuditVerdict`)
+
+To ensure deterministic gating without natural language ambiguity, the Adversarial Critic produces a structured JSON verdict:
+
+```json
+{
+  "approved": true,
+  "invariants": {
+    "zero_plaintext_credentials": true,
+    "feature_access_precedence": true,
+    "trading_safeguards": true,
+    "balance_visibility_privacy": true,
+    "backend_security_complexity": true,
+    "accessibility_ui_polish": true,
+    "zero_compile_errors_integrity": true
+  },
+  "blocking_issues": [],
+  "audit_notes": "All 7 core trading safety invariants confirmed clean. Live-quote BUY guard verified."
+}
+```
+
+### Token Cost & Throughput Optimization
+- **Tiering Strategy**: Keep high-volume iterative repair loops (format, analyze, fix) on fast, cost-effective models (`flash`), reserving reasoning-dense models (`pro`) for initial architecture specification and independent adversarial safety auditing.
+- **Prompt Token Isolation**: Maker subagents execute inside isolated branch workspaces (`workspace="branch"`) with clean context windows, preventing bloated turn histories from degrading analysis speed.
+
 ---
 
 ## 6. Operational Runbook & Troubleshooting
@@ -275,11 +317,15 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 The Software Factory integrates directly into GitHub Actions workflows:
 
 1. **`software-factory-verify.yml`**:
-   - Fast PR and branch verification workflow with concurrency cancellation and path-filtered execution.
+   - Fast PR and branch verification workflow with concurrency cancellation and path-filtered execution (`dorny/paths-filter@v3`).
    - Runs static safety invariant checks (e.g. scanning for plaintext tokens written to `SharedPreferences`), validates workflow YAML files, verifies Python script syntax, and checks `ROADMAP.md` structural invariants.
    - Executes strict `dart format`, `flutter analyze --no-fatal-infos`, impacted tests, and Cloud Functions `npm run lint && npm run build && npm test`.
 
-2. **`cd.yml`**:
+2. **`software-factory-dispatch.yml`**:
+   - On-demand and scheduled `workflow_dispatch` trigger supporting parameters: `mode`, `stages`, `dry_run`, `max_iterations`, `failure_limit`, and `focus`.
+   - Executes verification gates, outputs GITHUB_STEP_SUMMARY tables, and archives `.agents/.factory_*.json` run state and metrics as job artifacts.
+
+3. **`cd.yml`**:
    - Enforces strict static analysis (with `continue-on-error: true` removed from `flutter analyze`) and Cloud Functions TypeScript compilation on all pushes to `main` and release builds.
    - Automatically extracts categorized release notes from `CHANGELOG.md` for Google Play (`distribution/whatsnew/whatsnew-en-US`) and TestFlight (`WhatToTest.en-US.txt`).
 
@@ -292,6 +338,11 @@ The Software Factory integrates directly into GitHub Actions workflows:
 /software-factory mode="autonomous" stages="full" max_iterations=3 focus="agentic trading"
 ```
 
+### Running Simulation / Dry-Run Mode
+```text
+/software-factory dry_run=true stages="full" focus="derivatives"
+```
+
 ### Running Parallel Multi-Item Execution via `run_workflow`
 ```python
 call_tool("run_workflow",
@@ -300,6 +351,7 @@ call_tool("run_workflow",
   Args={
     "mode": "autonomous",
     "stages": "full",
+    "dry_run": False,
     "max_parallel": 2,
     "max_iterations": 3,
     "failure_limit": 2,
@@ -312,3 +364,58 @@ call_tool("run_workflow",
 ```text
 /software-implementation focus="progressive disclosure UI" mode="interactive"
 ```
+
+---
+
+## 10. Step-by-Step Execution Walkthrough Case Study
+
+The following concrete case study illustrates how a candidate feature (*"Option Volatility Skew Real-Time Alert"*) progresses through all 5 phases of the Software Factory:
+
+### Phase 1: Ideation & Rubric Scoring
+- **Discovery**: The Ideation agent scans `PRODUCT.md` and discovers that while higher-order Greeks (Charm, Vanna) exist, traders lack automated push notifications when 30-day IV skew diverges past historical percentiles.
+- **Rubric Evaluation**:
+  - *Scope & Boundaries*: Touches `PortfolioAlertService` and `OptionPositionStore` (2 files) $\to$ **2 pts**.
+  - *Testability*: Deterministic math tested with fake quotes in `test/portfolio_alert_service_test.dart` $\to$ **2 pts**.
+  - *Safety Invariants*: No token storage, respects balance masking, $O(1)$ scalar calculation $\to$ **2 pts**.
+  - *Code Ownership*: Clear ownership under `lib/services/portfolio_alert_service.dart` $\to$ **1 pt**.
+  - **Total Score**: **7/8 (Qualified $\ge 6$)**.
+- **Backlog Recording**: The agent appends the item to `ROADMAP.md` under `v0.62.x` and creates GitHub issue `#354`.
+
+### Phase 2: Triage & Disjoint Partitioning
+- **Coordinator Assignment**: Triage selects `#354` and maps disjoint files:
+  - Source: `src/robinhood_options_mobile/lib/services/portfolio_alert_service.dart`
+  - Inferred Companion Test: `src/robinhood_options_mobile/test/portfolio_alert_service_test.dart`
+- **Isolation**: Work is partitioned to an isolated branch workspace (`workspace="branch"`).
+
+### Phase 3: Maker – Verifier – Critic Execution
+- **Maker Agent**: Implements skew threshold calculations in `portfolio_alert_service.dart` and authors 3 unit tests in `portfolio_alert_service_test.dart`.
+- **Self-Healing Verification Gate**:
+  - *Attempt 1*: `dart format --set-exit-if-changed` fails due to trailing comma placement on line 84.
+  - *Repair Turn*: The Maker agent parses the diagnostic output, formats the block, and re-executes.
+  - *Attempt 2*: `dart format`, `dart analyze`, and `flutter test test/portfolio_alert_service_test.dart` all return exit code 0 (**Green Gate**).
+- **Adversarial Critic Subagent**: An independent fresh-context agent reviews `git diff`, confirms zero credential leakage, validates alert throttling, and outputs `approved: true` with all 7 invariant checks marked `true`.
+
+### Phase 4: Reconciliation
+- The Reconciler agent updates `ROADMAP.md` marking the checklist item complete (`- [x] ... (#354)`), increments `Quick Stats` completed count, appends an entry to `CHANGELOG.md` under `### Added`, and updates `docs/custom-alerts.md`.
+
+### Phase 5: Git Lifecycle
+- In autonomous mode, the Lifecycle agent commits the changes (`feat(alerts): add option volatility skew real-time notifications (#354)`), posts the verification summary and test logs as a comment on GitHub issue `#354`, and closes the issue (`gh issue close 354`).
+- Cycle metrics are saved to `.agents/.factory_metrics.json`, and the loop iterates to the next backlog item.
+
+---
+
+## 11. ADR-001: Architecture Decision Record
+
+### Context & Problem Statement
+Earlier iterations of agent tooling in RealizeAlpha relied on fine-grained, per-tool-use hooks (e.g. running linters or checks on every file write tool call) and thin wrapper prompts (`roadmap.prompt.md`, `autopilot.prompt.md`). In practice, per-tool hooks introduced prohibitive latency (re-running analyzers on intermediate edits), triggered false positives during multi-file refactors, and fragmented instructions across multiple non-canonical files.
+
+### Decision
+1. **Retire Per-Tool Hooks**: Move disabled per-tool hooks to `.agents/archive/hooks.disabled.json` and document the rationale in `.agents/archive/README.md`.
+2. **Standardize Stage-Boundary Quality Gates**: Consolidate automated verification into deterministic stage boundaries (at the conclusion of the Maker phase and within GitHub Actions CI).
+3. **Consolidate Canonical `software-*` Skills**: Unify all engineering skills under `.github/skills/` (`software-factory`, `software-ideation`, `software-implementation`, `software-release`, `update-docs`) as the single sources of truth.
+4. **Structured Critic Verdict Contract**: Standardize the adversarial review into a machine-readable JSON schema (`CriticAuditVerdict`) verifying the 7 Core Safety Invariants.
+
+### Consequences & Benefits
+- **Zero Inter-Turn Tool Lag**: Agents can perform multi-file edits and intermediate refactoring without interrupted tool calls.
+- **Deterministic CI Parity**: The exact commands executed by the self-healing gate match GitHub Actions (`software-factory-verify.yml`).
+- **Resilient Multi-Iteration Autonomy**: Interrupted workflows recover seamlessly via `.agents/.factory_run_state.json` without duplicating work or tripping merge conflicts.

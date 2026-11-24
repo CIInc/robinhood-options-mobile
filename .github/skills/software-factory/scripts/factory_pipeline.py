@@ -1,6 +1,7 @@
 """
 Autonomous AI Software Factory Pipeline Script for RealizeAlpha.
-Executed by Antigravity's run_workflow tool (top-level execution).
+Executed by Antigravity's run_workflow tool (top-level execution)
+or via command-line interface with --dry-run and parameter flags.
 
 Orchestrates the complete closed-loop software factory lifecycle:
 [Phase 1: Ideation & Rubric Scoring] -> [Phase 2: Triage & Partitioning] ->
@@ -8,6 +9,9 @@ Orchestrates the complete closed-loop software factory lifecycle:
 [Phase 5: Git & Release Readiness] -> Loop iteration if autonomous mode and remaining tasks exist.
 
 Features:
+- Simulation & Dry-Run Mode (dry_run=true / --dry-run)
+- Machine-Readable Adversarial Critic Verdict Schema (CriticAuditVerdict)
+- Structured Telemetry & Cycle Ledger (.agents/.factory_metrics.json)
 - Transient run state persistence & crash recovery (.agents/.factory_run_state.json)
 - Impact-based companion test heuristic mapping
 - Repetitive failure circuit breaker (halts after consecutive failures)
@@ -16,12 +20,66 @@ Features:
 import asyncio
 import json
 import os
+import sys
+import time
+from datetime import datetime, timezone
 
-# Arguments passed into run_workflow are injected into the global `args` dict
+# -----------------------------------------------------------------------------
+# Runtime Fallbacks (supports standalone testing outside Antigravity runtime)
+# -----------------------------------------------------------------------------
+if "log" not in globals():
+    def log(msg):
+        print(f"[FACTORY] {msg}")
+
+if "phase" not in globals():
+    def phase(name):
+        print(f"\n=== PHASE: {name} ===")
+
+if "agent" not in globals():
+    def agent(*args, **kwargs):
+        async def dummy_agent(prompt, schema=None):
+            return {}
+        return dummy_agent
+
+if "parallel" not in globals():
+    async def parallel(items, fn):
+        return await asyncio.gather(*(fn(item) for item in items))
+
+if "pipeline" not in globals():
+    async def pipeline(items, fn):
+        results = []
+        for item in items:
+            results.append(await fn(item))
+        return results
+
+# -----------------------------------------------------------------------------
+# Parameter Ingestion (from injected `args` dict or CLI arguments)
+# -----------------------------------------------------------------------------
 try:
-    _args = args
+    _args = dict(args)
 except NameError:
     _args = {}
+
+# Parse sys.argv if invoked via python CLI
+if not _args and len(sys.argv) > 1:
+    for arg in sys.argv[1:]:
+        if arg.startswith("--mode="):
+            _args["mode"] = arg.split("=", 1)[1]
+        elif arg.startswith("--stages="):
+            _args["stages"] = arg.split("=", 1)[1]
+        elif arg.startswith("--max-parallel="):
+            _args["max_parallel"] = int(arg.split("=", 1)[1])
+        elif arg.startswith("--max-iterations="):
+            _args["max_iterations"] = int(arg.split("=", 1)[1])
+        elif arg.startswith("--failure-limit="):
+            _args["failure_limit"] = int(arg.split("=", 1)[1])
+        elif arg.startswith("--focus="):
+            _args["focus"] = arg.split("=", 1)[1]
+        elif arg == "--dry-run" or arg.startswith("--dry-run="):
+            val = arg.split("=", 1)[1] if "=" in arg else "true"
+            _args["dry_run"] = val.lower() in ("true", "1", "yes")
+        elif arg.startswith("--auto-ideate="):
+            _args["auto_ideate"] = arg.split("=", 1)[1].lower() in ("true", "1", "yes")
 
 mode = _args.get("mode", "autonomous")  # "autonomous" or "interactive"
 stages = _args.get("stages", "full")    # "full", "ideate", "implement-batch", "single"
@@ -29,11 +87,15 @@ max_parallel = int(_args.get("max_parallel", 1))
 max_iterations = int(_args.get("max_iterations", 3 if mode == "autonomous" else 1))
 consecutive_failure_limit = int(_args.get("failure_limit", 2))
 focus = _args.get("focus", "")
-auto_ideate = _args.get("auto_ideate", True)
+auto_ideate = bool(_args.get("auto_ideate", True))
+dry_run = bool(_args.get("dry_run", False))
 
 STATE_FILE = ".agents/.factory_run_state.json"
+METRICS_FILE = ".agents/.factory_metrics.json"
 
-
+# -----------------------------------------------------------------------------
+# State & Metrics Utilities
+# -----------------------------------------------------------------------------
 def load_run_state():
     try:
         if os.path.exists(STATE_FILE):
@@ -51,6 +113,22 @@ def save_run_state(state):
             json.dump(state, f, indent=2)
     except Exception as e:
         log(f"Warning: Unable to persist run state: {e}")
+
+
+def record_factory_metrics(summary_entry):
+    try:
+        os.makedirs(os.path.dirname(METRICS_FILE), exist_ok=True)
+        data = {"runs": []}
+        if os.path.exists(METRICS_FILE):
+            with open(METRICS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data.setdefault("runs", []).append(summary_entry)
+        data["last_run_timestamp"] = summary_entry["timestamp"]
+        data["total_runs"] = len(data["runs"])
+        with open(METRICS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        log(f"Warning: Unable to record factory metrics: {e}")
 
 
 def infer_test_files(target_files):
@@ -72,17 +150,26 @@ def infer_test_files(target_files):
     return list(dict.fromkeys(inferred))
 
 
+# -----------------------------------------------------------------------------
+# Main Async Pipeline
+# -----------------------------------------------------------------------------
 async def run_pipeline():
-    log(f"Starting Software Factory pipeline: mode={mode}, stages={stages}, max_parallel={max_parallel}, max_iterations={max_iterations}, focus='{focus}'")
+    start_time = time.time()
+    log(f"Starting Software Factory pipeline: mode={mode}, stages={stages}, max_parallel={max_parallel}, max_iterations={max_iterations}, dry_run={dry_run}, focus='{focus}'")
 
     state = load_run_state()
     consecutive_failures = 0
     iteration = state.get("iteration", 0)
+    total_items_attempted = 0
+    total_items_completed = 0
+    total_items_failed = 0
+    circuit_breaker_tripped = False
 
     while iteration < max_iterations:
         iteration += 1
         state["iteration"] = iteration
-        save_run_state(state)
+        if not dry_run:
+            save_run_state(state)
         log(f"--- Software Factory Cycle Iteration {iteration}/{max_iterations} ---")
 
         # ==============================================================================
@@ -101,7 +188,8 @@ Evaluate candidates strictly against the Software Factory Readiness Rubric (0-2 
 3. Safety Invariants (complies with all 7 safety invariants)
 4. Code Ownership (clear existing ChangeNotifier store or widget)
 
-In autonomous mode, record the top scored candidate(s) directly into ROADMAP.md under the appropriate milestone and associate or create a tracking issue (`gh issue create`).
+In autonomous mode (unless dry_run is true), record the top scored candidate(s) directly into ROADMAP.md under the appropriate milestone and associate or create a tracking issue (`gh issue create`).
+If dry_run is enabled, output candidates without modifying files or creating issues.
 """,
                 role="Ideation Specialist"
             )
@@ -109,11 +197,12 @@ In autonomous mode, record the top scored candidate(s) directly into ROADMAP.md 
             ideation_prompt = f"""
 Discover and rank roadmap candidates for focus area: '{focus}'.
 Check if existing unreleased milestones have gaps or if new high-value features are ready for autonomous delivery.
-Mode: {mode}.
+Mode: {mode}, DryRun: {dry_run}.
 Previously completed tasks in this factory run: {state.get('completed_tasks', [])}.
 Return JSON containing:
-- proposed_items: array of objects with title, rationale, suggested_milestone, readiness_score (1-10)
+- proposed_items: array of objects with title, rationale, suggested_milestone, readiness_score (0-8)
 - recorded_to_roadmap: boolean indicating whether items were added to ROADMAP.md
+- summary: executive summary
 """
             ideation_schema = {
                 "type": "object",
@@ -143,7 +232,7 @@ Return JSON containing:
 
             if stages == "ideate":
                 log("Ideate-only stage requested. Ending pipeline.")
-                return
+                break
 
         # ==============================================================================
         # Phase 2: Triage & Disjoint Task Partitioning
@@ -202,6 +291,20 @@ Return your plan as JSON matching the schema with:
             log("No further actionable tasks identified in backlog. Concluding autonomous loop.")
             break
 
+        # In Dry-Run mode, emit execution DAG and bypass file mutation and commits
+        if dry_run:
+            log("=== DRY-RUN SIMULATION EXECUTION DAG ===")
+            for idx, item in enumerate(items, 1):
+                targets = item.get("target_files", [])
+                tests = infer_test_files(targets)
+                log(f"Task {idx}: '{item.get('title')}' (#{item.get('issue_number')})")
+                log(f"  Target Source Files: {targets}")
+                log(f"  Companion Tests: {tests}")
+                log(f"  Applicable Safety Invariants: {item.get('safety_invariants', [])}")
+            log("Dry-run simulation completed. No files modified, no git commits created.")
+            total_items_attempted += len(items)
+            break
+
         # ==============================================================================
         # Phase 3: Staged Maker - Verifier - Critic Loop (Parallel or Sequential)
         # ==============================================================================
@@ -251,7 +354,7 @@ Instructions:
             )
             del maker
 
-            # Step 3B: Independent Adversarial Critic
+            # Step 3B: Independent Adversarial Critic (Machine-Readable Schema)
             critic = agent(
                 prompt=f"""
 You are an adversarial QA and Security Auditor for RealizeAlpha.
@@ -268,22 +371,45 @@ Audit strictly against RealizeAlpha's 7 Core Safety Invariants:
 6. UI accessibility (Semantics labels) and 320px responsive layout
 7. Clean compile and strict type safety
 
-Output an approval decision and any blocking issues found.
+Output an approval decision, per-invariant boolean verification, and any blocking issues found.
 """,
                 role=f"Critic: {title[:24]}"
             )
 
-            critic_result = await critic(
-                "Review the changes and return your audit verdict.",
-                {
-                    "type": "object",
-                    "properties": {
-                        "approved": {"type": "boolean"},
-                        "blocking_issues": {"type": "array", "items": {"type": "string"}},
-                        "audit_notes": {"type": "string"}
+            critic_schema = {
+                "type": "object",
+                "properties": {
+                    "approved": {"type": "boolean"},
+                    "invariants": {
+                        "type": "object",
+                        "properties": {
+                            "zero_plaintext_credentials": {"type": "boolean"},
+                            "feature_access_precedence": {"type": "boolean"},
+                            "trading_safeguards": {"type": "boolean"},
+                            "balance_visibility_privacy": {"type": "boolean"},
+                            "backend_security_complexity": {"type": "boolean"},
+                            "accessibility_ui_polish": {"type": "boolean"},
+                            "zero_compile_errors_integrity": {"type": "boolean"}
+                        },
+                        "required": [
+                            "zero_plaintext_credentials",
+                            "feature_access_precedence",
+                            "trading_safeguards",
+                            "balance_visibility_privacy",
+                            "backend_security_complexity",
+                            "accessibility_ui_polish",
+                            "zero_compile_errors_integrity"
+                        ]
                     },
-                    "required": ["approved", "blocking_issues"]
-                }
+                    "blocking_issues": {"type": "array", "items": {"type": "string"}},
+                    "audit_notes": {"type": "string"}
+                },
+                "required": ["approved", "invariants", "blocking_issues"]
+            }
+
+            critic_result = await critic(
+                "Review the changes and return your structured audit verdict.",
+                critic_schema
             )
             del critic
 
@@ -295,6 +421,7 @@ Output an approval decision and any blocking issues found.
             }
 
         # Execute tasks concurrently or sequentially
+        total_items_attempted += len(items)
         if len(items) > 1 and max_parallel > 1:
             results = await parallel(items, execute_item_loop)
         else:
@@ -307,9 +434,11 @@ Output an approval decision and any blocking issues found.
             issue_id = res.get("issue_number")
             if approved:
                 iteration_successes += 1
+                total_items_completed += 1
                 if issue_id and issue_id not in state["completed_tasks"]:
                     state["completed_tasks"].append(issue_id)
             else:
+                total_items_failed += 1
                 if issue_id and issue_id not in state["failed_tasks"]:
                     state["failed_tasks"].append(issue_id)
 
@@ -320,6 +449,7 @@ Output an approval decision and any blocking issues found.
             consecutive_failures += 1
             log(f"Warning: All tasks in iteration {iteration} failed critic review ({consecutive_failures}/{consecutive_failure_limit}).")
             if consecutive_failures >= consecutive_failure_limit:
+                circuit_breaker_tripped = True
                 log(f"Circuit Breaker Tripped: {consecutive_failures} consecutive failed iterations. Halting autonomous loop to protect repository stability.")
                 break
         else:
@@ -377,7 +507,23 @@ For each verified item:
                 log("Interactive mode: Git commits, pushes, and issue closures are held for user confirmation.")
                 break
 
-    log(f"Software Factory autonomous loop finished after {iteration} iteration(s). Completed: {state.get('completed_tasks')}, Failed: {state.get('failed_tasks')}.")
+    duration_sec = round(time.time() - start_time, 2)
+    summary_entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": mode,
+        "stages": stages,
+        "dry_run": dry_run,
+        "focus": focus,
+        "duration_seconds": duration_sec,
+        "iterations_completed": iteration,
+        "items_attempted": total_items_attempted,
+        "items_completed": total_items_completed,
+        "items_failed": total_items_failed,
+        "circuit_breaker_tripped": circuit_breaker_tripped
+    }
+    record_factory_metrics(summary_entry)
+
+    log(f"Software Factory finished in {duration_sec}s. Completed: {state.get('completed_tasks')}, Failed: {state.get('failed_tasks')}, CircuitBreaker: {circuit_breaker_tripped}.")
 
 
 # Execute the async pipeline in the current event loop

@@ -24,6 +24,7 @@ Optional parameters passed as text or key-value pairs:
 - `failure_limit`: Number of consecutive failed iterations before the Repetitive Failure Circuit Breaker trips and halts the loop (default: `2`).
 - `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
 - `auto_ideate`: `true` (default) or `false`. When enabled, the factory automatically discovers and ranks candidate features from open issues and backlog gaps prior to implementation.
+- `dry_run`: `true` or `false` (default: `false`). When enabled, simulates candidate discovery, readiness rubric scoring, task partitioning, and companion test resolution, outputting a complete execution DAG without mutating files, opening issues, or creating git commits.
 
 ---
 
@@ -78,6 +79,24 @@ Before marking any task ready, invoke a dedicated critic subagent or execute an 
 5. **Cloud Functions Security & $O(1)$ Space**: All callables authenticated and inputs validated; technical indicator and backtest loops maintain $O(1)$ auxiliary space without slicing per bar.
 6. **UI Polish & Accessibility**: Financial rows have natural `Semantics(label: ...)`; layouts do not overflow down to `320px` viewports.
 7. **Zero Compile Errors & Strict Types**: Verification with `dart analyze` and `tsc` shows zero errors or type mismatches.
+
+The critic returns a machine-readable `CriticAuditVerdict` JSON payload:
+```json
+{
+  "approved": true,
+  "invariants": {
+    "zero_plaintext_credentials": true,
+    "feature_access_precedence": true,
+    "trading_safeguards": true,
+    "balance_visibility_privacy": true,
+    "backend_security_complexity": true,
+    "accessibility_ui_polish": true,
+    "zero_compile_errors_integrity": true
+  },
+  "blocking_issues": [],
+  "audit_notes": "All checks verified clean."
+}
+```
 
 If the critic identifies blocking issues or missing tests, return to **Stage 2 (Maker)** for remediation.
 
