@@ -84,6 +84,17 @@ if not _args and len(sys.argv) > 1:
             _args["release_cadence"] = arg.split("=", 1)[1]
         elif arg.startswith("--release-threshold="):
             _args["release_threshold"] = int(arg.split("=", 1)[1])
+        elif arg in ("--metrics", "--show-metrics"):
+            _args["show_metrics"] = True
+
+if _args.get("show_metrics"):
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import metrics_summary
+    metrics_argv = [a for a in sys.argv[1:] if a not in ("--metrics", "--show-metrics")]
+    metrics_summary.main(metrics_argv)
+    sys.exit(0)
 
 mode = _args.get("mode", "autonomous")  # "autonomous" or "interactive"
 stages = _args.get("stages", "full")    # "full", "ideate", "implement-batch", "single"
@@ -158,6 +169,29 @@ def is_duplicate_proposal(candidate_title: str, existing_titles: list) -> tuple[
         if sim >= 0.65:
             return True, existing
     return False, ""
+
+
+def categorize_release_items(task_titles: list) -> dict:
+    """Categorize task titles into Keep-a-Changelog sections using Conventional Commits."""
+    categories = {
+        "Added": [],
+        "Fixed": [],
+        "Changed": [],
+        "Security": []
+    }
+    for title in task_titles:
+        lower = str(title).strip().lower()
+        if lower.startswith("feat"):
+            categories["Added"].append(title)
+        elif lower.startswith("fix"):
+            categories["Fixed"].append(title)
+        elif lower.startswith("sec") or "security" in lower:
+            categories["Security"].append(title)
+        elif lower.startswith(("perf", "refactor", "docs", "chore", "style")):
+            categories["Changed"].append(title)
+        else:
+            categories["Added"].append(title)
+    return {k: v for k, v in categories.items() if v}
 
 
 def load_external_context():
@@ -651,8 +685,10 @@ Your task: Bundle verified features from this factory cycle into a cohesive sema
                     role="Release Specialist"
                 )
 
+                categorized_notes = categorize_release_items(state.get("completed_tasks", []))
                 release_prompt = f"""
 Prepare and group release package for verified tasks: {state.get('completed_tasks', [])}.
+Categorized Keep-a-Changelog sections: {json.dumps(categorized_notes, indent=2)}.
 Mode: {mode}, DryRun: {dry_run}, Focus: '{focus}', Cadence: '{release_cadence}'.
 """
                 release_schema = {

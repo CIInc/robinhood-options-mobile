@@ -110,10 +110,20 @@ npm run build
 npm test
 ```
 
-### Fast CI Dry-Run via Software Factory
-You can simulate the complete software factory verification gate locally:
+### Developer CLI (`scripts/factory.sh`)
+You can use the `./scripts/factory.sh` developer CLI for local simulation, metrics, and context validation:
 ```bash
-python3 .github/skills/software-factory/scripts/factory_pipeline.py --mode=autonomous --stages=ideate --dry-run
+# 1. Run simulation / dry-run
+./scripts/factory.sh dry-run
+
+# 2. View telemetry & performance metrics
+./scripts/factory.sh metrics
+
+# 3. Validate staged external context schemas & Zero PII
+./scripts/factory.sh context check
+
+# 4. Reset tripped circuit breaker state
+./scripts/factory.sh reset
 ```
 
 ---

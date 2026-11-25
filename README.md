@@ -462,7 +462,7 @@ Before contributing or running coding agents in this repository, review [CONTRIB
 
 RealizeAlpha provides structured agent skills for roadmap planning, autonomous software factory execution, release auditing, and documentation synchronization:
 
-- **Autonomous Software Factory ([`.github/skills/software-factory/SKILL.md`](.github/skills/software-factory/SKILL.md)):** Orchestrate full-cycle autonomous software factory pipelines (`ideate -> implement -> critic -> docs -> release-check`) or parallel multi-item batches via `run_workflow` (`> /software-factory`).
+- **Autonomous Software Factory ([`.github/skills/software-factory/SKILL.md`](.github/skills/software-factory/SKILL.md)):** Orchestrate full-cycle autonomous software factory pipelines (`ideate -> implement -> critic -> docs -> release-check`), simulation dry-runs, or parallel multi-item batches via `run_workflow` (`> /software-factory` or `./scripts/factory.sh`).
 - **Software Implementation ([`.github/skills/software-implementation/SKILL.md`](.github/skills/software-implementation/SKILL.md)):** Implement the highest-priority actionable feature from [ROADMAP.md](ROADMAP.md) end-to-end with tests, self-healing quality gates, and invariant audits (`> /software-implementation`).
 - **Software Ideation ([`.github/skills/software-ideation/SKILL.md`](.github/skills/software-ideation/SKILL.md)):** Propose evidence-backed roadmap items, score against the Software Factory Readiness Rubric, and link GitHub issues (`> /software-ideation`).
 - **Software Release ([`.github/skills/software-release/SKILL.md`](.github/skills/software-release/SKILL.md)):** Prepare releases, audit safety invariants and roadmap completion, run quality gates, and verify CI/CD deployment (`> /software-release`).

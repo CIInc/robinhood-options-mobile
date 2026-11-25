@@ -54,19 +54,22 @@ flowchart TD
 
 ## 1.1 Quick-Reference CLI Cheat Sheet
 
-Use these copy-pasteable slash command invocations for common engineering workflows:
+Use these copy-pasteable slash command invocations or the `./scripts/factory.sh` developer CLI for common engineering workflows:
 
-| Developer Scenario | Slash Command / CLI Invocation | Description |
-|---|---|---|
-| **Autonomous Loop Overnight** | `/software-factory mode="autonomous" stages="full" max_iterations=3` | Runs continuous closed loop: ideate, score, triage, parallel implement, verify, reconcile, and commit. |
-| **Autonomous Milestone Release** | `/software-factory release_cadence="milestone" release_threshold=3` | Evaluates in-workflow feature grouping and cuts a semantic release when batch threshold is reached. |
-| **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | Executes discovery, rubric scoring, partitioning, and test mapping without mutating files or committing. |
-| **Single-Item Interactive** | `/software-implementation mode="interactive" focus="<feature_title>"` | Guided Maker-Verifier-Critic loop with human approval checkpoints before staging commits. |
-| **Ideation & Backlog Discovery** | `/software-ideation focus="agentic trading"` | Evaluates backlog candidates against the 8-point Readiness Rubric and records qualified proposals. |
-| **Release Preparation & Audit** | `/software-release bump="patch"` | Prepares semantic version bump, syncs release notes, audits safety invariants, requiring manual push confirmation. |
-| **Documentation Synchronization** | `/update-docs` | Reconciles `ROADMAP.md` Quick Stats, bounds Key Highlights ($\le 5$), and updates `CHANGELOG.md`. |
-| **Disaster Recovery (Resume)** | `/software-factory mode="autonomous"` | Automatically reads `.agents/.factory_run_state.json` and resumes from the last completed iteration. |
-| **Reset Circuit Breaker** | `rm -f .agents/.factory_run_state.json` | Clears tripped failure counters and unblocks autonomous factory execution. |
+| Developer Scenario | Slash Command Invocation | Developer CLI (`scripts/factory.sh`) | Description |
+|---|---|---|---|
+| **Autonomous Loop Overnight** | `/software-factory mode="autonomous" stages="full" max_iterations=3` | `./scripts/factory.sh run "<focus>" 3` | Runs continuous closed loop: ideate, score, triage, parallel implement, verify, reconcile, and commit. |
+| **Autonomous Milestone Release** | `/software-factory release_cadence="milestone" release_threshold=3` | `./scripts/factory.sh run "" 3` | Evaluates in-workflow feature grouping and cuts a semantic release when batch threshold is reached. |
+| **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | `./scripts/factory.sh dry-run "<focus>"` | Executes discovery, rubric scoring, partitioning, and test mapping without mutating files or committing. |
+| **Single-Item Interactive** | `/software-implementation mode="interactive" focus="<title>"` | `./scripts/factory.sh interactive "<title>"` | Guided Maker-Verifier-Critic loop with human approval checkpoints before staging commits. |
+| **Ideation & Backlog Discovery** | `/software-ideation focus="agentic trading"` | `./scripts/factory.sh dry-run "agentic trading"` | Evaluates backlog candidates against the 8-point Readiness Rubric and records qualified proposals. |
+| **Context Schema Validation** | — | `./scripts/factory.sh context check` | Validates templates and live context for schemas and Zero-PII compliance. |
+| **Mock Context Generation** | — | `./scripts/factory.sh context sample telemetry` | Scaffolds mock telemetry or user feedback fixtures for offline testing. |
+| **Telemetry Dashboard** | — | `./scripts/factory.sh metrics [--ascii]` | Displays execution performance dashboard, pass rates, and cycle latency. |
+| **Release Preparation & Audit** | `/software-release bump="patch"` | — | Prepares semantic version bump, syncs release notes, audits safety invariants, requiring manual push confirmation. |
+| **Documentation Synchronization** | `/update-docs` | — | Reconciles `ROADMAP.md` Quick Stats, bounds Key Highlights ($\le 5$), and updates `CHANGELOG.md`. |
+| **Disaster Recovery (Resume)** | `/software-factory mode="autonomous"` | `./scripts/factory.sh run` | Automatically reads `.agents/.factory_run_state.json` and resumes from the last completed iteration. |
+| **Reset Circuit Breaker** | — | `./scripts/factory.sh reset` | Clears tripped failure counters and unblocks autonomous factory execution. |
 
 ---
 
@@ -169,6 +172,26 @@ To prevent infinite backlogs, RealizeAlpha treats **Release Cadence & Feature Gr
      - Bump semantic versioning in `pubspec.yaml` (`patch` vs `minor`).
      - Move the completed features into `ROADMAP.md` `## Completed Features ✅` and reconcile `Quick Stats`.
      - Conclude the active release cycle gracefully, outputting a complete release summary and awaiting explicit human confirmation before pushing git tags to `main`.
+
+### 2.2 Multi-Model Tiering & Quota Fallback Resilience
+
+The Software Factory employs a tiered model strategy to balance reasoning depth, speed, and API token budgets across multi-hour autonomous cycles:
+
+| Factory Role | Primary Model | Fallback Model | Rationale & Token Strategy |
+|---|---|---|---|
+| **Ideation Specialist** | `pro` | `flash` | Deep synthesis of user needs, product context, and rubric scoring. |
+| **Triage Coordinator** | `flash` | `flash_lite` | Fast dependency parsing and disjoint partition assignment. |
+| **Maker Agent** | `pro` | `flash` | Full architectural code generation and unit test authoring. |
+| **Self-Healing Verifier** | Native Shell | Shell | Local CLI test & analysis gates cost 0 LLM tokens. |
+| **Adversarial Critic** | `pro` | `flash` | Fresh-context adversarial review of the 7 Core Safety Invariants. |
+| **Documentation Reconciler** | `flash` | `flash_lite` | Structural markdown updates, changelog syncing, and quick stats. |
+| **Release Specialist** | `pro` | `flash` | Semantic version evaluation and safety invariant release audits. |
+
+#### Quota Fallback & Swarm Model Switching Protocol
+During overnight continuous loops (`mode="autonomous" max_iterations=5`), heavy reasoning workloads may encounter API rate limits or quota ceilings on the `pro` tier. To prevent workflow stalls:
+1. **Dynamic Model Switching**: Antigravity swarm workers support switching models in place via the `model` action without dropping active conversational state.
+2. **Graceful Fallback Cascade**: If a `pro` subagent invocation reports quota exhaustion, the orchestrator cascades to `flash`, flags the run in `.agents/.factory_metrics.json`, and completes the iteration.
+3. **Run State Resumption**: If all online tiers are exhausted, `.agents/.factory_run_state.json` preserves the exact iteration and task boundary. Once quotas reset, running `./scripts/factory.sh run` resumes seamlessly from the checkpoint.
 
 ### Full-Cycle Pipeline Chaining
 When invoked with `stages="full"`, the factory coordinates six sequential phases:
@@ -589,3 +612,25 @@ However, granting autonomous agents direct network access or live API credential
 - **Hermetic & Deterministic Simulation**: Dry-run simulations seamlessly fall back to canonical template fixtures without requiring network access or external credentials.
 - **Strict Privacy Invariant Compliance**: Prevents customer PII and OAuth tokens from ever entering agent prompts or version control.
 - **Turnkey Community & Team Integration**: Any external service (CI cron, Sentry webhook, store review scraper) can deliver context by simply writing a scrubbed JSON file to `.agents/context/`.
+
+---
+
+## 14. ADR-003: In-Workflow Release Cadence & Milestone Horizon Isolation
+
+### Context & Problem Statement
+In an autonomous closed-loop software factory, **Ideation & Backlog Discovery** runs alongside **Maker–Verifier Implementation**. If release cuts depend on backlog exhaustion (i.e. waiting until all roadmap tasks are unchecked and complete), the factory enters an **infinite execution loop**: every iteration discovers and records new qualified feature proposals faster than the implementation phase can ship them. As a result, software is never packaged into a semantic release or promoted to users.
+
+### Decision
+1. **In-Workflow Release Decision Phase**: Introduce an explicit **Phase 6: Release Cadence & Grouping Decision** inside the continuous loop rather than treating releases as an external trigger after complete backlog drain.
+2. **Configurable Cadence Policies**: Support three release triggering modes:
+   - `milestone` (default): Packages and cuts a release when the active release milestone criteria or feature batch threshold (`release_threshold`, default: 2) is reached.
+   - `batch_size`: Packages and cuts a release as soon as $N$ verified features have passed Maker-Verifier-Critic gates.
+   - `manual`: Bypasses automated releases, holding verified commits on feature branches for developer sign-off.
+3. **Milestone Horizon Isolation**: During Phase 1 (Ideation), newly discovered features are classified by horizon. Proposals queued for future releases are tagged with `future_horizon: True` and recorded under future milestone headings in `ROADMAP.md` without expanding the active release milestone scope.
+4. **Automated Keep-a-Changelog Categorization**: Automatically parse conventional commit prefixes (`feat`, `fix`, `perf`, `sec`) into standard Keep-a-Changelog sections (`### Added`, `### Fixed`, `### Changed`, `### Security`) during release packaging.
+5. **Human Gate for Release Tags**: In-workflow packaging generates release notes, bumps semantic version in `pubspec.yaml`, and creates the release commit, but strictly preserves a human confirmation gate before pushing git tags to `main` or triggering store deployment pipelines.
+
+### Consequences & Benefits
+- **Deterministic Release Velocity**: Software is continuously packaged and released in small, verified increments (e.g. 2–3 features per release) rather than accumulating risky, monolithic releases.
+- **Backlog Scope Protection**: Ongoing ideation continues to enrich the long-term product roadmap without delaying the current release cycle.
+- **Zero Infinite Loop Risk**: The autonomous factory reliably completes cycles and reaches release milestones even with an infinite supply of candidate ideas.
