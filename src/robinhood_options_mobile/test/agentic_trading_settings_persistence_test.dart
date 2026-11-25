@@ -98,9 +98,10 @@ void main() {
 
   Future<void> ensureQuantProMode(WidgetTester tester) async {
     if (find.text('Execution Settings').evaluate().isEmpty) {
-      final quantPro = find.text('Quant Pro');
-      await tester.ensureVisible(quantPro);
-      await tester.tap(quantPro);
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
     }
   }
