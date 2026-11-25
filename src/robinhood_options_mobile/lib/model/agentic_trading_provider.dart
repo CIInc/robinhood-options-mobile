@@ -1574,7 +1574,7 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
-  /// Updates the capital allocation budget ([maxPortfolioConcentration] in 0.05..1.0)
+  /// Updates the capital allocation budget ([totalCapitalBudgetPercent] in 0.05..1.0)
   /// while preserving all other strategy and quantitative parameters.
   Future<void> applyCapitalAllocation(
     double concentrationFraction,
@@ -1582,15 +1582,17 @@ class AgenticTradingProvider with ChangeNotifier {
   ) async {
     final clamped = concentrationFraction.clamp(0.05, 1.0);
     final updatedStrategy = _config.strategyConfig.copyWith(
-      maxPortfolioConcentration: clamped,
+      totalCapitalBudgetPercent: clamped,
+      maxPortfolioConcentration:
+          _config.strategyConfig.maxPortfolioConcentration > clamped
+              ? clamped
+              : _config.strategyConfig.maxPortfolioConcentration,
     );
     final updatedConfig = _config.copyWith(strategyConfig: updatedStrategy);
     if (userDocRef != null) {
       await updateConfig(updatedConfig, userDocRef);
     } else {
       _config = updatedConfig;
-      _hasLoadedConfig = true;
-      _forgetProcessedSignalsIfRulesChanged();
       if (!_isDisposed) notifyListeners();
     }
   }

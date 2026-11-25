@@ -1122,11 +1122,15 @@ RiskGuard is RealizeAlpha's pre-trade risk engine. Before any BUY proposal can r
 
 | Configuration Key | JSON / Model Key | Type & Range | Default | UI Mode | Summary |
 | --- | --- | --- | --- | --- | --- |
-| **Trade Quantity** | `tradeQuantity` | `int` ($\ge 1$) | `1 share` | Both | Baseline share count per trade when dynamic sizing is disabled. |
-| **Enable Dynamic Sizing** | `enableDynamicPositionSizing` | `bool` | `false` | Quant Pro | Calculates position sizing dynamically based on ATR volatility and risk %. |
-| **Risk Per Trade %** | `riskPerTrade` | `double` (0.01–100%)| `1.0%` | Quant Pro | Fraction of portfolio equity risked between entry and stop-loss price. |
-| **ATR Multiplier** | `atrMultiplier` | `double` (0.1–10.0) | `2.0x` | Quant Pro | Stop loss distance in multiples of 14-period Average True Range. |
-| **Max Position Size** | `maxPositionSize` | `int` ($\ge 1$) | `100 shares`| Quant Pro | Absolute upper ceiling on total shares held in any single symbol. |
+| **Trade Sizing Mode** | `positionSizingMode` | `PositionSizingMode` | `fixedShares` | Quant Pro | 3-way per-order sizing selector: `fixedShares`, `targetDollar`, or `dynamicRisk`. |
+| **Trade Quantity** | `tradeQuantity` | `int` ($\ge 1$) | `1 share` | Both | Fixed share count per order when Trade Sizing is `fixedShares`. |
+| **Target Dollar Allocation** | `targetDollarAllocation` | `double` ($\ge \$10$) | `\$500.0` | Quant Pro | Fixed dollar target per order ($\lfloor \text{Target} / \text{Price} \rfloor$, min 1 share). |
+| **Risk Per Trade %** | `riskPerTrade` | `double` (0.01–100%)| `1.0%` | Quant Pro | Fraction of portfolio equity risked between entry and stop-loss price under `dynamicRisk`. |
+| **ATR Multiplier** | `atrMultiplier` | `double` (0.1–10.0) | `2.0x` | Quant Pro | Stop loss distance in multiples of 14-period Average True Range for dynamic sizing. |
+| **Position Limit Mode** | `positionLimitMode` | `PositionLimitMode` | `maxShares` | Quant Pro | Binary option selector for cumulative position ceiling: `maxShares` or `maxPercent`. |
+| **Max Position Size** | `maxPositionSize` | `int` ($\ge 1$) | `100 shares`| Quant Pro | Active when Position Sizing is `maxShares`: cumulative share ceiling per stock. |
+| **Max Single-Stock Concentration %** | `maxPortfolioConcentration` | `double` (1–100%) | `20.0%` | Quant Pro | Active when Position Sizing is `maxPercent`: cumulative portfolio equity % ceiling per stock. |
+| **Total Capital Budget %** | `totalCapitalBudgetPercent` | `double` (5–100%) | `50.0%` | Both | Global account budget: max portfolio equity allocated to automated trading across all positions combined. |
 | **Daily Trade Limit** | `dailyTradeLimit` | `int` (1–100) | `5` | Quant Pro | Maximum number of automated BUY orders permitted per day. |
 | **Sector Exposure Limits** | `enableSectorLimits` | `bool` | `false` | Quant Pro | Caps cumulative capital allocation to any single GICS market sector. |
 | **Max Sector Exposure %**| `maxSectorExposure` | `double` (1–100%) | `20.0%` | Quant Pro | Maximum portfolio percentage allowed in one sector (e.g. Technology). |
@@ -1142,13 +1146,38 @@ RiskGuard is RealizeAlpha's pre-trade risk engine. Before any BUY proposal can r
 
 ##### In-Depth Operational Breakdown
 
-1. **Trade Quantity vs. Dynamic Position Sizing**
-   - **Fixed Sizing:** When `enableDynamicPositionSizing` is `false`, the engine buys exactly `tradeQuantity` shares every time a setup triggers.
-   - **Dynamic Sizing Formula:** When `enableDynamicPositionSizing` is `true`, the engine calculates:
+1. **Trade Sizing (Per-Order Sizing Modes)**
+   - **Mode 1: Fixed Shares (`fixedShares`):** The engine buys exactly `tradeQuantity` shares (default 1–5 shares) per order. Recommended for index ETFs and predictable recurring entries.
+   - **Mode 2: Target Dollar Allocation (`targetDollar`):** The engine targets an exact capital allocation per order (e.g. \$500 per entry):
+     $$\text{Shares} = \max\left(1, \left\lfloor \frac{\text{Target Dollar Allocation}}{\text{Last Price}} \right\rfloor\right)$$
+     This normalizes position size across varying stock prices (e.g. 3 shares of \$140 NVDA vs. 1 share of \$420 MSFT) without complex volatility calculations.
+   - **Mode 3: Dynamic ATR Risk Sizing (`dynamicRisk`):** The engine calculates shares based on distance to the volatility stop loss:
      $$\text{Stop Distance} = \text{ATR}_{14} \times \text{atrMultiplier}$$
-     $$\text{Shares} = \left\lfloor \frac{\text{Portfolio Equity} \times \text{riskPerTrade}}{\text{Stop Distance}} \right\rfloor$$
-   - **Hard Overrides:** Regardless of dynamic calculations, the share count will *never* exceed `maxPositionSize`, and total position dollar value will *never* breach the Capital Budget.
-   - **Pro Tips:** Dynamic sizing ensures that higher-volatility stocks get smaller share allocations while low-volatility stocks get larger allocations, equalizing total dollar risk per trade.
+     $$\text{Shares} = \max\left(1, \left\lfloor \frac{\text{Portfolio Equity} \times \text{riskPerTrade}}{\text{Stop Distance}} \right\rfloor\right)$$
+     Dynamic sizing ensures higher-volatility stocks receive smaller share allocations while low-volatility stocks receive larger allocations, equalizing total dollar risk per trade.
+   - **Legibility & Styling:** Sizing options are presented via a high-contrast segmented control with full-size typography (no cramped icons or shrinking text) for effortless readability.
+
+2. **Position Sizing (Binary Option Cumulative Ceilings)**
+   - RiskGuard provides a binary option selector to control cumulative single-stock exposure:
+     - **Option A: Max Shares (`maxShares`):** Sets an absolute ceiling on the cumulative number of shares you may hold in any single symbol (e.g. 100 shares). Useful when you have fixed lot sizes.
+     - **Option B: Max Portfolio % (`maxPercent`):** Sets a relative ceiling as a percentage of your total portfolio equity (e.g. 20% max in NVDA). Adapts automatically as your account equity grows.
+   - **Decline Rather than Silently Mutate:** If a proposed order would cause cumulative holdings in a symbol to breach the selected ceiling, RiskGuard *declines* the order with an explicit explanatory audit trail (e.g. `Order of 15 shares would bring AAPL position to 110 shares, exceeding Max Position Size limit of 100 shares`) rather than silently clipping or modifying order quantity.
+
+3. **Account Safety Limits (Global Controls)**
+   - **Total Automated Capital Budget %:** Caps cumulative equity across *all* active automated positions combined (default 50% of account equity), ensuring automated trading never exhausts account liquidity or leverage.
+   - **Daily Trade Limit:** Maximum automated trades allowed per market day.
+
+4. **Position Sizing Simulator & Pre-Flight Checks**
+   - An interactive simulator card directly inside the Risk Management section allows you to test any stock price and ATR against your active Trade Sizing mode and Position Sizing ceiling.
+   - Provides immediate real-time feedback displaying calculated order shares, notional dollar value, position concentration percentage, and dollar risk at stop, accompanied by an instant `RiskGuard Pre-Flight: APPROVED` or `DECLINED` breakdown.
+
+5. **Strategy Archetypes & Templates**
+   - Curated archetypes pre-configure both Trade Sizing and Position Sizing for institutional coherence:
+     - **Conservative Core:** Dynamic ATR risk sizing (1% risk) paired with a 20% portfolio concentration ceiling (`maxPercent`).
+     - **Momentum Breakout:** Dynamic ATR risk sizing (2% risk) paired with a 30% portfolio concentration ceiling (`maxPercent`).
+     - **Options Income Harvester:** Target Dollar sizing (\$1,000 target) paired with a 75-share ceiling (`maxShares`).
+     - **Reasoning AI Agent:** Dynamic ATR risk sizing (2% risk) paired with a 25% portfolio concentration ceiling (`maxPercent`).
+   - Tapping **Apply Archetype** presents a side-by-side comparison modal with a **"Keep personal Safety Limits"** checkbox preserving your custom Position Sizing ceiling and Total Capital Budget.
 
 2. **Sector Exposure Limits (`enableSectorLimits`, `maxSectorExposure`)**
    - **What it does:** Prevents over-concentration in a single industry. Uses GICS sector classifications (Technology, Financials, Healthcare, Energy, etc.).

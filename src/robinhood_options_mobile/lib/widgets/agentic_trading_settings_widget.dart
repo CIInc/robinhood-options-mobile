@@ -32,9 +32,11 @@ import 'package:robinhood_options_mobile/widgets/trade_signals_page.dart';
 import 'package:robinhood_options_mobile/widgets/automated_trading_approvals_widget.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_archetype_card.dart';
 import 'package:robinhood_options_mobile/widgets/strategy_archetype_detail_bottom_sheet.dart';
+import 'package:robinhood_options_mobile/widgets/capital_budget_card.dart';
 import 'package:robinhood_options_mobile/widgets/beta_labs_widget.dart';
 import 'package:robinhood_options_mobile/services/feature_access_service.dart';
 import 'package:robinhood_options_mobile/widgets/simplified_trading_controls_widget.dart';
+import 'package:robinhood_options_mobile/widgets/position_sizing_simulator_widget.dart';
 import 'package:robinhood_options_mobile/widgets/quant_pro_settings_view.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
@@ -265,8 +267,10 @@ class _AgenticTradingSettingsWidgetState
   // Pending orders currently being approved or rejected, keyed by symbol and action.
   final Set<String> _busyOrders = {};
   late TextEditingController _tradeQuantityController;
+  late TextEditingController _targetDollarAllocationController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
+  late TextEditingController _totalCapitalBudgetPercentController;
   late TextEditingController _dailyTradeLimitController;
   late TextEditingController _autoTradeCooldownController;
   late TextEditingController _checkIntervalController;
@@ -399,6 +403,8 @@ class _AgenticTradingSettingsWidgetState
 
     _tradeQuantityController =
         TextEditingController(text: strategy?.tradeQuantity.toString() ?? '1');
+    _targetDollarAllocationController = TextEditingController(
+        text: strategy?.targetDollarAllocation.toString() ?? '500');
     _maxPositionSizeController = TextEditingController(
         text: strategy?.maxPositionSize.toString() ?? '100');
 
@@ -409,6 +415,13 @@ class _AgenticTradingSettingsWidgetState
         text: maxConcentrationPercent % 1 == 0
             ? maxConcentrationPercent.toInt().toString()
             : maxConcentrationPercent.toString());
+
+    double totalCapitalBudget = strategy?.totalCapitalBudgetPercent ?? 0.5;
+    double totalCapitalBudgetPercent = totalCapitalBudget * 100;
+    _totalCapitalBudgetPercentController = TextEditingController(
+        text: totalCapitalBudgetPercent % 1 == 0
+            ? totalCapitalBudgetPercent.toInt().toString()
+            : totalCapitalBudgetPercent.toString());
 
     _dailyTradeLimitController = TextEditingController(
         text: strategy?.dailyTradeLimit.toString() ?? '5');
@@ -512,8 +525,10 @@ class _AgenticTradingSettingsWidgetState
   void dispose() {
     _configProvider?.removeListener(_syncUserConfig);
     _tradeQuantityController.dispose();
+    _targetDollarAllocationController.dispose();
     _maxPositionSizeController.dispose();
     _maxPortfolioConcentrationController.dispose();
+    _totalCapitalBudgetPercentController.dispose();
     _dailyTradeLimitController.dispose();
     _autoTradeCooldownController.dispose();
     _checkIntervalController.dispose();
@@ -822,6 +837,10 @@ class _AgenticTradingSettingsWidgetState
       enabledIndicators:
           Map<String, bool>.from(strategySource.enabledIndicators),
       tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      targetDollarAllocation:
+          double.tryParse(_targetDollarAllocationController.text) ?? 500.0,
+      positionSizingMode: strategySource.positionSizingMode,
+      positionLimitMode: strategySource.positionLimitMode,
       takeProfitPercent:
           double.tryParse(_takeProfitPercentController.text) ?? 10.0,
       stopLossPercent: double.tryParse(_stopLossPercentController.text) ?? 5.0,
@@ -836,6 +855,9 @@ class _AgenticTradingSettingsWidgetState
       maxPositionSize: int.tryParse(_maxPositionSizeController.text) ?? 100,
       maxPortfolioConcentration:
           (double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0) /
+              100.0,
+      totalCapitalBudgetPercent:
+          (double.tryParse(_totalCapitalBudgetPercentController.text) ?? 50.0) /
               100.0,
       dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
       minSignalStrength: (strategySource.requireAllIndicatorsGreen)
@@ -1133,6 +1155,8 @@ class _AgenticTradingSettingsWidgetState
           template.config.trailingStopPercent.toString();
 
       _tradeQuantityController.text = template.config.tradeQuantity.toString();
+      _targetDollarAllocationController.text =
+          template.config.targetDollarAllocation.toString();
       _maxPositionSizeController.text =
           template.config.maxPositionSize.toString();
 
@@ -1142,6 +1166,11 @@ class _AgenticTradingSettingsWidgetState
           maxPortfolioConcentration % 1 == 0
               ? maxPortfolioConcentration.toInt().toString()
               : maxPortfolioConcentration.toString();
+
+      double totalBudget = template.config.totalCapitalBudgetPercent * 100;
+      _totalCapitalBudgetPercentController.text = totalBudget % 1 == 0
+          ? totalBudget.toInt().toString()
+          : totalBudget.toString();
 
       _dailyTradeLimitController.text =
           template.config.dailyTradeLimit.toString();
@@ -1454,6 +1483,9 @@ class _AgenticTradingSettingsWidgetState
       maxPortfolioConcentration:
           (double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0) /
               100.0,
+      totalCapitalBudgetPercent:
+          (double.tryParse(_totalCapitalBudgetPercentController.text) ?? 50.0) /
+              100.0,
       dailyTradeLimit: int.tryParse(_dailyTradeLimitController.text) ?? 5,
       minSignalStrength:
           double.tryParse(_minSignalStrengthController.text) ?? 50.0,
@@ -1473,6 +1505,10 @@ class _AgenticTradingSettingsWidgetState
       customIndicators: List.from(strategySource.customIndicators),
       symbolFilter: List.from(_symbolFilter),
       tradeQuantity: int.tryParse(_tradeQuantityController.text) ?? 1,
+      targetDollarAllocation:
+          double.tryParse(_targetDollarAllocationController.text) ?? 500.0,
+      positionSizingMode: strategySource.positionSizingMode,
+      positionLimitMode: strategySource.positionLimitMode,
       // Risk Controls
       enableSectorLimits: strategySource.enableSectorLimits,
       maxSectorExposure:
@@ -1501,6 +1537,35 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  double? _getPortfolioEquity(
+    BuildContext context,
+    AgenticTradingProvider provider,
+  ) {
+    AccountStore? accountStore;
+    try {
+      accountStore = Provider.of<AccountStore>(context, listen: false);
+    } on ProviderNotFoundException {
+      return null;
+    }
+    double? equity;
+    if (provider.config.paperTradingMode) {
+      try {
+        final paperStore =
+            Provider.of<PaperTradingStore>(context, listen: false);
+        if (paperStore.equity > 0) {
+          equity = paperStore.equity;
+        }
+      } on ProviderNotFoundException {
+        // PaperTradingStore optional in widget tests
+      }
+    }
+    equity ??= accountStore.selectedAccount?.totalValue ??
+        accountStore.selectedAccount?.buyingPower ??
+        accountStore.selectedAccount?.portfolioCash;
+    if (equity == null || equity <= 0) return null;
+    return equity;
+  }
+
   String? _formattedCapitalBudgetCap(
     BuildContext context,
     AgenticTradingProvider provider,
@@ -1514,23 +1579,10 @@ class _AgenticTradingSettingsWidgetState
     if (!accountStore.showBalances) {
       return r'$••••••';
     }
-    double? equity;
-    if (provider.config.paperTradingMode) {
-      try {
-        final paperStore = Provider.of<PaperTradingStore>(context);
-        if (paperStore.equity > 0) {
-          equity = paperStore.equity;
-        }
-      } on ProviderNotFoundException {
-        // PaperTradingStore optional in widget tests
-      }
-    }
-    equity ??= accountStore.selectedAccount?.totalValue ??
-        accountStore.selectedAccount?.buyingPower ??
-        accountStore.selectedAccount?.portfolioCash;
+    final equity = _getPortfolioEquity(context, provider);
     if (equity == null || equity <= 0) return null;
     final cap = equity *
-        provider.config.strategyConfig.maxPortfolioConcentration
+        provider.config.strategyConfig.totalCapitalBudgetPercent
             .clamp(0.0, 1.0);
     return NumberFormat.simpleCurrency(decimalDigits: 0).format(cap);
   }
@@ -1541,8 +1593,14 @@ class _AgenticTradingSettingsWidgetState
   ) async {
     final pct = (concentrationFraction.clamp(0.05, 1.0) * 100);
     setState(() {
-      _maxPortfolioConcentrationController.text =
+      _totalCapitalBudgetPercentController.text =
           pct % 1 == 0 ? pct.toInt().toString() : pct.toStringAsFixed(1);
+      final currentConcentration =
+          double.tryParse(_maxPortfolioConcentrationController.text) ?? 50.0;
+      if (currentConcentration > pct) {
+        _maxPortfolioConcentrationController.text =
+            pct % 1 == 0 ? pct.toInt().toString() : pct.toStringAsFixed(1);
+      }
     });
     await provider.applyCapitalAllocation(
         concentrationFraction, widget.userDocRef);
@@ -1576,47 +1634,6 @@ class _AgenticTradingSettingsWidgetState
     ).then((_) {
       if (mounted) setState(() {});
     });
-  }
-
-  Widget _buildUiModeSelector(
-    BuildContext context,
-    AgenticTradingProvider agenticTradingProvider,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<AgenticTradingUiMode>(
-          key: const ValueKey('agentic-ui-mode-selector'),
-          style: const ButtonStyle(
-            visualDensity: VisualDensity.compact,
-          ),
-          segments: const [
-            ButtonSegment<AgenticTradingUiMode>(
-              value: AgenticTradingUiMode.simplified,
-              icon: Icon(Icons.tune, size: 16),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('Simplified'),
-              ),
-            ),
-            ButtonSegment<AgenticTradingUiMode>(
-              value: AgenticTradingUiMode.quantPro,
-              icon: Icon(Icons.science_outlined, size: 16),
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text('Quant Pro'),
-              ),
-            ),
-          ],
-          selected: {agenticTradingProvider.uiMode},
-          onSelectionChanged: (selection) {
-            if (selection.isEmpty) return;
-            unawaited(agenticTradingProvider.setUiMode(selection.first));
-          },
-        ),
-      ),
-    );
   }
 
   @override
@@ -1660,7 +1677,6 @@ class _AgenticTradingSettingsWidgetState
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    _buildUiModeSelector(context, agenticTradingProvider),
                     if (!hasSupportedBrokerage)
                       _buildBrokeragePrerequisite(
                         context,
@@ -2019,7 +2035,7 @@ class _AgenticTradingSettingsWidgetState
                       size: 20, color: colorScheme.secondary),
                 ),
                 title: Text(
-                  'Custom & Advanced Templates',
+                  'Strategy Templates',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -2511,7 +2527,7 @@ class _AgenticTradingSettingsWidgetState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Curated Strategy Archetypes',
+                      'Strategy Archetypes',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -2519,7 +2535,7 @@ class _AgenticTradingSettingsWidgetState
                       ),
                     ),
                     Text(
-                      'Curated Presets with Walk-Forward Validation',
+                      'Curated Presets with Historical Benchmarks',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -2533,7 +2549,7 @@ class _AgenticTradingSettingsWidgetState
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 195,
+          height: 185,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: StrategyArchetypes.curated.length,
@@ -2546,7 +2562,7 @@ class _AgenticTradingSettingsWidgetState
                   !_isAgenticTradingEnabled;
 
               return SizedBox(
-                width: 290,
+                width: 280,
                 child: StrategyArchetypeCard(
                   archetype: archetype,
                   isSelected: isSelected,
@@ -5187,93 +5203,320 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  void _showDiversificationHelpDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(Icons.pie_chart, color: colorScheme.primary, size: 28),
+        title: const Text('Portfolio Diversification Controls'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Why Diversification Matters',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Diversification prevents over-exposure to a single market sector or clustered group of correlated stocks.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildHelpBullet(
+                context,
+                title: 'Sector Exposure Limits',
+                description:
+                    'Enforces a maximum percentage cap on any single GICS market sector (e.g. Technology, Healthcare). If a sector reaches its cap, new entries in that sector are paused.',
+              ),
+              const SizedBox(height: 8),
+              _buildHelpBullet(
+                context,
+                title: 'Correlation Checks',
+                description:
+                    'Calculates statistical price correlation with existing holdings. Rejects entries that are too heavily correlated with stocks you already own to reduce systemic risk.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRiskManagement(
       BuildContext context, AgenticTradingProvider agenticTradingProvider,
       {Key? key}) {
     final dollarCap =
         _formattedCapitalBudgetCap(context, agenticTradingProvider);
+    final strategy = agenticTradingProvider.config.strategyConfig;
+    final currentSizingMode = strategy.positionSizingMode;
+    final currentLimitMode = strategy.positionLimitMode;
+
     return _buildSection(
       key: key,
       context: context,
       title: 'Risk Management',
       icon: Icons.security,
       children: [
-        _buildSubsectionTitle(context, 'Position Sizing'),
-        const SizedBox(height: 12),
-        _buildNumberField(
-          controller: _tradeQuantityController,
-          label: 'Trade Quantity',
-          helperText:
-              'Default base shares per trade. Overridden by Dynamic Sizing when active, but always capped by Max Position Size.',
-          icon: Icons.shopping_cart,
-          min: 1,
+        // -------------------------------------------------------------
+        // Pillar 1: Sizing Engine (Order & Position Sizing + Simulator)
+        // -------------------------------------------------------------
+        _buildSubsectionTitle(
+          context,
+          'Trade Sizing',
+          onHelp: () => _showTradeSizingHelpDialog(context),
+          helpTooltip: 'About Trade Sizing and volatility risk formulas',
         ),
-        const SizedBox(height: 16),
-        _buildSwitchListTile(
-          'enableDynamicPositionSizing',
-          'Enable Dynamic Sizing',
-          'Size shares dynamically using ATR volatility and risk-per-trade % (overrides base Trade Quantity)',
-          agenticTradingProvider,
-          defaultValue: false,
-          value: agenticTradingProvider
-              .config.strategyConfig.enableDynamicPositionSizing,
-          onChanged: (value) {
-            final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableDynamicPositionSizing: value)));
-            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
-          },
-          extraContent: Column(
-            children: [
-              const SizedBox(height: 16),
-              _buildNumberField(
-                controller: _riskPerTradeController,
-                label: 'Risk Per Trade %',
-                helperText: '% of account to risk (e.g. 1.0 for 1%)',
-                icon: Icons.percent,
-                isDecimal: true,
-                min: 0.01,
-                max: 100,
-                suffixText: '%',
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<PositionSizingMode>(
+              key: const ValueKey('position-sizing-mode-segmented-button'),
+              style: ButtonStyle(
+                visualDensity: VisualDensity.standard,
+                textStyle: WidgetStateProperty.all(
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
               ),
-              const SizedBox(height: 16),
-              _buildNumberField(
-                controller: _atrMultiplierController,
-                label: 'ATR Multiplier',
-                helperText: 'Multiplier for Stop Loss distance (e.g. 2.0)',
-                icon: Icons.close,
-                isDecimal: true,
-                min: 0.1,
-                suffixText: 'x',
-              ),
-            ],
+              segments: const [
+                ButtonSegment(
+                  value: PositionSizingMode.fixedShares,
+                  icon: Icon(Icons.numbers, size: 16),
+                  label:
+                      FittedBox(fit: BoxFit.scaleDown, child: Text('Shares')),
+                ),
+                ButtonSegment(
+                  value: PositionSizingMode.targetDollar,
+                  icon: Icon(Icons.attach_money, size: 16),
+                  label:
+                      FittedBox(fit: BoxFit.scaleDown, child: Text('Dollars')),
+                ),
+                ButtonSegment(
+                  value: PositionSizingMode.dynamicRisk,
+                  icon: Icon(Icons.show_chart, size: 16),
+                  label:
+                      FittedBox(fit: BoxFit.scaleDown, child: Text('Dynamic')),
+                ),
+              ],
+              selected: {currentSizingMode},
+              onSelectionChanged: (newSelection) {
+                if (newSelection.isNotEmpty) {
+                  final newMode = newSelection.first;
+                  final newConfig = _createFullConfigFromSettings(
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      strategyConfig: strategy.copyWith(
+                        positionSizingMode: newMode,
+                        enableDynamicPositionSizing:
+                            newMode == PositionSizingMode.dynamicRisk,
+                      ),
+                    ),
+                  );
+                  agenticTradingProvider.updateConfig(
+                      newConfig, widget.userDocRef);
+                }
+              },
+            ),
           ),
         ),
-        _buildSubsectionTitle(context, 'Safety Limits'),
         const SizedBox(height: 12),
-        _buildNumberField(
-          controller: _maxPositionSizeController,
-          label: 'Max Position Size',
-          helperText: 'Hard ceiling on share count for any single position',
-          icon: Icons.horizontal_rule,
-          min: 1,
+        if (currentSizingMode == PositionSizingMode.fixedShares) ...[
+          _buildNumberField(
+            controller: _tradeQuantityController,
+            label: 'Trade Quantity',
+            helperText:
+                'Fixed number of shares to trade per order. Must be at or below Max Position Size.',
+            icon: Icons.shopping_cart,
+            min: 1,
+          ),
+        ] else if (currentSizingMode == PositionSizingMode.targetDollar) ...[
+          _buildNumberField(
+            controller: _targetDollarAllocationController,
+            label: 'Target Dollar Allocation',
+            helperText:
+                'Target dollar amount to allocate per order (shares = floor(target / price)). Minimum 1 share.',
+            icon: Icons.attach_money,
+            isDecimal: true,
+            min: 10.0,
+            suffixText: '\$',
+          ),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(10),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.auto_graph,
+                    size: 16, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Dynamic sizing pairs Risk % (account risk budget) with ATR Multiplier (volatility stop distance) to equalize real dollar risk across stocks.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildNumberField(
+            controller: _riskPerTradeController,
+            label: 'Risk Per Trade %',
+            helperText:
+                '% of account equity to risk per trade (e.g. 1.0 for 1% risk budget)',
+            icon: Icons.percent,
+            isDecimal: true,
+            min: 0.01,
+            max: 100,
+            suffixText: '%',
+          ),
+          const SizedBox(height: 16),
+          _buildNumberField(
+            controller: _atrMultiplierController,
+            label: 'ATR Multiplier',
+            helperText: 'Multiplier for Stop Loss distance (e.g. 2.0x ATR)',
+            icon: Icons.close,
+            isDecimal: true,
+            min: 0.1,
+            suffixText: 'x',
+          ),
+        ],
+        const SizedBox(height: 16),
+        _buildSubsectionTitle(
+          context,
+          'Position Sizing',
+          onHelp: () => _showPositionSizingHelpDialog(context),
+          helpTooltip: 'About Position Sizing ceilings and limits',
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<PositionLimitMode>(
+              key: const ValueKey('position-limit-mode-segmented-button'),
+              style: ButtonStyle(
+                visualDensity: VisualDensity.standard,
+                textStyle: WidgetStateProperty.all(
+                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+              segments: const [
+                ButtonSegment(
+                  icon: Icon(Icons.numbers, size: 16),
+                  value: PositionLimitMode.maxShares,
+                  label: Text('Shares'),
+                ),
+                ButtonSegment(
+                  icon: Icon(Icons.percent, size: 16),
+                  value: PositionLimitMode.maxPercent,
+                  label: Text('Percentage'),
+                ),
+              ],
+              selected: {currentLimitMode},
+              onSelectionChanged: (newSelection) {
+                if (newSelection.isNotEmpty) {
+                  final newMode = newSelection.first;
+                  final newConfig = _createFullConfigFromSettings(
+                    agenticTradingProvider,
+                    baseConfig: agenticTradingProvider.config.copyWith(
+                      strategyConfig: strategy.copyWith(
+                        positionLimitMode: newMode,
+                      ),
+                    ),
+                  );
+                  agenticTradingProvider.updateConfig(
+                      newConfig, widget.userDocRef);
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (currentLimitMode == PositionLimitMode.maxShares) ...[
+          _buildNumberField(
+            controller: _maxPositionSizeController,
+            label: 'Max Position Size',
+            helperText:
+                'Safety ceiling: maximum cumulative shares allowed to hold in any single stock. Orders that would exceed this limit are declined.',
+            icon: Icons.horizontal_rule,
+            min: 1,
+          ),
+        ] else ...[
+          _buildNumberField(
+            controller: _maxPortfolioConcentrationController,
+            label: 'Max Single-Stock Concentration %',
+            helperText:
+                'Safety ceiling: maximum percentage of portfolio equity allowed in any single stock. Orders that would exceed this limit are declined.',
+            icon: Icons.pie_chart,
+            isDecimal: true,
+            min: 0,
+            max: 100,
+            suffixText: '%',
+          ),
+        ],
+        const SizedBox(height: 16),
+        PositionSizingSimulatorWidget(
+          config: strategy,
+          isPaperTrading: agenticTradingProvider.config.paperTradingMode,
         ),
         const SizedBox(height: 16),
-        _buildNumberField(
-          controller: _maxPortfolioConcentrationController,
-          label: 'Capital Budget (Max Concentration %)',
-          helperText: dollarCap != null
-              ? 'Max portfolio equity allocated (≈ $dollarCap)'
-              : 'Max percentage of portfolio equity allocated to auto-trading',
-          icon: Icons.pie_chart,
-          isDecimal: true,
-          min: 0,
-          max: 100,
-          suffixText: '%',
+
+        // -------------------------------------------------------------
+        // Pillar 2: Account Safeguards (Capital, Daily Limit, Drawdown)
+        // -------------------------------------------------------------
+        _buildSubsectionTitle(
+          context,
+          'Account Safeguards',
+          onHelp: () => CapitalBudgetCard.showCapitalBudgetDialog(context),
+          helpTooltip: 'About Capital Budget and Account Safeguards',
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        CapitalBudgetCard(
+          cardKey: const ValueKey('quant-pro-capital-allocation-card'),
+          title: 'Capital Budget',
+          subtitle: 'Max portfolio equity allocated to automated trading',
+          allocationPercent:
+              (strategy.totalCapitalBudgetPercent * 100).clamp(5.0, 100.0),
+          formattedDollarCap: dollarCap,
+          onAllocationChanged: (fraction) => _handleCapitalAllocationChanged(
+            agenticTradingProvider,
+            fraction,
+          ),
+        ),
+        const SizedBox(height: 14),
         _buildNumberField(
           controller: _dailyTradeLimitController,
           label: 'Daily Trade Limit',
@@ -5282,128 +5525,20 @@ class _AgenticTradingSettingsWidgetState
           icon: Icons.calendar_today,
           min: 1,
         ),
-        const SizedBox(height: 16),
-        _buildSubsectionTitle(context, 'Advanced Controls'),
-        const SizedBox(height: 12),
-        _buildSwitchListTile(
-          'enableSectorLimits',
-          'Sector Exposure Limits',
-          'Cap maximum portfolio capital allocated to any single GICS market sector',
-          agenticTradingProvider,
-          defaultValue: false,
-          value:
-              agenticTradingProvider.config.strategyConfig.enableSectorLimits,
-          onChanged: (value) {
-            final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableSectorLimits: value)));
-            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
-          },
-          extraContent: _buildNumberField(
-            controller: _maxSectorExposureController,
-            label: 'Max Sector Exposure %',
-            helperText:
-                'Maximum portfolio percentage allocated to a single sector',
-            icon: Icons.pie_chart,
-            isDecimal: true,
-            min: 0,
-            max: 100,
-            suffixText: '%',
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildSwitchListTile(
-          'enableCorrelationChecks',
-          'Correlation Checks',
-          'Reject new entries if correlation with existing open holdings exceeds threshold',
-          agenticTradingProvider,
-          defaultValue: false,
-          value: agenticTradingProvider
-              .config.strategyConfig.enableCorrelationChecks,
-          onChanged: (value) {
-            final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableCorrelationChecks: value)));
-            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
-          },
-          extraContent: _buildNumberField(
-            controller: _maxCorrelationController,
-            label: 'Max Correlation',
-            helperText:
-                'Max correlation with existing holdings to enforce diversification',
-            icon: Icons.compare_arrows,
-            isDecimal: true,
-            min: 0,
-            max: 100,
-            suffixText: '%',
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildSwitchListTile(
-          'enableVolatilityFilters',
-          'Volatility Filters (IV Rank)',
-          'Restrict trade entries to symbols whose Implied Volatility Rank is within target bounds',
-          agenticTradingProvider,
-          defaultValue: false,
-          value: agenticTradingProvider
-              .config.strategyConfig.enableVolatilityFilters,
-          onChanged: (value) {
-            final newConfig = _createFullConfigFromSettings(
-                agenticTradingProvider,
-                baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableVolatilityFilters: value)));
-            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
-          },
-          extraContent: Row(
-            children: [
-              Expanded(
-                child: _buildNumberField(
-                  controller: _minVolatilityController,
-                  label: 'Min Volatility',
-                  helperText: 'Minimum IV Rank threshold (0-100%)',
-                  icon: Icons.show_chart,
-                  isDecimal: true,
-                  min: 0,
-                  max: 100,
-                  suffixText: '%',
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildNumberField(
-                  controller: _maxVolatilityController,
-                  label: 'Max Volatility',
-                  helperText: 'Maximum IV Rank ceiling (0-100%)',
-                  icon: Icons.show_chart,
-                  isDecimal: true,
-                  min: 0,
-                  max: 100,
-                  suffixText: '%',
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         _buildSwitchListTile(
           'enableDrawdownProtection',
           'Drawdown Protection (Circuit Breaker)',
           'Automatically halt auto-trading if cumulative peak-to-trough account drawdown exceeds threshold',
           agenticTradingProvider,
           defaultValue: false,
-          value: agenticTradingProvider
-              .config.strategyConfig.enableDrawdownProtection,
+          value: strategy.enableDrawdownProtection,
           onChanged: (value) {
             final newConfig = _createFullConfigFromSettings(
                 agenticTradingProvider,
                 baseConfig: agenticTradingProvider.config.copyWith(
-                    strategyConfig: agenticTradingProvider.config.strategyConfig
-                        .copyWith(enableDrawdownProtection: value)));
+                    strategyConfig:
+                        strategy.copyWith(enableDrawdownProtection: value)));
             agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
           },
           extraContent: _buildNumberField(
@@ -5419,172 +5554,487 @@ class _AgenticTradingSettingsWidgetState
           ),
         ),
         const SizedBox(height: 16),
-        _buildSubsectionTitle(context, 'Macro Risk Control'),
-        const SizedBox(height: 12),
+
+        // -------------------------------------------------------------
+        // Pillar 3: Macro & Market Defense (Regime & IV Filters)
+        // -------------------------------------------------------------
+        _buildSubsectionTitle(
+          context,
+          'Macro & Market Defense',
+          onHelp: () => _showMacroRegimeHelpDialog(context),
+          helpTooltip: 'Explain Risk-On vs. Risk-Off regimes',
+        ),
+        const SizedBox(height: 8),
         Builder(
           builder: (context) {
             final theme = Theme.of(context);
             final colorScheme = theme.colorScheme;
-            final policy =
-                agenticTradingProvider.config.strategyConfig.macroRiskOffPolicy;
-            final isActive = policy != MacroRiskOffPolicy.ignore;
-            final activeColor = policy == MacroRiskOffPolicy.blockEntries
-                ? colorScheme.error
-                : colorScheme.primary;
+            final policy = strategy.macroRiskOffPolicy;
 
-            return Card(
-              elevation: 0,
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(
-                  color: isActive
-                      ? activeColor.withValues(alpha: 0.3)
-                      : colorScheme.outline.withValues(alpha: 0.1),
-                  width: isActive ? 1.5 : 1,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Macro RISK_OFF Policy',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
-              ),
-              color: isActive
-                  ? activeColor.withValues(alpha: 0.05)
-                  : colorScheme.surface,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Macro RISK_OFF Policy',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Defensive Market Regime Action',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: isActive
-                                      ? activeColor
-                                      : colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Explain Risk-On vs. Risk-Off regimes',
-                          onPressed: () => _showMacroRegimeHelpDialog(context),
-                          icon: Icon(
-                            Icons.info_outline,
-                            size: 20,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: 2),
+                Text(
+                  policy.description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<MacroRiskOffPolicy>(
+                    key: const ValueKey('macro-risk-off-policy-selector'),
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      policy.description,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color:
-                            colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    segments: const [
+                      ButtonSegment<MacroRiskOffPolicy>(
+                        value: MacroRiskOffPolicy.ignore,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Ignore'),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: SegmentedButton<MacroRiskOffPolicy>(
-                        key: const ValueKey('macro-risk-off-policy-selector'),
-                        showSelectedIcon: false,
-                        style: const ButtonStyle(
-                          visualDensity: VisualDensity.compact,
+                      ButtonSegment<MacroRiskOffPolicy>(
+                        value: MacroRiskOffPolicy.reduceSize,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Reduce'),
                         ),
-                        segments: const [
-                          ButtonSegment<MacroRiskOffPolicy>(
-                            value: MacroRiskOffPolicy.ignore,
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text('Ignore'),
-                            ),
-                          ),
-                          ButtonSegment<MacroRiskOffPolicy>(
-                            value: MacroRiskOffPolicy.reduceSize,
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text('Reduce'),
-                            ),
-                          ),
-                          ButtonSegment<MacroRiskOffPolicy>(
-                            value: MacroRiskOffPolicy.blockEntries,
-                            label: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text('Block'),
-                            ),
-                          ),
-                        ],
-                        selected: {policy},
-                        onSelectionChanged: (Set<MacroRiskOffPolicy> selected) {
-                          final nextPolicy = selected.first;
-                          final newConfig = _createFullConfigFromSettings(
-                            agenticTradingProvider,
-                            baseConfig: agenticTradingProvider.config.copyWith(
-                              strategyConfig: agenticTradingProvider
-                                  .config.strategyConfig
-                                  .copyWith(macroRiskOffPolicy: nextPolicy),
-                            ),
-                          );
-                          agenticTradingProvider.updateConfig(
-                              newConfig, widget.userDocRef);
-                        },
                       ),
-                    ),
-                    if (policy == MacroRiskOffPolicy.reduceSize) ...[
-                      const SizedBox(height: 12),
-                      _buildNumberField(
-                        controller: _riskOffSizeReductionController,
-                        label: 'Reduction %',
-                        helperText:
-                            'Percentage to cut position size (e.g. 50.0)',
-                        icon: Icons.cut,
-                        isDecimal: true,
-                        min: 0,
-                        max: 100,
-                        suffixText: '%',
+                      ButtonSegment<MacroRiskOffPolicy>(
+                        value: MacroRiskOffPolicy.blockEntries,
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Block'),
+                        ),
                       ),
                     ],
-                  ],
+                    selected: {policy},
+                    onSelectionChanged: (Set<MacroRiskOffPolicy> selected) {
+                      final nextPolicy = selected.first;
+                      final newConfig = _createFullConfigFromSettings(
+                        agenticTradingProvider,
+                        baseConfig: agenticTradingProvider.config.copyWith(
+                          strategyConfig:
+                              strategy.copyWith(macroRiskOffPolicy: nextPolicy),
+                        ),
+                      );
+                      agenticTradingProvider.updateConfig(
+                          newConfig, widget.userDocRef);
+                    },
+                  ),
                 ),
-              ),
+                if (policy == MacroRiskOffPolicy.reduceSize) ...[
+                  const SizedBox(height: 12),
+                  _buildNumberField(
+                    controller: _riskOffSizeReductionController,
+                    label: 'Reduction %',
+                    helperText: 'Percentage to cut position size (e.g. 50.0)',
+                    icon: Icons.cut,
+                    isDecimal: true,
+                    min: 0,
+                    max: 100,
+                    suffixText: '%',
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _buildSwitchListTile(
+                  'enableVolatilityFilters',
+                  'Volatility Filters (IV Rank)',
+                  'Restrict trade entries to symbols whose Implied Volatility Rank is within target bounds',
+                  agenticTradingProvider,
+                  defaultValue: false,
+                  value: strategy.enableVolatilityFilters,
+                  onChanged: (value) {
+                    final newConfig = _createFullConfigFromSettings(
+                        agenticTradingProvider,
+                        baseConfig: agenticTradingProvider.config.copyWith(
+                            strategyConfig: strategy.copyWith(
+                                enableVolatilityFilters: value)));
+                    agenticTradingProvider.updateConfig(
+                        newConfig, widget.userDocRef);
+                  },
+                  extraContent: Row(
+                    children: [
+                      Expanded(
+                        child: _buildNumberField(
+                          controller: _minVolatilityController,
+                          label: 'Min Volatility',
+                          helperText: 'Minimum IV Rank threshold (0-100%)',
+                          icon: Icons.show_chart,
+                          isDecimal: true,
+                          min: 0,
+                          max: 100,
+                          suffixText: '%',
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildNumberField(
+                          controller: _maxVolatilityController,
+                          label: 'Max Volatility',
+                          helperText: 'Maximum IV Rank ceiling (0-100%)',
+                          icon: Icons.show_chart,
+                          isDecimal: true,
+                          min: 0,
+                          max: 100,
+                          suffixText: '%',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           },
+        ),
+        const SizedBox(height: 16),
+
+        // -------------------------------------------------------------
+        // Pillar 4: Portfolio Diversification (Sector & Correlation)
+        // -------------------------------------------------------------
+        _buildSubsectionTitle(
+          context,
+          'Portfolio Diversification',
+          onHelp: () => _showDiversificationHelpDialog(context),
+          helpTooltip: 'About Sector Limits and Correlation Diversification',
+        ),
+        const SizedBox(height: 8),
+        _buildSwitchListTile(
+          'enableSectorLimits',
+          'Sector Exposure Limits',
+          'Cap maximum portfolio capital allocated to any single GICS market sector',
+          agenticTradingProvider,
+          defaultValue: false,
+          value: strategy.enableSectorLimits,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig:
+                        strategy.copyWith(enableSectorLimits: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          extraContent: _buildNumberField(
+            controller: _maxSectorExposureController,
+            label: 'Max Sector Exposure %',
+            helperText:
+                'Maximum portfolio percentage allocated to a single sector',
+            icon: Icons.pie_chart,
+            isDecimal: true,
+            min: 0,
+            max: 100,
+            suffixText: '%',
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildSwitchListTile(
+          'enableCorrelationChecks',
+          'Correlation Checks',
+          'Reject new entries if correlation with existing open holdings exceeds threshold',
+          agenticTradingProvider,
+          defaultValue: false,
+          value: strategy.enableCorrelationChecks,
+          onChanged: (value) {
+            final newConfig = _createFullConfigFromSettings(
+                agenticTradingProvider,
+                baseConfig: agenticTradingProvider.config.copyWith(
+                    strategyConfig:
+                        strategy.copyWith(enableCorrelationChecks: value)));
+            agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+          },
+          extraContent: _buildNumberField(
+            controller: _maxCorrelationController,
+            label: 'Max Correlation',
+            helperText:
+                'Max correlation with existing holdings to enforce diversification',
+            icon: Icons.compare_arrows,
+            isDecimal: true,
+            min: 0,
+            max: 100,
+            suffixText: '%',
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSubsectionTitle(BuildContext context, String title) {
+  Widget _buildSubsectionTitle(
+    BuildContext context,
+    String title, {
+    VoidCallback? onHelp,
+    String? helpTooltip,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 12.0, bottom: 8.0),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+            ),
+            if (onHelp != null) ...[
+              const SizedBox(width: 6),
+              Tooltip(
+                message: helpTooltip ?? 'About $title',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: onHelp,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2.0),
+                    child: Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
+    );
+  }
+
+  void _showTradeSizingHelpDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(Icons.tune, color: colorScheme.primary, size: 28),
+        title: const Text('Understanding Trade Sizing'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'What is Trade Sizing?',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Trade Sizing dictates how many shares are purchased for each individual automated order.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildHelpBullet(
+                context,
+                title: 'Fixed Shares',
+                description:
+                    'Trades an exact share count (e.g. 5 shares) per order. Simple and fixed, but does not adapt to stock price or portfolio growth.',
+              ),
+              const SizedBox(height: 8),
+              _buildHelpBullet(
+                context,
+                title: 'Target Dollar',
+                description:
+                    'Allocates a fixed dollar budget (e.g. \$1,000) per order: shares = floor(target / price). Automatically buys more shares of lower-priced stocks and fewer of higher-priced stocks.',
+              ),
+              const SizedBox(height: 8),
+              _buildHelpBullet(
+                context,
+                title: 'Dynamic Risk % (Volatility Adjusted)',
+                description:
+                    'Uses the quantitative Van Tharp / Turtle model to normalize true dollar risk across all assets based on market volatility (ATR).',
+              ),
+              const SizedBox(height: 14),
+              Divider(color: colorScheme.outline.withValues(alpha: 0.15)),
+              const SizedBox(height: 10),
+              Text(
+                'Why Risk % and ATR Multiplier Are Complementary',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Shares = (Equity × Risk %) / (ATR × Multiplier)',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '• Risk Per Trade % (Numerator): The dollar loss budget if stopped out (e.g. 1% on \$100k = \$1,000 risk).\n'
+                      '• ATR Multiplier (Denominator): The stop loss distance in dollars/share based on volatility (e.g. 2.0x ATR).\n'
+                      '• Dynamic Balancing: Low-volatility stocks receive more shares; high-volatility stocks receive fewer shares. Both risk the exact same dollar amount.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '• Minimum 1 share is always enforced when purchasing power allows.\n'
+                '• All orders are additionally guarded by your cumulative Position Sizing and Capital Budget limits.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPositionSizingHelpDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(Icons.shield_outlined, color: colorScheme.primary, size: 28),
+        title: const Text('Understanding Position Sizing & Limits'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'What is Position Sizing?',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'While Trade Sizing limits an individual order, Position Sizing sets the hard cumulative ceiling on how much of any single stock you can hold across multiple trades.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildHelpBullet(
+                context,
+                title: 'Max Shares Mode',
+                description:
+                    'Caps cumulative shares in any single ticker (e.g. max 50 shares). New orders that would exceed this count are declined by RiskGuard.',
+              ),
+              const SizedBox(height: 8),
+              _buildHelpBullet(
+                context,
+                title: 'Max Portfolio % Mode',
+                description:
+                    'Caps cumulative exposure as a percentage of total portfolio equity (e.g. max 20% in one stock). Scales dynamically as your account balance changes.',
+              ),
+              const SizedBox(height: 14),
+              Divider(color: colorScheme.outline.withValues(alpha: 0.15)),
+              const SizedBox(height: 10),
+              Text(
+                'The 3-Tier Risk Hierarchy',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '1. Trade Sizing: How many shares to buy in ONE order.\n'
+                '2. Position Sizing: Maximum cumulative shares or % held in ONE stock.\n'
+                '3. Capital Budget: Maximum portfolio equity deployed across ALL auto-trading positions combined.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpBullet(
+    BuildContext context, {
+    required String title,
+    required String description,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.primary,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          description,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+            height: 1.3,
+          ),
+        ),
+      ],
     );
   }
 
@@ -6281,6 +6731,7 @@ class _AgenticTradingSettingsWidgetState
         ),
         child: ExpansionTile(
           initiallyExpanded: initiallyExpanded,
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
           backgroundColor: colorScheme.surfaceContainer.withValues(alpha: 0.2),
           collapsedBackgroundColor:
               colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),

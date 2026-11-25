@@ -47,6 +47,34 @@ class StrategyArchetype {
     );
   }
 
+  StrategyArchetype copyWith({
+    String? id,
+    String? name,
+    String? tag,
+    String? description,
+    String? detailedPhilosophy,
+    IconData? icon,
+    Color? accentColor,
+    TradingMode? tradingMode,
+    String? targetMarketRegime,
+    WalkForwardPeriodMetrics? walkForwardMetrics,
+    TradeStrategyConfig? config,
+  }) {
+    return StrategyArchetype(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      tag: tag ?? this.tag,
+      description: description ?? this.description,
+      detailedPhilosophy: detailedPhilosophy ?? this.detailedPhilosophy,
+      icon: icon ?? this.icon,
+      accentColor: accentColor ?? this.accentColor,
+      tradingMode: tradingMode ?? this.tradingMode,
+      targetMarketRegime: targetMarketRegime ?? this.targetMarketRegime,
+      walkForwardMetrics: walkForwardMetrics ?? this.walkForwardMetrics,
+      config: config ?? this.config,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
@@ -108,7 +136,7 @@ class StrategyArchetypes {
     name: 'Conservative Core',
     tag: 'Capital Preservation',
     description:
-        'High-probability trend-following with tight structural risk bounds, strict sector exposure caps, and defined GEX stops.',
+        'High-probability trend following with strict sector caps and structural GEX risk bounds.',
     detailedPhilosophy:
         'Focuses on capital preservation in steady market regimes. Utilizes broad market direction (SMA 50/200), Bollinger Bands, and RSI to identify high-probability trend entries with minimal drawdown. Employs 1% risk-per-trade sizing, strict 20% sector concentration caps, and GEX structural stop-loss protection.',
     icon: Icons.shield_outlined,
@@ -130,6 +158,8 @@ class StrategyArchetypes {
       interval: '1d',
       initialCapital: 25000.0,
       tradeQuantity: 1,
+      positionSizingMode: PositionSizingMode.dynamicRisk,
+      positionLimitMode: PositionLimitMode.maxPercent,
       enableDynamicPositionSizing: true,
       riskPerTrade: 0.01,
       atrMultiplier: 1.8,
@@ -139,6 +169,7 @@ class StrategyArchetypes {
       trailingStopPercent: 2.0,
       maxPositionSize: 50,
       maxPortfolioConcentration: 0.20,
+      totalCapitalBudgetPercent: 0.40,
       dailyTradeLimit: 3,
       enableSectorLimits: true,
       maxSectorExposure: 0.20,
@@ -174,7 +205,7 @@ class StrategyArchetypes {
     name: 'Momentum Breakout',
     tag: 'Directional Expansion',
     description:
-        'Aggressive trend capture on volume expansion, MACD histogram crossovers, and VWAP trend confirmation with dynamic ATR trailing stops.',
+        'Aggressive trend capture on volume expansion and MACD breakouts with dynamic ATR trailing stops.',
     detailedPhilosophy:
         'Captures explosive directional expansion when price breaks out of consolidation with surging volume. Leverages MACD, ADX trend strength, VWAP, and Chaikin Money Flow to ride strong institutional momentum. Uses dynamic ATR trailing stops to lock in windfalls while enforcing a 25% catastrophic stop.',
     icon: Icons.trending_up_rounded,
@@ -196,6 +227,8 @@ class StrategyArchetypes {
       interval: '1d',
       initialCapital: 25000.0,
       tradeQuantity: 1,
+      positionSizingMode: PositionSizingMode.dynamicRisk,
+      positionLimitMode: PositionLimitMode.maxPercent,
       enableDynamicPositionSizing: true,
       riskPerTrade: 0.02,
       atrMultiplier: 2.5,
@@ -205,6 +238,7 @@ class StrategyArchetypes {
       trailingStopPercent: 3.5,
       maxPositionSize: 100,
       maxPortfolioConcentration: 0.30,
+      totalCapitalBudgetPercent: 0.60,
       dailyTradeLimit: 6,
       enableDrawdownProtection: true,
       maxDrawdown: 0.15,
@@ -240,7 +274,7 @@ class StrategyArchetypes {
     name: 'Options Income Harvester',
     tag: 'High-Yield Premium',
     description:
-        'Systematic premium selling and range-bound mean reversion utilizing GEX dealer pinning, Stochastic, and 5-tier GEX stops.',
+        'Systematic premium selling and range reversion powered by GEX dealer pinning and 5-tier exit stops.',
     detailedPhilosophy:
         'Engineered for high-probability premium capture during range-bound and consolidating markets. Exploits market-maker gamma pinning and mean-reverting oscillators (Stochastic, RSI, Williams %R) to harvest theta decay. Defended by the full 5-tier sequential exit queue, including time-theta decay exits and dealer gamma flip triggers.',
     icon: Icons.savings_outlined,
@@ -262,7 +296,10 @@ class StrategyArchetypes {
       interval: '1d',
       initialCapital: 25000.0,
       tradeQuantity: 1,
-      enableDynamicPositionSizing: true,
+      positionSizingMode: PositionSizingMode.targetDollar,
+      positionLimitMode: PositionLimitMode.maxShares,
+      targetDollarAllocation: 1000.0,
+      enableDynamicPositionSizing: false,
       riskPerTrade: 0.015,
       atrMultiplier: 2.0,
       takeProfitPercent: 15.0,
@@ -271,6 +308,7 @@ class StrategyArchetypes {
       trailingStopPercent: 4.0,
       maxPositionSize: 75,
       maxPortfolioConcentration: 0.25,
+      totalCapitalBudgetPercent: 0.50,
       dailyTradeLimit: 4,
       enableGexStructuralStops: true,
       enableTimeThetaStop: true,
@@ -306,7 +344,7 @@ class StrategyArchetypes {
     name: 'Reasoning AI Agent',
     tag: 'Autonomous Gemini AI',
     description:
-        'Multimodal Gemini AI reasoning synthesizing technical convergence, macro regime context, and chain-of-thought verification.',
+        'Multimodal Gemini AI synthesizing macro regimes, cross-indicator signals, and verified trade plans.',
     detailedPhilosophy:
         'Leverages Gemini 3.1 Flash-Lite AI reasoning to evaluate macro economic regime, SEC filings, dealer positioning, and cross-indicator convergence before proposing or executing orders. Validates proposals through an autonomous chain-of-thought verification pipeline with dynamic position sizing and portfolio risk guardrails.',
     icon: Icons.psychology_outlined,
@@ -328,6 +366,8 @@ class StrategyArchetypes {
       interval: '1d',
       initialCapital: 25000.0,
       tradeQuantity: 1,
+      positionSizingMode: PositionSizingMode.dynamicRisk,
+      positionLimitMode: PositionLimitMode.maxPercent,
       enableDynamicPositionSizing: true,
       riskPerTrade: 0.02,
       atrMultiplier: 2.0,
@@ -338,6 +378,7 @@ class StrategyArchetypes {
       trailingPeakStopPercent: 20.0,
       maxPositionSize: 100,
       maxPortfolioConcentration: 0.25,
+      totalCapitalBudgetPercent: 0.50,
       dailyTradeLimit: 5,
       enableMacroRegimeStop: true,
       enableCatastrophicStop: true,

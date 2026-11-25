@@ -296,7 +296,7 @@ jobs:
     name: Build iOS
     needs: [analyze_and_test, check_version]
     if: needs.check_version.outputs.new_version == 'true'
-    runs-on: macos-latest # Uses latest available macOS runner
+    runs-on: xcode-27 # Uses Xcode 27+ runner with iOS 27 SDK for App Store submission (ITMS-90725)
     timeout-minutes: 60
     env:
       APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}

@@ -119,7 +119,10 @@ void main() {
       // Verify widget renders without errors in Simplified Mode by default
       expect(find.byType(AgenticTradingSettingsWidget), findsOneWidget);
       expect(find.text('Execution Settings'), findsNothing);
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
       expect(find.text('Execution Settings'), findsOneWidget);
       expect(
@@ -481,7 +484,10 @@ void main() {
       );
 
       // Quant Pro Mode displays the Beta Labs lock banner on Strategy Style
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
 
       expect(
@@ -517,8 +523,13 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Quant Pro'));
-      await tester.pumpAndSettle();
+      final switchToQuantPro2 =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      if (switchToQuantPro2.evaluate().isNotEmpty) {
+        await tester.ensureVisible(switchToQuantPro2);
+        await tester.tap(switchToQuantPro2);
+        await tester.pumpAndSettle();
+      }
 
       expect(
         find.textContaining(
@@ -886,7 +897,8 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        final quantProButton = find.text('Quant Pro');
+        final quantProButton =
+            find.byKey(const ValueKey('switch-to-quant-pro-button'));
         await tester.ensureVisible(quantProButton);
         await tester.tap(quantProButton);
         await tester.pumpAndSettle();

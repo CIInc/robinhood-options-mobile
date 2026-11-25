@@ -30,6 +30,62 @@ enum MacroRiskOffPolicy {
   }
 }
 
+/// Trade sizing calculation mode.
+enum PositionSizingMode {
+  fixedShares,
+  targetDollar,
+  dynamicRisk;
+
+  String get label {
+    switch (this) {
+      case PositionSizingMode.fixedShares:
+        return 'Fixed Shares';
+      case PositionSizingMode.targetDollar:
+        return 'Target Dollar';
+      case PositionSizingMode.dynamicRisk:
+        return 'Dynamic Risk %';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PositionSizingMode.fixedShares:
+        return 'Trade an exact number of shares per order.';
+      case PositionSizingMode.targetDollar:
+        return 'Trade an exact dollar amount per order (shares = floor(targetDollar / price)).';
+      case PositionSizingMode.dynamicRisk:
+        return 'Risk a fixed percentage of account equity per trade based on ATR volatility stop distance.';
+    }
+  }
+}
+
+/// Trade sizing calculation mode (per-order sizing).
+typedef TradeSizingMode = PositionSizingMode;
+
+/// Position limit mode (binary option for cumulative position ceiling).
+enum PositionLimitMode {
+  maxShares,
+  maxPercent;
+
+  String get label {
+    switch (this) {
+      case PositionLimitMode.maxShares:
+        return 'Max Shares';
+      case PositionLimitMode.maxPercent:
+        return 'Max Portfolio %';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case PositionLimitMode.maxShares:
+        return 'Cap maximum cumulative shares held in any single stock.';
+      case PositionLimitMode.maxPercent:
+        return 'Cap maximum percentage of portfolio equity held in any single stock.';
+    }
+  }
+}
+
 class TradeStrategyConfig {
   final DateTime? startDate;
   final DateTime? endDate;
@@ -49,6 +105,7 @@ class TradeStrategyConfig {
   final String marketIndexSymbol;
   final int maxPositionSize;
   final double maxPortfolioConcentration;
+  final double totalCapitalBudgetPercent;
   final int dailyTradeLimit;
 
   // Advanced Auto-Trading Alignment
@@ -60,11 +117,29 @@ class TradeStrategyConfig {
   final int marketCloseExitMinutes;
   final bool enablePartialExits;
   final List<ExitStage> exitStages;
+  final PositionSizingMode positionSizingMode;
+  final PositionLimitMode positionLimitMode;
+  final double targetDollarAllocation;
   final bool enableDynamicPositionSizing;
   final double riskPerTrade;
   final double atrMultiplier;
   final List<CustomIndicatorConfig> customIndicators;
   final List<String> symbolFilter;
+
+  TradeSizingMode get tradeSizingMode => positionSizingMode;
+  bool get isMaxSharesPositionLimit =>
+      positionLimitMode == PositionLimitMode.maxShares;
+  bool get isMaxPercentPositionLimit =>
+      positionLimitMode == PositionLimitMode.maxPercent;
+
+  bool get isDynamicSizing =>
+      positionSizingMode == PositionSizingMode.dynamicRisk ||
+      enableDynamicPositionSizing;
+  bool get isTargetDollar =>
+      positionSizingMode == PositionSizingMode.targetDollar;
+  bool get isFixedShares =>
+      positionSizingMode == PositionSizingMode.fixedShares &&
+      !enableDynamicPositionSizing;
 
   // Advanced Risk Controls
   final bool enableSectorLimits;
@@ -127,6 +202,7 @@ class TradeStrategyConfig {
     String? marketIndexSymbol,
     int? maxPositionSize,
     double? maxPortfolioConcentration,
+    double? totalCapitalBudgetPercent,
     int? dailyTradeLimit,
     double? minSignalStrength,
     bool? requireAllIndicatorsGreen,
@@ -136,6 +212,9 @@ class TradeStrategyConfig {
     int? marketCloseExitMinutes,
     bool? enablePartialExits,
     List<ExitStage>? exitStages,
+    PositionSizingMode? positionSizingMode,
+    PositionLimitMode? positionLimitMode,
+    double? targetDollarAllocation,
     bool? enableDynamicPositionSizing,
     double? riskPerTrade,
     double? atrMultiplier,
@@ -195,6 +274,8 @@ class TradeStrategyConfig {
       maxPositionSize: maxPositionSize ?? this.maxPositionSize,
       maxPortfolioConcentration:
           maxPortfolioConcentration ?? this.maxPortfolioConcentration,
+      totalCapitalBudgetPercent:
+          totalCapitalBudgetPercent ?? this.totalCapitalBudgetPercent,
       dailyTradeLimit: dailyTradeLimit ?? this.dailyTradeLimit,
       minSignalStrength: minSignalStrength ?? this.minSignalStrength,
       requireAllIndicatorsGreen:
@@ -207,6 +288,10 @@ class TradeStrategyConfig {
           marketCloseExitMinutes ?? this.marketCloseExitMinutes,
       enablePartialExits: enablePartialExits ?? this.enablePartialExits,
       exitStages: exitStages ?? List.from(this.exitStages),
+      positionSizingMode: positionSizingMode ?? this.positionSizingMode,
+      positionLimitMode: positionLimitMode ?? this.positionLimitMode,
+      targetDollarAllocation:
+          targetDollarAllocation ?? this.targetDollarAllocation,
       enableDynamicPositionSizing:
           enableDynamicPositionSizing ?? this.enableDynamicPositionSizing,
       riskPerTrade: riskPerTrade ?? this.riskPerTrade,
@@ -284,6 +369,7 @@ class TradeStrategyConfig {
     this.marketIndexSymbol = 'SPY',
     this.maxPositionSize = 100,
     this.maxPortfolioConcentration = 0.5,
+    this.totalCapitalBudgetPercent = 0.5,
     this.dailyTradeLimit = 5,
     this.minSignalStrength = 50.0,
     this.requireAllIndicatorsGreen = false,
@@ -293,7 +379,10 @@ class TradeStrategyConfig {
     this.marketCloseExitMinutes = 15,
     this.enablePartialExits = false,
     this.exitStages = const [],
-    this.enableDynamicPositionSizing = false,
+    PositionSizingMode? positionSizingMode,
+    this.positionLimitMode = PositionLimitMode.maxShares,
+    this.targetDollarAllocation = 500.0,
+    bool enableDynamicPositionSizing = false,
     this.riskPerTrade = 0.01,
     this.atrMultiplier = 2.0,
     this.customIndicators = const [],
@@ -329,7 +418,14 @@ class TradeStrategyConfig {
     this.atrStopMultiplier = 1.5,
     this.atrProfitMultiplier = 3.0,
     this.atrRatchetEnabled = true,
-  })  : macroRiskOffPolicy = macroRiskOffPolicy ??
+  })  : positionSizingMode = positionSizingMode ??
+            (enableDynamicPositionSizing
+                ? PositionSizingMode.dynamicRisk
+                : PositionSizingMode.fixedShares),
+        enableDynamicPositionSizing = positionSizingMode != null
+            ? (positionSizingMode == PositionSizingMode.dynamicRisk)
+            : enableDynamicPositionSizing,
+        macroRiskOffPolicy = macroRiskOffPolicy ??
             ((reduceSizeOnRiskOff ?? false)
                 ? MacroRiskOffPolicy.reduceSize
                 : MacroRiskOffPolicy.ignore),
@@ -381,6 +477,7 @@ class TradeStrategyConfig {
         'marketIndexSymbol': marketIndexSymbol,
         'maxPositionSize': maxPositionSize,
         'maxPortfolioConcentration': maxPortfolioConcentration,
+        'totalCapitalBudgetPercent': totalCapitalBudgetPercent,
         'dailyTradeLimit': dailyTradeLimit,
         'minSignalStrength': minSignalStrength,
         'requireAllIndicatorsGreen': requireAllIndicatorsGreen,
@@ -390,6 +487,9 @@ class TradeStrategyConfig {
         'marketCloseExitMinutes': marketCloseExitMinutes,
         'enablePartialExits': enablePartialExits,
         'exitStages': exitStages.map((e) => e.toJson()).toList(),
+        'positionSizingMode': positionSizingMode.name,
+        'positionLimitMode': positionLimitMode.name,
+        'targetDollarAllocation': targetDollarAllocation,
         'enableDynamicPositionSizing': enableDynamicPositionSizing,
         'riskPerTrade': riskPerTrade,
         'atrMultiplier': atrMultiplier,
@@ -457,6 +557,8 @@ class TradeStrategyConfig {
         maxPositionSize: json['maxPositionSize'] as int? ?? 100,
         maxPortfolioConcentration:
             (json['maxPortfolioConcentration'] as num?)?.toDouble() ?? 0.5,
+        totalCapitalBudgetPercent:
+            (json['totalCapitalBudgetPercent'] as num?)?.toDouble() ?? 0.5,
         dailyTradeLimit: json['dailyTradeLimit'] as int? ?? 5,
         minSignalStrength:
             (json['minSignalStrength'] as num?)?.toDouble() ?? 50.0,
@@ -473,6 +575,11 @@ class TradeStrategyConfig {
                     ExitStage.fromJson(Map<String, dynamic>.from(e as Map)))
                 .toList() ??
             [],
+        positionSizingMode: _parsePositionSizingMode(
+            json['positionSizingMode'], json['enableDynamicPositionSizing']),
+        positionLimitMode: _parsePositionLimitMode(json['positionLimitMode']),
+        targetDollarAllocation:
+            (json['targetDollarAllocation'] as num?)?.toDouble() ?? 500.0,
         enableDynamicPositionSizing:
             json['enableDynamicPositionSizing'] as bool? ?? false,
         riskPerTrade: (json['riskPerTrade'] as num?)?.toDouble() ?? 0.01,
@@ -595,6 +702,12 @@ class TradeStrategyConfig {
     check('GEX Threshold', other.gexExitThreshold, gexExitThreshold);
 
     // Advanced Logic
+    check('Trade Sizing Mode', other.positionSizingMode.label,
+        positionSizingMode.label);
+    check('Position Limit Mode', other.positionLimitMode.label,
+        positionLimitMode.label);
+    check('Target Dollar Allocation', other.targetDollarAllocation,
+        targetDollarAllocation);
     check('Dynamic Sizing', other.enableDynamicPositionSizing,
         enableDynamicPositionSizing);
     check('Risk Per Trade', other.riskPerTrade, riskPerTrade);
@@ -618,6 +731,8 @@ class TradeStrategyConfig {
     // Risk Controls
     check('Sector Limits', other.enableSectorLimits, enableSectorLimits);
     check('Max Sector Exposure', other.maxSectorExposure, maxSectorExposure);
+    check('Total Capital Budget %', other.totalCapitalBudgetPercent,
+        totalCapitalBudgetPercent);
     check('Correlation Checks', other.enableCorrelationChecks,
         enableCorrelationChecks);
     check('Max Correlation', other.maxCorrelation, maxCorrelation);
@@ -712,5 +827,26 @@ class TradeStrategyConfig {
     return (rawReduceFlag as bool? ?? false)
         ? MacroRiskOffPolicy.reduceSize
         : MacroRiskOffPolicy.ignore;
+  }
+
+  static PositionSizingMode _parsePositionSizingMode(
+      dynamic rawMode, dynamic rawDynamicFlag) {
+    if (rawMode is String) {
+      for (final mode in PositionSizingMode.values) {
+        if (mode.name == rawMode) return mode;
+      }
+    }
+    return (rawDynamicFlag as bool? ?? false)
+        ? PositionSizingMode.dynamicRisk
+        : PositionSizingMode.fixedShares;
+  }
+
+  static PositionLimitMode _parsePositionLimitMode(dynamic rawMode) {
+    if (rawMode is String) {
+      for (final mode in PositionLimitMode.values) {
+        if (mode.name == rawMode) return mode;
+      }
+    }
+    return PositionLimitMode.maxShares;
   }
 }
