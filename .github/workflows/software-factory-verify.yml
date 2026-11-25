@@ -7,6 +7,8 @@ on:
     paths:
       - ".github/workflows/**"
       - ".github/skills/**"
+      - ".agents/**"
+      - "CONTRIBUTING.md"
       - "ROADMAP.md"
       - "CHANGELOG.md"
       - "PRODUCT.md"
@@ -53,6 +55,8 @@ jobs:
               - 'ROADMAP.md'
               - 'CHANGELOG.md'
               - 'PRODUCT.md'
+              - 'CONTRIBUTING.md'
+              - '.agents/**'
               - '.github/workflows/**'
               - '.github/skills/**'
               - 'src/robinhood_options_mobile/**'
@@ -73,7 +77,21 @@ jobs:
       - name: Validate Python workflow script syntax
         run: |
           python3 -m py_compile .github/skills/software-factory/scripts/factory_pipeline.py
-          echo "Factory pipeline python script compiles cleanly"
+          python3 -m py_compile .agents/context/scripts/validate_context.py
+          echo "Factory pipeline and context validator python scripts compile cleanly"
+
+      - name: Audit External Context Templates & Zero PII Guardrails
+        run: |
+          # 1. Validate template schemas and PII cleanliness
+          python3 .agents/context/scripts/validate_context.py --check-templates
+
+          # 2. Invariant: Ensure zero un-templated context JSON is tracked in git
+          python3 -c '
+          import glob
+          live_files = [f for f in glob.glob(".agents/context/*.json") if not f.endswith(".template.json")]
+          assert len(live_files) == 0, f"Forbidden untracked live context files committed to git: {live_files}"
+          print("Zero untracked live context files committed.")
+          '
 
       - name: Audit ROADMAP.md structural invariants
         run: |

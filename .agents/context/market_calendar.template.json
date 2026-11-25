@@ -2,7 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "MarketCalendarAndRegulatoryEvents",
   "description": "Schema and template for staging upcoming macro events, economic calendar releases, exchange holidays, and OCC corporate action notices.",
+  "schema_version": "1.0.0",
   "generated_at": "2026-11-24T18:00:00Z",
+  "quarter": "2026-Q4",
+  "sanitized": true,
+  "pii_scrubbed": true,
   "events": [
     {
       "date": "2026-12-10",

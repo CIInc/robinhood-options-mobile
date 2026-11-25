@@ -190,21 +190,43 @@ def load_external_context():
 
 
 def infer_test_files(target_files):
-    """Impact-based test companion mapping heuristic."""
+    """Impact-based test companion mapping heuristic supporting both flat and nested test hierarchies."""
     inferred = []
     for f in target_files:
         if f.startswith("src/robinhood_options_mobile/lib/"):
             rel_path = f[len("src/robinhood_options_mobile/lib/"):]
             base, ext = os.path.splitext(rel_path)
-            candidate = f"src/robinhood_options_mobile/test/{base}_test{ext}"
-            if os.path.exists(candidate):
-                inferred.append(candidate)
+            basename = os.path.basename(base)
+
+            # 1. Check flat test structure: test/<basename>_test.dart (most common)
+            flat_candidate = f"src/robinhood_options_mobile/test/{basename}_test{ext}"
+            if os.path.exists(flat_candidate):
+                inferred.append(flat_candidate)
+                continue
+
+            # 2. Check nested test structure: test/<rel_path>_test.dart
+            nested_candidate = f"src/robinhood_options_mobile/test/{base}_test{ext}"
+            if os.path.exists(nested_candidate):
+                inferred.append(nested_candidate)
+                continue
+
+            log(f"Warning: No companion test found on disk for {f}. Maker agent should author a new companion test.")
         elif f.startswith("src/robinhood_options_mobile/functions/src/"):
             rel_path = f[len("src/robinhood_options_mobile/functions/src/"):]
             base, ext = os.path.splitext(rel_path)
-            candidate = f"src/robinhood_options_mobile/functions/tests/{base}.test{ext}"
-            if os.path.exists(candidate):
-                inferred.append(candidate)
+            basename = os.path.basename(base)
+
+            flat_candidate = f"src/robinhood_options_mobile/functions/tests/{basename}.test{ext}"
+            if os.path.exists(flat_candidate):
+                inferred.append(flat_candidate)
+                continue
+
+            nested_candidate = f"src/robinhood_options_mobile/functions/tests/{base}.test{ext}"
+            if os.path.exists(nested_candidate):
+                inferred.append(nested_candidate)
+                continue
+
+            log(f"Warning: No backend companion test found on disk for {f}. Maker agent should author a test.")
     return list(dict.fromkeys(inferred))
 
 

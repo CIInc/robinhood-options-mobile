@@ -2,7 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "UserFeedbackClusters",
   "description": "Schema and template for staging end-user review clusters and Beta Labs feedback for the Autonomous Software Factory.",
+  "schema_version": "1.0.0",
   "generated_at": "2026-11-24T18:00:00Z",
+  "source": "App Store Reviews & Beta Labs Surveys",
+  "sanitized": true,
+  "pii_scrubbed": true,
   "feedback_clusters": [
     {
       "topic": "GEX Chart High-Contrast Visibility",

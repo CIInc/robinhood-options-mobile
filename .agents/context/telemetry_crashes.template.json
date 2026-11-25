@@ -2,7 +2,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ProductionTelemetryCrashes",
   "description": "Schema and template for staging production crash and exception clusters from Crashlytics/Sentry for the Autonomous Software Factory.",
+  "schema_version": "1.0.0",
   "generated_at": "2026-11-24T18:00:00Z",
+  "source": "Firebase Crashlytics & GCP Cloud Logging",
+  "sanitized": true,
+  "pii_scrubbed": true,
   "crashes": [
     {
       "id": "CRASH-2026-0812",

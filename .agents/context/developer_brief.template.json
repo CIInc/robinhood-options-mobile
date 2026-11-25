@@ -2,9 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DeveloperConversationBrief",
   "description": "Schema and template for staging synthesized developer and team conversations from Slack, Microsoft Teams, WhatsApp, or Discord.",
+  "schema_version": "1.0.0",
   "brief_date": "2026-11-24",
   "team": "Core Trading & Architecture",
-  "priority_topics": [
+  "channel": "Core Trading & Architecture Channels (Slack/Teams/WhatsApp/Discord)",
+  "sanitized": true,
+  "pii_scrubbed": true,
+  "topics": [
     {
       "channel": "core-trading-chat",
       "topic": "Schwab Streamer WebSocket Reconnect Under High Jitter",

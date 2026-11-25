@@ -18,6 +18,29 @@ RealizeAlpha is a professional-grade mobile trading, analytics, and risk managem
 
 RealizeAlpha integrates canonical software factory skills under `.github/skills/` to automate specification, test-driven implementation, adversarial review, and roadmap tracking:
 
+```mermaid
+flowchart TD
+    Start["Contributor Intent"] --> Choice{"What are you contributing?"}
+
+    Choice -- "New Feature / Roadmap Item" --> Ideate["1. Run /software-ideation or open GitHub Issue"]
+    Ideate --> Rubric["Score against Factory Readiness Rubric (>=6/8)"]
+    Rubric --> Implement["2. Implement via /software-implementation focus='<title>'"]
+
+    Choice -- "Bug Fix / Crash Hotfix" --> Triage["1. Check telemetry or create issue with reproduction"]
+    Triage --> Implement
+
+    Choice -- "External Operational Signals" --> Staging["1. Stage scrubbed context in .agents/context/"]
+    Staging --> ValidateContext["2. Validate: python3 .agents/context/scripts/validate_context.py"]
+    ValidateContext --> FactoryRun["3. Trigger /software-factory or software-factory-dispatch.yml"]
+
+    Choice -- "Release Audit / Promotion" --> Release["1. Run /software-release bump='<patch|minor>'"]
+    Release --> HumanConfirm["2. Review diff, changelog, and confirm tag push"]
+
+    Implement --> LocalGate["Local Gate: dart format, flutter analyze, companion test"]
+    LocalGate --> CriticReview["Adversarial Critic Audit (7 Safety Invariants)"]
+    CriticReview --> PR["Open Pull Request -> software-factory-verify.yml"]
+```
+
 | Slash Command / Skill | Scope | Description |
 |---|---|---|
 | `/software-implementation` | Single Item | Focused Maker–Verifier–Critic loop for an individual feature or bug fix with self-healing gates. |
@@ -120,7 +143,10 @@ Human engineers and product leads can steer autonomous factory cycles by providi
 - **Crash Telemetry (`telemetry_crashes.json`)**: Drop top-frequency Crashlytics/Sentry clusters into `.agents/context/telemetry_crashes.json` using [`telemetry_crashes.template.json`](.agents/context/telemetry_crashes.template.json). The factory will automatically prioritize them as accelerated hotfixes.
 - **User Feedback (`user_feedback.json`)**: Provide review digests or survey summaries using [`user_feedback.template.json`](.agents/context/user_feedback.template.json) to guide UI polish and customer friction remediation.
 - **Team Discussion Briefs (`developer_brief.json`)**: Summarize architectural decisions or priority tasks from Slack, Teams, WhatsApp, or Discord using [`developer_brief.template.json`](.agents/context/developer_brief.template.json).
-- **Zero PII Rule**: Always ensure customer PII, private tokens, and account numbers are scrubbed before staging context.
+- **Zero PII Rule**: Always ensure customer PII, private tokens, and account numbers are scrubbed before staging context. Validate your staged context files locally before launching the factory:
+  ```bash
+  python3 .agents/context/scripts/validate_context.py --check-staged
+  ```
 
 ---
 

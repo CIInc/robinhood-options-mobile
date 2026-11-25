@@ -28,3 +28,20 @@ This directory serves as the **Staged Context Adapter** for the RealizeAlpha Aut
 
 - Template files (`*.template.json`) and this `README.md` are checked into git as schema definitions.
 - Live context files (`*.json` excluding `*.template.json`) are ignored by `.gitignore` to ensure transient runtime telemetry is never committed to repository history.
+
+---
+
+## 4. Local Validation Tooling
+
+Use `scripts/validate_context.py` to validate context schemas and verify Zero-PII cleanliness:
+
+```bash
+# Validate all schema templates
+python3 .agents/context/scripts/validate_context.py --check-templates
+
+# Validate live staged context files before running the software factory
+python3 .agents/context/scripts/validate_context.py --check-staged
+
+# Generate sample mock fixtures for offline simulation & dry-runs
+python3 .agents/context/scripts/validate_context.py --generate-sample all
+```
