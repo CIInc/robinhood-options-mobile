@@ -2,9 +2,12 @@
 # ==============================================================================
 # factory.sh — RealizeAlpha Software Factory Developer CLI
 #
-# Provides a zero-friction developer interface for executing simulation dry-runs,
-# autonomous engineering loops, external context validation, telemetry metrics,
-# and state recovery without memorizing nested paths or arguments.
+# Thin wrapper around the software factory scripts for local use: dry-runs,
+# autonomous/interactive runs, external context validation, metrics, and
+# run-state reset.
+#
+# Note: when run outside Antigravity's run_workflow, agents are stubbed, so
+# dry-run/run exercise the control flow and context loading only.
 # ==============================================================================
 
 set -euo pipefail
@@ -16,99 +19,103 @@ cd "${REPO_ROOT}"
 
 FACTORY_PY=".github/skills/software-factory/scripts/factory_pipeline.py"
 CONTEXT_PY=".agents/context/scripts/validate_context.py"
-METRICS_PY=".github/skills/software-factory/scripts/metrics_summary.py"
 
 usage() {
     cat <<EOF
 Usage: ./scripts/factory.sh <command> [options]
 
 Commands:
-    dry-run [focus]          Simulate feature discovery & task execution without mutating files.
-    run [focus] [iters]      Execute continuous autonomous closed loop (default: 3 iterations).
-    interactive [focus]      Run interactive Maker-Verifier-Critic loop with user checkpoints.
-    context check            Validate context templates and staged files for schema & Zero PII.
-    context sample [stream]  Generate mock context fixture (telemetry|feedback|brief|calendar|all).
-    metrics [--ascii]        Display factory execution metrics and pass-rate dashboard.
-    reset                    Reset interrupted run state (.factory_run_state.json) and lockfiles.
-    help                     Display this help menu.
+    dry-run [focus]              Simulate a cycle without writing files, state, or metrics.
+    run [focus] [iterations]     Run the autonomous loop (default: 3 iterations).
+    interactive [focus]          Run one interactive iteration with user checkpoints.
+    context check                Validate context templates and staged files (schema + PII).
+    context sample [stream]      Generate a mock context file (telemetry|feedback|brief|calendar|all).
+    metrics [--ascii] [--limit N] Show the metrics dashboard (Markdown by default).
+    reset [--force-unlock]       Clear .agents/.factory_run_state.json. With --force-unlock,
+                                 also remove a stale .git/index.lock if no git process is running.
+    help                         Show this help.
 
 Examples:
     ./scripts/factory.sh dry-run "agentic trading"
     ./scripts/factory.sh run "portfolio greeks" 2
-    ./scripts/factory.sh metrics
-    ./scripts/factory.sh metrics --format ascii
-    ./scripts/factory.sh context check
+    ./scripts/factory.sh metrics --ascii
     ./scripts/factory.sh context sample telemetry
-    ./scripts/factory.sh reset
 EOF
 }
 
 CMD="${1:-help}"
+shift || true
 
 case "${CMD}" in
     dry-run)
-        FOCUS="${2:-}"
-        ARGS="--mode=autonomous --stages=ideate --dry-run"
-        if [ -n "${FOCUS}" ]; then
-            ARGS="${ARGS} --focus=${FOCUS}"
-        fi
-        echo "==> Running Software Factory Simulation (Dry-Run)..."
-        python3 "${FACTORY_PY}" ${ARGS}
+        ARGS=(--mode=autonomous --stages=ideate --dry-run)
+        [ -n "${1:-}" ] && ARGS+=("--focus=${1}")
+        echo "==> Running Software Factory simulation (dry-run)..."
+        python3 "${FACTORY_PY}" "${ARGS[@]}"
         ;;
 
     run)
-        FOCUS="${2:-}"
-        ITERS="${3:-3}"
-        ARGS="--mode=autonomous --stages=full --max-iterations=${ITERS}"
-        if [ -n "${FOCUS}" ]; then
-            ARGS="${ARGS} --focus=${FOCUS}"
-        fi
-        echo "==> Launching Continuous Autonomous Factory Loop (${ITERS} iterations)..."
-        python3 "${FACTORY_PY}" ${ARGS}
+        ITERS="${2:-3}"
+        ARGS=(--mode=autonomous --stages=full "--max-iterations=${ITERS}")
+        [ -n "${1:-}" ] && ARGS+=("--focus=${1}")
+        echo "==> Launching autonomous factory loop (${ITERS} iterations)..."
+        python3 "${FACTORY_PY}" "${ARGS[@]}"
         ;;
 
     interactive)
-        FOCUS="${2:-}"
-        ARGS="--mode=interactive --stages=full --max-iterations=1"
-        if [ -n "${FOCUS}" ]; then
-            ARGS="${ARGS} --focus=${FOCUS}"
-        fi
-        echo "==> Launching Interactive Software Factory Task..."
-        python3 "${FACTORY_PY}" ${ARGS}
+        ARGS=(--mode=interactive --stages=full --max-iterations=1)
+        [ -n "${1:-}" ] && ARGS+=("--focus=${1}")
+        echo "==> Launching interactive factory task..."
+        python3 "${FACTORY_PY}" "${ARGS[@]}"
         ;;
 
     context)
-        SUBCMD="${2:-check}"
+        SUBCMD="${1:-check}"
         case "${SUBCMD}" in
             check|validate)
-                echo "==> Validating External Context Schemas and Zero-PII Invariant..."
+                echo "==> Validating external context schemas and Zero-PII invariant..."
                 python3 "${CONTEXT_PY}" --check-templates --check-staged
                 ;;
             sample|generate)
-                STREAM="${3:-all}"
-                echo "==> Generating Mock Context Sample (${STREAM})..."
+                STREAM="${2:-all}"
+                echo "==> Generating mock context sample (${STREAM})..."
                 python3 "${CONTEXT_PY}" --generate-sample "${STREAM}"
                 ;;
             *)
-                echo "Unknown context subcommand: ${SUBCMD}. Use 'check' or 'sample'."
+                echo "Unknown context subcommand: ${SUBCMD}. Use 'check' or 'sample'." >&2
                 exit 1
                 ;;
         esac
         ;;
 
     metrics)
-        shift || true
-        python3 "${FACTORY_PY}" --metrics "$@"
+        MARGS=()
+        for a in "$@"; do
+            if [ "${a}" = "--ascii" ]; then
+                MARGS+=(--format ascii)
+            else
+                MARGS+=("${a}")
+            fi
+        done
+        python3 "${FACTORY_PY}" --metrics ${MARGS[@]+"${MARGS[@]}"}
         ;;
 
     reset)
-        echo "==> Resetting Software Factory Run State..."
+        echo "==> Clearing Software Factory run state..."
         rm -f .agents/.factory_run_state.json
         if [ -f .git/index.lock ]; then
-            echo "==> Clearing stale git index.lock..."
-            rm -f .git/index.lock
+            if [ "${1:-}" = "--force-unlock" ]; then
+                if pgrep -x git >/dev/null 2>&1; then
+                    echo "!! A git process is running; refusing to remove .git/index.lock." >&2
+                    exit 1
+                fi
+                rm -f .git/index.lock
+                echo "==> Removed stale .git/index.lock."
+            else
+                echo "!! .git/index.lock exists. If no git command is running, re-run with --force-unlock." >&2
+            fi
         fi
-        echo "==> Run state clean. Factory is ready for a new autonomous cycle."
+        echo "==> Run state cleared."
         ;;
 
     help|--help|-h)
@@ -116,8 +123,8 @@ case "${CMD}" in
         ;;
 
     *)
-        echo "Unknown command: ${CMD}"
-        echo ""
+        echo "Unknown command: ${CMD}" >&2
+        echo "" >&2
         usage
         exit 1
         ;;

@@ -21,7 +21,7 @@ import sys
 
 # Common regex patterns to detect accidental PII / credential leakage
 PII_PATTERNS = [
-    (r"(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b", "Email address"),
+    (r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}\b", "Email address"),
     (r"\b\d{3}-\d{2}-\d{4}\b", "Social Security Number (SSN)"),
     (r"\b(?:\d{4}[ -]?){3}\d{4}\b", "Credit Card Number"),
     (r"(?i)\b(bearer\s+[A-Za-z0-9\-_=]{20,})\b", "Bearer Token"),
@@ -38,11 +38,30 @@ REQUIRED_STREAM_KEYS = {
 }
 
 
+def luhn_valid(candidate: str) -> bool:
+    """Return True if the digits in candidate pass the Luhn checksum."""
+    digits = [int(c) for c in candidate if c.isdigit()]
+    if len(digits) < 13:
+        return False
+    total = 0
+    for i, d in enumerate(reversed(digits)):
+        if i % 2 == 1:
+            d *= 2
+            if d > 9:
+                d -= 9
+        total += d
+    return total % 10 == 0
+
+
 def scan_for_pii(text: str, filepath: str) -> list[str]:
     """Scan raw text for known PII and secret patterns."""
     findings = []
     for pattern, name in PII_PATTERNS:
         matches = re.findall(pattern, text)
+        if name == "Credit Card Number":
+            # Only flag numbers that pass Luhn to avoid false positives on IDs.
+            matches = [m for m in re.finditer(pattern, text) if luhn_valid(m.group(0))]
+            matches = [m.group(0) for m in matches]
         if matches:
             # Mask the match for safe reporting
             masked = matches[0][:8] + "..." if len(matches[0]) > 8 else "***"

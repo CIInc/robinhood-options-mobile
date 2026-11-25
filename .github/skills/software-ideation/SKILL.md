@@ -70,11 +70,14 @@ Optional parameters:
      Accept selections by identifier, "all", or "none". Do not edit `ROADMAP.md` or
      create GitHub issues until the user explicitly selects.
    - **Autonomous Factory Mode (`mode=autonomous`)**:
-     Evaluate candidates against the **Software Factory Readiness Rubric**:
-     1. Clear existing code owner and bounded scope.
-     2. Verifiable with unit/widget tests without requiring live production credentials.
-     3. Adheres strictly to the 7 core safety invariants.
-     Automatically record the top $1-3$ highest-scoring items without pausing.
+     Score candidates against the **Software Factory Readiness Rubric**
+     ([docs/software-factory.md §3](../../../docs/software-factory.md)): four
+     dimensions scored 0–2 each (Scope & Boundaries, Hermetic Testability,
+     Safety Invariants, Code Ownership). Qualify only items scoring
+     $\ge 6/8$ with no dimension at 0. Skip candidates that duplicate shipped
+     work or closed issues, and tag future-milestone items `future_horizon`
+     so they do not expand the active release.
+     Automatically record the top $1-3$ qualifying items without pausing.
 
 6. **Record selected proposals and associate GitHub issues.**
    - Search open and closed issues for a matching issue; link existing issues rather than duplicating.

@@ -27,6 +27,14 @@ from datetime import datetime, timezone
 # -----------------------------------------------------------------------------
 # Runtime Fallbacks (supports standalone testing outside Antigravity runtime)
 # -----------------------------------------------------------------------------
+# run_workflow injects `args`, `agent`, `parallel`, ... into globals. When they are
+# absent (CLI or import from tests), agents are stubbed and return empty results.
+_AGENTS_STUBBED = "agent" not in globals()
+try:
+    _INJECTED_ARGS = dict(args)  # noqa: F821 - injected by run_workflow
+except NameError:
+    _INJECTED_ARGS = None
+
 if "log" not in globals():
     def log(msg):
         print(f"[FACTORY] {msg}")
@@ -55,14 +63,10 @@ if "pipeline" not in globals():
 # -----------------------------------------------------------------------------
 # Parameter Ingestion (from injected `args` dict or CLI arguments)
 # -----------------------------------------------------------------------------
-try:
-    _args = dict(args)
-except NameError:
+def parse_cli_args(argv):
+    """Parse --key=value CLI flags into a parameter dict."""
     _args = {}
-
-# Parse sys.argv if invoked via python CLI
-if not _args and len(sys.argv) > 1:
-    for arg in sys.argv[1:]:
+    for arg in argv:
         if arg.startswith("--mode="):
             _args["mode"] = arg.split("=", 1)[1]
         elif arg.startswith("--stages="):
@@ -86,26 +90,27 @@ if not _args and len(sys.argv) > 1:
             _args["release_threshold"] = int(arg.split("=", 1)[1])
         elif arg in ("--metrics", "--show-metrics"):
             _args["show_metrics"] = True
+    return _args
 
-if _args.get("show_metrics"):
-    scripts_dir = os.path.dirname(os.path.abspath(__file__))
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-    import metrics_summary
-    metrics_argv = [a for a in sys.argv[1:] if a not in ("--metrics", "--show-metrics")]
-    metrics_summary.main(metrics_argv)
-    sys.exit(0)
 
-mode = _args.get("mode", "autonomous")  # "autonomous" or "interactive"
-stages = _args.get("stages", "full")    # "full", "ideate", "implement-batch", "single"
-max_parallel = int(_args.get("max_parallel", 1))
-max_iterations = int(_args.get("max_iterations", 3 if mode == "autonomous" else 1))
-consecutive_failure_limit = int(_args.get("failure_limit", 2))
-focus = _args.get("focus", "")
-auto_ideate = bool(_args.get("auto_ideate", True))
-dry_run = bool(_args.get("dry_run", False))
-release_cadence = _args.get("release_cadence", "milestone")  # "milestone", "batch_size", "manual"
-release_threshold = int(_args.get("release_threshold", 2))
+def configure(params):
+    """Set module-level run parameters. Has no side effects beyond globals."""
+    global mode, stages, max_parallel, max_iterations, consecutive_failure_limit
+    global focus, auto_ideate, dry_run, release_cadence, release_threshold
+    mode = params.get("mode", "autonomous")  # "autonomous" or "interactive"
+    stages = params.get("stages", "full")    # "full", "ideate", "implement-batch", "single"
+    max_parallel = int(params.get("max_parallel", 1))
+    max_iterations = int(params.get("max_iterations", 3 if mode == "autonomous" else 1))
+    consecutive_failure_limit = int(params.get("failure_limit", 2))
+    focus = params.get("focus", "")
+    auto_ideate = bool(params.get("auto_ideate", True))
+    dry_run = bool(params.get("dry_run", False))
+    release_cadence = params.get("release_cadence", "milestone")  # "milestone", "batch_size", "manual"
+    release_threshold = int(params.get("release_threshold", 2))
+
+
+# Safe defaults so helpers are usable on import (e.g. from unit tests).
+configure({})
 
 STATE_FILE = ".agents/.factory_run_state.json"
 METRICS_FILE = ".agents/.factory_metrics.json"
@@ -724,10 +729,37 @@ Mode: {mode}, DryRun: {dry_run}, Focus: '{focus}', Cadence: '{release_cadence}'.
         "items_failed": total_items_failed,
         "circuit_breaker_tripped": circuit_breaker_tripped
     }
-    record_factory_metrics(summary_entry)
+    if dry_run:
+        log("Dry-run: metrics ledger not updated.")
+    else:
+        record_factory_metrics(summary_entry)
 
     log(f"Software Factory finished in {duration_sec}s. Completed: {state.get('completed_tasks')}, Failed: {state.get('failed_tasks')}, CircuitBreaker: {circuit_breaker_tripped}.")
 
 
-# Execute the async pipeline in the current event loop
-asyncio.run(run_pipeline())
+def main(argv=None):
+    """Entry point for CLI and run_workflow execution."""
+    if _INJECTED_ARGS is not None:
+        params = _INJECTED_ARGS
+    else:
+        argv = sys.argv[1:] if argv is None else argv
+        params = parse_cli_args(argv)
+
+    if params.get("show_metrics"):
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        if scripts_dir not in sys.path:
+            sys.path.insert(0, scripts_dir)
+        import metrics_summary
+        metrics_summary.main([a for a in (argv or []) if a not in ("--metrics", "--show-metrics")])
+        return
+
+    configure(params)
+    if _AGENTS_STUBBED:
+        log("Standalone mode: agents are stubbed; ideation, rubric scores and the "
+            "execution DAG are only produced under run_workflow.")
+    asyncio.run(run_pipeline())
+
+
+# Run only when executed (CLI or run_workflow), never on plain import.
+if __name__ == "__main__" or _INJECTED_ARGS is not None:
+    main()

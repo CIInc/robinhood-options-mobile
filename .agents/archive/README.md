@@ -37,3 +37,7 @@ The original hook configuration is preserved for historical reference in:
 - [`.agents/archive/hooks.disabled.json`](hooks.disabled.json)
 - Active `.agents/hooks.json` remains set to `{}` (clean no-op).
 - Supporting scripts remain in `.agents/scripts/auto_format.sh` and `.agents/scripts/verify_formatting.sh` for manual execution.
+
+## Removed Scripts
+
+The no-op hook scripts `.agents/scripts/auto_format.sh` and `.agents/scripts/verify_formatting.sh` were deleted (they only printed `{}`). `.agents/hooks.json` is kept as an empty `{}` placeholder. See [ADR-001](../../docs/adr/0001-stage-boundary-gates.md).

@@ -60,7 +60,7 @@ Use these copy-pasteable slash command invocations or the `./scripts/factory.sh`
 |---|---|---|---|
 | **Autonomous Loop Overnight** | `/software-factory mode="autonomous" stages="full" max_iterations=3` | `./scripts/factory.sh run "<focus>" 3` | Runs continuous closed loop: ideate, score, triage, parallel implement, verify, reconcile, and commit. |
 | **Autonomous Milestone Release** | `/software-factory release_cadence="milestone" release_threshold=3` | `./scripts/factory.sh run "" 3` | Evaluates in-workflow feature grouping and cuts a semantic release when batch threshold is reached. |
-| **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | `./scripts/factory.sh dry-run "<focus>"` | Executes discovery, rubric scoring, partitioning, and test mapping without mutating files or committing. |
+| **Simulation / Dry-Run** | `/software-factory dry_run=true stages="full"` | `./scripts/factory.sh dry-run "<focus>"` | Simulates a cycle without writing files, state, metrics, or commits (full output requires `run_workflow`). |
 | **Single-Item Interactive** | `/software-implementation mode="interactive" focus="<title>"` | `./scripts/factory.sh interactive "<title>"` | Guided Maker-Verifier-Critic loop with human approval checkpoints before staging commits. |
 | **Ideation & Backlog Discovery** | `/software-ideation focus="agentic trading"` | `./scripts/factory.sh dry-run "agentic trading"` | Evaluates backlog candidates against the 8-point Readiness Rubric and records qualified proposals. |
 | **Context Schema Validation** | — | `./scripts/factory.sh context check` | Validates templates and live context for schemas and Zero-PII compliance. |
@@ -70,6 +70,38 @@ Use these copy-pasteable slash command invocations or the `./scripts/factory.sh`
 | **Documentation Synchronization** | `/update-docs` | — | Reconciles `ROADMAP.md` Quick Stats, bounds Key Highlights ($\le 5$), and updates `CHANGELOG.md`. |
 | **Disaster Recovery (Resume)** | `/software-factory mode="autonomous"` | `./scripts/factory.sh run` | Automatically reads `.agents/.factory_run_state.json` and resumes from the last completed iteration. |
 | **Reset Circuit Breaker** | — | `./scripts/factory.sh reset` | Clears tripped failure counters and unblocks autonomous factory execution. |
+
+> [!NOTE]
+> Outside `run_workflow`, `factory.sh` runs the pipeline with **stubbed agents**: it exercises control flow, context loading, and test mapping, but produces no ideation, rubric scores, or execution DAG. Dry-runs write no files, state, or metrics.
+
+Parallel multi-item execution via `run_workflow` (real agents):
+
+```python
+call_tool("run_workflow",
+  ScriptPath=".github/skills/software-factory/scripts/factory_pipeline.py",
+  Description="Execute autonomous software factory loop for v0.62.x",
+  Args={
+    "mode": "autonomous",
+    "stages": "full",
+    "dry_run": False,
+    "max_parallel": 2,
+    "max_iterations": 3,
+    "failure_limit": 2,
+    "focus": "v0.62.x"
+  }
+)
+```
+
+---
+
+## 1.2 What Is Implemented in Code vs. Agent-Guided
+
+| Capability | Enforcement |
+|---|---|
+| Companion test mapping, context schema/PII validation, metrics ledger & dashboard, run-state resume, circuit breaker counter, changelog prefix categorization | **Deterministic code** (`factory_pipeline.py`, `validate_context.py`, `metrics_summary.py`), unit-tested |
+| Format/analyze/test/lint gates, ROADMAP bounds, plaintext-token scan, no committed live context | **CI** (`software-factory-verify.yml`) |
+| Ideation, rubric scoring, deduplication judgment, triage/partitioning, critic verdicts, release grouping & version bump | **Agent-guided** (prompts + structured output schemas under `run_workflow`) |
+| Model fallback on quota exhaustion, release blackout around macro events | **Manual / planned** — not automated today |
 
 ---
 
@@ -143,58 +175,8 @@ sequenceDiagram
     SF-->>Dev: Autonomous Loop Completed (Summary report & PR ready)
 ```
 
-### 2.1 Release Cadence & Feature Grouping: Breaking the Ideation Infinite Loop
-
-#### The Infinite Loop Trap of Continuous Ideation
-In an autonomous software factory where **Ideation & Backlog Discovery** runs alongside **Implementation**, a naive termination rule ("wait until all remaining roadmap items are finished") creates an **infinite loop**:
-1. Phase 1 discovers 3 new candidate features from open issues and adds them to `ROADMAP.md`.
-2. Phase 3 implements 2 features.
-3. Next iteration, Phase 1 discovers 3 more candidates.
-4. The backlog never empties, and the factory never decides to cut a release!
-
-#### The In-Workflow Release Decision Solution
-To prevent infinite backlogs, RealizeAlpha treats **Release Cadence & Feature Grouping as an explicit in-workflow decision** rather than an open-ended wait condition:
-
-1. **Decoupled Milestone Horizons**:
-   - Ideation categorizes candidate proposals into **Target Milestone Horizons**:
-     - *Current Horizon*: Enhancements or bug fixes strictly within the active release scope (e.g., `v0.62.x`).
-     - *Future Horizons*: New capabilities queued for future minor/major milestones (e.g., `v0.63.0`, `v0.64.0+`).
-   - Discovery of future items expands the long-term roadmap without expanding the completion condition of the current release run.
-
-2. **Configurable Release Cadence Policies (`release_cadence`)**:
-   - `milestone` (default): Packages and cuts a release when all actionable items in the active release milestone are satisfied or when the accumulated feature count reaches `release_threshold`.
-   - `batch_size`: Groups and releases whenever `release_threshold` (e.g. 2–3 verified features) is reached, cutting regular, incremental patch releases.
-   - `manual`: Bypasses automated release decisions, holding version bumps for explicit developer commands.
-
-3. **In-Workflow Release Bundling (`software-release`)**:
-   - When the release decision evaluates to `true`, the workflow invokes the Release Specialist agent to:
-     - Group newly verified features from the cycle into semantic release notes in `CHANGELOG.md`.
-     - Bump semantic versioning in `pubspec.yaml` (`patch` vs `minor`).
-     - Move the completed features into `ROADMAP.md` `## Completed Features ✅` and reconcile `Quick Stats`.
-     - Conclude the active release cycle gracefully, outputting a complete release summary and awaiting explicit human confirmation before pushing git tags to `main`.
-
-### 2.2 Multi-Model Tiering & Quota Fallback Resilience
-
-The Software Factory employs a tiered model strategy to balance reasoning depth, speed, and API token budgets across multi-hour autonomous cycles:
-
-| Factory Role | Primary Model | Fallback Model | Rationale & Token Strategy |
-|---|---|---|---|
-| **Ideation Specialist** | `pro` | `flash` | Deep synthesis of user needs, product context, and rubric scoring. |
-| **Triage Coordinator** | `flash` | `flash_lite` | Fast dependency parsing and disjoint partition assignment. |
-| **Maker Agent** | `pro` | `flash` | Full architectural code generation and unit test authoring. |
-| **Self-Healing Verifier** | Native Shell | Shell | Local CLI test & analysis gates cost 0 LLM tokens. |
-| **Adversarial Critic** | `pro` | `flash` | Fresh-context adversarial review of the 7 Core Safety Invariants. |
-| **Documentation Reconciler** | `flash` | `flash_lite` | Structural markdown updates, changelog syncing, and quick stats. |
-| **Release Specialist** | `pro` | `flash` | Semantic version evaluation and safety invariant release audits. |
-
-#### Quota Fallback & Swarm Model Switching Protocol
-During overnight continuous loops (`mode="autonomous" max_iterations=5`), heavy reasoning workloads may encounter API rate limits or quota ceilings on the `pro` tier. To prevent workflow stalls:
-1. **Dynamic Model Switching**: Antigravity swarm workers support switching models in place via the `model` action without dropping active conversational state.
-2. **Graceful Fallback Cascade**: If a `pro` subagent invocation reports quota exhaustion, the orchestrator cascades to `flash`, flags the run in `.agents/.factory_metrics.json`, and completes the iteration.
-3. **Run State Resumption**: If all online tiers are exhausted, `.agents/.factory_run_state.json` preserves the exact iteration and task boundary. Once quotas reset, running `./scripts/factory.sh run` resumes seamlessly from the checkpoint.
-
-### Full-Cycle Pipeline Chaining
-When invoked with `stages="full"`, the factory coordinates six sequential phases:
+### 2.1 Full-Cycle Phases
+When invoked with `stages="full"`, each loop iteration runs six phases (Phase 3 runs the per-task 5-stage state machine in §4):
 1. **Ideation & Backlog Discovery**: Scans `PRODUCT.md`, `ROADMAP.md`, and open GitHub issues. Scores candidate proposals against the **Software Factory Readiness Rubric** (bounded scope, testable without external live credentials, compliant with the 7 safety invariants) and automatically records qualified items in `ROADMAP.md` under their appropriate milestone horizon.
 2. **Triage & Disjoint Partitioning**: Evaluates unchecked tasks in the active horizon and selects up to `max_parallel` items with mutually disjoint file boundaries.
 3. **Implementation & Verification**: Executes the Maker agent and Self-Healing Verifier loop with companion test mapping and up to 3 repair retries.
@@ -202,10 +184,15 @@ When invoked with `stages="full"`, the factory coordinates six sequential phases
 5. **Reconciliation & Git Lifecycle**: Reconciles documentation, updates `ROADMAP.md` Quick Stats, creates conventional commits (`feat(...): ... (#<num>)`), and closes verified issues (`gh issue close <num>`).
 6. **Release Cadence & Grouping Decision**: Evaluates milestone/batch completion criteria. If satisfied, groups completed features, bumps semantic version in `pubspec.yaml`, generates release notes in `CHANGELOG.md`, and concludes the cycle.
 
-### Disjoint Ownership Partitioning Rule
+### 2.2 Disjoint Ownership Partitioning Rule
 When running multiple tasks in parallel (`max_parallel > 1` via `workspace="branch"` or `workspace="share"`):
 - Workers may only touch **mutually disjoint source files** in `src/robinhood_options_mobile/lib/` and `src/robinhood_options_mobile/functions/src/`. For example, Task A modifying `portfolio_analytics_controller.dart` cannot run concurrently with Task B modifying the same controller.
 - Shared top-level files (`ROADMAP.md`, `CHANGELOG.md`, `PRODUCT.md`, `pubspec.yaml`) are **never edited by concurrent workers**. Instead, the coordinator reconciles shared files once in the final aggregation phase to eliminate git merge conflicts.
+
+---
+
+### 2.3 Release Cadence
+Release cuts are decided inside the loop (Phase 6) rather than after the backlog empties, because ideation keeps adding work. `release_cadence` is `milestone` (default; cut when the active milestone is done or `release_threshold` features are verified), `batch_size` (cut every `release_threshold` features), or `manual`. Future-milestone proposals are tagged `future_horizon` so they do not extend the current release. Pushing release tags to `main` always requires human confirmation. Rationale: [ADR-003](adr/0003-in-workflow-release-cadence.md).
 
 ---
 
@@ -225,7 +212,7 @@ Candidate items discovered during ideation or pulled from GitHub issues must be 
 
 ---
 
-## 4. The 5-Stage State Machine
+## 4. Per-Task 5-Stage State Machine (Phase 3)
 
 ### Stage 1: Specification, Ideation & Triage
 - **Source of Truth**: `ROADMAP.md` and open GitHub issues (`gh issue list --state open --limit 1000 --json number,title,body,labels,milestone,updatedAt`).
@@ -290,9 +277,9 @@ To balance reasoning capability, latency, and token efficiency, the Software Fac
 | Agent Role | Model Recommendation | Tooling Mode | Primary Focus |
 |---|---|---|---|
 | **Ideation Specialist** | Pro / High-Reasoning | Read-only + GitHub CLI | Backlog discovery, product principle alignment, rubric scoring |
-| **Triage Coordinator** | Pro / High-Reasoning | Read-only | Disjoint file partitioning, dependency resolution, acceptance spec |
-| **Maker Agent** | Flash / Balanced Coding | Read-Write (`workspace="branch"`) | Minimal complete implementation, unit/widget test authoring |
-| **Adversarial Critic** | Flash / Pro (Isolated Context) | Read-only | Diff inspection, 7-invariant checklist enforcement, edge-case probing |
+| **Triage Coordinator** | Flash / Balanced | Read-only | Disjoint file partitioning, dependency resolution, acceptance spec |
+| **Maker Agent** | Pro / High-Reasoning | Read-Write (`workspace="branch"`) | Minimal complete implementation, unit/widget test authoring |
+| **Adversarial Critic** | Pro (Isolated Context) | Read-only | Diff inspection, 7-invariant checklist enforcement, edge-case probing |
 | **Docs Reconciler** | Flash / Balanced | Read-Write | Documentation sync, `ROADMAP.md` formatting, Quick Stats arithmetic |
 | **Lifecycle Manager** | Flash_Lite / Fast | Read-Write | Conventional commits, GitHub issue closing comments |
 
@@ -317,13 +304,16 @@ To ensure deterministic gating without natural language ambiguity, the Adversari
 }
 ```
 
+### Quota Limits (Manual Procedure)
+There is no automatic model fallback. If a `pro` agent hits quota mid-run, the iteration fails and run state in `.agents/.factory_run_state.json` is preserved. Either wait for quota to reset and re-run `./scripts/factory.sh run`, or re-launch with lighter models for the affected roles.
+
 ### Token Cost & Throughput Optimization
 - **Tiering Strategy**: Keep high-volume iterative repair loops (format, analyze, fix) on fast, cost-effective models (`flash`), reserving reasoning-dense models (`pro`) for initial architecture specification and independent adversarial safety auditing.
 - **Prompt Token Isolation**: Maker subagents execute inside isolated branch workspaces (`workspace="branch"`) with clean context windows, preventing bloated turn histories from degrading analysis speed.
 
 ---
 
-## 5.1 Feature Flag & Progressive Rollout Lifecycle (`FeatureAccessService`)
+## 6. Feature Flag & Progressive Rollout Lifecycle (`FeatureAccessService`)
 
 Every new user-facing capability implemented by the Software Factory must integrate into RealizeAlpha's **4-tier progressive rollout architecture** ([`docs/feature-access-and-beta-gating.md`](feature-access-and-beta-gating.md)):
 
@@ -354,7 +344,7 @@ When authoring a new feature, the Maker agent must:
 
 ---
 
-## 6. Operational Runbook & Troubleshooting
+## 7. Operational Runbook & Troubleshooting
 
 ### Handling Self-Healing Gate Exhaustion (3 Failed Retries)
 When a task fails verification 3 times consecutively:
@@ -363,19 +353,6 @@ When a task fails verification 3 times consecutively:
 3. If parallel workers are active, other disjoint tasks continue unaffected.
 4. The task is preserved in `ROADMAP.md` as unchecked (`- [ ]`) and the GitHub issue remains open with failure details.
 
-### Circuit Breaker Trip Recovery
-If 2 consecutive iterations fail all scheduled tasks, the **Repetitive Failure Circuit Breaker** trips and halts the loop:
-1. Inspect `.agents/.factory_run_state.json` to view `iteration` and `failed_tasks`.
-2. Review the last error output in the workflow logs.
-3. Reset run state by removing the state file:
-   ```bash
-   rm -f .agents/.factory_run_state.json
-   ```
-4. Address the underlying issue (e.g. broken dependency or environment lock) and resume with:
-   ```bash
-   /software-factory mode="autonomous" max_iterations=2
-   ```
-
 ### Cleaning Up Temporary Parallel Workspaces
 Parallel agents run in isolated clones (`workspace="branch"`). Antigravity automatically manages these workspaces. To manually inspect or clean up stale worktrees:
 ```bash
@@ -383,22 +360,22 @@ git worktree list
 git worktree prune
 ```
 
-### 6.1 Operational Diagnostics & Troubleshooting Matrix
+### Troubleshooting Matrix
 
 When autonomous cycles encounter environment anomalies or gate rejections, consult this diagnostic reference matrix:
 
 | Failure Mode / Symptom | Diagnostic Cause | Immediate Resolution Command | Prevention / Best Practice |
 |---|---|---|---|
-| **Circuit Breaker Tripped**<br>`CircuitBreaker: True`<br>`consecutive_failures >= 2` | Critic rejected changes across 2 consecutive iterations due to safety invariant violations or gate timeouts. | `rm -f .agents/.factory_run_state.json`<br>`/software-factory mode="autonomous"` | Inspect `.factory_run_state.json` for specific failed tasks; address underlying invariant breach before resuming. |
-| **Git Index Lock Collision**<br>`Unable to create '.git/index.lock'` | A parallel git operation or previous process terminated uncleanly while holding the index lock. | `rm -f .git/index.lock` | Avoid concurrent manual git commands while an autonomous loop is actively executing. |
+| **Circuit Breaker Tripped**<br>`CircuitBreaker: True`<br>`consecutive_failures >= 2` | Critic rejected changes across 2 consecutive iterations due to safety invariant violations or gate timeouts. | `./scripts/factory.sh reset`<br>`/software-factory mode="autonomous"` | Inspect `.factory_run_state.json` for specific failed tasks; address underlying invariant breach before resuming. |
+| **Git Index Lock Collision**<br>`Unable to create '.git/index.lock'` | A parallel git operation or previous process terminated uncleanly while holding the index lock. | Confirm no git process is running, then `./scripts/factory.sh reset --force-unlock` | Avoid concurrent manual git commands while an autonomous loop is actively executing. |
 | **Companion Test Not Found**<br>`Warning: No companion test found` | Source file in a nested directory (`lib/services/`, `lib/widgets/`) lacks a mirrored or flat test file. | Dual-path resolution automatically checks `test/<name>_test.dart` and `test/<dir>/<name>_test.dart`. Maker agent creates `test/<name>_test.dart`. | Follow standard naming conventions: `lib/<path>/<name>.dart` $\to$ `test/<name>_test.dart`. |
-| **Disjoint Partitioning Collision**<br>`Tasks touch non-disjoint files` | Multiple unreleased tasks modify overlapping state stores (e.g. `PortfolioStore`) or shared widgets. | Factory automatically partitions colliding tasks across sequential iterations. | Keep feature scope focused on 1–3 files to maximize parallel partition capacity. |
+| **Disjoint Partitioning Collision**<br>`Tasks touch non-disjoint files` | Multiple unreleased tasks modify overlapping state stores (e.g. `PortfolioStore`) or shared widgets. | The Triage agent is instructed to defer colliding tasks to later iterations; verify in the triage output. | Keep feature scope focused on 1–3 files to maximize parallel partition capacity. |
 | **Staged Context PII Leak**<br>`validate_context.py failed` | External context contains unscrubbed emails, Bearer tokens, API keys, or customer account identifiers. | `python3 .agents/context/scripts/validate_context.py --check-staged`<br>Sanitize violating tokens in `.agents/context/*.json`. | Always scrub identifiers and verify `pii_scrubbed: true` before staging runtime telemetry. |
 | **Infinite Backlog Loop**<br>`Iterations exhausted on ongoing ideation` | Continuous loop discovers new ideas endlessly without cutting a release. | Specify `release_cadence="milestone"` or `release_threshold=2` to group verified features into a release cut. | Ensure in-workflow release cadence decisions evaluate milestone completion boundaries. |
 
 ---
 
-## 7. External Context Ingestion & Team Feedback Loops
+## 8. External Context Ingestion & Team Feedback Loops
 
 To prevent operating in an insular vacuum, the Software Factory connects directly to real-world operational context through a **Staged Context Adapter Pattern** ([`.agents/context/`](../.agents/context/README.md)):
 
@@ -417,12 +394,10 @@ flowchart TD
     end
 
     subgraph FactoryPipeline["Autonomous Factory Ingestion"]
-        G["Phase 1: Context-Enriched Ideation"]
-        H["Phase 2: Incident Triage & Hotfix Acceleration"]
-        I["Phase 6: In-Workflow Release Decision"]
+        G["Phase 1: Context-Enriched Ideation (prompt context)"]
     end
 
-    subgraph OutboundBroadcast["Bi-Directional Team Notification"]
+    subgraph OutboundBroadcast["Outbound Team Notification (CI webhooks)"]
         J["Slack / Teams / Discord Cycle Summary Cards"]
     end
 
@@ -437,24 +412,24 @@ flowchart TD
    - Converts high-priority architectural discussions and temporary workarounds into structured candidate proposals.
 2. **Production Crash Telemetry (`telemetry_crashes.json`)**:
    - Ingests high-velocity crash and exception clusters from Firebase Crashlytics and GCP Cloud Logging.
-   - High-severity crashes automatically bypass normal backlog sequencing, generating accelerated **hotfix tasks** with exact stack traces, reproduction breadcrumbs, and companion tests.
+   - Passed to the Ideation agent, which is instructed to propose high-severity crash clusters as hotfix candidates (with stack trace and file) ahead of feature work.
 3. **End-User Feedback & Beta Labs Voice (`user_feedback.json`)**:
    - Ingests App Store reviews, Google Play user comments, and Beta Labs surveys.
-   - Sentiment clustering groups repeated user friction points to guide targeted UI polish and accessibility enhancements.
+   - Pre-clustered friction points are passed to the Ideation agent to inform UI polish and accessibility proposals.
 4. **Market Calendar & Economic Infrastructure (`market_calendar.json`)**:
    - Staged macro dates (FOMC rate decisions, CPI releases, quadruple witching, exchange holidays) and OCC corporate action memos.
-   - Enforces the **Market Stability Invariant**: halts production releases and trading engine alterations during high-volatility macro announcements.
+   - Passed to the Ideation and Release agents as context. **Not enforced:** nothing currently blocks releases around these events; check the calendar manually before promoting trading-engine changes.
 
 ### 2. Privacy & PII Scrubbing Rules
 - External context collectors must scrub customer identifiers, private account balances, passwords, and brokerage OAuth credentials before writing to `.agents/context/`.
 - Live context files (`.agents/context/*.json`) are ignored by `.gitignore`, ensuring transient runtime telemetry is never committed to repository history.
 
-### 3. Bi-Directional Team Webhooks
-Upon cycle completion or release cut in GitHub Actions (`software-factory-dispatch.yml`), the factory dispatches an interactive notification card to the team's messaging channel via `SLACK_WEBHOOK_URL`, `TEAMS_WEBHOOK_URL`, or `DISCORD_WEBHOOK_URL`.
+### 3. Outbound Team Webhooks
+Upon cycle completion or release cut in GitHub Actions (`software-factory-dispatch.yml`), the factory posts a summary message to the team's messaging channel via `SLACK_WEBHOOK_URL`, `TEAMS_WEBHOOK_URL`, or `DISCORD_WEBHOOK_URL`.
 
 ---
 
-## 8. Tooling & Skills Directory
+## 9. Tooling & Skills Directory
 
 RealizeAlpha organizes its software factory capabilities into modular skills located in `.github/skills/`:
 
@@ -481,7 +456,7 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 
 ---
 
-## 9. CI/CD Integration & Automated Gates
+## 10. CI/CD Integration & Automated Gates
 
 The Software Factory integrates directly into GitHub Actions workflows:
 
@@ -500,45 +475,9 @@ The Software Factory integrates directly into GitHub Actions workflows:
 
 ---
 
-## 10. Execution Examples
-
-### Running an Autonomous Continuous Loop
-```text
-/software-factory mode="autonomous" stages="full" max_iterations=3 focus="agentic trading"
-```
-
-### Running Simulation / Dry-Run Mode
-```text
-/software-factory dry_run=true stages="full" focus="derivatives"
-```
-
-### Running Parallel Multi-Item Execution via `run_workflow`
-```python
-call_tool("run_workflow",
-  ScriptPath=".github/skills/software-factory/scripts/factory_pipeline.py",
-  Description="Execute autonomous software factory loop for v0.62.x",
-  Args={
-    "mode": "autonomous",
-    "stages": "full",
-    "dry_run": False,
-    "max_parallel": 2,
-    "max_iterations": 3,
-    "failure_limit": 2,
-    "focus": "v0.62.x"
-  }
-)
-```
-
-### Interactive Software Implementation
-```text
-/software-implementation focus="progressive disclosure UI" mode="interactive"
-```
-
----
-
 ## 11. Step-by-Step Execution Walkthrough Case Study
 
-The following concrete case study illustrates how a candidate feature (*"Option Volatility Skew Real-Time Alert"*) progresses through all 5 phases of the Software Factory:
+The following concrete case study illustrates how a candidate feature (*"Option Volatility Skew Real-Time Alert"*) progresses through Phases 1–5 (no release cut in this example):
 
 ### Phase 1: Ideation & Rubric Scoring
 - **Discovery**: The Ideation agent scans `PRODUCT.md` and discovers that while higher-order Greeks (Charm, Vanna) exist, traders lack automated push notifications when 30-day IV skew diverges past historical percentiles.
@@ -573,64 +512,12 @@ The following concrete case study illustrates how a candidate feature (*"Option 
 
 ---
 
-## 12. ADR-001: Architecture Decision Record
+## 12. Architecture Decision Records
 
-### Context & Problem Statement
-Earlier iterations of agent tooling in RealizeAlpha relied on fine-grained, per-tool-use hooks (e.g. running linters or checks on every file write tool call) and thin wrapper prompts (`roadmap.prompt.md`, `autopilot.prompt.md`). In practice, per-tool hooks introduced prohibitive latency (re-running analyzers on intermediate edits), triggered false positives during multi-file refactors, and fragmented instructions across multiple non-canonical files.
+Design decisions are recorded as ADRs in [`docs/adr/`](adr/README.md):
 
-### Decision
-1. **Retire Per-Tool Hooks**: Move disabled per-tool hooks to `.agents/archive/hooks.disabled.json` and document the rationale in `.agents/archive/README.md`.
-2. **Standardize Stage-Boundary Quality Gates**: Consolidate automated verification into deterministic stage boundaries (at the conclusion of the Maker phase and within GitHub Actions CI).
-3. **Consolidate Canonical `software-*` Skills**: Unify all engineering skills under `.github/skills/` (`software-factory`, `software-ideation`, `software-implementation`, `software-release`, `update-docs`) as the single sources of truth.
-4. **Structured Critic Verdict Contract**: Standardize the adversarial review into a machine-readable JSON schema (`CriticAuditVerdict`) verifying the 7 Core Safety Invariants.
-
-### Consequences & Benefits
-- **Zero Inter-Turn Tool Lag**: Agents can perform multi-file edits and intermediate refactoring without interrupted tool calls.
-- **Deterministic CI Parity**: The exact commands executed by the self-healing gate match GitHub Actions (`software-factory-verify.yml`).
-- **Resilient Multi-Iteration Autonomy**: Interrupted workflows recover seamlessly via `.agents/.factory_run_state.json` without duplicating work or tripping merge conflicts.
-
----
-
-## 13. ADR-002: Staged External Context & Zero-PII Boundary Architecture
-
-### Context & Problem Statement
-Autonomous AI coding agents frequently require real-world context—such as sudden production crash spikes from Crashlytics, repeated user review friction points, developer consensus discussions from Slack/Teams, and upcoming macro market announcements (FOMC, quadruple witching)—to prioritize high-impact backlog items and avoid operating in an insular vacuum.
-
-However, granting autonomous agents direct network access or live API credentials to corporate messaging platforms (Slack, Teams, WhatsApp, Discord) or live cloud monitoring consoles (Firebase Crashlytics, GCP Cloud Logging) introduces severe risks:
-1. **Accidental Credential & Token Exfiltration**: Live tokens stored in agent execution contexts could leak in error logs or PR artifacts.
-2. **Customer PII Exposure**: Raw crash dumps and customer reviews frequently contain personal data (customer names, emails, account numbers, IP addresses).
-3. **Flaky & Non-Deterministic Execution**: Direct network dependencies on external APIs cause timeouts and unrepeatable simulation runs.
-
-### Decision
-1. **Staged Filesystem Adapter Pattern (`.agents/context/`)**: External signals are staged locally as structured JSON files (`telemetry_crashes.json`, `user_feedback.json`, `developer_brief.json`, `market_calendar.json`) under `.agents/context/`.
-2. **Version-Controlled Zero-PII Templates**: Canonical schema templates (`*.template.json`) with sample fixtures are committed to git, while live JSON files remain ignored in `.gitignore`.
-3. **Mandatory PII Scrubbing & Schema Enforcement**: Staged files must be sanitized of customer identifiers and tokens prior to ingestion, declare `"pii_scrubbed": true`, and pass validation via `.agents/context/scripts/validate_context.py`.
-4. **CI Invariant Enforcement**: GitHub Actions (`software-factory-verify.yml`) automatically blocks pull requests if any non-template `.agents/context/*.json` file is committed, guaranteeing that live external context never pollutes git history.
-5. **Outbound-Only Notification Cards**: In lieu of direct two-way chat connections, the factory dispatches structured summary cards via outbound webhook URLs (`SLACK_WEBHOOK_URL`, `TEAMS_WEBHOOK_URL`, `DISCORD_WEBHOOK_URL`) upon cycle completion.
-
-### Consequences & Benefits
-- **Hermetic & Deterministic Simulation**: Dry-run simulations seamlessly fall back to canonical template fixtures without requiring network access or external credentials.
-- **Strict Privacy Invariant Compliance**: Prevents customer PII and OAuth tokens from ever entering agent prompts or version control.
-- **Turnkey Community & Team Integration**: Any external service (CI cron, Sentry webhook, store review scraper) can deliver context by simply writing a scrubbed JSON file to `.agents/context/`.
-
----
-
-## 14. ADR-003: In-Workflow Release Cadence & Milestone Horizon Isolation
-
-### Context & Problem Statement
-In an autonomous closed-loop software factory, **Ideation & Backlog Discovery** runs alongside **Maker–Verifier Implementation**. If release cuts depend on backlog exhaustion (i.e. waiting until all roadmap tasks are unchecked and complete), the factory enters an **infinite execution loop**: every iteration discovers and records new qualified feature proposals faster than the implementation phase can ship them. As a result, software is never packaged into a semantic release or promoted to users.
-
-### Decision
-1. **In-Workflow Release Decision Phase**: Introduce an explicit **Phase 6: Release Cadence & Grouping Decision** inside the continuous loop rather than treating releases as an external trigger after complete backlog drain.
-2. **Configurable Cadence Policies**: Support three release triggering modes:
-   - `milestone` (default): Packages and cuts a release when the active release milestone criteria or feature batch threshold (`release_threshold`, default: 2) is reached.
-   - `batch_size`: Packages and cuts a release as soon as $N$ verified features have passed Maker-Verifier-Critic gates.
-   - `manual`: Bypasses automated releases, holding verified commits on feature branches for developer sign-off.
-3. **Milestone Horizon Isolation**: During Phase 1 (Ideation), newly discovered features are classified by horizon. Proposals queued for future releases are tagged with `future_horizon: True` and recorded under future milestone headings in `ROADMAP.md` without expanding the active release milestone scope.
-4. **Automated Keep-a-Changelog Categorization**: Automatically parse conventional commit prefixes (`feat`, `fix`, `perf`, `sec`) into standard Keep-a-Changelog sections (`### Added`, `### Fixed`, `### Changed`, `### Security`) during release packaging.
-5. **Human Gate for Release Tags**: In-workflow packaging generates release notes, bumps semantic version in `pubspec.yaml`, and creates the release commit, but strictly preserves a human confirmation gate before pushing git tags to `main` or triggering store deployment pipelines.
-
-### Consequences & Benefits
-- **Deterministic Release Velocity**: Software is continuously packaged and released in small, verified increments (e.g. 2–3 features per release) rather than accumulating risky, monolithic releases.
-- **Backlog Scope Protection**: Ongoing ideation continues to enrich the long-term product roadmap without delaying the current release cycle.
-- **Zero Infinite Loop Risk**: The autonomous factory reliably completes cycles and reaches release milestones even with an infinite supply of candidate ideas.
+| ADR | Decision |
+|---|---|
+| [ADR-001](adr/0001-stage-boundary-gates.md) | Retire per-tool hooks in favor of stage-boundary quality gates and canonical `software-*` skills. |
+| [ADR-002](adr/0002-staged-external-context.md) | Feed external signals through a scrubbed, gitignored filesystem buffer (`.agents/context/`) instead of live API access. |
+| [ADR-003](adr/0003-in-workflow-release-cadence.md) | Decide release cuts inside the loop (cadence + horizon isolation) instead of waiting for an empty backlog. |

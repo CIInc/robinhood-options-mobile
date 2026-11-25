@@ -93,6 +93,12 @@ jobs:
           print("Zero untracked live context files committed.")
           '
 
+      - name: Unit test Software Factory tooling & lint CLI
+        run: |
+          python3 -m unittest discover -s .github/skills/software-factory/tests -v
+          bash -n scripts/factory.sh
+          if command -v shellcheck >/dev/null 2>&1; then shellcheck scripts/factory.sh; fi
+
       - name: Audit ROADMAP.md structural invariants
         run: |
           python3 -c '

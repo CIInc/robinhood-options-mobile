@@ -24,7 +24,7 @@ Optional parameters passed as text or key-value pairs:
 - `failure_limit`: Number of consecutive failed iterations before the Repetitive Failure Circuit Breaker trips and halts the loop (default: `2`).
 - `focus`: Optional product or architectural area (e.g., `"agentic trading"`, `"portfolio greeks"`, `"v0.62.x"`).
 - `auto_ideate`: `true` (default) or `false`. When enabled, the factory automatically discovers and ranks candidate features from open issues and backlog gaps prior to implementation.
-- `dry_run`: `true` or `false` (default: `false`). When enabled, simulates candidate discovery, readiness rubric scoring, task partitioning, and companion test resolution, outputting a complete execution DAG without mutating files, opening issues, or creating git commits.
+- `dry_run`: `true` or `false` (default: `false`). Simulates a cycle without writing files, run state, metrics, issues, or commits. Under `run_workflow` the dry-run logs candidate tasks, target files, companion tests, and applicable invariants; standalone (`./scripts/factory.sh dry-run`) agents are stubbed, so only control flow and context loading are exercised.
 - `release_cadence`: `milestone` (default), `batch_size`, or `manual`. Determines when to trigger release packaging and cut a release, rather than waiting for an empty backlog (which creates an infinite loop with ongoing ideation).
 - `release_threshold`: Number of verified features required to trigger a release packaging decision (default: `2`).
 
