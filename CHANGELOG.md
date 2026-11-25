@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.7] - 2026-11-24
+
+**Advanced Position Sizing Modes, Cumulative Concentration Limits & Sizing Simulator**
+
+### Added
+- **Advanced Trade Sizing Modes ([`lib/model/trade_strategy_config.dart`](src/robinhood_options_mobile/lib/model/trade_strategy_config.dart), [`lib/model/agentic_trading_provider.dart`](src/robinhood_options_mobile/lib/model/agentic_trading_provider.dart), [`docs/agentic-trading.md`](docs/agentic-trading.md)):**
+  - **3-Way Per-Order Trade Sizing (`PositionSizingMode`):** Configurable sizing selector across client and Cloud Functions backend (`agentic-trading.ts`, `alpha-agent.ts`):
+    - *Fixed Shares (`fixedShares`):* Buys a deterministic `tradeQuantity` share count per order.
+    - *Target Dollar Allocation (`targetDollar`):* Allocates an exact dollar target per order ($\lfloor \text{Target} / \text{Price} \rfloor$, min 1 share) configured via `targetDollarAllocation` ($\ge \$10$, default \$500). Normalizes capital commitments across varied share prices without complex volatility modeling.
+    - *Dynamic ATR Risk Sizing (`dynamicRisk`):* Dynamically sizes positions based on portfolio equity risk percentage (`riskPerTrade`, default 1.0%) divided by stop loss distance in multiples of 14-period ATR (`atrMultiplier`, default 2.0x).
+- **Cumulative Position Limit Modes (`PositionLimitMode`):**
+  - Added binary position ceiling selector (`maxShares` vs. `maxPercent`):
+    - *Max Shares (`maxShares`):* Enforces an absolute share count cap per symbol (`maxPositionSize`, default 100 shares).
+    - *Max Portfolio Concentration (`maxPercent`):* Enforces a percentage of portfolio equity ceiling per symbol (`maxPortfolioConcentration`, 1–100%, default 20.0%).
+  - Added global `totalCapitalBudgetPercent` (5–100%, default 50.0%) capping total automated capital deployment across all symbols combined.
+- **Interactive Position Sizing Simulator ([`lib/widgets/position_sizing_simulator_widget.dart`](src/robinhood_options_mobile/lib/widgets/position_sizing_simulator_widget.dart)):**
+  - Built an on-device interactive sandbox accessible in `AgenticTradingSettingsWidget` and `QuantProSettingsView`.
+  - Enables traders to simulate stock prices, 14-period ATR values, sizing calculations, cash requirements, and pre-flight RiskGuard approvals before deploying live or paper capital.
+  - Responsive down to 320px viewports with balance masking awareness and verified unit tests in `test/widgets/position_sizing_simulator_widget_test.dart`.
+
+### Changed
+- **Quant Pro Mode Sizing & Limits Controls ([`lib/widgets/quant_pro_settings_view.dart`](src/robinhood_options_mobile/lib/widgets/quant_pro_settings_view.dart)):**
+  - Refactored the Position Sizing & Safety Limits section in Quant Pro Mode with dedicated dropdowns for Trade Sizing Mode and Position Limit Mode, dynamically revealing relevant numeric inputs.
+- **Capital Budget Card ([`lib/widgets/capital_budget_card.dart`](src/robinhood_options_mobile/lib/widgets/capital_budget_card.dart)):**
+  - Enhanced budget card and simplified controls with horizontally scrollable single-row preset chips and real-time balance-masked dollar allocation estimates.
+- **Strategy Archetypes & Trait Badges ([`lib/widgets/strategy_archetype_card.dart`](src/robinhood_options_mobile/lib/widgets/strategy_archetype_card.dart), [`lib/widgets/strategy_archetype_detail_bottom_sheet.dart`](src/robinhood_options_mobile/lib/widgets/strategy_archetype_detail_bottom_sheet.dart)):**
+  - Added systematic vs. reasoning trait badges (`Systematic`, `Low Volatility Bull / Neutral`) and streamlined the application confirmation dialog (`Confirm & Apply`).
+
 ## [0.62.6] - 2026-11-24
 
 **Automated Trading Configuration Handbook & Plain-English Macro Regime**
