@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/strategy_archetype.dart';
 
 /// Modal bottom sheet presenting in-depth strategy archetype parameters,
@@ -213,7 +215,7 @@ class StrategyArchetypeDetailBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Empirical Walk-Forward Validation (1-Year)',
+                      'Historical Walk-Forward Benchmark (1-Year)',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -297,6 +299,26 @@ class StrategyArchetypeDetailBottomSheet extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 14, color: colorScheme.onSurfaceVariant),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Out-of-sample quantitative baseline evaluated on historical SPY large-cap data. Individual forward performance varies based on selected watchlist symbols and live market conditions.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -343,16 +365,42 @@ class StrategyArchetypeDetailBottomSheet extends StatelessWidget {
                       ),
                       _buildParameterRow(
                         context: context,
-                        label: 'Risk per Trade',
-                        value:
-                            '${(config.riskPerTrade * 100).toStringAsFixed(1)}% of Capital',
+                        label: config.isDynamicSizing
+                            ? 'Trade Sizing (Dynamic Risk)'
+                            : (config.isTargetDollar
+                                ? 'Trade Sizing (Target Dollar)'
+                                : 'Trade Sizing (Fixed Shares)'),
+                        value: config.isDynamicSizing
+                            ? '${(config.riskPerTrade * 100).toStringAsFixed(1)}% Risk • ${config.atrMultiplier}x ATR'
+                            : (config.isTargetDollar
+                                ? '\$${config.targetDollarAllocation.toStringAsFixed(0)} per order'
+                                : '${config.tradeQuantity} shares per order'),
                       ),
                       _buildParameterRow(
                         context: context,
-                        label: 'Dynamic Position Sizing',
-                        value: config.enableDynamicPositionSizing
-                            ? 'Enabled (ATR Multiplier ${config.atrMultiplier}x)'
-                            : 'Disabled (Fixed Sizing)',
+                        label:
+                            'Position Sizing (${config.positionLimitMode.label})',
+                        value: config.isMaxSharesPositionLimit
+                            ? '${config.maxPositionSize} shares ceiling'
+                            : '${(config.maxPortfolioConcentration * 100).toInt()}% of Portfolio ceiling',
+                      ),
+                      _buildParameterRow(
+                        context: context,
+                        label: 'Total Capital Budget',
+                        value:
+                            '${(config.totalCapitalBudgetPercent * 100).toInt()}% of Portfolio',
+                      ),
+                      _buildParameterRow(
+                        context: context,
+                        label: 'Daily Trade Limit',
+                        value: '${config.dailyTradeLimit} trades / day',
+                      ),
+                      _buildParameterRow(
+                        context: context,
+                        label: 'Drawdown Protection',
+                        value: config.enableDrawdownProtection
+                            ? 'Halt at -${(config.maxDrawdown * 100).toInt()}% Drawdown'
+                            : 'Disabled',
                       ),
                       _buildParameterRow(
                         context: context,
@@ -579,34 +627,217 @@ class StrategyArchetypeDetailBottomSheet extends StatelessWidget {
   }
 
   void _confirmAndApply(BuildContext context) {
+    AgenticTradingProvider? provider;
+    try {
+      provider = Provider.of<AgenticTradingProvider>(context, listen: false);
+    } catch (_) {}
+
+    final currentStrategy = provider?.config.strategyConfig;
+    final currentMaxPosition = currentStrategy?.maxPositionSize ?? 100;
+    final currentConcentration =
+        ((currentStrategy?.maxPortfolioConcentration ?? 0.5) * 100).toInt();
+    final archetypeMaxPosition = archetype.config.maxPositionSize;
+    final archetypeConcentration =
+        (archetype.config.maxPortfolioConcentration * 100).toInt();
+
+    final isSizingConflict =
+        archetype.config.enableDynamicPositionSizing && currentMaxPosition < 15;
+
+    bool keepSafetyLimits = true;
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        icon: Icon(archetype.icon, color: archetype.accentColor, size: 32),
-        title: Text('Apply "${archetype.name}"?'),
-        content: Text(
-          'This will pre-configure your automated trading settings, indicators, stops, and risk bounds to the "${archetype.name}" archetype.\n\n'
-          'Trading Mode: ${archetype.tradingMode == TradingMode.reasoning ? "Reasoning AI Mode" : "Systematic Mode"}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: archetype.accentColor,
-              foregroundColor: Colors.white,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          final colorScheme = Theme.of(context).colorScheme;
+          return AlertDialog(
+            icon: Icon(archetype.icon, color: archetype.accentColor, size: 32),
+            title: Text('Apply "${archetype.name}"?'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Review configuration changes before applying this archetype:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Comparison table
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildDiffRow(
+                            'Trading Mode',
+                            currentStrategy != null
+                                ? (provider!.config.tradingMode ==
+                                        TradingMode.reasoning
+                                    ? 'Reasoning'
+                                    : 'Systematic')
+                                : 'Current',
+                            archetype.tradingMode == TradingMode.reasoning
+                                ? 'Reasoning AI'
+                                : 'Systematic'),
+                        const Divider(height: 12),
+                        _buildDiffRow(
+                            'Trade Sizing',
+                            currentStrategy?.positionSizingMode.label ??
+                                'Fixed Shares',
+                            archetype.config.positionSizingMode.label),
+                        const Divider(height: 12),
+                        _buildDiffRow(
+                            'Risk Per Trade',
+                            '${((currentStrategy?.riskPerTrade ?? 0.01) * 100).toStringAsFixed(1)}%',
+                            '${(archetype.config.riskPerTrade * 100).toStringAsFixed(1)}%'),
+                        const Divider(height: 12),
+                        _buildDiffRow(
+                            'Stop Loss',
+                            '-${currentStrategy?.stopLossPercent ?? 5.0}%',
+                            '-${archetype.config.stopLossPercent}%'),
+                        const Divider(height: 12),
+                        _buildDiffRow(
+                            'Position Sizing',
+                            currentStrategy != null
+                                ? (currentStrategy.isMaxPercentPositionLimit
+                                    ? '$currentConcentration%'
+                                    : '$currentMaxPosition sh')
+                                : '$currentMaxPosition sh',
+                            archetype.config.isMaxPercentPositionLimit
+                                ? '$archetypeConcentration%'
+                                : '$archetypeMaxPosition sh'),
+                      ],
+                    ),
+                  ),
+                  if (isSizingConflict) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.amber.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.warning_amber_rounded,
+                              size: 18, color: Colors.amber),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Sizing Alert: Your current Max Position Size ($currentMaxPosition sh) is very low. Dynamic Sizing typically calculates 10–25+ shares. Orders may be declined unless you increase Max Position Size.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.3,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    value: keepSafetyLimits,
+                    onChanged: (val) =>
+                        setState(() => keepSafetyLimits = val ?? true),
+                    title: const Text(
+                      'Keep personal Safety Limits',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      'Preserves your current Max Position Size ($currentMaxPosition sh) and Max Concentration ($currentConcentration%).',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-              Navigator.pop(dialogContext); // Close dialog
-              Navigator.pop(context); // Close bottom sheet
-              onApply(archetype);
-            },
-            child: const Text('Apply Archetype'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: archetype.accentColor,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogContext); // Close dialog
+                  Navigator.pop(context); // Close bottom sheet
+                  if (keepSafetyLimits && currentStrategy != null) {
+                    final modifiedArchetype = archetype.copyWith(
+                      config: archetype.config.copyWith(
+                        positionLimitMode: currentStrategy.positionLimitMode,
+                        maxPositionSize: currentStrategy.maxPositionSize,
+                        maxPortfolioConcentration:
+                            currentStrategy.maxPortfolioConcentration,
+                        totalCapitalBudgetPercent:
+                            currentStrategy.totalCapitalBudgetPercent,
+                      ),
+                    );
+                    onApply(modifiedArchetype);
+                  } else {
+                    onApply(archetype);
+                  }
+                },
+                child: const Text('Confirm & Apply'),
+              ),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildDiffRow(String label, String currentVal, String newVal) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            currentVal,
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        const Icon(Icons.arrow_forward, size: 10, color: Colors.grey),
+        Expanded(
+          flex: 3,
+          child: Text(
+            newVal,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
     );
   }
 

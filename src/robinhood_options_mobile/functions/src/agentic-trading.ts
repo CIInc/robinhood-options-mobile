@@ -67,13 +67,33 @@ export async function performTradeProposal(request: any) {
       rawMacroPolicy :
       (request.data.reduceSizeOnRiskOff ? "reduceSize" : "ignore");
   const rawRiskOffReduction = request.data.riskOffSizeReduction;
+  const rawSizingMode = request.data.positionSizingMode;
+  const positionSizingMode =
+    rawSizingMode === "fixedShares" ||
+    rawSizingMode === "targetDollar" ||
+    rawSizingMode === "dynamicRisk" ?
+      rawSizingMode :
+      (request.data.enableDynamicPositionSizing ?
+        "dynamicRisk" : "fixedShares");
+  const rawLimitMode = request.data.positionLimitMode;
+  const positionLimitMode =
+    rawLimitMode === "maxPercent" ? "maxPercent" : "maxShares";
   const config = {
     smaPeriodFast: request.data.smaPeriodFast || 10,
     smaPeriodSlow: request.data.smaPeriodSlow || 30,
     tradeQuantity: request.data.tradeQuantity || 1,
+    positionSizingMode,
+    positionLimitMode,
+    targetDollarAllocation:
+      typeof request.data.targetDollarAllocation === "number" ?
+        request.data.targetDollarAllocation : 500,
     maxPositionSize: request.data.maxPositionSize || 100,
     maxPortfolioConcentration: request.data.maxPortfolioConcentration || 0.5,
+    totalCapitalBudgetPercent:
+      typeof request.data.totalCapitalBudgetPercent === "number" ?
+        request.data.totalCapitalBudgetPercent : 0.5,
     enableDynamicPositionSizing:
+      positionSizingMode === "dynamicRisk" ||
       request.data.enableDynamicPositionSizing || false,
     riskPerTrade: request.data.riskPerTrade || 0.01,
     atrMultiplier: request.data.atrMultiplier || 2,

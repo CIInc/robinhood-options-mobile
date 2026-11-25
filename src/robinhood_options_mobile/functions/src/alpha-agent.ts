@@ -144,8 +144,8 @@ export function applyMacroRiskOffSizing(params: {
 }
 
 /**
- * Resolves the reasoning-mode quantity while honoring fixed-size settings.
- * @param {number | undefined} agenticQuantity Quantity suggested by the agent.
+ * Resolves the reasoning-mode quantity while honoring sizing settings.
+ * @param {number | undefined} agenticQuantity Suggested quantity.
  * @param {object} config Trade sizing configuration.
  * @return {number} Quantity to place in the proposal.
  */
@@ -153,12 +153,30 @@ export function resolveReasoningProposalQuantity(
   agenticQuantity: number | undefined,
   config?: {
     tradeQuantity?: number;
+    positionSizingMode?: string;
+    targetDollarAllocation?: number;
     enableDynamicPositionSizing?: boolean;
+    lastPrice?: number;
   }
 ): number {
+  const mode = config?.positionSizingMode ||
+    (config?.enableDynamicPositionSizing ? "dynamicRisk" : "fixedShares");
+
+  if (mode === "targetDollar") {
+    const targetDollars = Number(config?.targetDollarAllocation) || 500;
+    const price = Number(config?.lastPrice) || 0;
+    const baseShares = price > 0 ? Math.floor(targetDollars / price) : 1;
+    const minShares = Math.max(1, baseShares);
+    if (typeof agenticQuantity === "number" && agenticQuantity > 0) {
+      return Math.min(minShares, Math.max(1, agenticQuantity));
+    }
+    return minShares;
+  }
+
   const fixedQuantity = config?.tradeQuantity || 1;
-  if (!config?.enableDynamicPositionSizing) return fixedQuantity;
-  return agenticQuantity || fixedQuantity;
+  if (mode === "fixedShares") return fixedQuantity;
+
+  return Math.max(1, agenticQuantity || fixedQuantity);
 }
 
 type MacroAssessment = Awaited<ReturnType<typeof getMacroAssessment>>;
@@ -413,7 +431,10 @@ export async function handleAlphaTask(marketData: any,
 
       const baseQuantity = resolveReasoningProposalQuantity(
         agenticResult.quantity,
-        config
+        {
+          ...config,
+          lastPrice,
+        }
       );
       const macroSizing = applyMacroRiskOffSizing({
         quantity: baseQuantity,
@@ -776,9 +797,26 @@ export async function handleAlphaTask(marketData: any,
   let quantity = config?.tradeQuantity || 1;
   let dynamicSizingDetails: any = null;
 
-  // Dynamic Position Sizing (RiskGuard Expansion)
-  // Only apply for BUY signals as this is an entry sizing model
-  if (config?.enableDynamicPositionSizing && overallSignal === "BUY") {
+  // Position Sizing: Target Dollar or Dynamic ATR
+  if (config?.positionSizingMode === "targetDollar" &&
+      overallSignal === "BUY") {
+    const targetDollars = Number(config.targetDollarAllocation) || 500;
+    if (lastPrice > 0) {
+      let dollarQty = Math.floor(targetDollars / lastPrice);
+      if (dollarQty < 1) dollarQty = 1;
+      quantity = dollarQty;
+      dynamicSizingDetails = {
+        sizingMode: "targetDollar",
+        targetDollars,
+        price: lastPrice,
+        finalQty: quantity,
+      };
+      logger.info(
+        `Target Dollar Sizing: Computed ${quantity} shares ` +
+        `for $${targetDollars} target at $${lastPrice}`
+      );
+    }
+  } else if (config?.enableDynamicPositionSizing && overallSignal === "BUY") {
     const atrValue = multiIndicatorResult.indicators.atr.value;
     if (atrValue && atrValue > 0) {
       const accountValue = riskguard.calculatePortfolioValue(portfolioState);
@@ -792,6 +830,7 @@ export async function handleAlphaTask(marketData: any,
         atrValue,
         atrMultiplier
       );
+      if (dynamicQty < 1) dynamicQty = 1;
 
       const rawCalculatedQty = dynamicQty;
       let cappedBy = null;

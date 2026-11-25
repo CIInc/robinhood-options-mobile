@@ -190,7 +190,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(StrategyArchetypeDetailBottomSheet), findsOneWidget);
-      expect(find.text('Empirical Walk-Forward Validation (1-Year)'),
+      expect(find.text('Historical Walk-Forward Benchmark (1-Year)'),
           findsOneWidget);
       expect(find.text('Apply Archetype'), findsOneWidget);
 
@@ -203,7 +203,7 @@ void main() {
       expect(find.text('Apply "Momentum Breakout"?'), findsOneWidget);
       final confirmBtn = find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Apply Archetype'),
+        matching: find.widgetWithText(FilledButton, 'Confirm & Apply'),
       );
       await tester.tap(confirmBtn);
       await tester.pumpAndSettle();
@@ -225,7 +225,10 @@ void main() {
 
       await pumpSettings(tester, provider: provider, user: user);
 
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
 
       expect(provider.uiMode, AgenticTradingUiMode.quantPro);
@@ -346,7 +349,10 @@ void main() {
       await pumpSettings(tester, provider: provider, user: user);
 
       // Switch Quant Pro -> Simplified
-      await tester.tap(find.text('Simplified').first);
+      final switchToSimplified =
+          find.byKey(const ValueKey('switch-to-simplified-button'));
+      await tester.ensureVisible(switchToSimplified);
+      await tester.tap(switchToSimplified);
       await tester.pumpAndSettle();
       expect(find.byType(SimplifiedTradingControlsWidget), findsOneWidget);
       expect(
@@ -361,7 +367,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Switch back to Quant Pro
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
       expect(find.byType(QuantProSettingsView), findsOneWidget);
 
@@ -435,7 +444,10 @@ void main() {
         tester.getTopLeft(find.text('Trade Size: ')).dy,
       );
 
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
@@ -455,7 +467,10 @@ void main() {
       expect(find.textContaining('50% • \$50,000'), findsOneWidget);
 
       // Switch to Quant Pro and expand Risk Management
-      await tester.tap(find.text('Quant Pro'));
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
       await tester.pumpAndSettle();
 
       final riskHeader = find.text('Risk Management');
@@ -463,22 +478,24 @@ void main() {
       await tester.tap(riskHeader);
       await tester.pumpAndSettle();
 
-      final budgetField = find.widgetWithText(
-          TextFormField, 'Capital Budget (Max Concentration %)');
-      expect(budgetField, findsOneWidget);
+      final budgetCard =
+          find.byKey(const ValueKey('quant-pro-capital-allocation-card'));
+      expect(budgetCard, findsOneWidget);
+      expect(find.text('Capital Budget'), findsOneWidget);
       expect(
-        find.text('Max portfolio equity allocated (≈ \$50,000)'),
+        find.textContaining('50% • \$50,000'),
         findsOneWidget,
       );
 
-      // Edit Capital Budget in Quant Pro to 30% -> updates dollar readout and syncs to Simplified
-      await tester.ensureVisible(budgetField);
-      await tester.enterText(budgetField, '30');
+      // Edit Capital Budget in Quant Pro via 25% chip -> updates dollar readout and syncs to Simplified
+      final chip25 = find.widgetWithText(ChoiceChip, '25%');
+      await tester.ensureVisible(chip25);
+      await tester.tap(chip25);
       await tester.pumpAndSettle();
 
-      expect(provider.config.strategyConfig.maxPortfolioConcentration, 0.3);
+      expect(provider.config.strategyConfig.totalCapitalBudgetPercent, 0.25);
       expect(
-        find.text('Max portfolio equity allocated (≈ \$30,000)'),
+        find.textContaining('25% • \$25,000'),
         findsOneWidget,
       );
 
@@ -491,7 +508,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Max portfolio equity allocated (≈ \$••••••)'),
+        find.textContaining('25% • \$••••••'),
         findsOneWidget,
       );
 
@@ -499,7 +516,81 @@ void main() {
       await tester.ensureVisible(simplifiedButton);
       await tester.tap(simplifiedButton);
       await tester.pumpAndSettle();
-      expect(find.textContaining('30% • \$••••••'), findsOneWidget);
+      expect(find.textContaining('25% • \$••••••'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      provider.dispose();
+    });
+
+    testWidgets(
+        'Trade Sizing and Position Sizing headers render in-app documentation dialogs',
+        (tester) async {
+      final provider = AgenticTradingProvider();
+      final user = _buildTestUser();
+
+      await pumpSettings(tester, provider: provider, user: user);
+
+      // Switch to Quant Pro and expand Risk Management
+      final switchToQuantPro =
+          find.byKey(const ValueKey('switch-to-quant-pro-button'));
+      await tester.ensureVisible(switchToQuantPro);
+      await tester.tap(switchToQuantPro);
+      await tester.pumpAndSettle();
+
+      final riskHeader = find.text('Risk Management');
+      await tester.ensureVisible(riskHeader);
+      await tester.tap(riskHeader);
+      await tester.pumpAndSettle();
+
+      // Open Trade Sizing info dialog
+      final tradeSizingHelp =
+          find.byTooltip('About Trade Sizing and volatility risk formulas');
+      expect(tradeSizingHelp, findsOneWidget);
+      await tester.ensureVisible(tradeSizingHelp);
+      await tester.tap(tradeSizingHelp);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Understanding Trade Sizing'), findsOneWidget);
+      expect(
+        find.textContaining('Shares = (Equity × Risk %) / (ATR × Multiplier)'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Why Risk % and ATR Multiplier Are Complementary'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+      expect(find.text('Understanding Trade Sizing'), findsNothing);
+
+      // Open Position Sizing info dialog
+      final positionSizingHelp =
+          find.byTooltip('About Position Sizing ceilings and limits');
+      expect(positionSizingHelp, findsOneWidget);
+      await tester.ensureVisible(positionSizingHelp);
+      await tester.tap(positionSizingHelp);
+      await tester.pumpAndSettle();
+
+      expect(
+          find.text('Understanding Position Sizing & Limits'), findsOneWidget);
+      expect(find.textContaining('The 3-Tier Risk Hierarchy'), findsOneWidget);
+
+      await tester.tap(find.text('Got it'));
+      await tester.pumpAndSettle();
+      expect(find.text('Understanding Position Sizing & Limits'), findsNothing);
+
+      // Switch Trade Sizing to Dynamic Risk and verify inline helper banner
+      final dynamicButton = find.text('Dynamic');
+      await tester.ensureVisible(dynamicButton);
+      await tester.tap(dynamicButton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining(
+            'Dynamic sizing pairs Risk % (account risk budget) with ATR Multiplier (volatility stop distance)'),
+        findsOneWidget,
+      );
 
       await tester.pumpWidget(const SizedBox.shrink());
       provider.dispose();

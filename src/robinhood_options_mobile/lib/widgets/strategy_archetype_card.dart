@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 import 'package:robinhood_options_mobile/model/strategy_archetype.dart';
 
 /// Strategy Archetype Card
@@ -25,12 +26,10 @@ class StrategyArchetypeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final metrics = archetype.walkForwardMetrics;
 
     final semanticsText = '${archetype.name} Archetype, ${archetype.tag}, '
-        'Walk-Forward Win Rate ${metrics.winRate.toStringAsFixed(1)} percent, '
-        'Profit Factor ${metrics.profitFactor.toStringAsFixed(2)}, '
-        'Max Drawdown ${metrics.maxDrawdownPercent.toStringAsFixed(1)} percent. '
+        '${archetype.tradingMode == TradingMode.reasoning ? "Autonomous AI" : "Systematic rule-based"}, '
+        'Target Regime: ${archetype.targetMarketRegime}. '
         '${isSelected ? "Currently active strategy." : "Tap to inspect or apply."}';
 
     return Semantics(
@@ -56,13 +55,14 @@ class StrategyArchetypeCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Top Row: Icon, Tag, and Active Indicator
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -82,14 +82,17 @@ class StrategyArchetypeCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Flexible(
+                              Expanded(
                                 child: Text(
                                   archetype.name,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    height: 1.2,
                                   ),
-                                  maxLines: 1,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -143,11 +146,13 @@ class StrategyArchetypeCard extends StatelessWidget {
                               ],
                             ],
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             archetype.tag,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: archetype.accentColor,
                               fontWeight: FontWeight.w600,
+                              fontSize: 11,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -157,77 +162,43 @@ class StrategyArchetypeCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
 
                 // Description
                 Text(
                   archetype.description,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    height: 1.25,
+                    fontSize: 12.5,
+                    height: 1.3,
                   ),
-                  maxLines: 2,
+                  maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const Spacer(),
 
-                // Walk-Forward Performance Badges Header
+                // Strategy Trait Badges (Mode & Target Market Regime)
                 Row(
                   children: [
-                    Icon(
-                      Icons.verified_outlined,
-                      size: 13,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '1-Yr Walk-Forward Validation',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-
-                // 3 Performance Badges
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricBadge(
-                        context: context,
-                        label: 'Win Rate',
-                        value: '${metrics.winRate.toStringAsFixed(1)}%',
-                        color: Colors.green,
-                        icon: Icons.check_circle_outline,
-                      ),
+                    _buildTraitChip(
+                      context,
+                      icon: archetype.tradingMode == TradingMode.reasoning
+                          ? Icons.psychology_outlined
+                          : Icons.tune,
+                      label: archetype.tradingMode == TradingMode.reasoning
+                          ? 'Gemini AI'
+                          : 'Systematic',
+                      color: archetype.tradingMode == TradingMode.reasoning
+                          ? Colors.purple
+                          : Colors.teal,
                     ),
                     const SizedBox(width: 6),
-                    Expanded(
-                      child: _buildMetricBadge(
-                        context: context,
-                        label: 'Profit Factor',
-                        value: metrics.profitFactor.toStringAsFixed(2),
-                        color: Colors.blue,
-                        icon: Icons.trending_up,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _buildMetricBadge(
-                        context: context,
-                        label: 'Max DD',
-                        value:
-                            '${metrics.maxDrawdownPercent.toStringAsFixed(1)}%',
-                        color: Colors.orange,
-                        icon: Icons.arrow_downward,
-                      ),
+                    _buildTraitChip(
+                      context,
+                      icon: Icons.speed,
+                      label: archetype.targetMarketRegime,
+                      color: colorScheme.onSurfaceVariant,
+                      flexible: true,
                     ),
                   ],
                 ),
@@ -239,55 +210,52 @@ class StrategyArchetypeCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricBadge({
-    required BuildContext context,
-    required String label,
-    required String value,
-    required Color color,
+  Widget _buildTraitChip(
+    BuildContext context, {
     required IconData icon,
+    required String label,
+    required Color color,
+    bool flexible = false,
   }) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 10, color: color),
-                const SizedBox(width: 2),
-                Text(
-                  value,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          flexible
+              ? Flexible(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                )
+              : Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontSize: 9,
-              color: colorScheme.onSurfaceVariant,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
       ),
     );
+    return flexible ? Flexible(child: content) : content;
   }
 }

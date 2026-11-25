@@ -181,6 +181,7 @@ export async function assessTrade(proposal: any,
 
   const maxPositionSize = config?.maxPositionSize ?? 100;
   const maxPortfolioConcentration = config?.maxPortfolioConcentration ?? 0.5;
+  const positionLimitMode = config?.positionLimitMode ?? "maxShares";
 
   const symbol = proposal?.symbol;
   const qty = proposal?.quantity || 0;
@@ -193,6 +194,14 @@ export async function assessTrade(proposal: any,
   const cash = Number(portfolioState?.buyingPower ??
     portfolioState?.cashAvailable ?? 0);
   metrics.cashAvailable = cash;
+
+  if (action === "BUY" && qty < 1) {
+    return {
+      approved: false,
+      reason: "Minimum order size is 1 share",
+      metrics,
+    };
+  }
 
   if (action === "BUY") {
     const tradeCost = Math.abs(qty * price);
@@ -219,11 +228,13 @@ export async function assessTrade(proposal: any,
   metrics.proposedPosition = proposedPosition;
   metrics.maxPositionSize = maxPositionSize;
 
-  if (Math.abs(proposedPosition) > maxPositionSize) {
+  if (positionLimitMode !== "maxPercent" &&
+      Math.abs(proposedPosition) > maxPositionSize) {
     return {
       approved: false,
-      reason: `Max position size exceeded: ${Math.abs(proposedPosition)} ` +
-        `> ${maxPositionSize}`,
+      reason: "Max position size exceeded: proposed position of " +
+        `${Math.abs(proposedPosition)} shares would exceed limit of ` +
+        `${maxPositionSize} (currently holding ${currentPosition})`,
       metrics,
     };
   }
@@ -287,12 +298,42 @@ export async function assessTrade(proposal: any,
     positionsCount: Object.keys(positions).length,
   });
 
-  if (proposedConcentration > maxPortfolioConcentration) {
+  if (positionLimitMode !== "maxShares" &&
+      proposedConcentration > maxPortfolioConcentration) {
     return {
       approved: false,
-      reason: "Proposed concentration " +
-        `${(proposedConcentration * 100).toFixed(2)}% ` +
-        `exceeds max ${(maxPortfolioConcentration * 100).toFixed(2)}%`,
+      reason: "Proposed position concentration " +
+        `${(proposedConcentration * 100).toFixed(1)}% exceeds max ` +
+        `${(maxPortfolioConcentration * 100).toFixed(1)}% ` +
+        `($${Math.abs(proposedPositionValue).toFixed(2)} of ` +
+        `$${totalPortfolioValue.toFixed(2)})`,
+      metrics,
+    };
+  }
+
+  // Check aggregate auto-trading capital budget across all positions
+  let totalAllocatedCapital = 0;
+  for (const pos of Object.values(positions)) {
+    totalAllocatedCapital += Math.abs(pos.quantity * pos.price);
+  }
+  if (action === "BUY") {
+    totalAllocatedCapital += Math.abs(qty * price);
+  }
+
+  const totalCapitalBudgetPercent =
+    config?.totalCapitalBudgetPercent ?? 0.5;
+  metrics.totalCapitalBudgetPercent = totalCapitalBudgetPercent;
+  metrics.totalAllocatedCapital = totalAllocatedCapital;
+
+  const maxTotalBudget = totalPortfolioValue * totalCapitalBudgetPercent;
+  if (action === "BUY" && totalPortfolioValue > 0 &&
+      totalAllocatedCapital > maxTotalBudget) {
+    return {
+      approved: false,
+      reason: "Total capital budget exceeded: " +
+        `$${totalAllocatedCapital.toFixed(2)} allocated would exceed ` +
+        `${(totalCapitalBudgetPercent * 100).toFixed(1)}% ` +
+        `budget ($${maxTotalBudget.toFixed(2)})`,
       metrics,
     };
   }
@@ -481,28 +522,33 @@ export const calculatePositionSize = onCall(async (request) => {
     atrMultiplier
   );
 
-  // 5. Apply Caps
+  // 5. Apply Caps based on positionLimitMode
   let cappedBy = null;
   const currentPosition = getCurrentPosition(portfolioState, symbol);
-  const maxPositionSize = config.maxPositionSize || 100;
-  const availableSpace = Math.max(0, maxPositionSize - currentPosition);
+  const positionLimitMode = config.positionLimitMode || "maxShares";
+  const lastPrice = closes[closes.length - 1];
 
-  if (quantity > availableSpace) {
-    quantity = availableSpace;
-    cappedBy = "maxPositionSize";
+  if (positionLimitMode !== "maxPercent") {
+    const maxPositionSize = config.maxPositionSize || 100;
+    const availableSpace = Math.max(0, maxPositionSize - currentPosition);
+    if (quantity > availableSpace) {
+      quantity = availableSpace;
+      cappedBy = "maxPositionSize";
+    }
   }
 
-  const maxPortfolioConcentration =
-    config.maxPortfolioConcentration || 0.5;
-  const lastPrice = closes[closes.length - 1];
-  if (lastPrice > 0) {
-    const maxValue = accountValue * maxPortfolioConcentration;
-    const maxTotalQty = Math.floor(maxValue / lastPrice);
-    const availableQtyByConc = Math.max(0, maxTotalQty - currentPosition);
+  if (positionLimitMode !== "maxShares") {
+    const maxPortfolioConcentration =
+      config.maxPortfolioConcentration || 0.5;
+    if (lastPrice > 0) {
+      const maxValue = accountValue * maxPortfolioConcentration;
+      const maxTotalQty = Math.floor(maxValue / lastPrice);
+      const availableQtyByConc = Math.max(0, maxTotalQty - currentPosition);
 
-    if (quantity > availableQtyByConc) {
-      quantity = availableQtyByConc;
-      cappedBy = "maxPortfolioConcentration";
+      if (quantity > availableQtyByConc) {
+        quantity = availableQtyByConc;
+        cappedBy = "maxPortfolioConcentration";
+      }
     }
   }
 

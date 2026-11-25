@@ -35,11 +35,9 @@ void main() {
       expect(find.text('Conservative Core'), findsOneWidget);
       expect(find.text('Capital Preservation'), findsOneWidget);
 
-      // Verify Walk-Forward Performance Badges
-      expect(find.text('1-Yr Walk-Forward Validation'), findsOneWidget);
-      expect(find.text('68.5%'), findsOneWidget);
-      expect(find.text('1.88'), findsOneWidget);
-      expect(find.text('5.4%'), findsOneWidget);
+      // Verify Strategy Trait Badges
+      expect(find.text('Systematic'), findsOneWidget);
+      expect(find.text('Low Volatility Bull / Neutral'), findsOneWidget);
 
       // Verify not active
       expect(find.text('ACTIVE'), findsNothing);
@@ -111,7 +109,7 @@ void main() {
       // Check sheet content
       expect(find.text('Options Income Harvester'), findsOneWidget);
       expect(find.text('Strategy Philosophy'), findsOneWidget);
-      expect(find.text('Empirical Walk-Forward Validation (1-Year)'),
+      expect(find.text('Historical Walk-Forward Benchmark (1-Year)'),
           findsOneWidget);
       expect(find.text('Pre-Configured Risk Bounds & Stops'), findsOneWidget);
 
@@ -126,10 +124,10 @@ void main() {
 
       // Confirmation dialog appears
       expect(find.text('Apply "Options Income Harvester"?'), findsOneWidget);
-      expect(find.text('Apply Archetype'), findsNWidgets(2));
+      expect(find.text('Confirm & Apply'), findsOneWidget);
 
       // Confirm apply
-      await tester.tap(find.text('Apply Archetype').last);
+      await tester.tap(find.text('Confirm & Apply'));
       await tester.pumpAndSettle();
 
       expect(appliedArchetype?.id, 'archetype_options_income_harvester');

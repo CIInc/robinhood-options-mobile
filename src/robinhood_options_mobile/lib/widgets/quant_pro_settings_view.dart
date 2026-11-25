@@ -91,6 +91,53 @@ class QuantProSettingsView extends StatelessWidget {
         exitStrategiesSection,
         notificationSettingsSection,
         backtestingSection,
+        const SizedBox(height: 16),
+        Card(
+          elevation: 0,
+          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: colorScheme.outline.withValues(alpha: 0.15),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(Icons.tune, size: 20, color: colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Prefer a streamlined view?',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Switch back to Simplified mode anytime. All custom Quant Pro parameters are preserved.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  key: const ValueKey('bottom-switch-to-simplified-button'),
+                  onPressed: onSwitchToSimplified,
+                  child: const Text('Simplified'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
