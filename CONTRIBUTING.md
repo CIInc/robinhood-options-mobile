@@ -113,7 +113,18 @@ python3 .github/skills/software-factory/scripts/factory_pipeline.py --mode=auton
 
 ---
 
-## 6. Feedback & Community
+## 6. Supplying External Context to the Software Factory
+
+Human engineers and product leads can steer autonomous factory cycles by providing structured external context in [`.agents/context/`](.agents/context/README.md):
+
+- **Crash Telemetry (`telemetry_crashes.json`)**: Drop top-frequency Crashlytics/Sentry clusters into `.agents/context/telemetry_crashes.json` using [`telemetry_crashes.template.json`](.agents/context/telemetry_crashes.template.json). The factory will automatically prioritize them as accelerated hotfixes.
+- **User Feedback (`user_feedback.json`)**: Provide review digests or survey summaries using [`user_feedback.template.json`](.agents/context/user_feedback.template.json) to guide UI polish and customer friction remediation.
+- **Team Discussion Briefs (`developer_brief.json`)**: Summarize architectural decisions or priority tasks from Slack, Teams, WhatsApp, or Discord using [`developer_brief.template.json`](.agents/context/developer_brief.template.json).
+- **Zero PII Rule**: Always ensure customer PII, private tokens, and account numbers are scrubbed before staging context.
+
+---
+
+## 7. Feedback & Community
 
 - **Found a bug?** Open an issue on [GitHub Issues](https://github.com/CIInc/robinhood-options-mobile/issues).
 - **Proposing an enhancement?** Review [PRODUCT.md](PRODUCT.md) and [ROADMAP.md](ROADMAP.md) before opening a feature request.

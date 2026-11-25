@@ -160,6 +160,35 @@ def is_duplicate_proposal(candidate_title: str, existing_titles: list) -> tuple[
     return False, ""
 
 
+def load_external_context():
+    """Load and sanitize staged external context (telemetry, user feedback, chat briefs, market calendar)."""
+    context_dir = ".agents/context"
+    digest = {}
+    if not os.path.isdir(context_dir):
+        return digest
+
+    mapping = {
+        "telemetry_crashes": ("telemetry_crashes.json", "telemetry_crashes.template.json"),
+        "user_feedback": ("user_feedback.json", "user_feedback.template.json"),
+        "developer_brief": ("developer_brief.json", "developer_brief.template.json"),
+        "market_calendar": ("market_calendar.json", "market_calendar.template.json"),
+    }
+
+    for key, (live_file, template_file) in mapping.items():
+        target = os.path.join(context_dir, live_file)
+        if not os.path.exists(target) and dry_run:
+            target = os.path.join(context_dir, template_file)
+
+        if os.path.exists(target):
+            try:
+                with open(target, "r", encoding="utf-8") as f:
+                    digest[key] = json.load(f)
+            except Exception as e:
+                log(f"Warning: Failed reading context file {target}: {e}")
+
+    return digest
+
+
 def infer_test_files(target_files):
     """Impact-based test companion mapping heuristic."""
     inferred = []
@@ -206,18 +235,25 @@ async def run_pipeline():
         # ==============================================================================
         if stages in ("full", "ideate") and auto_ideate:
             phase(f"Iteration {iteration} - 1. Ideation & Backlog Discovery")
+            ext_context = load_external_context()
+            if ext_context:
+                log(f"Ingested external context signals: {list(ext_context.keys())}")
+
             ideation_agent = agent(
                 prompt="""
 You are the Software Factory Ideation Specialist for RealizeAlpha.
-Analyze `PRODUCT.md`, `ROADMAP.md`, and open GitHub issues (`gh issue list`).
-Discover candidate features, gaps, or optimizations aligning with the focus area.
+Analyze `PRODUCT.md`, `ROADMAP.md`, open GitHub issues (`gh issue list`), and any staged external context.
+Discover candidate features, gaps, hotfixes, or optimizations aligning with the focus area.
 Evaluate candidates strictly against the Software Factory Readiness Rubric (0-2 pts per dimension, >=6/8 required):
 1. Scope & Boundaries (1-3 files preferred)
 2. Testability (hermetic mocks without live credentials)
 3. Safety Invariants (complies with all 7 safety invariants)
 4. Code Ownership (clear existing ChangeNotifier store or widget)
 
-Deduplication & Horizon Rules:
+External Context & Horizon Rules:
+- High-velocity production crashes (from telemetry_crashes) take highest priority as accelerated hotfixes.
+- End-user friction clusters (from user_feedback) guide targeted UI/UX candidates.
+- Developer chat consensus (from developer_brief) guides architectural priorities.
 - Guard against semantic duplicates of existing roadmap items or closed issues.
 - Categorize proposals into current release horizon (matching focus or active milestone) vs future horizon (`future_horizon: true`).
 - Record future items to ROADMAP.md under future milestone sections (e.g. v0.63.0+) without queueing them into the current active cycle.
@@ -228,11 +264,15 @@ If dry_run is enabled, output candidates without modifying files or creating iss
                 role="Ideation Specialist"
             )
 
+            context_snippet = json.dumps(ext_context, indent=2)[:2000] if ext_context else "None"
             ideation_prompt = f"""
 Discover and rank roadmap candidates for focus area: '{focus}'.
-Check if existing unreleased milestones have gaps or if new high-value features are ready for autonomous delivery.
+Check if existing unreleased milestones have gaps or if new high-value features/hotfixes are ready for autonomous delivery.
 Mode: {mode}, DryRun: {dry_run}.
 Previously completed tasks in this factory run: {state.get('completed_tasks', [])}.
+Staged External Context Signals:
+{context_snippet}
+
 Return JSON containing:
 - proposed_items: array of objects with title, rationale, suggested_milestone, future_horizon (boolean), readiness_score (0-8)
 - recorded_to_roadmap: boolean indicating whether items were added to ROADMAP.md

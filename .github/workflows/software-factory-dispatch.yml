@@ -165,3 +165,34 @@ jobs:
             subprocess.run(["gh", "pr", "comment", sys.argv[1], "--body", body], check=True)
             ' "$PR_NUMBER"
           fi
+
+      - name: Dispatch Team Notification Webhook (Slack / Teams / Discord)
+        if: always()
+        env:
+          NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL || secrets.TEAMS_WEBHOOK_URL || secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$NOTIFICATION_WEBHOOK" ] && [ -f ".agents/.factory_metrics.json" ]; then
+            echo "Dispatching cycle completion summary to team webhook..."
+            python3 -c '
+            import json, urllib.request, os
+            webhook = os.environ.get("NOTIFICATION_WEBHOOK")
+            with open(".agents/.factory_metrics.json") as f:
+                data = json.load(f)
+            last_run = data.get("runs", [{}])[-1]
+            text = (
+                f"🚀 *RealizeAlpha Software Factory Cycle Completed*\n"
+                f"• *Mode/Stages:* {last_run.get(\"mode\")} / {last_run.get(\"stages\")}\n"
+                f"• *Duration:* {last_run.get(\"duration_seconds\")}s | *Iterations:* {last_run.get(\"iterations_completed\")}\n"
+                f"• *Completed:* {last_run.get(\"items_completed\")} | *Failed:* {last_run.get(\"items_failed\")}\n"
+                f"• *Release Cadence:* {last_run.get(\"release_cadence\")} (threshold: {last_run.get(\"release_threshold\")})\n"
+                f"• *Circuit Breaker Tripped:* {last_run.get(\"circuit_breaker_tripped\")}"
+            )
+            payload = json.dumps({"text": text}).encode("utf-8")
+            req = urllib.request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req, timeout=10)
+                print("Webhook notification successfully sent.")
+            except Exception as e:
+                print(f"Webhook notification skipped/failed: {e}")
+            '
+          fi

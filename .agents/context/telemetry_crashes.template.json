@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProductionTelemetryCrashes",
+  "description": "Schema and template for staging production crash and exception clusters from Crashlytics/Sentry for the Autonomous Software Factory.",
+  "generated_at": "2026-11-24T18:00:00Z",
+  "crashes": [
+    {
+      "id": "CRASH-2026-0812",
+      "exception": "RenderFlex overflowed by 18 pixels on the bottom",
+      "file": "src/robinhood_options_mobile/lib/widgets/portfolio_chart_widget.dart",
+      "line_number": 342,
+      "velocity": 148,
+      "severity": "high",
+      "affected_os": ["iOS 18.2", "Android 15"],
+      "stack_trace": "RenderFlex.performLayout (package:flutter/src/rendering/flex.dart:1042)\nPortfolioChartWidget._buildMetricsBar (package:robinhood_options_mobile/widgets/portfolio_chart_widget.dart:342)",
+      "reproduction_hint": "Triggered on 320px viewport when balance masking is active with 6-digit balances."
+    }
+  ]
+}

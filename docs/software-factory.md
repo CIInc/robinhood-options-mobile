@@ -362,7 +362,63 @@ git worktree prune
 
 ---
 
-## 7. Tooling & Skills Directory
+## 7. External Context Ingestion & Team Feedback Loops
+
+To prevent operating in an insular vacuum, the Software Factory connects directly to real-world operational context through a **Staged Context Adapter Pattern** ([`.agents/context/`](../.agents/context/README.md)):
+
+```mermaid
+flowchart TD
+    subgraph ExternalSources["External Context Streams"]
+        A["Developer Messaging (Slack, Teams, WhatsApp)"]
+        B["Production Telemetry (Crashlytics, Cloud Logging)"]
+        C["User Feedback (App Store, Beta Labs Surveys)"]
+        D["Market Infrastructure (Economic Calendar, OCC Memos)"]
+    end
+
+    subgraph StagingAdapter["Staged Context Adapter (.agents/context/)"]
+        E["PII & Sensitive Token Scrubbing"]
+        F["Structured Staging (.agents/context/*.json)"]
+    end
+
+    subgraph FactoryPipeline["Autonomous Factory Ingestion"]
+        G["Phase 1: Context-Enriched Ideation"]
+        H["Phase 2: Incident Triage & Hotfix Acceleration"]
+        I["Phase 6: In-Workflow Release Decision"]
+    end
+
+    subgraph OutboundBroadcast["Bi-Directional Team Notification"]
+        J["Slack / Teams / Discord Cycle Summary Cards"]
+    end
+
+    ExternalSources --> StagingAdapter
+    StagingAdapter --> FactoryPipeline
+    FactoryPipeline --> OutboundBroadcast
+```
+
+### 1. Ingested External Streams
+1. **Developer & Team Messaging Digests (`developer_brief.json`)**:
+   - Integrates conversation digests from Slack, Microsoft Teams, WhatsApp, and Discord.
+   - Converts high-priority architectural discussions and temporary workarounds into structured candidate proposals.
+2. **Production Crash Telemetry (`telemetry_crashes.json`)**:
+   - Ingests high-velocity crash and exception clusters from Firebase Crashlytics and GCP Cloud Logging.
+   - High-severity crashes automatically bypass normal backlog sequencing, generating accelerated **hotfix tasks** with exact stack traces, reproduction breadcrumbs, and companion tests.
+3. **End-User Feedback & Beta Labs Voice (`user_feedback.json`)**:
+   - Ingests App Store reviews, Google Play user comments, and Beta Labs surveys.
+   - Sentiment clustering groups repeated user friction points to guide targeted UI polish and accessibility enhancements.
+4. **Market Calendar & Economic Infrastructure (`market_calendar.json`)**:
+   - Staged macro dates (FOMC rate decisions, CPI releases, quadruple witching, exchange holidays) and OCC corporate action memos.
+   - Enforces the **Market Stability Invariant**: halts production releases and trading engine alterations during high-volatility macro announcements.
+
+### 2. Privacy & PII Scrubbing Rules
+- External context collectors must scrub customer identifiers, private account balances, passwords, and brokerage OAuth credentials before writing to `.agents/context/`.
+- Live context files (`.agents/context/*.json`) are ignored by `.gitignore`, ensuring transient runtime telemetry is never committed to repository history.
+
+### 3. Bi-Directional Team Webhooks
+Upon cycle completion or release cut in GitHub Actions (`software-factory-dispatch.yml`), the factory dispatches an interactive notification card to the team's messaging channel via `SLACK_WEBHOOK_URL`, `TEAMS_WEBHOOK_URL`, or `DISCORD_WEBHOOK_URL`.
+
+---
+
+## 8. Tooling & Skills Directory
 
 RealizeAlpha organizes its software factory capabilities into modular skills located in `.github/skills/`:
 
@@ -389,7 +445,7 @@ RealizeAlpha organizes its software factory capabilities into modular skills loc
 
 ---
 
-## 8. CI/CD Integration & Automated Gates
+## 9. CI/CD Integration & Automated Gates
 
 The Software Factory integrates directly into GitHub Actions workflows:
 
@@ -408,7 +464,7 @@ The Software Factory integrates directly into GitHub Actions workflows:
 
 ---
 
-## 9. Execution Examples
+## 10. Execution Examples
 
 ### Running an Autonomous Continuous Loop
 ```text
@@ -444,7 +500,7 @@ call_tool("run_workflow",
 
 ---
 
-## 10. Step-by-Step Execution Walkthrough Case Study
+## 11. Step-by-Step Execution Walkthrough Case Study
 
 The following concrete case study illustrates how a candidate feature (*"Option Volatility Skew Real-Time Alert"*) progresses through all 5 phases of the Software Factory:
 
@@ -481,7 +537,7 @@ The following concrete case study illustrates how a candidate feature (*"Option 
 
 ---
 
-## 11. ADR-001: Architecture Decision Record
+## 12. ADR-001: Architecture Decision Record
 
 ### Context & Problem Statement
 Earlier iterations of agent tooling in RealizeAlpha relied on fine-grained, per-tool-use hooks (e.g. running linters or checks on every file write tool call) and thin wrapper prompts (`roadmap.prompt.md`, `autopilot.prompt.md`). In practice, per-tool hooks introduced prohibitive latency (re-running analyzers on intermediate edits), triggered false positives during multi-file refactors, and fragmented instructions across multiple non-canonical files.

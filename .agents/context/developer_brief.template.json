@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeveloperConversationBrief",
+  "description": "Schema and template for staging synthesized developer and team conversations from Slack, Microsoft Teams, WhatsApp, or Discord.",
+  "brief_date": "2026-11-24",
+  "team": "Core Trading & Architecture",
+  "priority_topics": [
+    {
+      "channel": "core-trading-chat",
+      "topic": "Schwab Streamer WebSocket Reconnect Under High Jitter",
+      "summary": "Team agreed to implement an exponential backoff with 3s jitter to avoid hammering the Schwab streaming gateway on reconnect.",
+      "consensus": "Implement jittered backoff in SchwabStreamerService with companion reconnection unit test.",
+      "suggested_files": [
+        "src/robinhood_options_mobile/lib/services/schwab_streamer_service.dart",
+        "src/robinhood_options_mobile/test/schwab_streamer_service_test.dart"
+      ],
+      "priority": "P1"
+    }
+  ]
+}

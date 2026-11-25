@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UserFeedbackClusters",
+  "description": "Schema and template for staging end-user review clusters and Beta Labs feedback for the Autonomous Software Factory.",
+  "generated_at": "2026-11-24T18:00:00Z",
+  "feedback_clusters": [
+    {
+      "topic": "GEX Chart High-Contrast Visibility",
+      "source": "App Store Reviews & Beta Labs Surveys",
+      "frequency": 34,
+      "sentiment": "negative",
+      "summary": "Gamma strike labels and pin price annotation are difficult to read in bright outdoor lighting when using light theme.",
+      "suggested_area": "src/robinhood_options_mobile/lib/widgets/gamma_exposure_widget.dart",
+      "representative_quotes": [
+        "Love the zero-gamma flip level, but I can barely read the strike numbers in the sun.",
+        "Light mode contrast on the GEX chart needs darker font or higher contrast pills."
+      ]
+    }
+  ]
+}
