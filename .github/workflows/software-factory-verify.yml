@@ -1,0 +1,191 @@
+name: Software Factory Verification Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - ".github/skills/**"
+      - ".agents/**"
+      - "CONTRIBUTING.md"
+      - "ROADMAP.md"
+      - "CHANGELOG.md"
+      - "PRODUCT.md"
+      - "src/robinhood_options_mobile/**"
+  workflow_dispatch:
+    inputs:
+      run_full_suite:
+        description: "Run comprehensive test suite instead of targeted validation"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: factory-verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect Changed Components
+    runs-on: ubuntu-latest
+    outputs:
+      flutter: ${{ steps.filter.outputs.flutter }}
+      functions: ${{ steps.filter.outputs.functions }}
+      invariants: ${{ steps.filter.outputs.invariants }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Path Filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            flutter:
+              - 'src/robinhood_options_mobile/lib/**'
+              - 'src/robinhood_options_mobile/test/**'
+              - 'src/robinhood_options_mobile/pubspec.yaml'
+            functions:
+              - 'src/robinhood_options_mobile/functions/**'
+            invariants:
+              - 'ROADMAP.md'
+              - 'CHANGELOG.md'
+              - 'PRODUCT.md'
+              - 'CONTRIBUTING.md'
+              - '.agents/**'
+              - '.github/workflows/**'
+              - '.github/skills/**'
+              - 'src/robinhood_options_mobile/**'
+
+  static_invariants:
+    name: Repository Invariants & Documentation Audit
+    needs: changes
+    if: needs.changes.outputs.invariants == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Validate YAML workflow files
+        run: |
+          python3 -c "import yaml, glob; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('All workflow YAML files valid')"
+
+      - name: Validate Python workflow script syntax
+        run: |
+          python3 -m py_compile .github/skills/software-factory/scripts/factory_pipeline.py
+          python3 -m py_compile .agents/context/scripts/validate_context.py
+          echo "Factory pipeline and context validator python scripts compile cleanly"
+
+      - name: Audit External Context Templates & Zero PII Guardrails
+        run: |
+          # 1. Validate template schemas and PII cleanliness
+          python3 .agents/context/scripts/validate_context.py --check-templates
+
+          # 2. Invariant: Ensure zero un-templated context JSON is tracked in git
+          python3 -c '
+          import glob
+          live_files = [f for f in glob.glob(".agents/context/*.json") if not f.endswith(".template.json")]
+          assert len(live_files) == 0, f"Forbidden untracked live context files committed to git: {live_files}"
+          print("Zero untracked live context files committed.")
+          '
+
+      - name: Unit test Software Factory tooling & lint CLI
+        run: |
+          python3 -m unittest discover -s .github/skills/software-factory/tests -v
+          bash -n scripts/factory.sh
+          if command -v shellcheck >/dev/null 2>&1; then shellcheck scripts/factory.sh; fi
+
+      - name: Audit ROADMAP.md structural invariants
+        run: |
+          python3 -c '
+          with open("ROADMAP.md", encoding="utf-8") as f:
+              content = f.read()
+
+          # Invariant 1: Key Highlights bounded (<= 5 items)
+          if "### Key Highlights" in content:
+              highlights_section = content.split("### Key Highlights")[1].split("---")[0]
+              bullet_count = len([line for line in highlights_section.splitlines() if line.strip().startswith("- ")])
+              assert bullet_count <= 5, f"Key Highlights exceeds 5 items: found {bullet_count}"
+              print(f"Key Highlights audit passed ({bullet_count} items)")
+
+          # Invariant 2: Version syntax check in pubspec.yaml
+          with open("src/robinhood_options_mobile/pubspec.yaml", encoding="utf-8") as f:
+              pub = f.read()
+          import re
+          match = re.search(r"^version:\s*(\d+\.\d+\.\d+\+\d+)", pub, re.M)
+          assert match, "Invalid pubspec.yaml version format"
+          print(f"pubspec.yaml version syntax passed ({match.group(1)})")
+          '
+
+      - name: Audit Static Trading Safety Invariants (Scan forbidden patterns)
+        run: |
+          # Invariant 1: No plaintext token keys stored to SharedPreferences (excluding discovery endpoint URLs)
+          if grep -rn "prefs\.setString.*token" src/robinhood_options_mobile/lib/ | grep -v "_endpoint"; then
+            echo "::error::Detected potential plaintext token write to SharedPreferences!"
+            exit 1
+          fi
+          echo "Plaintext token storage audit passed"
+
+  flutter_quality_gate:
+    name: Flutter Quality Gate
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify Dart code formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Strict static analysis (Zero compile/analysis errors)
+        run: flutter analyze --no-fatal-infos
+
+  cloud_functions_gate:
+    name: Cloud Functions Gate
+    needs: changes
+    if: needs.changes.outputs.functions == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile/functions
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/robinhood_options_mobile/functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify linting (Google ESLint max-len <= 80)
+        run: npm run lint
+
+      - name: TypeScript build verification
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm test

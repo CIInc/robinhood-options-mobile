@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MarketCalendarAndRegulatoryEvents",
+  "description": "Schema and template for staging upcoming macro events, economic calendar releases, exchange holidays, and OCC corporate action notices.",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-11-24T18:00:00Z",
+  "quarter": "2026-Q4",
+  "sanitized": true,
+  "pii_scrubbed": true,
+  "events": [
+    {
+      "date": "2026-12-10",
+      "type": "macro_announcement",
+      "event": "FOMC Interest Rate Decision & Press Conference",
+      "impact": "high_volatility",
+      "recommendation": "Block production trading engine deployments within 2 hours of release."
+    },
+    {
+      "date": "2026-12-19",
+      "type": "exchange_event",
+      "event": "Quadruple Witching Options & Futures Expiration",
+      "impact": "extreme_volume",
+      "recommendation": "Verify option multiplier mapping and 0DTE exercise/assignment reconciliation."
+    }
+  ]
+}

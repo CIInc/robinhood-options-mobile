@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Autonomous AI Software Factory tooling ([`docs/software-factory.md`](docs/software-factory.md)):** closed-loop `software-factory` skill and `factory_pipeline.py` workflow (ideation → triage → Maker–Verifier–Critic → docs → git → in-workflow release decision), developer CLI [`scripts/factory.sh`](scripts/factory.sh), metrics dashboard (`metrics_summary.py`), staged external context with Zero-PII validation ([`.agents/context/`](.agents/context/README.md)), `software-factory-verify.yml` / `software-factory-dispatch.yml` workflows, unit tests for the Python tooling, [`CONTRIBUTING.md`](CONTRIBUTING.md), and ADRs in [`docs/adr/`](docs/adr/README.md).
+
+### Changed
+- `cd.yml` now treats `flutter analyze` as a blocking gate and builds Cloud Functions TypeScript.
+
+### Removed
+- Legacy no-op hook scripts (`.agents/scripts/auto_format.sh`, `verify_formatting.sh`) retired under ADR-001.
+
 ## [0.62.7] - 2026-11-24
 
 **Advanced Position Sizing Modes, Cumulative Concentration Limits & Sizing Simulator**

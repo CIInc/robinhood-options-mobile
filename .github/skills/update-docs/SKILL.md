@@ -1,98 +1,76 @@
 ---
 name: update-docs
-description: Update markdown documentation, changelog, roadmap, and app version based on recent changes and commits.
+description: Update markdown documentation, changelog, roadmap, and app version based on recent changes and commits with automated drift verification.
 ---
 
 # Update Documentation
 
-Update all markdown documentation based on recent commits since the previous version.
+Update all markdown documentation based on recent commits or verified implementation tasks.
+Supports standalone invocation, documentation drift audits, or direct chaining from
+`software-implementation` and `software-factory`.
 
 ## Argument Hint
 
-Provide the next version number to base the updates on recent commits since the previous version (e.g., `0.37.2`). If not provided, inspect recent commit history and calculate the next semantic version based on changes since the last release.
+Optional parameters:
+- `version`: Next semantic version number (e.g., `0.62.1`). If omitted, inspects git tags and recent commits to determine if a version bump is warranted.
+- `bump_version`: `true` or `false` (default: `false` for intra-milestone task reconciliation, `true` when cutting a release boundary).
+- `mode`: `interactive` (default) or `autonomous` (automatically formats and synchronizes documentation).
 
 ## Workflow
 
-1. **Fetch Commit Information**: Retrieve details from the commits including:
-   - Commit message and description
-   - File changes and patches
-   - Commit date and author
-   - GitHub issue references and PR numbers (e.g., `#123`, `fixes #123`, `closes #123`)
+1. **Fetch Commit Information**: Retrieve details from commits or current staged changes:
+   - Commit message, description, and patches
+   - GitHub issue references and PR numbers (`#123`, `fixes #123`, `closes #123`)
+   - Authors and dates
 
-2. **Identify Documentation Files**: Locate all markdown files in the repository:
+2. **Identify Documentation Files**: Locate all markdown and project files:
    - `CHANGELOG.md`
    - `README.md`
    - `ROADMAP.md`
    - `PRODUCT.md`
-   - Documentation files (`docs/` directory)
-   - Developer instruction files (`.github/` directory, especially `.github/copilot-instructions.md`)
-   - Any other `.md` files
+   - Feature docs (`docs/` directory)
+   - Developer instruction files (`.github/` and `AGENTS.md`)
+   - `pubspec.yaml`
 
-3. **Update pubspec.yaml**:
-   - Check the current version number in `src/robinhood_options_mobile/pubspec.yaml` and compare it to the argument provided (if any).
-   - If different, update the version in `pubspec.yaml` based on semantic versioning rules:
-     - Major version for breaking changes
-     - Minor version for new features
-     - Patch version for bug fixes
-   - Ensure the build number is incremented appropriately only if the version number changes.
+3. **Version & pubspec.yaml Handling**:
+   - If `bump_version: true` or a specific version argument is supplied:
+     - Check current version in `src/robinhood_options_mobile/pubspec.yaml`.
+     - Increment semantic version (major for breaking, minor for features, patch for fixes).
+     - Increment build number monotonically (e.g., `0.62.1+207`).
+   - If `bump_version: false`:
+     - Maintain existing `pubspec.yaml` version for intra-milestone feature reconciliation.
 
 4. **Update CHANGELOG.md**:
-   - Add a new version section with the current date (using the version defined in `pubspec.yaml`).
-   - Create a title for the new version.
-   - Document all features added, changed, fixed, removed, and performance improvements.
-   - Reference associated GitHub issues `([#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>))` where applicable.
-   - Use clear, descriptive bullet points.
-   - Group related changes together.
+   - For version releases, add a new version section with the current date.
+   - For task reconciliation, ensure all new features, fixes, or security improvements have descriptive bullet points under the active unreleased or current version section.
+   - Group entries: **Added**, **Changed**, **Fixed**, **Removed**, **Security**, **Performance**.
+   - Reference associated GitHub issues `([#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>))`.
 
-5. **Update Docs Markdown Files & PRODUCT.md**:
-   - Add or update sections describing new features in `docs/` (architecture, algorithms, configuration, and operational guides).
-   - Update `PRODUCT.md` to reflect new capabilities, user flows, architecture diagrams, and domain models.
-   - Document new configuration options or settings.
-   - Include code examples where applicable.
-   - Update technical details sections.
-   - Add diagrams or screenshots if relevant.
-   - Add future enhancements or TODOs if applicable.
+5. **Update Feature Docs & PRODUCT.md**:
+   - Add or update dedicated feature guides in `docs/` (architecture, algorithms, configuration, operational guides).
+   - Update `PRODUCT.md` with new domain models, services, and architectural additions.
+   - Update technical parameters, code examples, and mermaid diagrams.
 
-6. **Update Main README.md**:
-   - Add mentions of new major features to the features list.
-   - Ensure feature descriptions are concise but complete.
+6. **Update ROADMAP.md & Synchronize GitHub Issues**:
+   - Mark completed features done (`- [x]`) and ensure GitHub issue links are present.
+   - **Automated Roadmap Invariant Check**:
+     - Programmatically verify and update **Quick Stats** in `ROADMAP.md` (completed checklist items, planned checklist items per milestone, open/closed issues).
+     - Maintain **Key Highlights** as a strictly bounded executive list (maximum 3–5 items); prune older entries as new releases ship.
+     - Keep **Completed Features ✅** bounded to high-level capability blocks for recent active minor releases, delegating exhaustive chronological history to `CHANGELOG.md`.
 
-7. **Update ROADMAP.md & Synchronize GitHub Issues**:
-   - Mark completed features as done (`[x]`) and ensure GitHub issue links are present (`[#<num>](https://github.com/CIInc/robinhood-options-mobile/issues/<num>)`).
-   - Query GitHub issues (`gh issue list --state all`) to reconcile open vs closed issues against the roadmap.
-   - Add newly created GitHub issues into appropriate roadmap categories.
-   - Update the **Quick Stats** section in `ROADMAP.md` (active open issues, completed features count, planned items).
-   - Maintain the **Key Highlights** section as a strictly limited list (at most 3–5 items) covering only the most recent major deliveries and highest-impact capabilities; prune older patch entries as new releases ship to keep it concise and executive-focused rather than an unbounded changelog.
-   - Limit the size of the **Completed Features ✅** section: keep the completed checklist bounded to high-level capability blocks for recent active minor releases; consolidate or summarize older historical release entries into `CHANGELOG.md` so `ROADMAP.md` remains lean and readable.
-   - Add entry in "Release Cadence & Milestone Overview" for the new version.
-   - Reorder priorities or milestones if necessary.
+7. **Cross-Check Consistency & Technical Accuracy**:
+   - Verify file paths, class names, API signatures, and configuration keys match code across `lib/`, `functions/src/`, and `firebase/`.
+   - Validate relative markdown links and section anchors between touched docs.
+   - Verify that all open GitHub issues are accurately reflected in `ROADMAP.md`.
 
-8. **Update Developer Instructions**:
-   - Update `.github/copilot-instructions.md` with new patterns, file references, or architecture notes.
-   - Add references to new providers, services, or components.
-   - Update architecture notes with new patterns.
-   - Add file references for new modules.
-   - Update examples section.
-
-9. **Cross-Check Consistency**:
-   - Verify version numbers are consistent across all files.
-   - Ensure feature descriptions match across all files.
-   - Confirm code references are accurate.
-   - Validate internal links and GitHub issue links between documentation files.
-   - Verify that all open GitHub issues are reflected in `ROADMAP.md`.
-   - Check that configuration files match documentation.
-
-10. **Verify Technical Accuracy**:
-    - Ensure any mentioned indexes, configurations, or deployment steps are accurate.
-    - Verify file paths and code references exist (check `src/robinhood_options_mobile/`, `src/robinhood_options_mobile/functions/`, and `src/robinhood_options_mobile/firebase/`).
-    - Check that API parameters match implementation.
-
-11. **Pre-Release Quality & CI/CD Health Checks**:
-    - **Automated Formatting Gate**: Run `dart format .` in `src/robinhood_options_mobile/` and `npm run lint:fix` in `src/robinhood_options_mobile/functions/` to automatically format all Dart and Functions code. Verify clean with `dart format --output=none --set-exit-if-changed .` and `npm run lint`.
-    - **Cloud Functions Lint & Build**: Run `npm run lint` and `npm run build` in `src/robinhood_options_mobile/functions/` to guarantee no ESLint errors (specifically `max-len <= 80` enforced by the Google styleguide) or TypeScript compilation errors break the automated Firebase deployment (`firebase deploy`). Use `npm run lint:fix` for auto-fixable issues.
-    - **Flutter Tests & Analysis**: Execute `flutter test` against impacted tests (e.g., `flutter test test/impacted_test.dart`) to verify all widget titles, UI text, and assertions match current implementations before creating release tags or updating documentation.
-    - **Verify Clean Git State**: Ensure all test adjustments, lint fixes, and documentation files are committed together so CI/CD runs cleanly on `main`.
+8. **Automated Quality & Self-Healing Formatting Gate**:
+   - Format Dart code: `cd src/robinhood_options_mobile && dart format .`
+   - Verify clean formatting: `cd src/robinhood_options_mobile && dart format --output=none --set-exit-if-changed .`
+   - Format Functions code: `cd src/robinhood_options_mobile/functions && npm run lint -- --fix`
+   - Verify Functions lint and build: `cd src/robinhood_options_mobile/functions && npm run lint && npm run build`
+   - Run affected tests to verify widget titles and assertions align with documentation.
 
 ## Completion Report
 
-Provide a summary of all documentation updates made, version bump details, GitHub issues synchronized/closed, quality checks verified, and any consistency issues found.
+Summarize all documentation updates made, version bump details (if applied),
+roadmap Quick Stats reconciliation, and quality gate check results.

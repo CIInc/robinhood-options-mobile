@@ -1,0 +1,198 @@
+name: Autonomous Software Factory Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Factory Execution Mode'
+        required: true
+        default: 'autonomous'
+        type: choice
+        options:
+          - autonomous
+          - interactive
+      stages:
+        description: 'Stages to Execute'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - ideate
+          - implement-batch
+          - single
+      dry_run:
+        description: 'Simulate without mutating files or creating commits'
+        required: true
+        default: true
+        type: boolean
+      max_iterations:
+        description: 'Maximum Loop Iterations (autonomous mode)'
+        required: true
+        default: '2'
+        type: string
+      failure_limit:
+        description: 'Consecutive Failure Circuit Breaker Limit'
+        required: true
+        default: '2'
+        type: string
+      focus:
+        description: 'Target Milestone or Feature Focus (optional)'
+        required: false
+        default: ''
+        type: string
+      release_cadence:
+        description: 'Release Cadence Strategy'
+        required: true
+        default: 'milestone'
+        type: choice
+        options:
+          - milestone
+          - batch_size
+          - manual
+      release_threshold:
+        description: 'Number of verified features to trigger release cut'
+        required: true
+        default: '2'
+        type: string
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  software_factory:
+    name: Run Software Factory Cycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: src/robinhood_options_mobile/functions/package-lock.json
+
+      - name: Execute Software Factory Pipeline
+        id: factory
+        run: |
+          echo "Triggering RealizeAlpha Software Factory..."
+          python3 .github/skills/software-factory/scripts/factory_pipeline.py \
+            --mode="${{ github.event.inputs.mode }}" \
+            --stages="${{ github.event.inputs.stages }}" \
+            --dry-run="${{ github.event.inputs.dry_run }}" \
+            --max-iterations="${{ github.event.inputs.max_iterations }}" \
+            --failure-limit="${{ github.event.inputs.failure_limit }}" \
+            --focus="${{ github.event.inputs.focus }}" \
+            --release-cadence="${{ github.event.inputs.release_cadence }}" \
+            --release-threshold="${{ github.event.inputs.release_threshold }}"
+
+      - name: Inspect Factory Metrics & Run State
+        if: always()
+        run: |
+          if [ -f ".agents/.factory_metrics.json" ]; then
+            echo "### Factory Metrics" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat .agents/.factory_metrics.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f ".agents/.factory_run_state.json" ]; then
+            echo "### Factory Run State" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat .agents/.factory_run_state.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Factory Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-execution-state
+          path: |
+            .agents/.factory_*.json
+          if-no-files-found: ignore
+
+      - name: Publish Factory Summary to Active Pull Request
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          if [ -n "$PR_NUMBER" ] && [ -f ".agents/.factory_metrics.json" ]; then
+            echo "Publishing Software Factory summary to PR #$PR_NUMBER..."
+            python3 -c '
+            import json, subprocess, sys
+            with open(".agents/.factory_metrics.json") as f:
+                data = json.load(f)
+            last_run = data.get("runs", [{}])[-1]
+            body = (
+                "### 🤖 Autonomous AI Software Factory Execution Summary\n\n"
+                "| Metric | Value |\n"
+                "|---|---|\n"
+                f"| **Mode / Stages** | `{last_run.get(\"mode\")}` / `{last_run.get(\"stages\")}` |\n"
+                f"| **Duration** | `{last_run.get(\"duration_seconds\")}s` |\n"
+                f"| **Iterations** | `{last_run.get(\"iterations_completed\")}` |\n"
+                f"| **Completed Tasks** | `{last_run.get(\"items_completed\")}` |\n"
+                f"| **Failed Tasks** | `{last_run.get(\"items_failed\")}` |\n"
+                f"| **Circuit Breaker** | `{last_run.get(\"circuit_breaker_tripped\")}` |\n"
+                f"| **Release Cadence** | `{last_run.get(\"release_cadence\")}` (threshold: {last_run.get(\"release_threshold\")}) |\n"
+                f"| **Dry Run** | `{last_run.get(\"dry_run\")}` |\n\n"
+                "> Run generated by GitHub Actions Software Factory Dispatch."
+            )
+            subprocess.run(["gh", "pr", "comment", sys.argv[1], "--body", body], check=True)
+            ' "$PR_NUMBER"
+          fi
+
+      - name: Dispatch Team Notification Webhook (Slack / Teams / Discord)
+        if: always()
+        env:
+          NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL || secrets.TEAMS_WEBHOOK_URL || secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -n "$NOTIFICATION_WEBHOOK" ] && [ -f ".agents/.factory_metrics.json" ]; then
+            echo "Dispatching cycle completion summary to team webhook..."
+            python3 -c '
+            import json, urllib.request, os
+            webhook = os.environ.get("NOTIFICATION_WEBHOOK")
+            with open(".agents/.factory_metrics.json") as f:
+                data = json.load(f)
+            last_run = data.get("runs", [{}])[-1]
+            text = (
+                f"🚀 *RealizeAlpha Software Factory Cycle Completed*\n"
+                f"• *Mode/Stages:* {last_run.get(\"mode\")} / {last_run.get(\"stages\")}\n"
+                f"• *Duration:* {last_run.get(\"duration_seconds\")}s | *Iterations:* {last_run.get(\"iterations_completed\")}\n"
+                f"• *Completed:* {last_run.get(\"items_completed\")} | *Failed:* {last_run.get(\"items_failed\")}\n"
+                f"• *Release Cadence:* {last_run.get(\"release_cadence\")} (threshold: {last_run.get(\"release_threshold\")})\n"
+                f"• *Circuit Breaker Tripped:* {last_run.get(\"circuit_breaker_tripped\")}"
+            )
+            payload = json.dumps({"text": text}).encode("utf-8")
+            req = urllib.request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
+            try:
+                urllib.request.urlopen(req, timeout=10)
+                print("Webhook notification successfully sent.")
+            except Exception as e:
+                print(f"Webhook notification skipped/failed: {e}")
+            '
+          fi

@@ -94,9 +94,12 @@ jobs:
         run: npm run lint
         working-directory: src/robinhood_options_mobile/functions
 
+      - name: Build Firebase Functions (TypeScript check)
+        run: npm run build
+        working-directory: src/robinhood_options_mobile/functions
+
       - name: Analyze project source
         run: flutter analyze --no-fatal-infos
-        continue-on-error: true
 
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will

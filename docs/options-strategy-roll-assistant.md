@@ -58,7 +58,7 @@ flowchart TD
 
 ## Domain Model: `OptionRollCalculation`
 
-Defined in [`lib/model/option_roll_models.dart`](file:///Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/lib/model/option_roll_models.dart):
+Defined in [`lib/model/option_roll_models.dart`](../src/robinhood_options_mobile/lib/model/option_roll_models.dart):
 
 ```dart
 class OptionRollCalculation {
@@ -126,9 +126,9 @@ The Roll Assistant is accessible via two intuitive entry points:
 
 ## Testing & Verification
 
-- **Unit Tests** ([`test/option_roll_models_test.dart`](file:///Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/test/option_roll_models_test.dart)):
+- **Unit Tests** ([`test/option_roll_models_test.dart`](../src/robinhood_options_mobile/test/option_roll_models_test.dart)):
   - Validates net credit / debit formulas for covered calls, cash-secured puts, and long calls.
   - Tests Roll Up & Out and Roll Down & Out strike shift math.
   - Verifies fallback mechanisms when bid/ask quotes are missing or zero.
-- **Widget Tests** ([`test/option_roll_assistant_widget_test.dart`](file:///Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/test/option_roll_assistant_widget_test.dart)):
+- **Widget Tests** ([`test/option_roll_assistant_widget_test.dart`](../src/robinhood_options_mobile/test/option_roll_assistant_widget_test.dart)):
   - Verifies screen rendering, strategy badge detection, current leg cards, preset chip switching, horizontal date/strike scrolling, and order review leg generation.

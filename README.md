@@ -59,6 +59,7 @@ For full product context and architectural boundaries, see [PRODUCT.md](PRODUCT.
 ### Platform, Security & Mobile Experience
 *   **[Zero-Plaintext Security & Feature Gating](docs/secure-token-storage.md):** Hardware-backed credential encryption via `flutter_secure_storage` (iOS Keychain / Android Keystore), biometric authentication (FaceID/TouchID), **[Balance Visibility Masking](docs/ui-improvements.md#balance-privacy--navigation-v0370)**, and **[Feature Access & Beta Labs Gating](docs/feature-access-and-beta-gating.md)**.
 *   **[Native Mobile Experience & Offline Resilience](docs/offline-mode-and-resilient-caching.md):** Encrypted **[Offline Mode & Resilient Caching](docs/offline-mode-and-resilient-caching.md)**, **[iOS Live Activities & Dynamic Island](docs/ios-live-activities-and-dynamic-island.md)**, **[Home Screen Widgets](docs/home-widgets.md)**, **[Trade Signal Push Notifications](docs/trade-signal-notifications.md)**, **[Custom Price & Event Alerts](docs/custom-alerts.md)**, **[Universal Deep Linking & Referrals](docs/deep-linking.md)**, and **[Material 3 UI & Accessibility Polish](docs/ui-improvements.md)**.
+*   **[Autonomous AI Software Factory](docs/software-factory.md):** Repository-level engineering automation featuring a closed-loop **Maker–Verifier–Critic** architecture, parallel task fan-out over disjoint files, self-healing quality gates (`dart format`, `dart analyze`, `npm run lint/build`), 7-rule safety invariant audits, and Dual-Mode git/issue lifecycle tooling.
 
 
 ## Architecture Overview
@@ -455,15 +456,17 @@ flutter test integration_test/app_test.dart
 
 ## Contribute
 
-Before contributing or running coding agents in this repository, review [AGENTS.md](AGENTS.md) for architectural guidelines, security/trading invariants, and verification commands, and [PRODUCT.md](PRODUCT.md) for product principles and scope boundaries.
+Before contributing or running coding agents in this repository, review [CONTRIBUTING.md](CONTRIBUTING.md) for full developer and agent contribution workflows, [AGENTS.md](AGENTS.md) for architectural guidelines, security/trading invariants, and verification commands, and [PRODUCT.md](PRODUCT.md) for product principles and scope boundaries.
 
 ### Agent Skills & Workflows
 
-RealizeAlpha provides structured agent skills for roadmap planning, implementation, and documentation synchronization:
+RealizeAlpha provides structured agent skills for roadmap planning, autonomous software factory execution, release auditing, and documentation synchronization:
 
-- **Roadmap Ideation ([`.github/skills/roadmap-ideation/SKILL.md`](.github/skills/roadmap-ideation/SKILL.md)):** Propose evidence-backed roadmap items and link GitHub issues (`> /roadmap-ideation`).
-- **Roadmap Execution ([`.agents/skills/roadmap/SKILL.md`](.agents/skills/roadmap/SKILL.md)):** Implement the highest-priority actionable feature from [ROADMAP.md](ROADMAP.md) end-to-end with tests and docs (`> /roadmap`).
-- **Automated Documentation Sync ([`.github/skills/update-docs/SKILL.md`](.github/skills/update-docs/SKILL.md)):** Increment the app version and synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, and `.github/copilot-instructions.md` (`> /update-docs [nextversion]`).
+- **Autonomous Software Factory ([`.github/skills/software-factory/SKILL.md`](.github/skills/software-factory/SKILL.md)):** Orchestrate full-cycle autonomous software factory pipelines (`ideate -> implement -> critic -> docs -> release-check`), simulation dry-runs, or parallel multi-item batches via `run_workflow` (`> /software-factory` or `./scripts/factory.sh`).
+- **Software Implementation ([`.github/skills/software-implementation/SKILL.md`](.github/skills/software-implementation/SKILL.md)):** Implement the highest-priority actionable feature from [ROADMAP.md](ROADMAP.md) end-to-end with tests, self-healing quality gates, and invariant audits (`> /software-implementation`).
+- **Software Ideation ([`.github/skills/software-ideation/SKILL.md`](.github/skills/software-ideation/SKILL.md)):** Propose evidence-backed roadmap items, score against the Software Factory Readiness Rubric, and link GitHub issues (`> /software-ideation`).
+- **Software Release ([`.github/skills/software-release/SKILL.md`](.github/skills/software-release/SKILL.md)):** Prepare releases, audit safety invariants and roadmap completion, run quality gates, and verify CI/CD deployment (`> /software-release`).
+- **Automated Documentation Sync ([`.github/skills/update-docs/SKILL.md`](.github/skills/update-docs/SKILL.md)):** Synchronize `CHANGELOG.md`, `ROADMAP.md`, `README.md`, `PRODUCT.md`, `docs/`, and `.github/copilot-instructions.md` with automated drift verification (`> /update-docs [nextversion]`).
 
 ## Future Enhancements
 

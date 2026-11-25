@@ -44,9 +44,9 @@ Each tier provides actionable risk descriptions and color-coded status badges.
 - Implemented in `RobinhoodService` (live production endpoints) and `DemoService` (deterministic mock environment for offline and testing workflows).
 
 ### Models & Widgets
-- **Models:** [lib/model/short_interest.dart](src/robinhood_options_mobile/lib/model/short_interest.dart) (`ShortInterest`, `ShortingAvailability`, `ShortInterestSummary`, `ShortSqueezeRisk`, `BorrowCostLevel`).
-- **UI Component:** [lib/widgets/short_interest_widget.dart](src/robinhood_options_mobile/lib/widgets/short_interest_widget.dart) (`ShortInterestWidget`).
-- **Instrument Integration:** Embedded in [lib/widgets/instrument_widget.dart](src/robinhood_options_mobile/lib/widgets/instrument_widget.dart) CustomScrollView slivers for equity instruments.
+- **Models:** [lib/model/short_interest.dart](../src/robinhood_options_mobile/lib/model/short_interest.dart) (`ShortInterest`, `ShortingAvailability`, `ShortInterestSummary`, `ShortSqueezeRisk`, `BorrowCostLevel`).
+- **UI Component:** [lib/widgets/short_interest_widget.dart](../src/robinhood_options_mobile/lib/widgets/short_interest_widget.dart) (`ShortInterestWidget`).
+- **Instrument Integration:** Embedded in [lib/widgets/instrument_widget.dart](../src/robinhood_options_mobile/lib/widgets/instrument_widget.dart) CustomScrollView slivers for equity instruments.
 
 ## Testing & Verification
 

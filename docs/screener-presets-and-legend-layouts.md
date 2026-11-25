@@ -52,7 +52,7 @@ The `PresetsWidget` is accessible directly from the Search screen via the top ap
 
 - **Models**:
   - `RobinhoodScreenerPreset` & `ScreenerPresetCriterion` in [src/robinhood_options_mobile/lib/model/screener_preset.dart](../src/robinhood_options_mobile/lib/model/screener_preset.dart).
-  - `LegendLayout` & `LegendWidgetConfig` in [src/robinhood_options_mobile/lib/model/legend_layout.dart](../src/robinhood_options_mobile/lib/model/legend_layout.dart).
+  - Legend layouts and widget configurations are returned as JSON schema structures via `IBrokerageService`.
 - **Service Layer**:
   - `IBrokerageService` defines:
     - `getScreenerPresets(BrokerageUser user)`

@@ -2,8 +2,6 @@
 
 The **Personal Instrument Notes** feature allows users to maintain private, persistent notes for any specific trading instrument (Stock, Option, Crypto, etc.). This acts as a digital trading journal directly integrated into the quote detail view.
 
-![Instrument Notes UI](../src/robinhood_options_mobile/assets/images/notes_preview.png)
-
 ## Key Features
 
 ### 1. Markdown Support

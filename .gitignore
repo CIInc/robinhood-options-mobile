@@ -45,3 +45,6 @@ app.*.map.json
 
 # Firebase
 .firebase/
+.agents/.factory_*
+.agents/context/*.json
+!.agents/context/*.template.json

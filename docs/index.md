@@ -66,6 +66,7 @@
 - **[Multi-Account Aggregation](index.md#multi-account-aggregation):** Support for viewing aggregated positions across multiple brokerage accounts with navigation controls.
 - **[Model Context Protocol (MCP) Integration](mcp-integration.md):** Secure on-device sandbox client executing localized tools for portfolio inspection, real-time balances, advanced trading strategy executions, and trace views.
 - **[Mobile CI/CD](mobile-ci-setup.md):** Standardized build and deployment workflows for iOS and Android.
+- **[Autonomous AI Software Factory](software-factory.md):** Closed-loop Maker–Verifier–Critic architecture, multi-item parallel workflows (`run_workflow`), automated self-healing quality gates, and Dual-Mode git/issue lifecycle tooling.
 - **[TestFlight Deployment](TESTFLIGHT_DEPLOYMENT.md):** App Store Connect setup and validated iOS deployment workflow.
 - **[Testing Standards](testing-standards.md):** Required UI, state, data-integrity, and regression testing patterns.
 - **[Pattern Day Trader (PDT) Protection & Counter](pdt-protection.md):** Real-time rolling 5-business-day counter for equities and options, visual meters, FINRA Rule 4210 $25,000 equity tracking, and automated Action Center risk alerts.
