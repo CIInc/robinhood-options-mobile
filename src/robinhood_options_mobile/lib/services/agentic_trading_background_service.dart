@@ -288,6 +288,7 @@ class AgenticTradingBackgroundHarness {
     required DocumentReference<app_user.User> userDocRef,
     required AgenticTradingCycleDependencies dependencies,
     required String cycleId,
+    required void Function(String reason) onCycleSkipped,
   })? runAutoTradeCycle;
   final DateTime Function()? nowProvider;
 
@@ -870,6 +871,8 @@ class AgenticTradingBackgroundService {
         requireFreshQuotes: true,
       );
       await _recordLocalEvent(event: 'cycle_invoked', cycleId: cycleId);
+      String? cycleSkipReason;
+      void recordCycleSkip(String reason) => cycleSkipReason = reason;
       if (harness?.runAutoTradeCycle != null) {
         await harness!.runAutoTradeCycle!(
           provider: provider,
@@ -877,6 +880,7 @@ class AgenticTradingBackgroundService {
           userDocRef: userDocRef,
           dependencies: dependencies,
           cycleId: cycleId,
+          onCycleSkipped: recordCycleSkip,
         );
       } else {
         await provider.runAutoTradeCycle(
@@ -886,7 +890,16 @@ class AgenticTradingBackgroundService {
           trigger: 'background',
           cycleId: cycleId,
           logStarted: false,
+          onCycleSkipped: recordCycleSkip,
         );
+      }
+      if (cycleSkipReason != null) {
+        await _recordLocalEvent(
+          event: 'cycle_not_started',
+          reason: cycleSkipReason,
+          cycleId: cycleId,
+        );
+        return false;
       }
       await _recordLocalEvent(event: 'cycle_returned', cycleId: cycleId);
       return true;

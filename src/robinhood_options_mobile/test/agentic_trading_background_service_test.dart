@@ -707,6 +707,7 @@ void main() {
             required DocumentReference<app_user.User> userDocRef,
             required AgenticTradingCycleDependencies dependencies,
             required String cycleId,
+            required void Function(String reason) onCycleSkipped,
           }) async {
             cycleInvoked = true;
           },
@@ -724,8 +725,7 @@ void main() {
       );
     });
 
-    test(
-        'invokes cycle with requireFreshQuotes when position quotes are fresh during market hours',
+    test('requests retry when a fresh-quote background cycle is lease-blocked',
         () async {
       final firestore = FakeFirebaseFirestore();
       final userRef = firestore.collection('user').doc('fresh-u1');
@@ -780,18 +780,25 @@ void main() {
             required DocumentReference<app_user.User> userDocRef,
             required AgenticTradingCycleDependencies dependencies,
             required String cycleId,
+            required void Function(String reason) onCycleSkipped,
           }) async {
             capturedRequireFreshQuotes = dependencies.requireFreshQuotes;
+            onCycleSkipped('lease_held');
           },
           nowProvider: () => now,
         ),
       );
 
-      expect(result, isTrue);
+      expect(result, isFalse);
       expect(capturedRequireFreshQuotes, isTrue);
       final journal = await AgenticTradingRunJournal.recent(limit: 20);
       expect(journal.any((e) => e['event'] == 'cycle_invoked'), isTrue);
-      expect(journal.any((e) => e['event'] == 'cycle_returned'), isTrue);
+      expect(
+        journal.any((e) =>
+            e['event'] == 'cycle_not_started' && e['reason'] == 'lease_held'),
+        isTrue,
+      );
+      expect(journal.any((e) => e['event'] == 'cycle_returned'), isFalse);
     });
   });
 }

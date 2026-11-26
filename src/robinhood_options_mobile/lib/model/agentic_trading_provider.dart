@@ -909,6 +909,7 @@ class AgenticTradingProvider with ChangeNotifier {
     String trigger = 'foreground',
     String? cycleId,
     bool logStarted = true,
+    void Function(String reason)? onCycleSkipped,
   }) async {
     final diagnosticCycleId = cycleId ?? createCycleDiagnosticId();
     final cycleStartedAt = DateTime.now();
@@ -936,6 +937,7 @@ class AgenticTradingProvider with ChangeNotifier {
         tradingMode: _config.tradingMode.name,
         quoteSource: _config.paperQuoteSource.name,
       );
+      onCycleSkipped?.call('cycle_in_progress');
       return;
     }
 
@@ -950,6 +952,7 @@ class AgenticTradingProvider with ChangeNotifier {
         tradingMode: _config.tradingMode.name,
         quoteSource: _config.paperQuoteSource.name,
       );
+      onCycleSkipped?.call(leaseClaim.failureReason!);
       return;
     }
 

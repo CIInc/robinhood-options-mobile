@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.62.8] - 2026-11-25
+
+**Reliable Background Cycle Retry on Lease Contention**
+
+### Fixed
+- Background auto-trading now requests an OS retry when a cycle cannot start because another foreground/background cycle is active or holds the shared lease. Cycles that acquire the lease are not retried after execution, avoiding duplicate brokerage submissions with unknown outcomes.
+- Background diagnostics distinguish a skipped cycle (`cycle_not_started`) from a completed cycle.
+
 ## [0.62.7] - 2026-11-24
 
 **Advanced Position Sizing Modes, Cumulative Concentration Limits & Sizing Simulator**

@@ -1744,6 +1744,14 @@ void main() {
       expect(blockedLease.owner, isNull);
       expect(blockedLease.failureReason, 'lease_held');
 
+      String? skipReason;
+      await provider.runAutoTradeCycle(
+        brokerageService: FakeBrokerageService(),
+        userDocRef: userRef,
+        onCycleSkipped: (reason) => skipReason = reason,
+      );
+      expect(skipReason, 'lease_held');
+
       await provider.releaseAutoTradeCycleLease(userRef, firstLease.owner!);
 
       final nextLease = await provider.claimAutoTradeCycleLease(userRef);
